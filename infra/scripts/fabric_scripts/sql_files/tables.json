@@ -1,0 +1,40 @@
+{
+    "tables": [
+        {
+            "tablename":"customer", 
+            "columns": ["CustomerId", "CustomerTypeId", "CustomerRelationshipTypeId", "DateOfBirth", "CustomerEstablishedDate", "IsActive", "FirstName", "LastName", "Gender", "PrimaryPhone", "SecondaryPhone", "PrimaryEmail", "SecondaryEmail", "CreatedBy", "GoldLoadTimestamp"]
+        },
+        {
+            "tablename":"customeraccount",
+            "columns":["CustomerAccountId", "ParentAccountId", "CustomerAccountName", "CustomerId", "IsoCurrencyCode", "UpdatedBy", "GoldLoadTimestamp"]
+        },
+        {
+            "tablename":"customerrelationshiptype", 
+            "columns":["CustomerRelationshipTypeId", "CustomerRelationshipTypeName", "CustomerRelationshipTypeDescription", "GoldLoadTimestamp"]
+        },
+        {
+            "tablename":"location",
+            "columns":["LocationId", "CustomerId","LocationName", "IsActive", "AddressLine1", "AddressLine2", "City", "StateId", "ZipCode", "CountryId", "SubdivisionName" , "Region", "Latitude", "Longitude", "Note", "UpdBy","GoldLoadTimestamp"]
+        }, 
+        {
+            "tablename":"orderline",
+            "columns":["OrderId", "OrderLineNumber" ,"ProductId" ,"ProductName" ,"Quantity" ,"UnitPrice" ,"LineTotal" ,"DiscountAmount" ,"TaxAmount"]
+        },
+        {
+            "tablename":"orderpayment",
+            "columns":["OrderId", "PaymentMethod", "TransactionId"]
+        },
+        {
+            "tablename":"orders",
+            "columns":["OrderId", "SalesChannelId", "OrderNumber", "CustomerId", "CustomerAccountId", "OrderDate", "OrderStatus", "SubTotal", "TaxAmount", "OrderTotal", "PaymentMethod", "IsoCurrencyCode", "CreatedBy"]
+        },
+        {
+            "tablename":"product",
+            "columns":["ProductID","Name", "Color", "StandardCost", "ListPrice", "Size", "Weight", "CategoryID", "CategoryName", "UpdatedBy", "ProductName", "ProductDescription", "BrandName","ProductNumber", "ProductModel", "ProductCategoryID", "WeightUom", "ProductStatus", "CreatedDate", "SellStartDate", "SellEndDate", "IsoCurrencyCode", "UpdatedDate", "CreatedBy", "GoldLoadTimestamp"]
+        },
+        {
+            "tablename":"productcategory",
+            "columns":["CategoryID", "ParentCategoryId","CategoryName","CategoryDescription","BrandName","BrandLogoUrl","IsActive", "GoldLoadTimestamp"]
+        }
+    ]
+}

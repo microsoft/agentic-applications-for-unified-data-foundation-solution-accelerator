@@ -1,0 +1,2 @@
+azure-identity==1.23.0
+pyodbc==5.2.0
