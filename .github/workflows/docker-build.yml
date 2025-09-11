@@ -3,7 +3,7 @@ name: Build Docker and Optional Push - Agentic Applications
 on:
   push:
     branches:
-      - rcazdpipeline
+      - main
       - dev
       - demo
   pull_request:
@@ -13,7 +13,7 @@ on:
       - reopened
       - synchronize
     branches:
-      - rcazdpipeline
+      - main
       - dev
       - demo
   workflow_dispatch:
@@ -30,7 +30,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Azure Container Registry
-        if: ${{ (github.event_name == 'push' && (github.ref_name == 'rcazdpipeline' || github.ref_name == 'dev' || github.ref_name == 'demo')) || (github.event_name == 'workflow_dispatch' && (github.ref_name == 'dependabotchanges'||github.ref_name == 'rcazdpipeline' || github.ref_name == 'dev' || github.ref_name == 'demo')) }}
+        if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo')) || (github.event_name == 'workflow_dispatch' && (github.ref_name == 'dependabotchanges'||github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo')) }}
         uses: azure/docker-login@v2 
         with:
           login-server: ${{ secrets.ACR_LOGIN_SERVER }}
@@ -48,7 +48,7 @@ jobs:
       - name: Determine Tag Name Based on Branch
         id: determine_tag
         run: |
-         if [[ "${{ github.ref_name }}" == "rcazdpipeline" ]]; then
+         if [[ "${{ github.ref_name }}" == "main" ]]; then
           echo "tagname=latest" >> $GITHUB_OUTPUT
          elif [[ "${{ github.ref_name }}" == "dev" ]]; then
           echo "tagname=dev" >> $GITHUB_OUTPUT
@@ -65,7 +65,7 @@ jobs:
         with:
           context: ./src/App
           file: ./src/App/WebApp.Dockerfile
-          push: ${{ github.ref_name == 'rcazdpipeline' || github.ref_name == 'dev' || github.ref_name == 'demo'  || github.ref_name == 'dependabotchanges'  }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'  || github.ref_name == 'dependabotchanges'  }}
           tags: |
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-app:${{ steps.determine_tag.outputs.tagname }}
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-app:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
@@ -75,7 +75,7 @@ jobs:
         with:
           context: ./src/api
           file: ./src/api/ApiApp.Dockerfile
-          push: ${{ github.ref_name == 'rcazdpipeline' || github.ref_name == 'dev' || github.ref_name == 'demo'  || github.ref_name == 'dependabotchanges' }}
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'  || github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api:${{ steps.determine_tag.outputs.tagname }}
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
