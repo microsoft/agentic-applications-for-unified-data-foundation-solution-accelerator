@@ -202,34 +202,6 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-pre
   properties: {}
 }
 
-// resource aiproject_aisearch_connection_new 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (empty(azureExistingAIProjectResourceId)) {
-//   name: aiSearchConnectionName
-//   parent: aiProject
-//   properties: {
-//     category: 'CognitiveSearch'
-//     target: 'https://${aiSearchName}.search.windows.net'
-//     authType: 'AAD'
-//     isSharedToAll: true
-//     metadata: {
-//       ApiType: 'Azure'
-//       ResourceId: aiSearch.id
-//       location: aiSearch.location
-//     }
-//   }
-// }
-
-// module existing_AIProject_SearchConnectionModule 'deploy_aifp_aisearch_connection.bicep' = if (!empty(azureExistingAIProjectResourceId)) {
-//   name: 'aiProjectSearchConnectionDeployment'
-//   scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
-//   params: {
-//     existingAIProjectName: existingAIProjectName
-//     existingAIServicesName: existingAIServicesName
-//     aiSearchName: aiSearchName
-//     aiSearchResourceId: aiSearch.id
-//     aiSearchLocation: aiSearch.location
-//     aiSearchConnectionName: aiSearchConnectionName
-//   }
-// }
 
 resource aiUser 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   name: '53ca6127-db72-4b80-b1b0-d745d6d5456d'

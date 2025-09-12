@@ -8,15 +8,11 @@ import logging
 import os
 import random
 import re
-import struct
 import time
 import uuid
-from datetime import datetime
 from types import SimpleNamespace
-from typing import Any, Dict, Annotated, AsyncGenerator
+from typing import Annotated, AsyncGenerator
 
-import pyodbc
-import httpx
 from cachetools import TTLCache
 from dotenv import load_dotenv
 from fastapi import APIRouter, Request, HTTPException, status
@@ -36,7 +32,7 @@ from semantic_kernel.exceptions.agent_exceptions import AgentException
 from semantic_kernel.functions.kernel_function_decorator import kernel_function
 
 # Azure Auth
-from auth.azure_credential_utils import get_azure_credential, get_azure_credential_async
+from auth.azure_credential_utils import get_azure_credential
 
 load_dotenv()
 
@@ -74,6 +70,7 @@ logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
     logging.WARNING
 )
 
+
 class ChatWithDataPlugin:
     """Plugin for handling chat interactions with data using various AI agents."""
 
@@ -108,7 +105,7 @@ class ChatWithDataPlugin:
                 credential=get_azure_credential(),
                 api_version=self.ai_project_api_version,
             )
-           
+
             thread = project_client.agents.threads.create()
 
             project_client.agents.messages.create(
@@ -119,7 +116,7 @@ class ChatWithDataPlugin:
 
             run = project_client.agents.runs.create_and_process(
                 thread_id=thread.id,
-                agent_id=self.foundry_sql_agent_id, 
+                agent_id=self.foundry_sql_agent_id,
             )
 
             if run.status == "failed":
@@ -189,7 +186,7 @@ class ChatWithDataPlugin:
         except Exception as e:
             print(f"fabric-Chat-Kernel-error: {e}", flush=True)
             chartdata = 'Details could not be retrieved. Please try again later.'
-        
+
         print(f"fabric-Chat-Kernel-response: {chartdata}", flush=True)
         return chartdata
 
@@ -210,7 +207,7 @@ class ChatWithDataPlugin:
     #     answer: Dict[str, Any] = {"answer": "", "citations": []}
     #     agent = None
 
-    #     try:            
+    #     try:
     #         # Get the fabric agent
     #         print("FABRIC-CustomerSalesKernel", flush=True)
     #         agent_info = await AgentFactory.get_agent(AgentType.FABRIC)
@@ -249,7 +246,7 @@ class ChatWithDataPlugin:
     #             #             new_index = int(parts[1]) + 1
     #             #             return f"[{new_index}]"
     #             #         return match.group(0)
-                    
+
     #             #     return re.sub(r'【\s*(\d+:\d+)\s*†source】', replace_marker, text)
 
     #             # Check the response structure
@@ -265,7 +262,7 @@ class ChatWithDataPlugin:
     #             #     raise
 
     #             try:
-    #                 messages = project_client.agents.messages.list(thread_id=thread.id, order=ListSortOrder.ASCENDING)                    
+    #                 messages = project_client.agents.messages.list(thread_id=thread.id, order=ListSortOrder.ASCENDING)
     #                 for msg in messages:
     #                     if msg.role == MessageRole.AGENT and msg.text_messages:
     #                         raw_answer = msg.text_messages[-1].text.value
@@ -280,15 +277,15 @@ class ChatWithDataPlugin:
 
     #             logging.info(f"FABRIC-CustomerSalesKernel-Thread ID: {thread.id}, Run ID: {run.id}")
     #             # project_client.agents.threads.delete(thread_id=thread.id)
-                
+
     #         if not answer["answer"]:
     #             answer["answer"] = "I couldn't find specific information about customer sales. Please try rephrasing your question."
-                
+
     #     except Exception as e:
     #         logging.error(f"Full error details: {repr(e)}")
     #         import traceback
     #         return {"answer": "Details could not be retrieved. Please try again later.", "citations": []}
-        
+
     #     print(f"FABRIC-CustomerSalesKernel-Answer: %s" % answer, flush=True)
     #     return answer
 
@@ -607,86 +604,3 @@ async def conversation(request: Request):
             span.record_exception(ex)
             span.set_status(Status(StatusCode.ERROR, str(ex)))
         return JSONResponse(content={"error": "An internal error occurred while processing the conversation."}, status_code=500)
-
-
-@router.get("/layout-config")
-async def get_layout_config():
-    """Get application layout configuration from environment variables."""
-    layout_config_str = os.getenv("REACT_APP_LAYOUT_CONFIG", "")
-    if layout_config_str:
-        try:
-            layout_config_json = json.loads(layout_config_str)
-            track_event_if_configured("LayoutConfigFetched", {"status": "success"})  # Parse the string into JSON
-            return JSONResponse(content=layout_config_json)    # Return the parsed JSON
-        except json.JSONDecodeError as e:
-            logger.exception("Failed to parse layout config JSON: %s", str(e))
-            span = trace.get_current_span()
-            if span is not None:
-                span.record_exception(e)
-                span.set_status(Status(StatusCode.ERROR, str(e)))
-            return JSONResponse(content={"error": "Invalid layout configuration format."}, status_code=400)
-    track_event_if_configured("LayoutConfigNotFound", {})
-    return JSONResponse(content={"error": "Layout config not found in environment variables"}, status_code=400)
-
-
-@router.get("/display-chart-default")
-async def get_chart_config():
-    """Get default chart display configuration from environment variables."""
-    chart_config = os.getenv("DISPLAY_CHART_DEFAULT", "")
-    if chart_config:
-        track_event_if_configured("ChartDisplayDefaultFetched", {"value": chart_config})
-        return JSONResponse(content={"isChartDisplayDefault": chart_config})
-    track_event_if_configured("ChartDisplayDefaultNotFound", {})
-    return JSONResponse(content={"error": "DISPLAY_CHART_DEFAULT flag not found in environment variables"}, status_code=400)
-
-
-@router.post("/fetch-azure-search-content")
-async def fetch_azure_search_content_endpoint(request: Request):
-    """
-    API endpoint to fetch content from a given URL using the Azure AI Search API.
-    Expects a JSON payload with a 'url' field.
-    """
-    try:
-        # Parse the request JSON
-        request_json = await request.json()
-        url = request_json.get("url")
-
-        if not url:
-            return JSONResponse(content={"error": "URL is required"}, status_code=400)
-
-        # Get Azure AD token
-        credential = get_azure_credential_async()
-        token = await credential.get_token("https://search.azure.com/.default")
-        access_token = token.token
-
-        async def fetch_content():
-            try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(
-                        url,
-                        headers={
-                            "Authorization": f"Bearer {access_token}",
-                            "Content-Type": "application/json"
-                        },
-                        timeout=10
-                    )
-                    if response.status_code == 200:
-                        data = response.json()
-                        content = data.get("content", "")
-                        return content
-                    else:
-                        return f"Error: HTTP {response.status_code}"
-            except Exception:
-                logger.exception("Exception occurred while making the HTTP request")
-                return "Error: Unable to fetch content"
-
-        content = await fetch_content()
-
-        return JSONResponse(content={"content": content})
-
-    except Exception:
-        logger.exception("Error in fetch_azure_search_content_endpoint")
-        return JSONResponse(
-            content={"error": "Internal server error"},
-            status_code=500
-        )

@@ -9,6 +9,10 @@
             "columns":["CustomerAccountId", "ParentAccountId", "CustomerAccountName", "CustomerId", "IsoCurrencyCode", "UpdatedBy", "GoldLoadTimestamp"]
         },
         {
+            "tablename":"customertradename", 
+            "columns": ["CustomerId", "CustomerTypeId",  "TradeNameId",  "TradeName",  "PeriodStartDate",  "PeriodEndDate",  "CustomerTradeNameNote",  "UpdatedBy",  "GoldLoadTimestamp"]
+        },
+        {
             "tablename":"customerrelationshiptype", 
             "columns":["CustomerRelationshipTypeId", "CustomerRelationshipTypeName", "CustomerRelationshipTypeDescription", "GoldLoadTimestamp"]
         },
@@ -35,6 +39,18 @@
         {
             "tablename":"productcategory",
             "columns":["CategoryID", "ParentCategoryId","CategoryName","CategoryDescription","BrandName","BrandLogoUrl","IsActive", "GoldLoadTimestamp"]
+        }, 
+        {
+            "tablename":"account",
+            "columns": ["AccountId", "AccountNumber", "CustomerId", "AccountType", "AccountStatus", "CreatedDate", "CreatedBy", "GoldLoadTimestamp"]
+        },
+        {
+            "tablename":"invoice", 
+            "columns": ["InvoiceId",  "InvoiceNumber",  "CustomerId",  "OrderId",  "InvoiceDate",  "DueDate", "SubTotal ",  "TaxAmount ", "TotalAmount ",  "InvoiceStatus",  "CreatedBy",  "GoldLoadTimestamp"]
+        },
+        {
+            "tablename":"payment", 
+            "columns": ["PaymentId", "PaymentNumber", "InvoiceId", "OrderId", "PaymentDate", "PaymentAmount ", "PaymentStatus", "PaymentMethod", "CreatedBy", "GoldLoadTimestamp"]
         }
     ]
 }

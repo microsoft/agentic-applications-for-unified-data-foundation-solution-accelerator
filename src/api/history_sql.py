@@ -104,7 +104,7 @@ async def get_fabric_db_connection():
             # connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};UID={api_uid};Authentication=ActiveDirectoryMSI;"
             connection_string = fabric_sql_connection_string
             conn = pyodbc.connect(connection_string)
-        
+
         return conn
     except pyodbc.Error as e:
         logging.info("FABRIC-SQL:Failed to connect Fabric SQL Database: %s", e)
@@ -137,7 +137,7 @@ async def run_query_and_return_json(sql_query: str):
                 else:
                     row_dict[col_name] = value
             result.append(row_dict)
-       
+
         return json.dumps(result, indent=2)
     except Exception as e:
         logging.error("Error executing SQL query: %s", e)
@@ -250,6 +250,7 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
             cursor.close()
         conn.close()
 
+
 async def execute_sql_query(sql_query):
     """
     Executes a given SQL query and returns the result as a concatenated string.
@@ -260,7 +261,7 @@ async def execute_sql_query(sql_query):
         cursor = conn.cursor()
         cursor.execute(sql_query)
         result = ''.join(str(row) for row in cursor.fetchall())
-        
+
         return result
     except Exception as e:
         logging.error("Error executing SQL query: %s", e)
@@ -268,7 +269,7 @@ async def execute_sql_query(sql_query):
     finally:
         if cursor:
             cursor.close()
-        conn.close() 
+        conn.close()
 
 # Configuration variable
 USE_CHAT_HISTORY_ENABLED = os.getenv("USE_CHAT_HISTORY_ENABLED", "true").lower() == "true"
@@ -382,7 +383,7 @@ async def delete_conversation(user_id: str, conversation_id: str) -> bool:
             return False
 
         query = "SELECT userId, conversation_id FROM hst_conversations where conversation_id = ?"
-        conversation = await run_query_params(query, (conversation_id,))        
+        conversation = await run_query_params(query, (conversation_id,))
         if not conversation or len(conversation) == 0:
             logger.warning("Conversation %s not found.", conversation_id)
             return False
@@ -392,7 +393,7 @@ async def delete_conversation(user_id: str, conversation_id: str) -> bool:
             logger.warning(
                 "User %s does not have permission to delete %s.", user_id, conversation_id)
             return False
-        
+
         if user_id:
             # Prepare parameters for deletion
             params = (user_id, conversation_id)
@@ -431,7 +432,7 @@ async def delete_all_conversations(user_id: str) -> bool:
         bool: True if all conversations were successfully deleted, False otherwise.
     """
     try:
-        
+
         if user_id:
             # Delete all associated messages
             query_m = "DELETE FROM hst_conversation_messages WHERE userId = ?"
@@ -593,7 +594,7 @@ async def create_conversation(user_id, title="", conversation_id=None):
     Raises:
         Exception: If an error occurs during conversation creation.
     """
-    try:        
+    try:
         # if not user_id:
         #     logger.warning("No User ID found, cannot create conversation.")
         #     return None
@@ -648,9 +649,9 @@ async def create_message(uuid, conversation_id, user_id, input_message: dict):
         exist_conversation = await run_query_params(query, (conversation_id,))
         if not exist_conversation or len(exist_conversation) == 0:
             logger.error("Conversation not found for ID: %s", conversation_id)
-            return None        
+            return None
 
-        utc_now = datetime.utcnow().isoformat()       
+        utc_now = datetime.utcnow().isoformat()
         feedback = ""
 
         # Extract citations from input_message
@@ -683,7 +684,7 @@ async def create_message(uuid, conversation_id, user_id, input_message: dict):
         params = (user_id, conversation_id, input_message["role"], input_message["id"],
                   content, citations_json, feedback, utc_now, utc_now)
         resp = await run_nonquery_params(query, params)
-        
+
         if resp:
             # Update the conversation's updatedAt timestamp
             query_t = "UPDATE hst_conversations SET updatedAt = ? WHERE conversation_id = ?"
@@ -692,7 +693,7 @@ async def create_message(uuid, conversation_id, user_id, input_message: dict):
             return resp
         else:
             return False
-        
+
     except Exception:
         logger.exception("Error in create_message")
         raise
@@ -728,7 +729,7 @@ async def update_conversation(user_id: str, request_json: dict):
         if not conversation or len(conversation) == 0:
             title = await generate_title(messages)
             await create_conversation(user_id=user_id, conversation_id=conversation_id, title=title)
-            
+
         messages = request_json["messages"]
         if len(messages) > 0 and messages[0]["role"] == "user":
             user_message = next(
@@ -881,7 +882,7 @@ async def get_conversation_messages_endpoint(request: Request, id: str = Query(.
             raise HTTPException(status_code=400, detail="conversation_id is required")
 
         # Get conversation message details
-        conversationMessages = await get_conversation_messages(user_id, conversation_id)        
+        conversationMessages = await get_conversation_messages(user_id, conversation_id)
         if not conversationMessages or len(conversationMessages) == 0:
             if user_id:
                 track_event_if_configured("ReadConversationNotFound", {

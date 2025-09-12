@@ -1,6 +1,6 @@
 ## Technical Architecture
 
-This section outlines the components and interactions that power the unifed data analysis platform. The architecture ingests customer information, product details and order history and surfaces insights via an interactive web experience.
+This section outlines the components and interactions that powers the unifed data analysis platform. The architecture ingests customer information, product details and order history and surfaces insights via an interactive web experience.
 
 ![image](./Images/ReadMe/solution-architecture.png)
 

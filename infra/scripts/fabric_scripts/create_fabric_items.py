@@ -27,8 +27,8 @@ def get_fabric_headers():
 
 fabric_headers = get_fabric_headers()
 
-lakehouse_name = 'lakehouse_' + solutionname
-sqldb_name = 'sqldatabase_' + solutionname
+lakehouse_name = 'retail_lakehouse_' + solutionname
+sqldb_name = 'retail_sqldatabase_' + solutionname
 pipeline_name = 'data_pipeline_' + solutionname
 
 # print("workspace id: " ,workspaceId)
@@ -47,6 +47,38 @@ lakehouse_data = {
 lakehouse_res = requests.post(fabric_items_url, headers=fabric_headers, json=lakehouse_data)
 # print(lakehouse_res.json())
 lakehouseId = lakehouse_res.json()['id']
+
+
+# copy local files to lakehouse
+from azure.storage.filedatalake import (
+    DataLakeServiceClient
+)
+from azure.identity import AzureCliCredential
+credential = AzureCliCredential()
+
+account_name = "onelake" #always onelake
+data_path = f"{lakehouse_name}.Lakehouse/Files/"
+folder_path = "/"
+
+account_url = f"https://{account_name}.dfs.fabric.microsoft.com"
+service_client = DataLakeServiceClient(account_url, credential=credential)
+
+# # get workspace name
+ws_res = requests.get(fabric_base_url, headers=fabric_headers)
+# print(ws_res.json())
+workspace_name = ws_res.json()['displayName']
+
+#Create a file system client for the workspace
+file_system_client = service_client.get_file_system_client(workspace_name)
+
+directory_client = file_system_client.get_directory_client(f"{data_path}/{folder_path}")
+
+print('uploading files')
+# upload audio files
+file_client = directory_client.get_file_client("data/" + 'tables.json')
+with open(file='sql_files/tables.json', mode="rb") as data:
+        # print('data', data)
+    file_client.upload_data(data, overwrite=True)
 
 
 fabric_headers = get_fabric_headers()
@@ -144,6 +176,31 @@ with open(sql_filename, 'r', encoding='utf-8') as f:
 cursor.commit()
 conn.close()    
 
+
+import json
+
+file_path = "sql_files/tables.json"
+
+time.sleep(120)
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+for table in data['tables']:
+    # # create shortcut for lakehouse 
+    fabric_shortcuts_url = f"https://api.fabric.microsoft.com/v1/workspaces/{workspaceId}/items/{lakehouseId}/shortcuts?shortcutConflictPolicy=CreateOrOverwrite"
+    shortcut_lh ={
+        "path": "/Tables",
+        "name": table['tablename'],
+        "target": {
+            "oneLake": {
+                "workspaceId": workspaceId,
+                "itemId": sqldb_id,
+                "path": f"Tables/dbo/{table['tablename']}"
+            }
+        }
+    }
+    shortcut_res = requests.post(fabric_shortcuts_url, headers=fabric_headers, json=shortcut_lh)
+    print('shortcut: ',shortcut_res.json())
 # fabric_headers = get_fabric_headers()
 
 # # get connection Id
