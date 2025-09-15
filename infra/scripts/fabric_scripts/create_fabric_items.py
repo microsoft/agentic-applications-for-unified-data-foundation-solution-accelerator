@@ -174,7 +174,6 @@ with open(sql_filename, 'r', encoding='utf-8') as f:
     sql_script = f.read()
     cursor.execute(sql_script)
 cursor.commit()
-conn.close()    
 
 
 import json
@@ -201,6 +200,24 @@ for table in data['tables']:
     }
     shortcut_res = requests.post(fabric_shortcuts_url, headers=fabric_headers, json=shortcut_lh)
     print('shortcut: ',shortcut_res.json())
+
+from datetime import datetime, timedelta
+
+# Adjust dates to current date
+today = datetime.today()
+cursor.execute("SELECT MAX(CAST(OrderDate AS DATETIME)) FROM dbo.orders")
+max_start_time = cursor.fetchone()[0]
+days_difference = (today - max_start_time).days - 1 if max_start_time else 0
+
+cursor.execute("UPDATE [dbo].[orders] SET OrderDate = FORMAT(DATEADD(DAY, ?, OrderDate), 'yyyy-MM-dd')", (days_difference))
+cursor.execute("UPDATE [dbo].[invoice] SET InvoiceDate = FORMAT(DATEADD(DAY, ?, InvoiceDate), 'yyyy-MM-dd'), DueDate = FORMAT(DATEADD(DAY, ?, DueDate), 'yyyy-MM-dd')", (days_difference, days_difference))
+cursor.execute("UPDATE [dbo].[payment] SET PaymentDate = FORMAT(DATEADD(DAY, ?, PaymentDate), 'yyyy-MM-dd')", (days_difference))
+conn.commit()
+
+print("Dates adjusted to current date.")
+
+cursor.close()
+conn.close()
 # fabric_headers = get_fabric_headers()
 
 # # get connection Id

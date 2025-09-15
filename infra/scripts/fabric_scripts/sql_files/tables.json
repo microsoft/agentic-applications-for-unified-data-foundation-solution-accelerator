@@ -18,23 +18,23 @@
         },
         {
             "tablename":"location",
-            "columns":["LocationId", "CustomerId","LocationName", "IsActive", "AddressLine1", "AddressLine2", "City", "StateId", "ZipCode", "CountryId", "SubdivisionName" , "Region", "Latitude", "Longitude", "Note", "UpdBy","GoldLoadTimestamp"]
+            "columns":["LocationId", "CustomerId","LocationName", "IsActive", "AddressLine1", "AddressLine2", "City", "StateId", "ZipCode", "CountryId", "SubdivisionName" , "Region", "Latitude", "Longitude", "Note", "UpdatedBy","GoldLoadTimestamp"]
         }, 
         {
             "tablename":"orderline",
-            "columns":["OrderId", "OrderLineNumber" ,"ProductId" ,"ProductName" ,"Quantity" ,"UnitPrice" ,"LineTotal" ,"DiscountAmount" ,"TaxAmount"]
+            "columns":["OrderId", "OrderLineNumber" ,"ProductId" ,"ProductName" ,"Quantity" ,"UnitPrice" ,"LineTotal" ,"DiscountAmount" ,"TaxAmount", "GoldLoadTimestamp"]
         },
         {
             "tablename":"orderpayment",
-            "columns":["OrderId", "PaymentMethod", "TransactionId"]
+            "columns":["OrderId", "PaymentMethod", "TransactionId", "GoldLoadTimestamp"]
         },
         {
             "tablename":"orders",
-            "columns":["OrderId", "SalesChannelId", "OrderNumber", "CustomerId", "CustomerAccountId", "OrderDate", "OrderStatus", "SubTotal", "TaxAmount", "OrderTotal", "PaymentMethod", "IsoCurrencyCode", "CreatedBy"]
+            "columns":["OrderId", "SalesChannelId", "OrderNumber", "CustomerId", "CustomerAccountId", "OrderDate", "OrderStatus", "SubTotal", "TaxAmount", "OrderTotal", "PaymentMethod", "IsoCurrencyCode", "CreatedBy", "GoldLoadTimestamp"]
         },
         {
             "tablename":"product",
-            "columns":["ProductID","Name", "Color", "StandardCost", "ListPrice", "Size", "Weight", "CategoryID", "CategoryName", "UpdatedBy", "ProductName", "ProductDescription", "BrandName","ProductNumber", "ProductModel", "ProductCategoryID", "WeightUom", "ProductStatus", "CreatedDate", "SellStartDate", "SellEndDate", "IsoCurrencyCode", "UpdatedDate", "CreatedBy", "GoldLoadTimestamp"]
+            "columns":["ProductID", "Color", "StandardCost", "ListPrice", "Weight", "CategoryName", "UpdatedBy", "ProductName", "ProductDescription", "BrandName","ProductNumber", "ProductModel", "ProductCategoryID", "WeightUom", "ProductStatus", "CreatedDate", "SellStartDate", "SellEndDate", "IsoCurrencyCode", "UpdatedDate", "CreatedBy", "GoldLoadTimestamp"]
         },
         {
             "tablename":"productcategory",
