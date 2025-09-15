@@ -59,7 +59,7 @@ Follow the quick deploy steps on the deployment guide to deploy this solution to
 <br/><br/>
 
 
-| [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/nchandhi/ncdatarepo1) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/nchandhi/ncdatarepo1) | 
+| [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator) | 
 |---|---|
 
 <br/>
@@ -161,8 +161,7 @@ Check out similar solution accelerators
 
 | Solution Accelerator | Description |
 |---|---|
-| [Document&nbsp;knowledge&nbsp;mining](https://github.com/microsoft/Document-Knowledge-Mining-Solution-Accelerator) | 	Identify relevant documents, summarize unstructured information, and generate document templates. |
-| [Content&nbsp;processing](https://github.com/microsoft/document-generation-solution-accelerator) | Extracts data from multi-modal content, maps it to schemas with confidence scoring and user validation, and enables accurate processing of documents like contracts, claims, and invoices. |
+| [Unified&nbsp;data&nbsp;foundation&nbsp;with&nbsp;Fabric](https://github.com/microsoft/unified-data-foundation-with-fabric-solution-accelerator) | Provides a unified data foundation with integrated data architecture leveraging Microsoft Fabric, Microsoft Purview, and Azure Databricks to deliver a unified, integrated, and governed analytics platform. |
 
 
 <br/>
@@ -170,7 +169,7 @@ Check out similar solution accelerators
 
 ## Provide feedback
 
-Have questions, find a bug, or want to request a feature? [Submit a new issue](https://github.com/nchandhi/ncdatarepo1/issues) on this repo and we'll connect.
+Have questions, find a bug, or want to request a feature? [Submit a new issue](https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator/issues) on this repo and we'll connect.
 
 <br/>
 
