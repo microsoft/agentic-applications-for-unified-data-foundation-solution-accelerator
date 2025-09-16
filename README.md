@@ -1,5 +1,7 @@
 # Agentic Applications for Unified Data Foundation
 
+<br/>
+This solution accelerator empowers organizations to make faster, smarter decisions at scale by leveraging agentic AI solutions built on a unified data foundation with Microsoft Fabric. With seamless integration of Azure AI Foundry agents and Semantic Kernel orchestration, teams can design intelligent workflows that automate routine processes, streamline operations, and enable natural language querying across enterprise datasets. This ensures that governed, high-quality data is accessible not only to technical specialists but also to business users, creating a shared environment where insights are surfaced more easily and decisions are grounded in trusted information. By unifying data access and applying AI in the flow of work, organizations gain the agility to respond rapidly to changing business needs, foster collaboration across teams, and drive innovation with greater confidence.
 
 <br/>
 
@@ -14,7 +16,8 @@
 Solution overview
 </h2>
 
-This solution accelerator empowers organizations to make faster, smarter decisions at scale by leveraging agentic AI solutions built on a unified data foundation with Microsoft Fabric. With seamless integration of Azure AI Foundry agents and Semantic Kernel orchestration, teams can design intelligent workflows that automate routine processes, streamline operations, and enable natural language querying across enterprise datasets. This ensures that governed, high-quality data is accessible not only to technical specialists but also to business users, creating a shared environment where insights are surfaced more easily and decisions are grounded in trusted information. By unifying data access and applying AI in the flow of work, organizations gain the agility to respond rapidly to changing business needs, foster collaboration across teams, and drive innovation with greater confidence.
+
+Leverages the Unified Data Foundation in Fabric accelerator, SQL Database in Fabric, Semantic Kernel, and AI Foundry to query structured data. Structured data sets are analyzed through intelligent and orchestrated responses powered by an interactive web front-end for exploring semantic models and data assets. Insights are generated using natural language.
 
 ### Solution architecture
 |![image](./documents/Images/ReadMe/solution-architecture.png)|
@@ -31,24 +34,14 @@ This solution accelerator empowers organizations to make faster, smarter decisio
 <summary>Click to learn more about the key features this solution enables</summary>  
 
 **Built on Microsoft Fabric + Azure AI Foundry**
-- **Mined entities and relationships** <br/>  
+- **Unified data foundation with Fabric** <br/>  
 Leverage the foundational capabilities of Microsoft Fabric and a Unified Data Foundation to build intelligent agents that stand apart in orchestration, retrieval, and user experience
 
-- **Processed data at scale** <br/>  
-Seamlessly integrate with Fabric’s data foundation to ensure performance, scalability, and extensibility
-
-Agentic Applications and Natural Language Querying at Scale
-- **Visualized insights** <br/>  
-Enable intuitive, natural language querying capabilities that unify access across enterprise data assets
+- **Governed data at scale** <br/>  
+Seamlessly integrate with Fabric’s data foundation to ensure performance, scalability, and extensibility.
 
 - **Natural language interaction** <br/>  
-Azure AI Foundry Agents coordinate orchestration and retrieval to deliver fast, contextual answers realizing insights faster 
-
-Data Protection & Governance on a Unified Data Platform
-- **Actionable insights** <br/>  
-Protect sensitive data within Fabric to ensure compliance and resilience
-
-Governed data products are built into Fabric to support secure and policy-aligned agentic workflows
+Azure AI Foundry Agents coordinate orchestration and retrieval to deliver fast, contextual answers realizing insights faster. Enable intuitive, natural language querying capabilities that unify access across enterprise data assets.
 
 </details>
 
@@ -121,7 +114,7 @@ Business scenario
 <br/>
 
 The sample data illustrates how this accelerator could be used for an sales analyst scenario across industries. 
-In this scenario, an organization is in the process of preparing for a new product launch. Previously, the sales analyst had to sift through disparate sales and customer data across data silos to prepare. Leveraging the solution accelerator, the analyst now has access to unified data in Microsoft Fabric enabling a holistic view of customer and sales performance data. This functionality allows for the analyst to interrogate the data (e.g. "which customer segments show strongest year-over-year revenue growth", "what are my top performance products by demographic").
+In this scenario, an organization is in the process of analyzing top performing products for sales research. Previously, the sales analyst had to sift through disparate sales and customer data across data silos. Leveraging the solution accelerator, the analyst now has access to unified data in Microsoft Fabric enabling a holistic view of customer and sales performance data. This functionality allows for the analyst to interrogate the data (e.g. "which customer segments show strongest year-over-year revenue growth", "what are my top performance products by demographic").
 
 
 ⚠️ The sample data used in this repository is synthetic and generated. The data is intended for use as sample data only.
@@ -130,15 +123,17 @@ In this scenario, an organization is in the process of preparing for a new produ
 ### Business value
 <details>
   <summary>Click to learn more about what value this solution provides</summary>
+<br/>
 
-  - **Enhance productivity and accelerate insights** 
-Harness the power of Agentic capabilities to access, analyze, and explore data faster with AI-guided insights that turn raw information into business impact
+  - **Intelligent data interaction** 
+Enable conversational agents that understand your company’s unique data and transform natural language questions into automated queries for data-driven answers. Train agents with instructions to gain visibility.
 
-- **Streamline decision-making**
-Access unified data in the flow of work to empower strategic thinking and operational improvements
+- **Accelerated insights & productivity**
+Access rapid insights with intelligent data prep, seamless integration, and AI-guided exploration. Analyze, and enrich data to uncover trends, automate workflows, and turn ideas into scalable, agentic solutions.
 
-- **Governed and trusted data**
-Leverage unified, governed and trusted data to ensure accurate results
+- **Governed, scalable and trusted data**
+Deliver actionable insights through robust governance and metadata. Improve decision-making, operational efficiency, and reduce costs with secure, self-service access to high-quality data in a unified platform. 
+
      
 </details>
 
@@ -166,8 +161,7 @@ Check out similar solution accelerators
 
 | Solution Accelerator | Description |
 |---|---|
-| [Document&nbsp;knowledge&nbsp;mining](https://github.com/microsoft/Document-Knowledge-Mining-Solution-Accelerator) | 	Identify relevant documents, summarize unstructured information, and generate document templates. |
-| [Content&nbsp;processing](https://github.com/microsoft/document-generation-solution-accelerator) | Extracts data from multi-modal content, maps it to schemas with confidence scoring and user validation, and enables accurate processing of documents like contracts, claims, and invoices. |
+| [Unified&nbsp;data&nbsp;foundation&nbsp;with&nbsp;Fabric](https://github.com/microsoft/unified-data-foundation-with-fabric-solution-accelerator) | Provides a unified data foundation with integrated data architecture leveraging Microsoft Fabric, Microsoft Purview, and Azure Databricks to deliver a unified, integrated, and governed analytics platform. |
 
 
 <br/>

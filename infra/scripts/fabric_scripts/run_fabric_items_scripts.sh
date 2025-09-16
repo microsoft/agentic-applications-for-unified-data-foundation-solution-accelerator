@@ -61,7 +61,7 @@ resource_group="$7"
 # sed -i "s/solutionName_to-be-replaced/${solutionName}/g" "create_fabric_items.py"
 # sed -i "s/workspaceId_to-be-replaced/${fabricWorkspaceId}/g" "create_fabric_items.py"
 
-pip install -r requirements.txt --quiet
+python -m pip install -r requirements.txt --quiet
 
 # Run Python unbuffered so prints show immediately.
 tmp="$(mktemp)"
@@ -82,3 +82,5 @@ az webapp config appsettings set \
   --name "$app_service" \
   --settings FABRIC_SQL_SERVER="$FABRIC_SQL_SERVER" FABRIC_SQL_DATABASE="$FABRIC_SQL_DATABASE" FABRIC_SQL_CONNECTION_STRING="$FABRIC_SQL_CONNECTION_STRING" \
   -o none
+
+echo "Environment variables updated for App Service: $app_service"

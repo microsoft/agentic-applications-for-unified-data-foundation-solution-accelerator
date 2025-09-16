@@ -147,18 +147,6 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
 }
 
 
-// // ========== Storage account module ========== //
-// module storageAccount 'deploy_storage_account.bicep' = {
-//   name: 'deploy_storage_account'
-//   params: {
-//     saName: '${abbrs.storage.storageAccount}${solutionPrefix}'
-//     solutionLocation: solutionLocation
-//     keyVaultName: kvault.outputs.keyvaultName
-//     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
-//   }
-//   scope: resourceGroup(resourceGroup().name)
-// }
-
 // // ========== Cosmos DB module ========== //
 // module cosmosDBModule 'deploy_cosmos_db.bicep' = {
 //   name: 'deploy_cosmos_db'
@@ -190,31 +178,6 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
 //   scope: resourceGroup(resourceGroup().name)
 // }
 
-// //========== Deployment script to upload sample data ========== //
-// module uploadFiles 'deploy_upload_files_script.bicep' = {
-//   name : 'deploy_upload_files_script'
-//   params:{
-//     solutionLocation: secondaryLocation
-//     baseUrl: baseUrl
-//     storageAccountName: storageAccount.outputs.storageName
-//     containerName: storageAccount.outputs.storageContainer
-//     managedIdentityResourceId:managedIdentityModule.outputs.managedIdentityOutput.id
-//     managedIdentityClientId:managedIdentityModule.outputs.managedIdentityOutput.clientId
-//   }
-// }
-
-// //========== Deployment script to process and index data ========== //
-// module createIndex 'deploy_index_scripts.bicep' = {
-//   name : 'deploy_index_scripts'
-//   params:{
-//     solutionLocation: secondaryLocation
-//     managedIdentityResourceId:managedIdentityModule.outputs.managedIdentityOutput.id
-//     managedIdentityClientId:managedIdentityModule.outputs.managedIdentityOutput.clientId
-//     baseUrl:baseUrl
-//     keyVaultName:aifoundry.outputs.keyvaultName
-//   }
-//   dependsOn:[sqlDBModule,uploadFiles]
-// }
 
 //========== Deployment script to create Agent ========== //
 module createAgent 'run_agent_scripts.bicep' = {
@@ -319,10 +282,6 @@ output APPINSIGHTS_INSTRUMENTATIONKEY string = backend_docker.outputs.appInsight
 output AZURE_AI_PROJECT_CONN_STRING string = aifoundry.outputs.projectEndpoint
 output AZURE_AI_AGENT_API_VERSION string = azureAiAgentApiVersion
 output AZURE_AI_PROJECT_NAME string = aifoundry.outputs.aiProjectName
-// output AZURE_AI_SEARCH_API_KEY string = ''
-// output AZURE_AI_SEARCH_ENDPOINT string = aifoundry.outputs.aiSearchTarget
-// output AZURE_AI_SEARCH_INDEX string = 'call_transcripts_index'
-// output AZURE_AI_SEARCH_CONNECTION_NAME string = aifoundry.outputs.aiSearchConnectionName
 // output AZURE_COSMOSDB_ACCOUNT string = cosmosDBModule.outputs.cosmosAccountName
 // output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = 'conversations'
 // output AZURE_COSMOSDB_DATABASE string = 'db_conversation_history'

@@ -34,7 +34,7 @@ async def lifespan(fastapi_app: FastAPI):
     from chat import ChatWithDataPlugin
 
     ai_agent_settings = AzureAIAgentSettings(endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"))
-    client =  AzureAIAgent.create_client(
+    client = AzureAIAgent.create_client(
         credential=await get_azure_credential_async(),
         endpoint=ai_agent_settings.endpoint,
     )
