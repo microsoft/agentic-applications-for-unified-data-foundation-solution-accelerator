@@ -178,7 +178,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     -- This deployment will take *7-10 minutes* to provision the resources in your account and set up the solution with sample data.
     - If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
-5. Once the deployment has completed successfully, copy the bash script from the terminal (ex. `bash ./run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-mid-principal> <backend-api-name> <resourcegroup>`) and open the [Azure Portal](https://portal.azure.com/). In the Azure portal, open the Azure Cloud Shell and run the following commands:
+5. Once the deployment has completed successfully, copy the bash script from the terminal (ex. `bash ./run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-mid-principal> <backend-api-name> <resourcegroup>`) for later use. 
 
 6. Create and activate a virtual environment 
   
