@@ -18,12 +18,12 @@ jobs:
 
       - name: Check for required metadata template line
         run: |
-          if grep -E '^\s*#\s*template:\s*data-agents-fabric-knowledge-mining@1\.0' azure.yaml; then
+          if grep -E '^\s*#\s*template:\s*agentic-applications-for-unified-data-foundation@1\.0' azure.yaml; then
             echo "ERROR: 'template' line is commented out in azure.yaml! Please uncomment template line."
             exit 1
           fi
 
-          if ! grep -E '^\s*template:\s*data-agents-fabric-knowledge-mining@1\.0' azure.yaml; then
+          if ! grep -E '^\s*template:\s*agentic-applications-for-unified-data-foundation@1\.0' azure.yaml; then
             echo "ERROR: Required 'template' line is missing in azure.yaml! Please add template line for telemetry."
             exit 1
           fi

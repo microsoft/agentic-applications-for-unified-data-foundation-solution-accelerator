@@ -37,8 +37,8 @@ from auth.azure_credential_utils import get_azure_credential
 load_dotenv()
 
 # Constants
-HOST_NAME = "CKM"
-HOST_INSTRUCTIONS = "Answer questions about call center operations"
+HOST_NAME = "Agentic Applications for Unified Data Foundation"
+HOST_INSTRUCTIONS = "Answer questions about Sales, Products and Orders data."
 
 router = APIRouter()
 
@@ -99,7 +99,7 @@ class ChatWithDataPlugin:
 
         query = input
         try:
-            from history_sql import execute_sql_query
+            from history_sql import run_sql_query
             project_client = AIProjectClient(
                 endpoint=self.ai_project_endpoint,
                 credential=get_azure_credential(),
@@ -131,7 +131,7 @@ class ChatWithDataPlugin:
                     break
             sql_query = sql_query.replace("```sql", '').replace("```", '').strip()
             # logger.info("Generated SQL Query: %s", sql_query)
-            answer_raw = await execute_sql_query(sql_query)
+            answer_raw = await run_sql_query(sql_query)
             if isinstance(answer_raw, str):
                 answer = answer_raw[:20000] if len(answer_raw) > 20000 else answer_raw
             else:
@@ -474,7 +474,7 @@ async def stream_openai_text(conversation_id: str, query: str, agent) -> AsyncGe
         if thread_id:
             thread = AzureAIAgentThread(client=agent.client, thread_id=thread_id)
 
-        truncation_strategy = TruncationObject(type="last_messages", last_messages=2)
+        truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
 
         async for response in agent.invoke_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
             cache[conversation_id] = response.thread.id
@@ -586,7 +586,7 @@ async def conversation(request: Request):
     try:
         # Get the request JSON and last RAG response from the client
         request_json = await request.json()
-        last_rag_response = request_json.get("last_rag_response")
+        # last_rag_response = request_json.get("last_rag_response")
         conversation_id = request_json.get("conversation_id")
         # logger.info("Received last_rag_response: %s", last_rag_response)
 
