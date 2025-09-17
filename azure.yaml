@@ -1,0 +1,57 @@
+# # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+# metadata:
+#     template: azd-init@1.11.1
+environment:
+  name: data-agents-fabric-knowledge-mining
+  location: eastus
+name: data-agents-fabric-knowledge-mining
+
+requiredVersions:
+  azd: ">= 1.15.0"
+
+# metadata:
+#   template: data-agents-fabric-knowledge-mining@1.0
+
+hooks:
+  postprovision:
+    windows:
+      run: |
+        Write-Host "Web app URL: "
+        Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
+
+        $workspaceId           = "<fabric_workspace_id>"
+        $solutionName          = $env:SOLUTION_NAME
+        $aiServiceName         = $env:AI_SERVICE_NAME
+        $backendApiPID         = $env:API_PID
+        $backendApiUID         = $env:API_UID
+        $backendApiName        = $env:API_APP_NAME
+        $resourceGroup         = $env:RESOURCE_GROUP_NAME
+
+        # Build the exact command string (quoted to survive spaces)
+        $cmdLine = 'bash ./run_fabric_items_scripts.sh {0} {1} {2} {3} {4} {5} {6}' -f `
+            $workspaceId, $solutionName, $aiServiceName, $backendApiPID, $backendApiUID, $backendApiName, $resourceGroup
+
+        Write-Host $cmdLine -ForegroundColor Cyan   
+
+      shell: pwsh
+      continueOnError: false
+      interactive: true
+    posix:
+      run: |
+        echo "Web app URL: "
+        echo $WEB_APP_URL
+           
+        workspaceId="<fabric_workspace_id>"
+        solutionName="$SOLUTION_NAME"
+        aiServiceName="$AI_SERVICE_NAME"
+        backendApiPID="$API_PID"
+        backendApiUID="$API_UID"
+        backendApiName="$API_APP_NAME"
+        resourceGroup="$RESOURCE_GROUP_NAME"
+
+        cmdLine="bash ./run_fabric_items_scripts.sh $workspaceId $solutionName $aiServiceName $backendApiPID $backendApiUID $backendApiName $resourceGroup"
+        echo $cmdLine
+        
+      shell: sh
+      continueOnError: false
+      interactive: true
