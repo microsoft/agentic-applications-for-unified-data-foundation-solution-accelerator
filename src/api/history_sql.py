@@ -271,6 +271,36 @@ async def execute_sql_query(sql_query):
             cursor.close()
         conn.close()
 
+async def run_sql_query(sql_query):
+    """
+    Execute parameterized SQL query and return results as list of dictionaries.
+    """
+    # Connect to the database
+    conn = await get_fabric_db_connection()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        cursor.execute(sql_query)
+        columns = [desc[0] for desc in cursor.description]
+        result = []
+        for row in cursor.fetchall():
+            row_dict = {}
+            for col_name, value in zip(columns, row):
+                if isinstance(value, (datetime, date)):
+                    row_dict[col_name] = value.isoformat()
+                else:
+                    row_dict[col_name] = value
+            result.append(row_dict)
+
+        return result
+    except Exception as e:
+        logging.error("Error executing SQL query: %s", e)
+        return None
+    finally:
+        if cursor:
+            cursor.close()
+        conn.close()
+        
 # Configuration variable
 USE_CHAT_HISTORY_ENABLED = os.getenv("USE_CHAT_HISTORY_ENABLED", "true").lower() == "true"
 
