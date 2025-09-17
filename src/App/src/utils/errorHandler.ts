@@ -152,7 +152,7 @@ export class ApiErrorHandler {
     };
 
     // Log the error
-    ApiErrorHandler.logError(apiError);
+    // ApiErrorHandler.logError(apiError);
 
     return {
       hasError: true,

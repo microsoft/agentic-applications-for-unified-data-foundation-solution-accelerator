@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "11156665991630826169"
+      "templateHash": "8527980836844329104"
     }
   },
   "parameters": {
@@ -81,25 +81,6 @@
         "description": "Capacity of the GPT deployment:"
       }
     },
-    "embeddingModel": {
-      "type": "string",
-      "defaultValue": "text-embedding-ada-002",
-      "allowedValues": [
-        "text-embedding-ada-002"
-      ],
-      "minLength": 1,
-      "metadata": {
-        "description": "Name of the Text Embedding model to deploy:"
-      }
-    },
-    "embeddingDeploymentCapacity": {
-      "type": "int",
-      "defaultValue": 80,
-      "minValue": 10,
-      "metadata": {
-        "description": "Capacity of the Embedding Model deployment"
-      }
-    },
     "imageTag": {
       "type": "string",
       "defaultValue": "latest"
@@ -114,8 +95,7 @@
         "azd": {
           "type": "location",
           "usageName": [
-            "OpenAI.GlobalStandard.gpt-4o-mini,150",
-            "OpenAI.GlobalStandard.text-embedding-ada-002,80"
+            "OpenAI.GlobalStandard.gpt-4o-mini,150"
           ]
         },
         "description": "Location for AI Foundry deployment. This is the location where the AI Foundry resources will be deployed."
@@ -477,120 +457,6 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
-      "name": "deploy_keyvault",
-      "resourceGroup": "[resourceGroup().name]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "keyvaultName": {
-            "value": "[format('{0}{1}', variables('abbrs').security.keyVault, variables('solutionPrefix'))]"
-          },
-          "solutionLocation": {
-            "value": "[variables('solutionLocation')]"
-          },
-          "managedIdentityObjectId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.objectId]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "14271615631315890723"
-            }
-          },
-          "parameters": {
-            "solutionLocation": {
-              "type": "string"
-            },
-            "managedIdentityObjectId": {
-              "type": "string"
-            },
-            "keyvaultName": {
-              "type": "string"
-            }
-          },
-          "resources": [
-            {
-              "type": "Microsoft.KeyVault/vaults",
-              "apiVersion": "2022-07-01",
-              "name": "[parameters('keyvaultName')]",
-              "location": "[parameters('solutionLocation')]",
-              "properties": {
-                "createMode": "default",
-                "accessPolicies": [
-                  {
-                    "objectId": "[parameters('managedIdentityObjectId')]",
-                    "permissions": {
-                      "certificates": [
-                        "all"
-                      ],
-                      "keys": [
-                        "all"
-                      ],
-                      "secrets": [
-                        "all"
-                      ],
-                      "storage": [
-                        "all"
-                      ]
-                    },
-                    "tenantId": "[subscription().tenantId]"
-                  }
-                ],
-                "enabledForDeployment": true,
-                "enabledForDiskEncryption": true,
-                "enabledForTemplateDeployment": true,
-                "enableRbacAuthorization": true,
-                "publicNetworkAccess": "enabled",
-                "sku": {
-                  "family": "A",
-                  "name": "standard"
-                },
-                "softDeleteRetentionInDays": 7,
-                "tenantId": "[subscription().tenantId]"
-              }
-            },
-            {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2022-04-01",
-              "name": "[guid(resourceGroup().id, parameters('managedIdentityObjectId'), resourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))]",
-              "properties": {
-                "principalId": "[parameters('managedIdentityObjectId')]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')]",
-                "principalType": "ServicePrincipal"
-              }
-            }
-          ],
-          "outputs": {
-            "keyvaultName": {
-              "type": "string",
-              "value": "[parameters('keyvaultName')]"
-            },
-            "keyvaultId": {
-              "type": "string",
-              "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyvaultName'))]"
-            },
-            "keyvaultUri": {
-              "type": "string",
-              "value": "[reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyvaultName')), '2022-07-01').vaultUri]"
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]"
-      ]
-    },
-    {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
       "name": "deploy_ai_foundry",
       "resourceGroup": "[resourceGroup().name]",
       "properties": {
@@ -604,9 +470,6 @@
           },
           "solutionLocation": {
             "value": "[parameters('aiDeploymentsLocation')]"
-          },
-          "keyVaultName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_keyvault'), '2022-09-01').outputs.keyvaultName.value]"
           },
           "cuLocation": {
             "value": "[variables('contentUnderstandingLocation')]"
@@ -625,12 +488,6 @@
           },
           "gptDeploymentCapacity": {
             "value": "[parameters('gptDeploymentCapacity')]"
-          },
-          "embeddingModel": {
-            "value": "[parameters('embeddingModel')]"
-          },
-          "embeddingDeploymentCapacity": {
-            "value": "[parameters('embeddingDeploymentCapacity')]"
           },
           "managedIdentityObjectId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.objectId]"
@@ -652,7 +509,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "13915165912022960873"
+              "templateHash": "3776751014715275354"
             }
           },
           "parameters": {
@@ -661,10 +518,6 @@
             },
             "solutionLocation": {
               "type": "string"
-            },
-            "keyVaultName": {
-              "type": "string",
-              "defaultValue": ""
             },
             "cuLocation": {
               "type": "string"
@@ -682,12 +535,6 @@
               "type": "string"
             },
             "gptDeploymentCapacity": {
-              "type": "int"
-            },
-            "embeddingModel": {
-              "type": "string"
-            },
-            "embeddingDeploymentCapacity": {
               "type": "int"
             },
             "managedIdentityObjectId": {
@@ -955,15 +802,6 @@
                 },
                 "version": "[parameters('gptModelVersion')]",
                 "raiPolicyName": "Microsoft.Default"
-              },
-              {
-                "name": "[parameters('embeddingModel')]",
-                "model": "[parameters('embeddingModel')]",
-                "sku": {
-                  "name": "GlobalStandard",
-                  "capacity": "[parameters('embeddingDeploymentCapacity')]"
-                },
-                "raiPolicyName": "Microsoft.Default"
               }
             ],
             "useExisting": "[not(empty(parameters('existingLogAnalyticsWorkspaceId')))]",
@@ -1103,148 +941,6 @@
               "dependsOn": [
                 "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName'))]"
               ]
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'TENANT-ID')]",
-              "properties": {
-                "value": "[subscription().tenantId]"
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-OPENAI-INFERENCE-ENDPOINT')]",
-              "properties": {
-                "value": ""
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-OPENAI-INFERENCE-KEY')]",
-              "properties": {
-                "value": ""
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-OPENAI-DEPLOYMENT-MODEL')]",
-              "properties": {
-                "value": "[parameters('gptModelName')]"
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-OPENAI-PREVIEW-API-VERSION')]",
-              "properties": {
-                "value": "[parameters('azureOpenAIApiVersion')]"
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-OPENAI-ENDPOINT')]",
-              "properties": {
-                "value": "[if(not(empty(variables('existingOpenAIEndpoint'))), variables('existingOpenAIEndpoint'), reference(resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName')), '2025-04-01-preview').endpoints['OpenAI Language Model Instance API'])]"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-OPENAI-EMBEDDING-MODEL')]",
-              "properties": {
-                "value": "[parameters('embeddingModel')]"
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-OPENAI-CU-ENDPOINT')]",
-              "properties": {
-                "value": ""
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-OPENAI-CU-VERSION')]",
-              "properties": {
-                "value": "?api-version=2024-12-01-preview"
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-SEARCH-ENDPOINT')]",
-              "properties": {
-                "value": ""
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-SEARCH-SERVICE')]",
-              "properties": {
-                "value": ""
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-SEARCH-INDEX')]",
-              "properties": {
-                "value": ""
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'COG-SERVICES-ENDPOINT')]",
-              "properties": {
-                "value": "[if(not(empty(variables('existingOpenAIEndpoint'))), variables('existingOpenAIEndpoint'), reference(resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName')), '2025-04-01-preview').endpoints['OpenAI Language Model Instance API'])]"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'COG-SERVICES-NAME')]",
-              "properties": {
-                "value": "[variables('aiServicesName')]"
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-SUBSCRIPTION-ID')]",
-              "properties": {
-                "value": "[subscription().subscriptionId]"
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-RESOURCE-GROUP')]",
-              "properties": {
-                "value": "[resourceGroup().name]"
-              }
-            },
-            {
-              "type": "Microsoft.KeyVault/vaults/secrets",
-              "apiVersion": "2021-11-01-preview",
-              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'AZURE-LOCATION')]",
-              "properties": {
-                "value": "[parameters('solutionLocation')]"
-              }
             },
             {
               "condition": "[not(empty(parameters('azureExistingAIProjectResourceId')))]",
@@ -1584,14 +1280,6 @@
             }
           ],
           "outputs": {
-            "keyvaultName": {
-              "type": "string",
-              "value": "[variables('keyvaultName')]"
-            },
-            "keyvaultId": {
-              "type": "string",
-              "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
-            },
             "aiServicesTarget": {
               "type": "string",
               "value": "[if(not(empty(variables('existingOpenAIEndpoint'))), variables('existingOpenAIEndpoint'), reference(resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName')), '2025-04-01-preview').endpoints['OpenAI Language Model Instance API'])]"
@@ -1652,7 +1340,6 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_keyvault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]"
       ]
     },
@@ -1678,9 +1365,6 @@
           "baseUrl": {
             "value": "[variables('baseUrl')]"
           },
-          "keyVaultName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2022-09-01').outputs.keyvaultName.value]"
-          },
           "projectEndpoint": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2022-09-01').outputs.projectEndpoint.value]"
           },
@@ -1698,7 +1382,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "8765181789096446609"
+              "templateHash": "16904021903082090882"
             }
           },
           "parameters": {
@@ -1709,9 +1393,6 @@
               }
             },
             "baseUrl": {
-              "type": "string"
-            },
-            "keyVaultName": {
               "type": "string"
             },
             "managedIdentityResourceId": {
@@ -1746,7 +1427,7 @@
               "properties": {
                 "azCliVersion": "2.52.0",
                 "primaryScriptUri": "[format('{0}infra/scripts/run_create_agent_scripts.sh', parameters('baseUrl'))]",
-                "arguments": "[format('{0} {1} {2} {3} {4} {5}', parameters('baseUrl'), parameters('keyVaultName'), parameters('managedIdentityClientId'), parameters('projectEndpoint'), parameters('solutionName'), parameters('gptModelName'))]",
+                "arguments": "[format('{0} {1} {2} {3} {4}', parameters('baseUrl'), parameters('managedIdentityClientId'), parameters('projectEndpoint'), parameters('solutionName'), parameters('gptModelName'))]",
                 "timeout": "PT1H",
                 "retentionInterval": "PT1H",
                 "cleanupPreference": "OnSuccess"
@@ -1898,17 +1579,11 @@
           "userassignedIdentityId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityBackendAppOutput.value.id]"
           },
-          "keyVaultName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_keyvault'), '2022-09-01').outputs.keyvaultName.value]"
-          },
           "aiServicesName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2022-09-01').outputs.aiServicesName.value]"
           },
           "azureExistingAIProjectResourceId": {
             "value": "[parameters('azureExistingAIProjectResourceId')]"
-          },
-          "aiSearchName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2022-09-01').outputs.aiSearchName.value]"
           },
           "appSettings": {
             "value": {
@@ -1953,7 +1628,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "13222124660310183872"
+              "templateHash": "9523839857591997379"
             }
           },
           "parameters": {
@@ -1982,18 +1657,12 @@
             "userassignedIdentityId": {
               "type": "string"
             },
-            "keyVaultName": {
-              "type": "string"
-            },
             "aiServicesName": {
               "type": "string"
             },
             "azureExistingAIProjectResourceId": {
               "type": "string",
               "defaultValue": ""
-            },
-            "aiSearchName": {
-              "type": "string"
             },
             "name": {
               "type": "string"
@@ -2008,20 +1677,6 @@
             "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
           },
           "resources": [
-            {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
-              "name": "[guid(format('{0}-app-module', parameters('name')), parameters('keyVaultName'), resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6'))]",
-              "properties": {
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
-                "principalId": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2022-09-01').outputs.identityPrincipalId.value]",
-                "principalType": "ServicePrincipal"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
-              ]
-            },
             {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2022-09-01",
@@ -2555,7 +2210,6 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry')]",
         "[resourceId('Microsoft.Resources/deployments', 'run_agent_scripts')]",
         "[resourceId('Microsoft.Resources/deployments', 'deploy_app_service_plan')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_keyvault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]"
       ]
     },
@@ -2908,14 +2562,6 @@
     "AZURE_OPENAI_MODEL_DEPLOYMENT_TYPE": {
       "type": "string",
       "value": "[parameters('deploymentType')]"
-    },
-    "AZURE_OPENAI_EMBEDDING_MODEL": {
-      "type": "string",
-      "value": "[parameters('embeddingModel')]"
-    },
-    "AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY": {
-      "type": "int",
-      "value": "[parameters('embeddingDeploymentCapacity')]"
     },
     "AZURE_OPENAI_API_VERSION": {
       "type": "string",

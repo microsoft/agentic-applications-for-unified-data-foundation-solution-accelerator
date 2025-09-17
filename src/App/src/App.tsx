@@ -82,7 +82,7 @@ const Dashboard: React.FC = () => {
       const name: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'name')?.val ?? ''
       setName(name)
     }).catch((err) => {
-      console.error('Error fetching user info: ', err)
+      // console.error('Error fetching user info: ', err)
     })
   }, [])
 

@@ -130,8 +130,12 @@ class ChatWithDataPlugin:
                     sql_query = msg.text_messages[-1].text.value
                     break
             sql_query = sql_query.replace("```sql", '').replace("```", '').strip()
-            answer = await execute_sql_query(sql_query)
-            answer = answer[:20000] if len(answer) > 20000 else answer
+            # logger.info("Generated SQL Query: %s", sql_query)
+            answer_raw = await execute_sql_query(sql_query)
+            if isinstance(answer_raw, str):
+                answer = answer_raw[:20000] if len(answer_raw) > 20000 else answer_raw
+            else:
+                answer = answer_raw or ""
 
             # Clean up
             project_client.agents.threads.delete(thread_id=thread.id)
@@ -470,7 +474,7 @@ async def stream_openai_text(conversation_id: str, query: str, agent) -> AsyncGe
         if thread_id:
             thread = AzureAIAgentThread(client=agent.client, thread_id=thread_id)
 
-        truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
+        truncation_strategy = TruncationObject(type="last_messages", last_messages=2)
 
         async for response in agent.invoke_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
             cache[conversation_id] = response.thread.id
@@ -584,7 +588,7 @@ async def conversation(request: Request):
         request_json = await request.json()
         last_rag_response = request_json.get("last_rag_response")
         conversation_id = request_json.get("conversation_id")
-        logger.info("Received last_rag_response: %s", last_rag_response)
+        # logger.info("Received last_rag_response: %s", last_rag_response)
 
         query = request_json.get("messages")[-1].get("content")
 

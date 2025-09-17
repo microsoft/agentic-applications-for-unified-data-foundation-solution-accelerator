@@ -169,7 +169,6 @@ export const ChatHistoryListItemCell: React.FC<
   };
 
   const handleKeyPressEdit = (e: any) => {
-    console.log("handleKeyPressEdit", e.key, e);
     if (e.key === "Enter") {
       return handleSaveEdit(e);
     }

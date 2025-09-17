@@ -619,64 +619,64 @@ module indexScripts 'br/public:avm/res/app/container-app:0.8.0' = {
   }
 }
 // Create a keyvault to store secrets
-module keyVault 'br/public:avm/res/key-vault/vault:0.6.1' = {
-  name: 'keyvault'
-  params: {
-    name: '${abbrs.keyVaultVaults}${resourceToken}'
-    location: location
-    tags: tags
-    enableRbacAuthorization: false
-    accessPolicies: [
-      {
-        objectId: principalId
-        permissions: {
-          secrets: [ 'get', 'list' ]
-        }
-      }
-      {
-        objectId: appIdentity.outputs.principalId
-        permissions: {
-          secrets: [ 'get', 'list' ]
-        }
-      }
-      {
-        objectId: kmChartsFunctionIdentity.outputs.principalId
-        permissions: {
-          secrets: [ 'get', 'list' ]
-        }
-      }
-      {
-        objectId: kmRagFunctionIdentity.outputs.principalId
-        permissions: {
-          secrets: [ 'get', 'list' ]
-        }
-      }
-      {
-        objectId: addUserScriptsIdentity.outputs.principalId
-        permissions: {
-          secrets: [ 'get', 'list' ]
-        }
-      }
-      {
-        objectId: fabricScriptsIdentity.outputs.principalId
-        permissions: {
-          secrets: [ 'get', 'list' ]
-        }
-      }
-      {
-        objectId: indexScriptsIdentity.outputs.principalId
-        permissions: {
-          secrets: [ 'get', 'list' ]
-        }
-      }
-    ]
-    secrets: [
-    ]
-  }
-}
+// module keyVault 'br/public:avm/res/key-vault/vault:0.6.1' = {
+//   name: 'keyvault'
+//   params: {
+//     name: '${abbrs.keyVaultVaults}${resourceToken}'
+//     location: location
+//     tags: tags
+//     enableRbacAuthorization: false
+//     accessPolicies: [
+//       {
+//         objectId: principalId
+//         permissions: {
+//           secrets: [ 'get', 'list' ]
+//         }
+//       }
+//       {
+//         objectId: appIdentity.outputs.principalId
+//         permissions: {
+//           secrets: [ 'get', 'list' ]
+//         }
+//       }
+//       {
+//         objectId: kmChartsFunctionIdentity.outputs.principalId
+//         permissions: {
+//           secrets: [ 'get', 'list' ]
+//         }
+//       }
+//       {
+//         objectId: kmRagFunctionIdentity.outputs.principalId
+//         permissions: {
+//           secrets: [ 'get', 'list' ]
+//         }
+//       }
+//       {
+//         objectId: addUserScriptsIdentity.outputs.principalId
+//         permissions: {
+//           secrets: [ 'get', 'list' ]
+//         }
+//       }
+//       {
+//         objectId: fabricScriptsIdentity.outputs.principalId
+//         permissions: {
+//           secrets: [ 'get', 'list' ]
+//         }
+//       }
+//       {
+//         objectId: indexScriptsIdentity.outputs.principalId
+//         permissions: {
+//           secrets: [ 'get', 'list' ]
+//         }
+//       }
+//     ]
+//     secrets: [
+//     ]
+//   }
+// }
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
-output AZURE_KEY_VAULT_ENDPOINT string = keyVault.outputs.uri
-output AZURE_KEY_VAULT_NAME string = keyVault.outputs.name
+// output AZURE_KEY_VAULT_ENDPOINT string = keyVault.outputs.uri
+// output AZURE_KEY_VAULT_NAME string = keyVault.outputs.name
 output AZURE_RESOURCE_APP_ID string = app.outputs.resourceId
 output AZURE_RESOURCE_KM_CHARTS_FUNCTION_ID string = kmChartsFunction.outputs.resourceId
 output AZURE_RESOURCE_KM_RAG_FUNCTION_ID string = kmRagFunction.outputs.resourceId

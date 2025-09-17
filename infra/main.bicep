@@ -51,16 +51,16 @@ param azureAiAgentApiVersion string = '2025-05-01'
 // https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits
 param gptDeploymentCapacity int = 150
 
-@minLength(1)
-@description('Name of the Text Embedding model to deploy:')
-@allowed([
-  'text-embedding-ada-002'
-])
-param embeddingModel string = 'text-embedding-ada-002'
+// @minLength(1)
+// @description('Name of the Text Embedding model to deploy:')
+// @allowed([
+//   'text-embedding-ada-002'
+// ])
+// param embeddingModel string = 'text-embedding-ada-002'
 
-@minValue(10)
-@description('Capacity of the Embedding Model deployment')
-param embeddingDeploymentCapacity int = 80
+// @minValue(10)
+// @description('Capacity of the Embedding Model deployment')
+// param embeddingDeploymentCapacity int = 80
 
 param imageTag string = 'latest'
 
@@ -74,7 +74,7 @@ var uniqueId = toLower(uniqueString(subscription().id, environmentName, solution
     type: 'location'
     usageName: [
       'OpenAI.GlobalStandard.gpt-4o-mini,150'
-      'OpenAI.GlobalStandard.text-embedding-ada-002,80'
+      // 'OpenAI.GlobalStandard.text-embedding-ada-002,80'
     ]
   }
 })
@@ -113,15 +113,15 @@ module managedIdentityModule 'deploy_managed_identity.bicep' = {
 }
 
 // ==========Key Vault Module ========== //
-module kvault 'deploy_keyvault.bicep' = {
-  name: 'deploy_keyvault'
-  params: {
-    keyvaultName: '${abbrs.security.keyVault}${solutionPrefix}'
-    solutionLocation: solutionLocation
-    managedIdentityObjectId:managedIdentityModule.outputs.managedIdentityOutput.objectId
-  }
-  scope: resourceGroup(resourceGroup().name)
-}
+// module kvault 'deploy_keyvault.bicep' = {
+//   name: 'deploy_keyvault'
+//   params: {
+//     keyvaultName: '${abbrs.security.keyVault}${solutionPrefix}'
+//     solutionLocation: solutionLocation
+//     managedIdentityObjectId:managedIdentityModule.outputs.managedIdentityOutput.objectId
+//   }
+//   scope: resourceGroup(resourceGroup().name)
+// }
 
 // ==========AI Foundry and related resources ========== //
 module aifoundry 'deploy_ai_foundry.bicep' = {
@@ -129,15 +129,15 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
   params: {
     solutionName: solutionPrefix
     solutionLocation: aiDeploymentsLocation
-    keyVaultName: kvault.outputs.keyvaultName
+    // keyVaultName: kvault.outputs.keyvaultName
     cuLocation: contentUnderstandingLocation
     deploymentType: deploymentType
     gptModelName: gptModelName
     gptModelVersion: gptModelVersion
     azureOpenAIApiVersion: azureOpenAIApiVersion
     gptDeploymentCapacity: gptDeploymentCapacity
-    embeddingModel: embeddingModel
-    embeddingDeploymentCapacity: embeddingDeploymentCapacity
+    // embeddingModel: embeddingModel
+    // embeddingDeploymentCapacity: embeddingDeploymentCapacity
     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
@@ -187,7 +187,7 @@ module createAgent 'run_agent_scripts.bicep' = {
     managedIdentityResourceId:managedIdentityModule.outputs.managedIdentityOutput.id
     managedIdentityClientId:managedIdentityModule.outputs.managedIdentityOutput.clientId
     baseUrl:baseUrl
-    keyVaultName:aifoundry.outputs.keyvaultName
+    // keyVaultName:aifoundry.outputs.keyvaultName
     projectEndpoint: aifoundry.outputs.projectEndpoint
     solutionName: solutionPrefix
     gptModelName: gptModelName
@@ -212,10 +212,10 @@ module backend_docker 'deploy_backend_docker.bicep' = {
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
-    keyVaultName: kvault.outputs.keyvaultName
+    // keyVaultName: kvault.outputs.keyvaultName
     aiServicesName: aifoundry.outputs.aiServicesName
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
-    aiSearchName: aifoundry.outputs.aiSearchName 
+    // aiSearchName: aifoundry.outputs.aiSearchName 
     appSettings: {
       AZURE_OPENAI_DEPLOYMENT_MODEL: gptModelName
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
@@ -290,8 +290,8 @@ output AZURE_OPENAI_DEPLOYMENT_MODEL string = gptModelName
 output AZURE_OPENAI_DEPLOYMENT_MODEL_CAPACITY int = gptDeploymentCapacity
 output AZURE_OPENAI_ENDPOINT string = aifoundry.outputs.aiServicesTarget
 output AZURE_OPENAI_MODEL_DEPLOYMENT_TYPE string = deploymentType
-output AZURE_OPENAI_EMBEDDING_MODEL string = embeddingModel
-output AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY int = embeddingDeploymentCapacity
+// output AZURE_OPENAI_EMBEDDING_MODEL string = embeddingModel
+// output AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY int = embeddingDeploymentCapacity
 output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
 output AZURE_OPENAI_RESOURCE string = aifoundry.outputs.aiServicesName
 output REACT_APP_LAYOUT_CONFIG string = backend_docker.outputs.reactAppLayoutConfig

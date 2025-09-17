@@ -1,5 +1,5 @@
 param solutionLocation string
-param keyVaultName string
+// param keyVaultName string
 param managedIdentityName string
 param serverName string
 param sqlDBName string
@@ -83,25 +83,25 @@ module sqluser 'create-sql-user-and-role.bicep' = [
   }
 ]
 
-resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
-  name: keyVaultName
-}
+// resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+//   name: keyVaultName
+// }
 
-resource sqldbServerEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'SQLDB-SERVER'
-  properties: {
-    value: '${serverName}${environment().suffixes.sqlServerHostname}'
-  }
-}
+// resource sqldbServerEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'SQLDB-SERVER'
+//   properties: {
+//     value: '${serverName}${environment().suffixes.sqlServerHostname}'
+//   }
+// }
 
-resource sqldbDatabaseEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'SQLDB-DATABASE'
-  properties: {
-    value: sqlDBName
-  }
-}
+// resource sqldbDatabaseEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'SQLDB-DATABASE'
+//   properties: {
+//     value: sqlDBName
+//   }
+// }
 
 output sqlServerName string = '${serverName}.database.windows.net'
 output sqlDbName string = sqlDBName

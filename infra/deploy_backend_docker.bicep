@@ -9,10 +9,10 @@ param solutionLocation string
 param appSettings object = {}
 param appServicePlanId string
 param userassignedIdentityId string
-param keyVaultName string
+// param keyVaultName string
 param aiServicesName string
 param azureExistingAIProjectResourceId string = ''
-param aiSearchName string
+// param aiSearchName string
 var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
 var existingAIServicesName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[8] : ''
@@ -72,23 +72,23 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' ex
   scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
-  name: keyVaultName
-}
+// resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+//   name: keyVaultName
+// }
 
-resource keyVaultSecretsUser 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
-  name: '4633458b-17de-408a-b874-0445c86b69e6'
-}
+// resource keyVaultSecretsUser 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+//   name: '4633458b-17de-408a-b874-0445c86b69e6'
+// }
 
-resource keyVaultSecretsUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(appService.name, keyVault.name, keyVaultSecretsUser.id)
-  scope: keyVault
-  properties: {
-    roleDefinitionId: keyVaultSecretsUser.id
-    principalId: appService.outputs.identityPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// resource keyVaultSecretsUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+//   name: guid(appService.name, keyVault.name, keyVaultSecretsUser.id)
+//   scope: keyVault
+//   properties: {
+//     roleDefinitionId: keyVaultSecretsUser.id
+//     principalId: appService.outputs.identityPrincipalId
+//     principalType: 'ServicePrincipal'
+//   }
+// }
 
 // resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' existing = {
 //   name: aiSearchName

@@ -1,15 +1,15 @@
 // Creates Azure dependent resources for Azure AI studio
 param solutionName string
 param solutionLocation string
-param keyVaultName string=''
+// param keyVaultName string=''
 param cuLocation string
 param deploymentType string
 param gptModelName string
 param gptModelVersion string
 param azureOpenAIApiVersion string
 param gptDeploymentCapacity int
-param embeddingModel string
-param embeddingDeploymentCapacity int
+// param embeddingModel string
+// param embeddingDeploymentCapacity int
 param managedIdentityObjectId string=''
 param existingLogAnalyticsWorkspaceId string = ''
 param azureExistingAIProjectResourceId string = ''
@@ -38,15 +38,15 @@ var aiModelDeployments = [
     version: gptModelVersion
     raiPolicyName: 'Microsoft.Default'
   }
-  {
-    name: embeddingModel
-    model: embeddingModel
-    sku: {
-      name: 'GlobalStandard'
-      capacity: embeddingDeploymentCapacity
-    }
-    raiPolicyName: 'Microsoft.Default'
-  }
+  // {
+  //   name: embeddingModel
+  //   model: embeddingModel
+  //   sku: {
+  //     name: 'GlobalStandard'
+  //     capacity: embeddingDeploymentCapacity
+  //   }
+  //   raiPolicyName: 'Microsoft.Default'
+  // }
 ]
 
 var useExisting = !empty(existingLogAnalyticsWorkspaceId)
@@ -61,9 +61,9 @@ var existingAIProjectName = !empty(azureExistingAIProjectResourceId) ? split(azu
 var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
 
-resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
-  name: keyVaultName
-}
+// resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+//   name: keyVaultName
+// }
 
 resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = if (useExisting) {
   name: existingLawName
@@ -349,143 +349,143 @@ resource assignFoundryRoleToDeployer 'Microsoft.Authorization/roleAssignments@20
 //   }
 // }
 
-resource tenantIdEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'TENANT-ID'
-  properties: {
-    value: subscription().tenantId
-  }
-}
+// resource tenantIdEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'TENANT-ID'
+//   properties: {
+//     value: subscription().tenantId
+//   }
+// }
 
-resource azureOpenAIInferenceEndpoint 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-OPENAI-INFERENCE-ENDPOINT'
-  properties: {
-    value:''
-  }
-}
+// resource azureOpenAIInferenceEndpoint 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-OPENAI-INFERENCE-ENDPOINT'
+//   properties: {
+//     value:''
+//   }
+// }
 
-resource azureOpenAIInferenceKey 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-OPENAI-INFERENCE-KEY'
-  properties: {
-    value:''
-  }
-}
+// resource azureOpenAIInferenceKey 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-OPENAI-INFERENCE-KEY'
+//   properties: {
+//     value:''
+//   }
+// }
 
-resource azureOpenAIDeploymentModel 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-OPENAI-DEPLOYMENT-MODEL'
-  properties: {
-    value: gptModelName
-  }
-}
+// resource azureOpenAIDeploymentModel 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-OPENAI-DEPLOYMENT-MODEL'
+//   properties: {
+//     value: gptModelName
+//   }
+// }
 
-resource azureOpenAIApiVersionEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-OPENAI-PREVIEW-API-VERSION'
-  properties: {
-    value: azureOpenAIApiVersion  //'2024-02-15-preview'
-  }
-}
+// resource azureOpenAIApiVersionEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-OPENAI-PREVIEW-API-VERSION'
+//   properties: {
+//     value: azureOpenAIApiVersion  //'2024-02-15-preview'
+//   }
+// }
 
-resource azureOpenAIEndpointEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-OPENAI-ENDPOINT'
-  properties: {
-    value: !empty(existingOpenAIEndpoint) ? existingOpenAIEndpoint : aiServices.properties.endpoints['OpenAI Language Model Instance API'] //aiServices_m.properties.endpoint
-  }
-}
+// resource azureOpenAIEndpointEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-OPENAI-ENDPOINT'
+//   properties: {
+//     value: !empty(existingOpenAIEndpoint) ? existingOpenAIEndpoint : aiServices.properties.endpoints['OpenAI Language Model Instance API'] //aiServices_m.properties.endpoint
+//   }
+// }
 
-resource azureOpenAIEmbeddingDeploymentModel 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-OPENAI-EMBEDDING-MODEL'
-  properties: {
-    value: embeddingModel
-  }
-}
+// resource azureOpenAIEmbeddingDeploymentModel 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-OPENAI-EMBEDDING-MODEL'
+//   properties: {
+//     value: embeddingModel
+//   }
+// }
 
-resource azureOpenAICUEndpointEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-OPENAI-CU-ENDPOINT'
-  properties: {
-    value: '' //aiServices_CU.properties.endpoints['OpenAI Language Model Instance API']
-  }
-}
+// resource azureOpenAICUEndpointEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-OPENAI-CU-ENDPOINT'
+//   properties: {
+//     value: '' //aiServices_CU.properties.endpoints['OpenAI Language Model Instance API']
+//   }
+// }
 
-resource azureOpenAICUApiVersionEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-OPENAI-CU-VERSION'
-  properties: {
-    value: '?api-version=2024-12-01-preview'
-  }
-}
+// resource azureOpenAICUApiVersionEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-OPENAI-CU-VERSION'
+//   properties: {
+//     value: '?api-version=2024-12-01-preview'
+//   }
+// }
 
-resource azureSearchServiceEndpointEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-SEARCH-ENDPOINT'
-  properties: {
-    value: '' //'https://${aiSearch.name}.search.windows.net'
-  }
-}
+// resource azureSearchServiceEndpointEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-SEARCH-ENDPOINT'
+//   properties: {
+//     value: '' //'https://${aiSearch.name}.search.windows.net'
+//   }
+// }
 
-resource azureSearchServiceEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-SEARCH-SERVICE'
-  properties: {
-    value: '' //aiSearch.name
-  }
-}
+// resource azureSearchServiceEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-SEARCH-SERVICE'
+//   properties: {
+//     value: '' //aiSearch.name
+//   }
+// }
 
-resource azureSearchIndexEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-SEARCH-INDEX'
-  properties: {
-    value: '' //'transcripts_index'
-  }
-}
+// resource azureSearchIndexEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-SEARCH-INDEX'
+//   properties: {
+//     value: '' //'transcripts_index'
+//   }
+// }
 
-resource cogServiceEndpointEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'COG-SERVICES-ENDPOINT'
-  properties: {
-    value: !empty(existingOpenAIEndpoint) ? existingOpenAIEndpoint : aiServices.properties.endpoints['OpenAI Language Model Instance API']
-  }
-}
+// resource cogServiceEndpointEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'COG-SERVICES-ENDPOINT'
+//   properties: {
+//     value: !empty(existingOpenAIEndpoint) ? existingOpenAIEndpoint : aiServices.properties.endpoints['OpenAI Language Model Instance API']
+//   }
+// }
 
-resource cogServiceNameEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'COG-SERVICES-NAME'
-  properties: {
-    value: aiServicesName
-  }
-}
+// resource cogServiceNameEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'COG-SERVICES-NAME'
+//   properties: {
+//     value: aiServicesName
+//   }
+// }
 
-resource azureSubscriptionIdEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-SUBSCRIPTION-ID'
-  properties: {
-    value: subscription().subscriptionId
-  }
-}
+// resource azureSubscriptionIdEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-SUBSCRIPTION-ID'
+//   properties: {
+//     value: subscription().subscriptionId
+//   }
+// }
 
-resource resourceGroupNameEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-RESOURCE-GROUP'
-  properties: {
-    value: resourceGroup().name
-  }
-}
+// resource resourceGroupNameEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-RESOURCE-GROUP'
+//   properties: {
+//     value: resourceGroup().name
+//   }
+// }
 
-resource azureLocatioEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-  parent: keyVault
-  name: 'AZURE-LOCATION'
-  properties: {
-    value: solutionLocation
-  }
-}
-output keyvaultName string = keyvaultName
-output keyvaultId string = keyVault.id
+// resource azureLocatioEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+//   parent: keyVault
+//   name: 'AZURE-LOCATION'
+//   properties: {
+//     value: solutionLocation
+//   }
+// }
+// output keyvaultName string = keyvaultName
+// output keyvaultId string = keyVault.id
 output aiServicesTarget string = !empty(existingOpenAIEndpoint) ? existingOpenAIEndpoint : aiServices.properties.endpoints['OpenAI Language Model Instance API'] //aiServices_m.properties.endpoint
 output aiServicesName string = !empty(existingAIServicesName) ? existingAIServicesName : aiServicesName
 

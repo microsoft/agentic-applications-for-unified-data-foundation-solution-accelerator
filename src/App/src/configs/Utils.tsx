@@ -175,7 +175,7 @@ export async function loadConfig() {
     const configData = await response.json();
     return configData;
   } catch (error) {
-    console.error("Error loading config:", error);
+    // console.error("Error loading config:", error);
     throw error;
   }
 }
@@ -240,7 +240,7 @@ export const tryGetRaiPrettyError = (errorMessage: string) => {
       }
     }
   } catch (e) {
-    console.error('Failed to parse the error:', e)
+    // console.error('Failed to parse the error:', e)
   }
   return errorMessage
 }
@@ -258,7 +258,7 @@ export const parseErrorMessage = (errorMessage: string) => {
       let newErrorMessage = errorCodeMessage + ' ' + innerErrorString
       errorMessage = newErrorMessage
     } catch (e) {
-      console.error('Error parsing inner error message: ', e)
+      // console.error('Error parsing inner error message: ', e)
     }
   }
 
