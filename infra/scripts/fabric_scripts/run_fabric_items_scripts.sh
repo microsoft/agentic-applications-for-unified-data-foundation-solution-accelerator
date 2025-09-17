@@ -38,7 +38,7 @@ resource_group="$7"
 # echo "Getting Azure AI Foundry id"
 # # aiFoundryId=$(az resource show --name $aiFoundryName --resource-type "Microsoft.AI" --resource-group $resource_group --query id --output tsv)
 
-# az account set --subscription
+# az account set --subscription ""
 
 # ai_foundry_resource_id=$(az cognitiveservices account show \
 #   --name "$aiFoundryName" --resource-group "$resource_group" \
