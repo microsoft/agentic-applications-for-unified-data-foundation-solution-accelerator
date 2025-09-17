@@ -199,7 +199,7 @@ for table in data['tables']:
         }
     }
     shortcut_res = requests.post(fabric_shortcuts_url, headers=fabric_headers, json=shortcut_lh)
-    print('shortcut: ',shortcut_res.json())
+    # print('shortcut: ',shortcut_res.json())
 
 from datetime import datetime, timedelta
 
