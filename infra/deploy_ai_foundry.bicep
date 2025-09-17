@@ -113,7 +113,7 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = 
       ipRules: []
     }
     publicNetworkAccess: 'Enabled'
-    disableLocalAuth: false //needs to be false to access keys 
+    disableLocalAuth: true
   }
 }
 
@@ -246,7 +246,6 @@ resource assignFoundryRoleToDeployer 'Microsoft.Authorization/roleAssignments@20
   properties: {
     principalId: deployingUserPrincipalId
     roleDefinitionId: aiUser.id
-    principalType: 'User'
   }
 }
 

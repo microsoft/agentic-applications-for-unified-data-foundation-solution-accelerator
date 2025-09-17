@@ -56,7 +56,7 @@ def build_app() -> FastAPI:
     Creates and configures the FastAPI application instance.
     """
     fastapi_app = FastAPI(
-        title="Conversation Knowledge Mining Solution Accelerator",
+        title="Agentic Applications for Unified Data Foundation Solution Accelerator",
         version="1.0.0",
         lifespan=lifespan
     )
