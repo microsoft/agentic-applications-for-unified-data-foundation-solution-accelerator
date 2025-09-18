@@ -271,6 +271,7 @@ async def execute_sql_query(sql_query):
             cursor.close()
         conn.close()
 
+
 async def run_sql_query(sql_query):
     """
     Execute parameterized SQL query and return results as list of dictionaries.
@@ -300,7 +301,7 @@ async def run_sql_query(sql_query):
         if cursor:
             cursor.close()
         conn.close()
-        
+
 # Configuration variable
 USE_CHAT_HISTORY_ENABLED = os.getenv("USE_CHAT_HISTORY_ENABLED", "true").lower() == "true"
 
