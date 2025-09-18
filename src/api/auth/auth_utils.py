@@ -23,7 +23,7 @@ def get_authenticated_user_details(request_headers):
     user_object["auth_token"] = raw_user_object.get("x-ms-token-aad-id-token")
     user_object["client_principal_b64"] = raw_user_object.get("x-ms-client-principal")
     user_object["aad_id_token"] = raw_user_object.get("x-ms-token-aad-id-token")
-    
+
     return user_object
 
 

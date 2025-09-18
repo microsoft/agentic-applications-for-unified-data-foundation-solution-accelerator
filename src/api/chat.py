@@ -99,7 +99,7 @@ class ChatWithDataPlugin:
 
         query = input
         try:
-            from history_sql import execute_sql_query, run_sql_query
+            from history_sql import run_sql_query
             project_client = AIProjectClient(
                 endpoint=self.ai_project_endpoint,
                 credential=get_azure_credential(),
@@ -135,7 +135,7 @@ class ChatWithDataPlugin:
             if isinstance(answer_raw, str):
                 answer = answer_raw[:20000] if len(answer_raw) > 20000 else answer_raw
             else:
-                answer = answer_raw or ""
+                answer = answer_raw or "No results found."
 
             # Clean up
             project_client.agents.threads.delete(thread_id=thread.id)
@@ -586,7 +586,7 @@ async def conversation(request: Request):
     try:
         # Get the request JSON and last RAG response from the client
         request_json = await request.json()
-        last_rag_response = request_json.get("last_rag_response")
+        # last_rag_response = request_json.get("last_rag_response")
         conversation_id = request_json.get("conversation_id")
         # logger.info("Received last_rag_response: %s", last_rag_response)
 
