@@ -212,6 +212,8 @@ days_difference = (today - max_start_time).days - 1 if max_start_time else 0
 cursor.execute("UPDATE [dbo].[orders] SET OrderDate = FORMAT(DATEADD(DAY, ?, OrderDate), 'yyyy-MM-dd')", (days_difference))
 cursor.execute("UPDATE [dbo].[invoice] SET InvoiceDate = FORMAT(DATEADD(DAY, ?, InvoiceDate), 'yyyy-MM-dd'), DueDate = FORMAT(DATEADD(DAY, ?, DueDate), 'yyyy-MM-dd')", (days_difference, days_difference))
 cursor.execute("UPDATE [dbo].[payment] SET PaymentDate = FORMAT(DATEADD(DAY, ?, PaymentDate), 'yyyy-MM-dd')", (days_difference))
+cursor.execute("UPDATE [dbo].[customer] SET CustomerEstablishedDate = FORMAT(DATEADD(DAY, ?, CustomerEstablishedDate), 'yyyy-MM-dd')", (days_difference))
+cursor.execute("UPDATE [dbo].[account] SET CreatedDate = FORMAT(DATEADD(DAY, ?, CreatedDate), 'yyyy-MM-dd')", (days_difference))
 conn.commit()
 
 print("Dates adjusted to current date.")

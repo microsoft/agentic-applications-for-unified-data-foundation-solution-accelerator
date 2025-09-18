@@ -135,7 +135,7 @@ class ChatWithDataPlugin:
             if isinstance(answer_raw, str):
                 answer = answer_raw[:20000] if len(answer_raw) > 20000 else answer_raw
             else:
-                answer = answer_raw or ""
+                answer = answer_raw or "No results found."
 
             # Clean up
             project_client.agents.threads.delete(thread_id=thread.id)
