@@ -1,5 +1,5 @@
 """
-FastAPI application entry point for the Conversation Knowledge Mining Solution Accelerator.
+FastAPI application entry point for the Agentic Applications for Unified Data Foundation Solution Accelerator.
 
 This module sets up the FastAPI app, configures middleware, loads environment variables,
 registers API routers, and manages application lifespan events such as agent initialization

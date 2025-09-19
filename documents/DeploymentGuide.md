@@ -113,8 +113,6 @@ When you start the deployment, most parameters will have **default values**, but
 | **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2024-07-18             |
 | **OpenAI API Version**                      | The Azure OpenAI API version to use.                                                                      | 2025-01-01-preview     |
 | **GPT Model Deployment Capacity**           | Configure capacity for **GPT models** (in thousands).                                                     | 30k                    |
-<!-- | **Embedding Model**                         | Default: **text-embedding-ada-002**.                                                                      | text-embedding-ada-002 |
-| **Embedding Model Capacity**                | Set the capacity for **embedding models** (in thousands).                                                 | 80k                    | -->
 | **Image Tag**                               | Docker image tag to deploy. Common values: `latest`, `dev`, `hotfix`.                  | latest       |
 | **Use Local Build**                         | Boolean flag to determine if local container builds should be used.                         | false             |
 | **Existing Log Analytics Workspace**        | To reuse an existing Log Analytics Workspace ID.                                                          | *(empty)*              |
