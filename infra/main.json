@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "8527980836844329104"
+      "templateHash": "14409494497081573880"
     }
   },
   "parameters": {
@@ -338,11 +338,20 @@
     "uniqueId": "[toLower(uniqueString(subscription().id, parameters('environmentName'), variables('solutionLocation')))]",
     "solutionPrefix": "[format('da{0}', padLeft(take(variables('uniqueId'), 12), 12, '0'))]",
     "acrName": "dataagentscontainerreg",
-    "baseUrl": "https://raw.githubusercontent.com/nchandhi/ncdatarepo1/main/",
     "deployerInfo": "[deployer()]",
     "deployingUserPrincipalId": "[variables('deployerInfo').objectId]"
   },
   "resources": [
+    {
+      "type": "Microsoft.Resources/tags",
+      "apiVersion": "2021-04-01",
+      "name": "default",
+      "properties": {
+        "tags": {
+          "TemplateName": "Unified Data Analysis Agents"
+        }
+      }
+    },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
@@ -509,7 +518,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "3776751014715275354"
+              "templateHash": "13060357503200418335"
             }
           },
           "parameters": {
@@ -868,7 +877,7 @@
                   "ipRules": []
                 },
                 "publicNetworkAccess": "Enabled",
-                "disableLocalAuth": false
+                "disableLocalAuth": true
               }
             },
             {
@@ -935,8 +944,7 @@
               "name": "[guid(resourceGroup().id, resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName')), resourceId('Microsoft.Authorization/roleDefinitions', '53ca6127-db72-4b80-b1b0-d745d6d5456d'), 'deployer')]",
               "properties": {
                 "principalId": "[parameters('deployingUserPrincipalId')]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '53ca6127-db72-4b80-b1b0-d745d6d5456d')]",
-                "principalType": "User"
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '53ca6127-db72-4b80-b1b0-d745d6d5456d')]"
               },
               "dependsOn": [
                 "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName'))]"
@@ -1335,123 +1343,15 @@
             "applicationInsightsConnectionString": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Insights/components', variables('applicationInsightsName')), '2020-02-02').ConnectionString]"
+            },
+            "aiFoundryResourceId": {
+              "type": "string",
+              "value": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), parameters('azureExistingAIProjectResourceId'), resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName')))]"
             }
           }
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]"
-      ]
-    },
-    {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
-      "name": "run_agent_scripts",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "solutionLocation": {
-            "value": "[variables('solutionLocation')]"
-          },
-          "managedIdentityResourceId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.id]"
-          },
-          "managedIdentityClientId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.clientId]"
-          },
-          "baseUrl": {
-            "value": "[variables('baseUrl')]"
-          },
-          "projectEndpoint": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2022-09-01').outputs.projectEndpoint.value]"
-          },
-          "solutionName": {
-            "value": "[variables('solutionPrefix')]"
-          },
-          "gptModelName": {
-            "value": "[parameters('gptModelName')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.37.4.10188",
-              "templateHash": "16904021903082090882"
-            }
-          },
-          "parameters": {
-            "solutionLocation": {
-              "type": "string",
-              "metadata": {
-                "description": "Specifies the location for resources."
-              }
-            },
-            "baseUrl": {
-              "type": "string"
-            },
-            "managedIdentityResourceId": {
-              "type": "string"
-            },
-            "managedIdentityClientId": {
-              "type": "string"
-            },
-            "projectEndpoint": {
-              "type": "string"
-            },
-            "solutionName": {
-              "type": "string"
-            },
-            "gptModelName": {
-              "type": "string"
-            }
-          },
-          "resources": [
-            {
-              "type": "Microsoft.Resources/deploymentScripts",
-              "apiVersion": "2023-08-01",
-              "name": "run_agent_scripts",
-              "kind": "AzureCLI",
-              "location": "[parameters('solutionLocation')]",
-              "identity": {
-                "type": "UserAssigned",
-                "userAssignedIdentities": {
-                  "[format('{0}', parameters('managedIdentityResourceId'))]": {}
-                }
-              },
-              "properties": {
-                "azCliVersion": "2.52.0",
-                "primaryScriptUri": "[format('{0}infra/scripts/run_create_agent_scripts.sh', parameters('baseUrl'))]",
-                "arguments": "[format('{0} {1} {2} {3} {4}', parameters('baseUrl'), parameters('managedIdentityClientId'), parameters('projectEndpoint'), parameters('solutionName'), parameters('gptModelName'))]",
-                "timeout": "PT1H",
-                "retentionInterval": "PT1H",
-                "cleanupPreference": "OnSuccess"
-              }
-            }
-          ],
-          "outputs": {
-            "orchestratorAgentId": {
-              "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'run_agent_scripts'), '2023-08-01').outputs.orchestratorAgentId]"
-            },
-            "sqlAgentId": {
-              "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'run_agent_scripts'), '2023-08-01').outputs.sqlAgentId]"
-            },
-            "chartAgentId": {
-              "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'run_agent_scripts'), '2023-08-01').outputs.chartAgentId]"
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]"
       ]
     },
@@ -1612,9 +1512,9 @@
               "DUMMY_TEST": "True",
               "SOLUTION_NAME": "[variables('solutionPrefix')]",
               "APP_ENV": "Prod",
-              "AGENT_ID_ORCHESTRATOR": "[reference(resourceId('Microsoft.Resources/deployments', 'run_agent_scripts'), '2022-09-01').outputs.orchestratorAgentId.value]",
-              "AGENT_ID_SQL": "[reference(resourceId('Microsoft.Resources/deployments', 'run_agent_scripts'), '2022-09-01').outputs.sqlAgentId.value]",
-              "AGENT_ID_CHART": "[reference(resourceId('Microsoft.Resources/deployments', 'run_agent_scripts'), '2022-09-01').outputs.chartAgentId.value]",
+              "AGENT_ID_ORCHESTRATOR": "",
+              "AGENT_ID_SQL": "",
+              "AGENT_ID_CHART": "",
               "FABRIC_SQL_DATABASE": "",
               "FABRIC_SQL_SERVER": "",
               "FABRIC_SQL_CONNECTION_STRING": ""
@@ -2208,7 +2108,6 @@
       },
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry')]",
-        "[resourceId('Microsoft.Resources/deployments', 'run_agent_scripts')]",
         "[resourceId('Microsoft.Resources/deployments', 'deploy_app_service_plan')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]"
       ]
@@ -2633,15 +2532,15 @@
     },
     "AGENT_ID_ORCHESTRATOR": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'run_agent_scripts'), '2022-09-01').outputs.orchestratorAgentId.value]"
+      "value": ""
     },
     "AGENT_ID_SQL": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'run_agent_scripts'), '2022-09-01').outputs.sqlAgentId.value]"
+      "value": ""
     },
     "AGENT_ID_CHART": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'run_agent_scripts'), '2022-09-01').outputs.chartAgentId.value]"
+      "value": ""
     },
     "FABRIC_SQL_DATABASE": {
       "type": "string",
@@ -2654,6 +2553,14 @@
     "FABRIC_SQL_CONNECTION_STRING": {
       "type": "string",
       "value": ""
+    },
+    "MANAGED_IDENTITY_CLIENT_ID": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityOutput.value.clientId]"
+    },
+    "AI_FOUNDRY_RESOURCE_ID": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2022-09-01').outputs.aiFoundryResourceId.value]"
     }
   }
 }

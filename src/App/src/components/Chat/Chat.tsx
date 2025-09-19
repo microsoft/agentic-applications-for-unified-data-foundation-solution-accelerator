@@ -556,7 +556,7 @@ const Chat: React.FC<ChatProps> = ({
               chartResponse = parsedChartResponse?.choices[0]?.messages[0]?.content;
             }
           
-            if (typeof chartResponse === 'object' &&  'answer' in chartResponse) {
+            if (typeof chartResponse === 'object' && 'answer' in chartResponse) {
               if (
                 chartResponse.answer === "" ||
                 chartResponse.answer === undefined ||
@@ -565,6 +565,27 @@ const Chat: React.FC<ChatProps> = ({
                 chartResponse = "Chart can't be generated, please try again.";
               } else {
                 chartResponse = chartResponse.answer;
+              }
+            } else if (typeof chartResponse === 'string') {
+              // Try to parse string as JSON and repeat the logic
+              let parsed;
+              try {
+                parsed = JSON.parse(chartResponse);
+              } catch {
+                parsed = null;
+              }
+              if (parsed && typeof parsed === 'object' && 'answer' in parsed) {
+                if (
+                  parsed.answer === "" ||
+                  parsed.answer === undefined ||
+                  (typeof parsed.answer === "object" && Object.keys(parsed.answer).length === 0)
+                ) {
+                  chartResponse = "Chart can't be generated, please try again.";
+                } else {
+                  chartResponse = parsed.answer;
+                }
+              }else{
+                chartResponse = "Chart can't be generated, please try again.";
               }
             }
 
@@ -801,13 +822,39 @@ const Chat: React.FC<ChatProps> = ({
                   );
                 }
                 if (typeof msg.content === "string") {
+                  let parsedContent;
+                  try {
+                    parsedContent = JSON.parse(msg.content);
+                  } catch {
+                    parsedContent = null;
+                  }
+
+                  // Check if parsedContent is a chart config
+                  if (
+                    parsedContent &&
+                    typeof parsedContent === "object" &&
+                    (parsedContent.type && parsedContent.data)
+                  ) {
+                    return (
+                      <div className="assistant-message chart-message">
+                        <ChatChart chartContent={parsedContent} />
+                        <div className="answerDisclaimerContainer">
+                          <span className="answerDisclaimer">
+                            AI-generated content may be incorrect
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Fallback: render as markdown
                   return (
                     <div className="assistant-message">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm, supersub]}
                         children={msg.content}
                       />
-                     {/* Citation Loader: Show only while citations are fetching */}
+                      {/* Citation Loader: Show only while citations are fetching */}
                       {isLastAssistantMessage && generatingResponse ? (
                         <div className="typing-indicator">
                           <span className="dot"></span>

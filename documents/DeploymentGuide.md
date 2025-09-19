@@ -82,7 +82,7 @@ If you're not using one of the above options for opening the project, then you'l
     - [Python 3.9+](https://www.python.org/downloads/)
     - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
     - [Git](https://git-scm.com/downloads)
-    - [Microsoft ODBC Driver 17](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver16#version-17)
+    - [Microsoft ODBC Driver 17](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver16)
 
 2. Clone the repository or download the project code via command-line:
 
@@ -113,8 +113,6 @@ When you start the deployment, most parameters will have **default values**, but
 | **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2024-07-18             |
 | **OpenAI API Version**                      | The Azure OpenAI API version to use.                                                                      | 2025-01-01-preview     |
 | **GPT Model Deployment Capacity**           | Configure capacity for **GPT models** (in thousands).                                                     | 30k                    |
-<!-- | **Embedding Model**                         | Default: **text-embedding-ada-002**.                                                                      | text-embedding-ada-002 |
-| **Embedding Model Capacity**                | Set the capacity for **embedding models** (in thousands).                                                 | 80k                    | -->
 | **Image Tag**                               | Docker image tag to deploy. Common values: `latest`, `dev`, `hotfix`.                  | latest       |
 | **Use Local Build**                         | Boolean flag to determine if local container builds should be used.                         | false             |
 | **Existing Log Analytics Workspace**        | To reuse an existing Log Analytics Workspace ID.                                                          | *(empty)*              |
@@ -178,7 +176,11 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     -- This deployment will take *7-10 minutes* to provision the resources in your account and set up the solution with sample data.
     - If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
-5. Once the deployment has completed successfully, copy the bash script from the terminal (ex. `bash ./run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-mid-principal> <backend-api-name> <resourcegroup>`) for later use. 
+5. Once the deployment has completed successfully, copy the 2 bash commands from the terminal (ex. 
+`bash ./run_create_agents_scripts.sh` and
+`bash ./run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-mid-principal> <backend-api-name> <resourcegroup>`) for later use.
+
+> **Note**: if you are running this deployment in GitHub Codespaces or VS Code Dev Container skip to step 7. 
 
 6. Create and activate a virtual environment 
   
@@ -195,19 +197,34 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
   az login
   ```
 
-8. Open a Git Bash terminal and navigate to the fabric_scripts folder
+8. Open a Git Bash terminal and navigate to the agent_scripts folder
+  ```shell
+  cd infra/scripts/agent_scripts
+  ```
+
+9. Run the bash script from the output of the azd deployment. The script will look like the following:
+  ```Shell
+  bash ./run_create_agents_scripts.sh
+  ```
+
+  If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
+  ```Shell
+  bash ./run_create_agents_scripts.sh <managed-identity-client-id> <project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group>
+  ```
+
+10. Open a Git Bash terminal and navigate to the fabric_scripts folder
   ```shell
   cd infra/scripts/fabric_scripts
   ```
 
-9. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
+11. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
   ```Shell
   bash ./run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-mid-principal> <backend-api-name> <resourcegroup>
   ```
 
-10. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
+12. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
-11. If you are done trying out the application, you can delete the resources by running `azd down`.
+13. If you are done trying out the application, you can delete the resources by running `azd down`.
 
 
 ## Post Deployment Steps
@@ -231,7 +248,3 @@ To help you get started, here are some **Sample Questions** you can ask in the a
 - When customers call in about unexpected charges, what types of charges are they seeing?
 
 These questions serve as a great starting point to explore insights from the data.
-
-## Next Steps: 
-Now that you've completed your deployment, you can start using the solution. Try out these things to start getting familiar with the capabilities:
-* [Customize the solution](./CustomizeData.md) with your own data

@@ -85,21 +85,19 @@ var solutionPrefix = 'da${padLeft(take(uniqueId, 12), 12, '0')}'
 
 var acrName = 'dataagentscontainerreg'
 
-var baseUrl = 'https://raw.githubusercontent.com/nchandhi/ncdatarepo1/main/'
-
 //Get the current deployer's information
 var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
 
-// // ========== Resource Group Tag ========== //
-// resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
-//   name: 'default'
-//   properties: {
-//     tags: {
-//       TemplateName: 'Data Agents Fabric'
-//     }
-//   }
-// }
+// ========== Resource Group Tag ========== //
+resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
+  name: 'default'
+  properties: {
+    tags: {
+      TemplateName: 'Unified Data Analysis Agents'
+    }
+  }
+}
 
 // ========== Managed Identity ========== //
 module managedIdentityModule 'deploy_managed_identity.bicep' = {
@@ -178,22 +176,6 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
 //   scope: resourceGroup(resourceGroup().name)
 // }
 
-
-//========== Deployment script to create Agent ========== //
-module createAgent 'run_agent_scripts.bicep' = {
-  name : 'run_agent_scripts'
-  params:{
-    solutionLocation: solutionLocation
-    managedIdentityResourceId:managedIdentityModule.outputs.managedIdentityOutput.id
-    managedIdentityClientId:managedIdentityModule.outputs.managedIdentityOutput.clientId
-    baseUrl:baseUrl
-    // keyVaultName:aifoundry.outputs.keyvaultName
-    projectEndpoint: aifoundry.outputs.projectEndpoint
-    solutionName: solutionPrefix
-    gptModelName: gptModelName
-  }
-}
-
 module hostingplan 'deploy_app_service_plan.bicep' = {
   name: 'deploy_app_service_plan'
   params: {
@@ -244,9 +226,9 @@ module backend_docker 'deploy_backend_docker.bicep' = {
       SOLUTION_NAME: solutionPrefix
       APP_ENV: 'Prod'
 
-      AGENT_ID_ORCHESTRATOR: createAgent.outputs.orchestratorAgentId
-      AGENT_ID_SQL: createAgent.outputs.sqlAgentId
-      AGENT_ID_CHART: createAgent.outputs.chartAgentId
+      AGENT_ID_ORCHESTRATOR: ''
+      AGENT_ID_SQL: ''
+      AGENT_ID_CHART: ''
 
       FABRIC_SQL_DATABASE: ''
       FABRIC_SQL_SERVER: ''
@@ -314,9 +296,12 @@ output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppO
 output API_APP_URL string = backend_docker.outputs.appUrl
 output WEB_APP_URL string = frontend_docker.outputs.appUrl
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = aifoundry.outputs.applicationInsightsConnectionString
-output AGENT_ID_ORCHESTRATOR string = createAgent.outputs.orchestratorAgentId
-output AGENT_ID_SQL string = createAgent.outputs.sqlAgentId
-output AGENT_ID_CHART string = createAgent.outputs.chartAgentId
+output AGENT_ID_ORCHESTRATOR string = ''
+output AGENT_ID_SQL string = ''
+output AGENT_ID_CHART string = ''
 output FABRIC_SQL_DATABASE string = ''
 output FABRIC_SQL_SERVER string = ''
 output FABRIC_SQL_CONNECTION_STRING string = ''
+
+output MANAGED_IDENTITY_CLIENT_ID string = managedIdentityModule.outputs.managedIdentityOutput.clientId
+output AI_FOUNDRY_RESOURCE_ID string = aifoundry.outputs.aiFoundryResourceId
