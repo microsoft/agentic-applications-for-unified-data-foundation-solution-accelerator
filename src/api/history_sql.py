@@ -81,29 +81,46 @@ async def get_fabric_db_connection():
     app_env = os.getenv("APP_ENV", "prod").lower()
     database = os.getenv("FABRIC_SQL_DATABASE")
     server = os.getenv("FABRIC_SQL_SERVER")
-    driver = "{ODBC Driver 17 for SQL Server}"
-    # api_uid = os.getenv("API_UID", "")
-    fabric_sql_connection_string = os.getenv("FABRIC_SQL_CONNECTION_STRING", "")
+    driver17 = "ODBC Driver 17 for SQL Server"
+    driver18 = "ODBC Driver 18 for SQL Server"
+    api_uid = os.getenv("API_UID", "")
+    fabric_sql_connection_string18 = os.getenv("FABRIC_SQL_CONNECTION_STRING", "")
+    fabric_sql_connection_string17 = f"DRIVER={driver17};SERVER={server};DATABASE={database};UID={api_uid};Authentication=ActiveDirectoryMSI"
+    
 
-    try:
+    try:       
         conn = None
-        connection_string = ""
-        if app_env == 'dev':
-            async with AzureCliCredential() as credential:
-                token = await credential.get_token("https://database.windows.net/.default")
-                token_bytes = token.token.encode("utf-16-LE")
-                token_struct = struct.pack(
-                    f"<I{len(token_bytes)}s",
-                    len(token_bytes),
-                    token_bytes
-                )
-                SQL_COPT_SS_ACCESS_TOKEN = 1256
-                connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};"
-                conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-        else:
-            # connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};UID={api_uid};Authentication=ActiveDirectoryMSI;"
-            connection_string = fabric_sql_connection_string
-            conn = pyodbc.connect(connection_string)
+        try:            
+            if app_env == 'dev':
+                async with AzureCliCredential() as credential:
+                    token = await credential.get_token("https://database.windows.net/.default")
+                    token_bytes = token.token.encode("utf-16-LE")
+                    token_struct = struct.pack(
+                        f"<I{len(token_bytes)}s",
+                        len(token_bytes),
+                        token_bytes
+                    )
+                    SQL_COPT_SS_ACCESS_TOKEN = 1256
+                    connection_string = f"DRIVER={driver18};SERVER={server};DATABASE={database};"
+                    conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+            else:
+                # connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};UID={api_uid};Authentication=ActiveDirectoryMSI;"
+                conn = pyodbc.connect(fabric_sql_connection_string18)
+        except Exception as e:
+            if app_env == 'dev':
+                async with AzureCliCredential() as credential:
+                    token = await credential.get_token("https://database.windows.net/.default")
+                    token_bytes = token.token.encode("utf-16-LE")
+                    token_struct = struct.pack(
+                        f"<I{len(token_bytes)}s",
+                        len(token_bytes),
+                        token_bytes
+                    )
+                    SQL_COPT_SS_ACCESS_TOKEN = 1256
+                    connection_string = f"DRIVER={driver17};SERVER={server};DATABASE={database};"
+                    conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+            else:
+                conn = pyodbc.connect(fabric_sql_connection_string17)
 
         return conn
     except pyodbc.Error as e:
