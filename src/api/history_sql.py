@@ -86,11 +86,10 @@ async def get_fabric_db_connection():
     api_uid = os.getenv("API_UID", "")
     fabric_sql_connection_string18 = os.getenv("FABRIC_SQL_CONNECTION_STRING", "")
     fabric_sql_connection_string17 = f"DRIVER={driver17};SERVER={server};DATABASE={database};UID={api_uid};Authentication=ActiveDirectoryMSI"
-    
 
-    try:       
+    try:
         conn = None
-        try:            
+        try:
             if app_env == 'dev':
                 async with AzureCliCredential() as credential:
                     token = await credential.get_token("https://database.windows.net/.default")
@@ -106,7 +105,7 @@ async def get_fabric_db_connection():
             else:
                 # connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};UID={api_uid};Authentication=ActiveDirectoryMSI;"
                 conn = pyodbc.connect(fabric_sql_connection_string18)
-        except Exception as e:
+        except Exception:
             if app_env == 'dev':
                 async with AzureCliCredential() as credential:
                     token = await credential.get_token("https://database.windows.net/.default")

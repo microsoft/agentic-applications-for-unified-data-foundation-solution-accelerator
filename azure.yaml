@@ -28,10 +28,13 @@ hooks:
         $resourceGroup         = $env:RESOURCE_GROUP_NAME
 
         # Build the exact command string (quoted to survive spaces)
+        Write-Host "`nRun the following 2 commands in the bash terminal to create agents and fabric items respectively:"
+        Write-Host "bash ./run_create_agents_scripts.sh" -ForegroundColor Cyan
+
         $cmdLine = 'bash ./run_fabric_items_scripts.sh {0} {1} {2} {3} {4} {5} {6}' -f `
             $workspaceId, $solutionName, $aiServiceName, $backendApiPID, $backendApiUID, $backendApiName, $resourceGroup
 
-        Write-Host $cmdLine -ForegroundColor Cyan   
+        Write-Host "`n$cmdLine" -ForegroundColor Cyan   
 
       shell: pwsh
       continueOnError: false
@@ -48,6 +51,9 @@ hooks:
         backendApiUID="$API_UID"
         backendApiName="$API_APP_NAME"
         resourceGroup="$RESOURCE_GROUP_NAME"
+
+        echo "\nRun the following 2 commands in the bash terminal to create agents and fabric items respectively:"
+        echo "bash ./run_create_agents_scripts.sh"
 
         cmdLine="bash ./run_fabric_items_scripts.sh $workspaceId $solutionName $aiServiceName $backendApiPID $backendApiUID $backendApiName $resourceGroup"
         echo $cmdLine

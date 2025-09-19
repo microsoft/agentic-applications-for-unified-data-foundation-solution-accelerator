@@ -121,14 +121,24 @@ sqldb_res = requests.get(fabric_sql_url, headers=fabric_headers)
 sqlsdbs_res = sqldb_res.json()
 # print(sqlsdbs_res)
 
-for sqldb in sqlsdbs_res['value']:
-    if sqldb['displayName'] == sqldb_name:
-        sqldb_id = sqldb['id']
-        FABRIC_SQL_DATABASE = '{' + sqldb['properties']['databaseName'] + '}'
-        FABRIC_SQL_SERVER = sqldb['properties']['serverFqdn'].replace(',1433','')
-        odbc_driver = "{ODBC Driver 17 for SQL Server}"
-        FABRIC_SQL_CONNECTION_STRING = f"DRIVER={odbc_driver};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"
-# print(sqldb_id)
+try: 
+    for sqldb in sqlsdbs_res['value']:
+        if sqldb['displayName'] == sqldb_name:
+            sqldb_id = sqldb['id']
+            FABRIC_SQL_DATABASE = '{' + sqldb['properties']['databaseName'] + '}'
+            FABRIC_SQL_SERVER = sqldb['properties']['serverFqdn'].replace(',1433','')
+            odbc_driver = "{ODBC Driver 18 for SQL Server}"
+            FABRIC_SQL_CONNECTION_STRING = f"DRIVER={odbc_driver};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"
+    # print(sqldb_id)
+except: 
+    for sqldb in sqlsdbs_res['value']:
+        if sqldb['displayName'] == sqldb_name:
+            sqldb_id = sqldb['id']
+            FABRIC_SQL_DATABASE = '{' + sqldb['properties']['databaseName'] + '}'
+            FABRIC_SQL_SERVER = sqldb['properties']['serverFqdn'].replace(',1433','')
+            odbc_driver = "{ODBC Driver 17 for SQL Server}"
+            FABRIC_SQL_CONNECTION_STRING = f"DRIVER={odbc_driver};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"
+    # print(sqldb_id)
 
 
 
@@ -140,7 +150,7 @@ import struct
 def get_fabric_db_connection():
     server = FABRIC_SQL_SERVER
     database = FABRIC_SQL_DATABASE
-    driver = "{ODBC Driver 17 for SQL Server}"
+    driver = "{ODBC Driver 18 for SQL Server}"
     
     try:
         conn=None
@@ -156,10 +166,17 @@ def get_fabric_db_connection():
                 token_bytes
             )
 
-            SQL_COPT_SS_ACCESS_TOKEN = 1256
-            connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};"  
-            conn = pyodbc.connect( connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})      
-            print('connected to fabric sql db')        
+            try: 
+                SQL_COPT_SS_ACCESS_TOKEN = 1256
+                connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};"  
+                conn = pyodbc.connect( connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})      
+                print('connected to fabric sql db')        
+            except:
+                SQL_COPT_SS_ACCESS_TOKEN = 1256
+                driver = "{ODBC Driver 17 for SQL Server}"
+                connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"  
+                conn = pyodbc.connect( connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})      
+                print('connected to fabric sql db')     
  
         return conn
     except :
