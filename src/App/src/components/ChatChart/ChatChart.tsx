@@ -20,11 +20,26 @@ interface ChartProps {
   };
 }
 
+
+const isValidChartConfig = (content: ChartProps["chartContent"]): boolean => {
+  // Basic check for required fields
+  if (!content || typeof content !== "object") return false;
+  if (!content.data || !content.type) return false;
+  // Chart.js expects data.datasets to be an array for most chart types
+  if (
+    ["bar", "line", "horizontalBar", "doughnut", "pie"].includes(content.type)
+  ) {
+    if (!content.data.datasets || !Array.isArray(content.data.datasets)) return false;
+  }
+  return true;
+};
+
 const ChatChart: React.FC<ChartProps> = ({ chartContent }) => {
   const chartRef = useRef<HTMLCanvasElement>(null);
+  const validChart = isValidChartConfig(chartContent);
 
   useEffect(() => {
-    if (chartRef.current && chartContent.data && chartContent?.type) {
+    if (validChart && chartRef.current && chartContent.data && chartContent?.type) {
       ChartJS.register(...registerables);
 
       const chartConfigData = {
@@ -86,11 +101,20 @@ const ChatChart: React.FC<ChartProps> = ({ chartContent }) => {
         }
       };
     }
-  }, [chartContent.data, chartContent?.options, chartContent?.type]);
+  }, [chartContent.data, chartContent?.options, chartContent?.type, validChart]);
 
   return (
     <div style={{ maxHeight: 350 }}>
-      <canvas ref={chartRef} />
+      {validChart ? (
+        <canvas ref={chartRef} />
+      ) : (
+        <div style={{ padding: 16, color: "#b71c1c", background: "#fff3f3", borderRadius: 8 }}>
+          <strong>Unable to render chart. Here is the raw response:</strong>
+          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", marginTop: 8 }}>
+            {JSON.stringify(chartContent, null, 2)}
+          </pre>
+        </div>
+      )}
     </div>
   );
 };
