@@ -1,5 +1,8 @@
 import json
 from azure.ai.projects import AIProjectClient
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from azure_credential_utils import get_azure_credential
 
 MANAGED_IDENTITY_CLIENT_ID = 'mici_to-be-replaced'
@@ -34,7 +37,12 @@ orchestrator_agent_instructions = '''You are a helpful assistant.
 
 import json
 
-file_path = "tables.json"
+
+
+# Use the location of tables.json in infra/scripts/fabric_scripts/sql_files/tables.json
+file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'sql_files', 'tables.json'))
+if not os.path.isfile(file_path):
+    raise FileNotFoundError(f"Could not find tables.json at {file_path}")
 
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
@@ -93,8 +101,7 @@ with project_client:
         instructions=chart_agent_instructions
     )
 
-    print(json.dumps({
-        "orchestratorAgentId": orchestrator_agent.id,
-        "sqlAgentId": sql_agent.id,
-        "chartAgentId": chart_agent.id
-    }))
+    print(f"orchestratorAgentId={orchestrator_agent.id}")
+    print(f"sqlAgentId={sql_agent.id}")
+    print(f"chartAgentId={chart_agent.id}")
+
