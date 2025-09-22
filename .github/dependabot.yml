@@ -38,8 +38,8 @@ updates:
     commit-message:
       prefix: "build"
     open-pull-requests-limit: 10
-    registries:
-      - npm_public_registry
+    # registries:
+    #   - npm_public_registry
     groups:
       frontend-deps:
         patterns:
