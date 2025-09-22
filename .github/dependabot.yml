@@ -45,8 +45,8 @@ updates:
         patterns:
           - "*"
 
-registries:
-  npm_public_registry:
-    type: "npm-registry"
-    url: "https://registry.npmjs.org/"
-    token: ${{ secrets.TOKEN }}
+# registries:
+#   npm_public_registry:
+#     type: "npm-registry"
+#     url: "https://registry.npmjs.org/"
+#     token: ${{ secrets.TOKEN }}
