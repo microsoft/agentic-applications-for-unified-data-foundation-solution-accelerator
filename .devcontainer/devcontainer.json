@@ -23,6 +23,7 @@
             ]
         }
     },
+    "onCreateCommand": "chmod +x ./.devcontainer/setup_env.sh",
     "postStartCommand": "bash ./.devcontainer/setup_env.sh",
     "remoteUser": "vscode",
     "hostRequirements": {
