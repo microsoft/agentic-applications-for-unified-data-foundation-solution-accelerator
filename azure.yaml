@@ -19,22 +19,11 @@ hooks:
         Write-Host "Web app URL: "
         Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
 
-        $workspaceId           = "<fabric_workspace_id>"
-        $solutionName          = $env:SOLUTION_NAME
-        $aiServiceName         = $env:AI_SERVICE_NAME
-        $backendApiPID         = $env:API_PID
-        $backendApiUID         = $env:API_UID
-        $backendApiName        = $env:API_APP_NAME
-        $resourceGroup         = $env:RESOURCE_GROUP_NAME
-
         # Build the exact command string (quoted to survive spaces)
         Write-Host "`nRun the following 2 commands in the bash terminal to create agents and fabric items respectively:"
         Write-Host "bash ./run_create_agents_scripts.sh" -ForegroundColor Cyan
 
-        $cmdLine = 'bash ./run_fabric_items_scripts.sh {0} {1} {2} {3} {4} {5} {6}' -f `
-            $workspaceId, $solutionName, $aiServiceName, $backendApiPID, $backendApiUID, $backendApiName, $resourceGroup
-
-        Write-Host "`n$cmdLine" -ForegroundColor Cyan   
+        Write-Host "`nbash ./run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan   
 
       shell: pwsh
       continueOnError: false
@@ -43,21 +32,11 @@ hooks:
       run: |
         echo "Web app URL: "
         echo $WEB_APP_URL
-           
-        workspaceId="<fabric_workspace_id>"
-        solutionName="$SOLUTION_NAME"
-        aiServiceName="$AI_SERVICE_NAME"
-        backendApiPID="$API_PID"
-        backendApiUID="$API_UID"
-        backendApiName="$API_APP_NAME"
-        resourceGroup="$RESOURCE_GROUP_NAME"
 
         echo "\nRun the following 2 commands in the bash terminal to create agents and fabric items respectively:"
         echo "bash ./run_create_agents_scripts.sh"
+        echo "\nbash ./run_fabric_items_scripts.sh <fabric_workspace_id>"
 
-        cmdLine="bash ./run_fabric_items_scripts.sh $workspaceId $solutionName $aiServiceName $backendApiPID $backendApiUID $backendApiName $resourceGroup"
-        echo $cmdLine
-        
       shell: sh
       continueOnError: false
       interactive: true

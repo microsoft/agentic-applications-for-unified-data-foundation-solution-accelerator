@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "starting script"
+echo "Starting the fabric items script"
 
 # Variables
 fabricWorkspaceId="$1"
@@ -9,6 +9,48 @@ backend_app_pid="$4"
 backend_app_uid="$5"
 app_service="$6"
 resource_group="$7"
+
+# get parameters from azd env, if not provided
+if [ -z "$solutionName" ]; then
+    solutionName=$(azd env get-value SOLUTION_NAME)
+fi
+
+if [ -z "$aiFoundryName" ]; then
+    aiFoundryName=$(azd env get-value AI_SERVICE_NAME)
+fi
+
+if [ -z "$backend_app_pid" ]; then
+    backend_app_pid=$(azd env get-value API_PID)
+fi
+
+if [ -z "$backend_app_uid" ]; then
+    backend_app_uid=$(azd env get-value API_UID)
+fi
+
+if [ -z "$app_service" ]; then
+    app_service=$(azd env get-value API_APP_NAME)
+fi
+
+if [ -z "$resource_group" ]; then
+    resource_group=$(azd env get-value RESOURCE_GROUP_NAME)
+fi
+
+
+# Check if all required arguments are present
+if [ -z "$fabricWorkspaceId" ] || [ -z "$solutionName" ] || [ -z "$aiFoundryName" ] || [ -z "$backend_app_pid" ] || [ -z "$backend_app_uid" ] || [ -z "$app_service" ] || [ -z "$resource_group" ]; then
+    echo "Usage: $0 <fabricWorkspaceId> <solutionName> <aiFoundryName> <backend_app_pid> <backend_app_uid> <app_service> <resource_group>"
+    exit 1
+fi
+
+# Check if user is logged in to Azure
+echo "Checking Azure authentication..."
+if az account show &> /dev/null; then
+    echo "Already authenticated with Azure."
+else
+    # Use Azure CLI login if running locally
+    echo "Authenticating with Azure CLI..."
+    az login
+fi
 
 # # get signed user
 # echo "Getting signed in user id"

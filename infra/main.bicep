@@ -128,11 +128,11 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
     solutionName: solutionPrefix
     solutionLocation: aiDeploymentsLocation
     // keyVaultName: kvault.outputs.keyvaultName
-    cuLocation: contentUnderstandingLocation
+    // cuLocation: contentUnderstandingLocation
     deploymentType: deploymentType
     gptModelName: gptModelName
     gptModelVersion: gptModelVersion
-    azureOpenAIApiVersion: azureOpenAIApiVersion
+    // azureOpenAIApiVersion: azureOpenAIApiVersion
     gptDeploymentCapacity: gptDeploymentCapacity
     // embeddingModel: embeddingModel
     // embeddingDeploymentCapacity: embeddingDeploymentCapacity
@@ -207,17 +207,17 @@ module backend_docker 'deploy_backend_docker.bicep' = {
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: 'True'
-      AZURE_COSMOSDB_ACCOUNT: '' //cosmosDBModule.outputs.cosmosAccountName
-      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: '' //cosmosDBModule.outputs.cosmosContainerName
-      AZURE_COSMOSDB_DATABASE: '' //cosmosDBModule.outputs.cosmosDatabaseName
-      AZURE_COSMOSDB_ENABLE_FEEDBACK: '' //'True'
-      SQLDB_DATABASE: '' //sqlDBModule.outputs.sqlDbName
-      SQLDB_SERVER: '' //sqlDBModule.outputs.sqlServerName
-      SQLDB_USER_MID: '' //managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
+      // AZURE_COSMOSDB_ACCOUNT: '' //cosmosDBModule.outputs.cosmosAccountName
+      // AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: '' //cosmosDBModule.outputs.cosmosContainerName
+      // AZURE_COSMOSDB_DATABASE: '' //cosmosDBModule.outputs.cosmosDatabaseName
+      // AZURE_COSMOSDB_ENABLE_FEEDBACK: '' //'True'
+      // SQLDB_DATABASE: '' //sqlDBModule.outputs.sqlDbName
+      // SQLDB_SERVER: '' //sqlDBModule.outputs.sqlServerName
+      // SQLDB_USER_MID: '' //managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-      AZURE_AI_SEARCH_ENDPOINT: '' //aifoundry.outputs.aiSearchTarget
-      AZURE_AI_SEARCH_INDEX: '' //'call_transcripts_index'
-      AZURE_AI_SEARCH_CONNECTION_NAME: '' //aifoundry.outputs.aiSearchConnectionName
+      // AZURE_AI_SEARCH_ENDPOINT: '' //aifoundry.outputs.aiSearchTarget
+      // AZURE_AI_SEARCH_INDEX: '' //'call_transcripts_index'
+      // AZURE_AI_SEARCH_CONNECTION_NAME: '' //aifoundry.outputs.aiSearchConnectionName
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
