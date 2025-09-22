@@ -212,9 +212,13 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
   bash ./run_create_agents_scripts.sh <managed-identity-client-id> <project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group>
   ```
 
-10. Open a Git Bash terminal and navigate to the fabric_scripts folder
+10. In your Git Bash terminal, navigate to the fabric_scripts folder
   ```shell
-  cd infra/scripts/fabric_scripts
+  cd ..
+  ```
+
+  ```shell
+  cd fabric_scripts
   ```
 
 11. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
