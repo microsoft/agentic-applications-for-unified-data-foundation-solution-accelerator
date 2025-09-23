@@ -29,6 +29,9 @@ Leverages the Unified Data Foundation in Fabric accelerator, SQL Database in Fab
 [Technical Architecture](./documents/TechnicalArchitecture.md)
 
 <br/>
+<h2>
+Features
+</h2>
 
 ### Key features
 <details open>  
