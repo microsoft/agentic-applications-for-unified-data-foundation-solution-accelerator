@@ -178,7 +178,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 5. Once the deployment has completed successfully, copy the 2 bash commands from the terminal (ex. 
 `bash ./run_create_agents_scripts.sh` and
-`bash ./run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-mid-principal> <backend-api-name> <resourcegroup>`) for later use.
+`bash ./run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
 
 > **Note**: if you are running this deployment in GitHub Codespaces or VS Code Dev Container skip to step 7. 
 
@@ -209,7 +209,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
   If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
   ```Shell
-  bash ./run_create_agents_scripts.sh <managed-identity-client-id> <project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group>
+  bash ./run_create_agents_scripts.sh <project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group>
   ```
 
 10. In your Git Bash terminal, navigate to the fabric_scripts folder
@@ -223,7 +223,12 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 11. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
   ```Shell
-  bash ./run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-mid-principal> <backend-api-name> <resourcegroup>
+  bash ./run_fabric_items_scripts.sh <fabric-workspaceId>
+  ```
+
+  If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
+  ```Shell
+  bash ./run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup>
   ```
 
 12. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
@@ -245,10 +250,8 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 To help you get started, here are some **Sample Questions** you can ask in the app:
 
-- Total number of calls by date for the last 7 days
-- Show average handling time by topics in minutes
-- What are the top 7 challenges users reported?
-- Give a summary of billing issues
-- When customers call in about unexpected charges, what types of charges are they seeing?
+- What 3 products have performed the best across all regions?
+- What customer tier showed increased in purchase activity over the last 6 months?
+- Generate a line chart showing the average order total by month over the past year
 
 These questions serve as a great starting point to explore insights from the data.

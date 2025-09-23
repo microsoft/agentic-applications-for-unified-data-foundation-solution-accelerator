@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "14409494497081573880"
+      "templateHash": "11621302784135104868"
     }
   },
   "parameters": {
@@ -480,9 +480,6 @@
           "solutionLocation": {
             "value": "[parameters('aiDeploymentsLocation')]"
           },
-          "cuLocation": {
-            "value": "[variables('contentUnderstandingLocation')]"
-          },
           "deploymentType": {
             "value": "[parameters('deploymentType')]"
           },
@@ -491,9 +488,6 @@
           },
           "gptModelVersion": {
             "value": "[parameters('gptModelVersion')]"
-          },
-          "azureOpenAIApiVersion": {
-            "value": "[parameters('azureOpenAIApiVersion')]"
           },
           "gptDeploymentCapacity": {
             "value": "[parameters('gptDeploymentCapacity')]"
@@ -518,7 +512,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.37.4.10188",
-              "templateHash": "13060357503200418335"
+              "templateHash": "12797831264006402074"
             }
           },
           "parameters": {
@@ -528,9 +522,6 @@
             "solutionLocation": {
               "type": "string"
             },
-            "cuLocation": {
-              "type": "string"
-            },
             "deploymentType": {
               "type": "string"
             },
@@ -538,9 +529,6 @@
               "type": "string"
             },
             "gptModelVersion": {
-              "type": "string"
-            },
-            "azureOpenAIApiVersion": {
               "type": "string"
             },
             "gptDeploymentCapacity": {
@@ -797,7 +785,6 @@
             "aiServicesName": "[format('{0}{1}', variables('abbrs').ai.aiServices, parameters('solutionName'))]",
             "workspaceName": "[format('{0}{1}', variables('abbrs').managementGovernance.logAnalyticsWorkspace, parameters('solutionName'))]",
             "applicationInsightsName": "[format('{0}{1}', variables('abbrs').managementGovernance.applicationInsights, parameters('solutionName'))]",
-            "keyvaultName": "[format('{0}{1}', variables('abbrs').security.keyVault, parameters('solutionName'))]",
             "location": "[parameters('solutionLocation')]",
             "aiProjectName": "[format('{0}{1}', variables('abbrs').ai.aiFoundryProject, parameters('solutionName'))]",
             "aiSearchName": "[format('{0}{1}', variables('abbrs').ai.aiSearch, parameters('solutionName'))]",
@@ -1495,17 +1482,7 @@
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
               "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "[parameters('gptModelName')]",
               "USE_CHAT_HISTORY_ENABLED": "True",
-              "AZURE_COSMOSDB_ACCOUNT": "",
-              "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "",
-              "AZURE_COSMOSDB_DATABASE": "",
-              "AZURE_COSMOSDB_ENABLE_FEEDBACK": "",
-              "SQLDB_DATABASE": "",
-              "SQLDB_SERVER": "",
-              "SQLDB_USER_MID": "",
               "API_UID": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2022-09-01').outputs.managedIdentityBackendAppOutput.value.clientId]",
-              "AZURE_AI_SEARCH_ENDPOINT": "",
-              "AZURE_AI_SEARCH_INDEX": "",
-              "AZURE_AI_SEARCH_CONNECTION_NAME": "",
               "USE_AI_PROJECT_CLIENT": "True",
               "DISPLAY_CHART_DEFAULT": "False",
               "APPLICATIONINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2022-09-01').outputs.applicationInsightsConnectionString.value]",

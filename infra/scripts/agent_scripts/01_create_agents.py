@@ -2,17 +2,23 @@ import json
 from azure.ai.projects import AIProjectClient
 import sys
 import os
+import argparse
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from azure_credential_utils import get_azure_credential
 
-MANAGED_IDENTITY_CLIENT_ID = 'mici_to-be-replaced'
-ai_project_endpoint = 'project_endpoint_to-be-replaced'
-solutionName = 'solution_name_to-be-replaced'
-gptModelName = 'gpt_model_name_to-be-replaced'
+p = argparse.ArgumentParser()
+p.add_argument("--ai_project_endpoint", required=True)
+p.add_argument("--solution_name", required=True)
+p.add_argument("--gpt_model_name", required=True)
+args = p.parse_args()
+
+ai_project_endpoint = args.ai_project_endpoint
+solutionName = args.solution_name
+gptModelName = args.gpt_model_name
 
 project_client = AIProjectClient(
     endpoint= ai_project_endpoint,
-    credential=get_azure_credential(client_id=MANAGED_IDENTITY_CLIENT_ID),
+    credential=get_azure_credential(),
 )
 
 orchestrator_agent_instructions = '''You are a helpful assistant.

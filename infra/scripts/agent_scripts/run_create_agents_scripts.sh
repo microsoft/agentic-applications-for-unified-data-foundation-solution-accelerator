@@ -3,19 +3,14 @@ set -e
 echo "Started the agent creation script setup..."
 
 # Variables
-managedIdentityClientId="$1"
-projectEndpoint="$2"
-solutionName="$3"
-gptModelName="$4"
-aiFoundryResourceId="$5"
-apiAppName="$6"
-resourceGroup="$7"
+projectEndpoint="$1"
+solutionName="$2"
+gptModelName="$3"
+aiFoundryResourceId="$4"
+apiAppName="$5"
+resourceGroup="$6"
 
 # get parameters from azd env, if not provided
-if [ -z "$managedIdentityClientId" ]; then
-    managedIdentityClientId=$(azd env get-value MANAGED_IDENTITY_CLIENT_ID)
-fi
-
 if [ -z "$projectEndpoint" ]; then
     projectEndpoint=$(azd env get-value AZURE_AI_AGENT_ENDPOINT)
 fi
@@ -42,8 +37,8 @@ fi
 
 
 # Check if all required arguments are provided
-if [ -z "$managedIdentityClientId" ] || [ -z "$projectEndpoint" ] || [ -z "$solutionName" ] || [ -z "$gptModelName" ] || [ -z "$aiFoundryResourceId" ] || [ -z "$apiAppName" ] || [ -z "$resourceGroup" ]; then
-    echo "Usage: $0 <managedIdentityClientId> <projectEndpoint> <solutionName> <gptModelName> <aiFoundryResourceId> <apiAppName> <resourceGroup>"
+if [ -z "$projectEndpoint" ] || [ -z "$solutionName" ] || [ -z "$gptModelName" ] || [ -z "$aiFoundryResourceId" ] || [ -z "$apiAppName" ] || [ -z "$resourceGroup" ]; then
+    echo "Usage: $0 <projectEndpoint> <solutionName> <gptModelName> <aiFoundryResourceId> <apiAppName> <resourceGroup>"
     exit 1
 fi
 
@@ -89,19 +84,13 @@ fi
 requirementFile="requirements.txt"
 
 # Download and install Python requirements
-pip install --upgrade pip
-pip install --quiet -r "$requirementFile"
-
-#Replace placeholder values with actuals
-sed -i "s#project_endpoint_to-be-replaced#${projectEndpoint}#g" 01_create_agents.py
-sed -i "s/mici_to-be-replaced/${managedIdentityClientId}/g" "01_create_agents.py"
-sed -i "s/solution_name_to-be-replaced/${solutionName}/g" "01_create_agents.py"
-sed -i "s/gpt_model_name_to-be-replaced/${gptModelName}/g" "01_create_agents.py"
+python -m pip install --upgrade pip
+python -m pip install --quiet -r "$requirementFile"
 
 # Execute the Python scripts
 echo "Running Python agents creation script..."
 # python 01_create_agents.py
-eval $(python 01_create_agents.py)
+eval $(python 01_create_agents.py --ai_project_endpoint="$projectEndpoint" --solution_name="$solutionName" --gpt_model_name="$gptModelName")
 
 echo "Agents creation completed."
 
