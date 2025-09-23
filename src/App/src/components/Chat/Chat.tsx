@@ -727,6 +727,10 @@ const Chat: React.FC<ChatProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      // Disable enter key if generating response or history update API is pending
+      if (generatingResponse || state.chatHistory.isHistoryUpdateAPIPending) {
+        return;
+      }
       const conversationId =
         state?.selectedConversationId || state.generatedConversationId;
       if (userMessage) {
@@ -739,6 +743,10 @@ const Chat: React.FC<ChatProps> = ({
   };
 
   const onClickSend = () => {
+    // Disable send button if generating response or history update API is pending
+    if (generatingResponse || state.chatHistory.isHistoryUpdateAPIPending) {
+      return;
+    }
     const conversationId =
       state?.selectedConversationId || state.generatedConversationId;
     if (userMessage) {
@@ -809,19 +817,31 @@ const Chat: React.FC<ChatProps> = ({
 
                 }
                 msg.content = msg.content as ChartDataResponse;
-                if (msg?.content?.type && msg?.content?.data) {
-                  return (
-                    <div className="assistant-message chart-message">
-                      <ChatChart chartContent={msg.content} />
-                      <div className="answerDisclaimerContainer">
-                        <span className="answerDisclaimer">
-                          AI-generated content may be incorrect
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-                if (typeof msg.content === "string") {
+                if (typeof msg.content === "object" && msg.content !== null) {
+                  if ("type" in msg.content && "data" in msg.content) {
+                    try {
+                      return (
+                        <div className="assistant-message chart-message">
+                          <ChatChart chartContent={msg.content as ChartDataResponse} />
+                          <div className="answerDisclaimerContainer">
+                            <span className="answerDisclaimer">
+                              AI-generated content may be incorrect
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    } catch (e) {
+                      console.error("Chart rendering error:", e);
+                      return (
+                        <div className="assistant-message error-message">
+                            ⚠️ Sorry, we couldn’t display the chart for this response.
+                        </div>
+                      );
+                    }
+                  }
+              }
+
+              if (typeof msg.content === "string") {
                   let parsedContent;
                   try {
                     parsedContent = JSON.parse(msg.content);
@@ -829,23 +849,30 @@ const Chat: React.FC<ChatProps> = ({
                     parsedContent = null;
                   }
 
-                  // Check if parsedContent is a chart config
-                  if (
-                    parsedContent &&
-                    typeof parsedContent === "object" &&
-                    (parsedContent.type && parsedContent.data)
-                  ) {
-                    return (
-                      <div className="assistant-message chart-message">
-                        <ChatChart chartContent={parsedContent} />
-                        <div className="answerDisclaimerContainer">
-                          <span className="answerDisclaimer">
-                            AI-generated content may be incorrect
-                          </span>
-                        </div>
-                      </div>
-                    );
+                  if (parsedContent && typeof parsedContent === "object") {
+                    if ("type" in parsedContent && "data" in parsedContent) {
+                      try {
+                        return (
+                          <div className="assistant-message chart-message">
+                            <ChatChart chartContent={parsedContent} />
+                            <div className="answerDisclaimerContainer">
+                              <span className="answerDisclaimer">
+                                AI-generated content may be incorrect
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      } catch (e) {
+                        console.error("Chart rendering error:", e);
+                        return (
+                          <div className="assistant-message error-message">
+                            ⚠️ Sorry, we couldn’t display the chart for this response.
+                          </div>
+                        );
+                      }
+                    }
                   }
+
 
                   // Fallback: render as markdown
                   return (
