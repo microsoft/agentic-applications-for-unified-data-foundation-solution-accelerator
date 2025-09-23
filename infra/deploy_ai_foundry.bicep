@@ -2,11 +2,11 @@
 param solutionName string
 param solutionLocation string
 // param keyVaultName string=''
-param cuLocation string
+// param cuLocation string
 param deploymentType string
 param gptModelName string
 param gptModelVersion string
-param azureOpenAIApiVersion string
+// param azureOpenAIApiVersion string
 param gptDeploymentCapacity int
 // param embeddingModel string
 // param embeddingDeploymentCapacity int
@@ -21,7 +21,7 @@ var aiServicesName = '${abbrs.ai.aiServices}${solutionName}'
 // var location_cu = cuLocation
 var workspaceName = '${abbrs.managementGovernance.logAnalyticsWorkspace}${solutionName}'
 var applicationInsightsName = '${abbrs.managementGovernance.applicationInsights}${solutionName}'
-var keyvaultName = '${abbrs.security.keyVault}${solutionName}'
+// var keyvaultName = '${abbrs.security.keyVault}${solutionName}'
 var location = solutionLocation //'eastus2'
 var aiProjectName = '${abbrs.ai.aiFoundryProject}${solutionName}'
 var aiSearchName = '${abbrs.ai.aiSearch}${solutionName}'

@@ -385,8 +385,11 @@ roleassignment_json ={
 }
 roleassignment_res = requests.post(fabric_ra_url, headers=fabric_headers, json=roleassignment_json)
 
+odbc_driver_18 = "{ODBC Driver 18 for SQL Server}"
+FABRIC_SQL_CONNECTION_STRING_18 = f"DRIVER={odbc_driver_18};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"
+
 # Write shell-safe exports
 with open(args.exports_file, "w", encoding="utf-8", newline="\n") as f:
     f.write("export FABRIC_SQL_SERVER1=" + shlex.quote(FABRIC_SQL_SERVER) + "\n")
     f.write("export FABRIC_SQL_DATABASE1=" + shlex.quote(FABRIC_SQL_DATABASE) + "\n")
-    f.write("export FABRIC_SQL_CONNECTION_STRING1=" + shlex.quote(FABRIC_SQL_CONNECTION_STRING) + "\n")
+    f.write("export FABRIC_SQL_CONNECTION_STRING1=" + shlex.quote(FABRIC_SQL_CONNECTION_STRING_18) + "\n")
