@@ -38,15 +38,15 @@ updates:
     commit-message:
       prefix: "build"
     open-pull-requests-limit: 10
-    registries:
-      - npm_public_registry
+    # registries:
+    #   - npm_public_registry
     groups:
       frontend-deps:
         patterns:
           - "*"
 
-registries:
-  npm_public_registry:
-    type: "npm-registry"
-    url: "https://registry.npmjs.org/"
-    token: ${{ secrets.TOKEN }}
+# registries:
+#   npm_public_registry:
+#     type: "npm-registry"
+#     url: "https://registry.npmjs.org/"
+#     token: ${{ secrets.TOKEN }}
