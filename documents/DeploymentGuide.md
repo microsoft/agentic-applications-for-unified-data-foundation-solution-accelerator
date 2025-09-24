@@ -177,8 +177,8 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     - If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
 5. Once the deployment has completed successfully, copy the 2 bash commands from the terminal (ex. 
-`bash ./run_create_agents_scripts.sh` and
-`bash ./run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
+`bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh` and
+`bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
 
 > **Note**: if you are running this deployment in GitHub Codespaces or VS Code Dev Container skip to step 7. 
 
@@ -197,43 +197,29 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
   az login
   ```
 
-8. Open a Git Bash terminal and navigate to the agent_scripts folder
-  ```shell
-  cd infra/scripts/agent_scripts
-  ```
-
-9. Run the bash script from the output of the azd deployment. The script will look like the following:
+8. Run the bash script from the output of the azd deployment. The script will look like the following:
   ```Shell
-  bash ./run_create_agents_scripts.sh
+  bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
   ```
 
   If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
   ```Shell
-  bash ./run_create_agents_scripts.sh <project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group>
+  bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group>
   ```
 
-10. In your Git Bash terminal, navigate to the fabric_scripts folder
-  ```shell
-  cd ..
-  ```
-
-  ```shell
-  cd fabric_scripts
-  ```
-
-11. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
+9. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
   ```Shell
-  bash ./run_fabric_items_scripts.sh <fabric-workspaceId>
+  bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>
   ```
 
   If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
   ```Shell
-  bash ./run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup>
+  bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup>
   ```
 
-12. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
+10. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
-13. If you are done trying out the application, you can delete the resources by running `azd down`.
+11. If you are done trying out the application, you can delete the resources by running `azd down`.
 
 
 ## Post Deployment Steps
