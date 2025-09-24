@@ -81,7 +81,7 @@ else
 fi
 
 
-requirementFile="requirements.txt"
+requirementFile="infra/scripts/agent_scripts/requirements.txt"
 
 # Download and install Python requirements
 python -m pip install --upgrade pip
@@ -90,7 +90,7 @@ python -m pip install --quiet -r "$requirementFile"
 # Execute the Python scripts
 echo "Running Python agents creation script..."
 # python 01_create_agents.py
-eval $(python 01_create_agents.py --ai_project_endpoint="$projectEndpoint" --solution_name="$solutionName" --gpt_model_name="$gptModelName")
+eval $(python infra/scripts/agent_scripts/01_create_agents.py --ai_project_endpoint="$projectEndpoint" --solution_name="$solutionName" --gpt_model_name="$gptModelName")
 
 echo "Agents creation completed."
 

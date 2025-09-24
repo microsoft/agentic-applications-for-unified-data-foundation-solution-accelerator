@@ -21,9 +21,9 @@ hooks:
 
         # Build the exact command string (quoted to survive spaces)
         Write-Host "`nRun the following 2 commands in the bash terminal to create agents and fabric items respectively:"
-        Write-Host "bash ./run_create_agents_scripts.sh" -ForegroundColor Cyan
+        Write-Host "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
 
-        Write-Host "`nbash ./run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan   
+        Write-Host "`nbash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
 
       shell: pwsh
       continueOnError: false
@@ -34,8 +34,8 @@ hooks:
         echo $WEB_APP_URL
 
         echo "\nRun the following 2 commands in the bash terminal to create agents and fabric items respectively:"
-        echo "bash ./run_create_agents_scripts.sh"
-        echo "\nbash ./run_fabric_items_scripts.sh <fabric_workspace_id>"
+        echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"
+        echo "\nbash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
 
       shell: sh
       continueOnError: false

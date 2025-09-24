@@ -76,7 +76,7 @@ directory_client = file_system_client.get_directory_client(f"{data_path}/{folder
 print('uploading files')
 # upload audio files
 file_client = directory_client.get_file_client("data/" + 'tables.json')
-with open(file='sql_files/tables.json', mode="rb") as data:
+with open(file='infra/scripts/fabric_scripts/sql_files/tables.json', mode="rb") as data:
         # print('data', data)
     file_client.upload_data(data, overwrite=True)
 
@@ -186,7 +186,7 @@ def get_fabric_db_connection():
 conn = get_fabric_db_connection()
 cursor = conn.cursor()
 print(cursor)
-sql_filename = 'sql_files/data_sql.sql'
+sql_filename = 'infra/scripts/fabric_scripts/sql_files/data_sql.sql'
 with open(sql_filename, 'r', encoding='utf-8') as f:
     sql_script = f.read()
     cursor.execute(sql_script)
@@ -195,7 +195,7 @@ cursor.commit()
 
 import json
 
-file_path = "sql_files/tables.json"
+file_path = "infra/scripts/fabric_scripts/sql_files/tables.json"
 
 time.sleep(120)
 with open(file_path, "r", encoding="utf-8") as f:
