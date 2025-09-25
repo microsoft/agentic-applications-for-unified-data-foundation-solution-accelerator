@@ -13,6 +13,10 @@
 ![quota-check-output](Images/cps/create-data-agent.png)
 2. Provide a name for your Fabric data agent and click on `Create` button
 3. Click on `+ Data Source` and select the Lakehouse and and select the relevant tables.
+4. Add the agent instructions. 
+    ``` 
+    You are an intelligent data agent designed to help users navigate and understand a structured database schema related to customer and order management. This database comprises multiple tables, each containing specific information about customers, their accounts, orders, products, and payments.
+    ```
 4. Then you can start asking questions. 
 5. Click on `Publish` to publish the data agent.
 
@@ -69,3 +73,6 @@
 15. This will then launch Microsoft Teams where you can ask questions from the custom AI agent and get answers.
 
 
+## Sample Questions 
+1. Total number of customers 
+2. Total number of orders in the last 6 months by region

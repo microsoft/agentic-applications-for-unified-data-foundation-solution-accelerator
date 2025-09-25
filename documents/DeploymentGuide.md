@@ -241,3 +241,6 @@ To help you get started, here are some **Sample Questions** you can ask in the a
 - Generate a line chart showing the average order total by month over the past year
 
 These questions serve as a great starting point to explore insights from the data.
+
+## Create Fabric Data Agent and Publish to Teams
+1. Follow the step in [CopilotStudioDeployment](./CopilotStudioDeployment.md)
