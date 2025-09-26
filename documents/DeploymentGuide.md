@@ -236,8 +236,8 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 To help you get started, here are some **Sample Questions** you can ask in the app:
 
-- What 3 products have performed the best across all regions?
-- What customer tier showed increased in purchase activity over the last 6 months?
-- Generate a line chart showing the average order total by month over the past year
+- Show total revenue by year for last 5 years as a line chart.
+- Show top 10 products by Revenue in the last year in a table.
+- Show as a donut chart.
 
 These questions serve as a great starting point to explore insights from the data.
