@@ -248,6 +248,63 @@
   display: flex;
   align-items: center;
 }
+
+/* HTML Content Styles */
+.html-content {
+  width: 100%;
+}
+
+.html-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+  font-size: 14px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.html-content table th {
+  background-color: #f8f9fa;
+  color: #333;
+  font-weight: 600;
+  padding: 12px 8px;
+  text-align: left;
+  border-bottom: 2px solid #dee2e6;
+  font-size: 13px;
+}
+
+.html-content table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #dee2e6;
+  color: #555;
+  font-size: 13px;
+}
+
+.html-content table tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.html-content table tr:hover {
+  background-color: #e9ecef;
+}
+
+.html-content table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  .html-content table {
+    font-size: 12px;
+  }
+  
+  .html-content table th,
+  .html-content table td {
+    padding: 8px 6px;
+  }
+}
 .btn-create-conv {
   margin-left: 0.75rem !important;
   min-width: var(--create-conv-btn-min-width) !important;

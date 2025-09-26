@@ -874,13 +874,22 @@ const Chat: React.FC<ChatProps> = ({
                   }
 
 
-                  // Fallback: render as markdown
+                  // Check if content contains HTML tags
+                  const containsHTML = /<\/?[a-z][\s\S]*>/i.test(msg.content);
+                  
                   return (
                     <div className="assistant-message">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm, supersub]}
-                        children={msg.content}
-                      />
+                      {containsHTML ? (
+                        <div 
+                          dangerouslySetInnerHTML={{ __html: msg.content }}
+                          className="html-content"
+                        />
+                      ) : (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm, supersub]}
+                          children={msg.content}
+                        />
+                      )}
                       {/* Citation Loader: Show only while citations are fetching */}
                       {isLastAssistantMessage && generatingResponse ? (
                         <div className="typing-indicator">
