@@ -144,6 +144,21 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
   scope: resourceGroup(resourceGroup().name)
 }
 
+// ==========CS API Module ========== //
+module csapi 'deploy_csapi_app_service.bicep' = {
+   name: 'deployCsApiModule'
+  params: {
+    location: resourceGroup().location
+    siteName: '${environmentName}-csapi-${uniqueString(resourceGroup().id)}'
+    keyVaultName: '${environmentName}-csapi-${uniqueString(resourceGroup().id)}-kv'
+    openAiSecretName: 'AZURE_OPENAI_KEY'
+    sqlSecretName: 'FABRIC_SQL_CONNECTION_STRING'
+    openAiSecretValue: ''
+    sqlSecretValue: ''
+    skuName: 'P1v2'
+  }
+}
+
 
 // // ========== Cosmos DB module ========== //
 // module cosmosDBModule 'deploy_cosmos_db.bicep' = {
