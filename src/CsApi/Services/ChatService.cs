@@ -18,14 +18,19 @@ public class ChatService : IChatService
         // Placeholder to mirror streaming from Python agent; returns a simple textual stream
         var ms = new MemoryStream();
         var writer = new StreamWriter(ms, Encoding.UTF8, leaveOpen: true);
+        
+        var lastMessageContent = request.Messages?.LastOrDefault()?.GetContentAsString() ?? "";
+        var responseContent = $"Echo: {lastMessageContent}";
+        
         var message = new ChatMessage
         {
-            Content = $"Echo: {request.Messages?.LastOrDefault()?.Content}",
             Role = "assistant",
             CreatedAt = DateTime.UtcNow
         };
+        message.SetContentFromString(responseContent);
+        
         await _repo.SaveMessageAsync(request.ConversationId ?? "default", message, cancellationToken);
-        await writer.WriteAsync(message.Content?.ToString());
+        await writer.WriteAsync(responseContent);
         await writer.FlushAsync();
         ms.Position = 0;
         return ms;

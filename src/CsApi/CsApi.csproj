@@ -7,6 +7,7 @@
     <NoWarn>1591;SKEXP0110</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Agents.AzureAI" Version="1.64.0-preview" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />

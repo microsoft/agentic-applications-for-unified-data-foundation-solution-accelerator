@@ -10,7 +10,8 @@ namespace CsApi.Repositories;
 
 public interface ISqlConversationRepository
 {
-    Task<string> EnsureConversationAsync(string userId, string? conversationId, string title, CancellationToken ct);
+    Task<(string ConversationId, bool IsNewConversation)> EnsureConversationAsync(string userId, string? conversationId, string title, CancellationToken ct);
+    Task UpdateConversationTitleAsync(string userId, string conversationId, string title, CancellationToken ct);
     Task AddMessageAsync(string userId, string conversationId, ChatMessage message, CancellationToken ct);
     Task<IReadOnlyList<ConversationSummary>> ListAsync(string userId, int offset, int limit, string sortOrder, CancellationToken ct);
     Task<IReadOnlyList<ChatMessage>> ReadAsync(string userId, string conversationId, string sortOrder, CancellationToken ct);
@@ -71,7 +72,7 @@ public class SqlConversationRepository : ISqlConversationRepository
     }
 
 
-    public async Task<string> EnsureConversationAsync(string userId, string? conversationId, string title, CancellationToken ct)
+    public async Task<(string ConversationId, bool IsNewConversation)> EnsureConversationAsync(string userId, string? conversationId, string title, CancellationToken ct)
     {
         var id = conversationId ?? Guid.NewGuid().ToString();
         using var conn = await CreateConnectionAsync();
@@ -91,7 +92,7 @@ public class SqlConversationRepository : ISqlConversationRepository
                 {
                     throw new UnauthorizedAccessException($"User {userId} does not have permission to access conversation {id}");
                 }
-                return id; // Conversation exists and user has permission
+                return (id, false); // Conversation exists and user has permission
             }
         }
         
@@ -106,47 +107,80 @@ public class SqlConversationRepository : ISqlConversationRepository
             cmd.Parameters.Add(new SqlParameter("@n", now));
             cmd.ExecuteNonQuery();
         }
-        return id;
+        return (id, true); // New conversation created
+    }
+
+    public async Task UpdateConversationTitleAsync(string userId, string conversationId, string title, CancellationToken ct)
+    {
+        using var conn = await CreateConnectionAsync();
+        string sql;
+        
+        if (!string.IsNullOrEmpty(userId))
+        {
+            sql = "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE userId=@u AND conversation_id=@c";
+            using var cmd = new SqlCommand(sql, (SqlConnection)conn);
+            cmd.Parameters.AddWithValue("@t", title);
+            cmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
+            cmd.Parameters.AddWithValue("@u", userId);
+            cmd.Parameters.AddWithValue("@c", conversationId);
+            cmd.ExecuteNonQuery();
+        }
+        else
+        {
+            sql = "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE conversation_id=@c";
+            using var cmd = new SqlCommand(sql, (SqlConnection)conn);
+            cmd.Parameters.AddWithValue("@t", title);
+            cmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
+            cmd.Parameters.AddWithValue("@c", conversationId);
+            cmd.ExecuteNonQuery();
+        }
     }
 
     public async Task AddMessageAsync(string userId, string conversationId, ChatMessage message, CancellationToken ct)
     {
-    var now = DateTime.UtcNow.ToString("o");
-    using var conn = await CreateConnectionAsync();
-    string sql;
-    if (!string.IsNullOrEmpty(userId))
-    {
-        sql = @"INSERT INTO hst_conversation_messages (userId, conversation_id, role, content_id, content, citations, feedback, createdAt, updatedAt) 
-VALUES (@u, @c, @r, @cid, @content, @citations, @feedback, @now, @now); UPDATE hst_conversations SET updatedAt=@now WHERE conversation_id=@c;";
-        using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
+        var now = DateTime.UtcNow.ToString("o");
+        using var conn = await CreateConnectionAsync();
+        string sql;
+        
+        // Get citations as JSON string for storage (matches Python behavior)
+        var citationsJson = message.GetCitationsAsJsonString();
+        
+        // Get content as JSON string for storage - this preserves chart data structure
+        var contentJson = message.GetContentAsJsonString();
+        
+        if (!string.IsNullOrEmpty(userId))
         {
-            cmd.Parameters.AddWithValue("@u", userId);
-            cmd.Parameters.AddWithValue("@c", conversationId);
-            cmd.Parameters.AddWithValue("@r", message.Role);
-            cmd.Parameters.AddWithValue("@cid", message.Id);
-            cmd.Parameters.AddWithValue("@content", message.Content ?? string.Empty);
-            cmd.Parameters.AddWithValue("@citations", JsonSerializer.Serialize(message.Citations ?? new List<string>()));
-            cmd.Parameters.AddWithValue("@feedback", message.Feedback ?? string.Empty);
-            cmd.Parameters.AddWithValue("@now", now);
-            cmd.ExecuteNonQuery();
+            sql = @"INSERT INTO hst_conversation_messages (userId, conversation_id, role, content_id, content, citations, feedback, createdAt, updatedAt) 
+    VALUES (@u, @c, @r, @cid, @content, @citations, @feedback, @now, @now); UPDATE hst_conversations SET updatedAt=@now WHERE conversation_id=@c;";
+            using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
+            {
+                cmd.Parameters.AddWithValue("@u", userId);
+                cmd.Parameters.AddWithValue("@c", conversationId);
+                cmd.Parameters.AddWithValue("@r", message.Role);
+                cmd.Parameters.AddWithValue("@cid", message.Id);
+                cmd.Parameters.AddWithValue("@content", contentJson);
+                cmd.Parameters.AddWithValue("@citations", citationsJson);
+                cmd.Parameters.AddWithValue("@feedback", message.Feedback ?? string.Empty);
+                cmd.Parameters.AddWithValue("@now", now);
+                cmd.ExecuteNonQuery();
+            }
         }
-    }
-    else
-    {
-        sql = @"INSERT INTO hst_conversation_messages (conversation_id, role, content_id, content, citations, feedback, createdAt, updatedAt) 
-VALUES (@c, @r, @cid, @content, @citations, @feedback, @now, @now); UPDATE hst_conversations SET updatedAt=@now WHERE conversation_id=@c;";
-        using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
+        else
         {
-            cmd.Parameters.AddWithValue("@c", conversationId);
-            cmd.Parameters.AddWithValue("@r", message.Role);
-            cmd.Parameters.AddWithValue("@cid", message.Id);
-            cmd.Parameters.AddWithValue("@content", message.Content ?? string.Empty);
-            cmd.Parameters.AddWithValue("@citations", JsonSerializer.Serialize(message.Citations ?? new List<string>()));
-            cmd.Parameters.AddWithValue("@feedback", message.Feedback ?? string.Empty);
-            cmd.Parameters.AddWithValue("@now", now);
-            cmd.ExecuteNonQuery();
+            sql = @"INSERT INTO hst_conversation_messages (conversation_id, role, content_id, content, citations, feedback, createdAt, updatedAt) 
+    VALUES (@c, @r, @cid, @content, @citations, @feedback, @now, @now); UPDATE hst_conversations SET updatedAt=@now WHERE conversation_id=@c;";
+            using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
+            {
+                cmd.Parameters.AddWithValue("@c", conversationId);
+                cmd.Parameters.AddWithValue("@r", message.Role);
+                cmd.Parameters.AddWithValue("@cid", message.Id);
+                cmd.Parameters.AddWithValue("@content", contentJson);
+                cmd.Parameters.AddWithValue("@citations", citationsJson);
+                cmd.Parameters.AddWithValue("@feedback", message.Feedback ?? string.Empty);
+                cmd.Parameters.AddWithValue("@now", now);
+                cmd.ExecuteNonQuery();
+            }
         }
-    }
     }
 
     public async Task<IReadOnlyList<ConversationSummary>> ListAsync(string userId, int offset, int limit, string sortOrder, CancellationToken ct)
@@ -161,11 +195,11 @@ VALUES (@c, @r, @cid, @content, @citations, @feedback, @now, @now); UPDATE hst_c
             Console.WriteLine($"Listing conversations for user '{userId}' (filterByUser={filterByUser})");
             if (filterByUser)
             {
-                sql = "SELECT conversation_id, userId, title FROM hst_conversations WHERE userId=@userId ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
+                sql = "SELECT conversation_id, userId, title, createdAt, updatedAt FROM hst_conversations WHERE userId=@userId ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
             }
             else
             {
-                sql = "SELECT conversation_id, userId, title FROM hst_conversations ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
+                sql = "SELECT conversation_id, userId, title, createdAt, updatedAt FROM hst_conversations ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
             }
             using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
             {
@@ -176,13 +210,30 @@ VALUES (@c, @r, @cid, @content, @citations, @feedback, @now, @now); UPDATE hst_c
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
+                    var createdAt = reader.IsDBNull(3) ? DateTime.UtcNow : reader.GetDateTime(3);
+                    var updatedAt = reader.IsDBNull(4) ? DateTime.UtcNow : reader.GetDateTime(4);
+                    var title = reader.IsDBNull(2) ? "New Conversation" : reader.GetString(2);
+                    
+                    // Ensure title is not empty
+                    if (string.IsNullOrWhiteSpace(title))
+                    {
+                        title = "New Conversation";
+                    }
+                    
                     list.Add(new ConversationSummary
                     {
                         ConversationId = reader.GetString(0),
                         UserId = reader.GetString(1),
-                        Title = reader.GetString(2)
+                        Title = title,
+                        CreatedAt = createdAt,
+                        UpdatedAt = updatedAt
                     });
                 }
+            }
+            Console.WriteLine($"Retrieved {list.Count} conversations from database");
+            foreach (var conv in list)
+            {
+                Console.WriteLine($"  - {conv.ConversationId}: '{conv.Title}' (user: {conv.UserId}) [created: {conv.CreatedAt}, updated: {conv.UpdatedAt}]");
             }
         }
         catch (Exception ex)
@@ -223,16 +274,44 @@ VALUES (@c, @r, @cid, @content, @citations, @feedback, @now, @now); UPDATE hst_c
                 var contentRaw = reader.IsDBNull(1) ? null : reader.GetString(1);
                 var citationsStr = reader.IsDBNull(2) ? null : reader.GetString(2);
                 var feedback = reader.IsDBNull(3) ? null : reader.GetString(3);
-                List<string> citationsList = new();
+                
+                // Parse content from JSON string back to JsonElement (matches Python behavior)
+                // This is crucial for chart data to be properly structured instead of string
+                JsonElement content = JsonSerializer.SerializeToElement(string.Empty);
+                if (!string.IsNullOrWhiteSpace(contentRaw))
+                {
+                    try 
+                    { 
+                        // Try to deserialize content as JSON first
+                        content = JsonSerializer.Deserialize<JsonElement>(contentRaw);
+                    } 
+                    catch 
+                    { 
+                        // If parsing fails, treat as string
+                        content = JsonSerializer.SerializeToElement(contentRaw);
+                    }
+                }
+                
+                // Parse citations as JsonElement to maintain flexibility (matches Python behavior)
+                JsonElement? citations = null;
                 if (!string.IsNullOrWhiteSpace(citationsStr))
                 {
-                    try { citationsList = JsonSerializer.Deserialize<List<string>>(citationsStr) ?? new(); } catch { citationsList = new(); }
+                    try 
+                    { 
+                        citations = JsonSerializer.Deserialize<JsonElement>(citationsStr);
+                    } 
+                    catch 
+                    { 
+                        // If parsing fails, treat as null
+                        citations = null;
+                    }
                 }
+                
                 list.Add(new ChatMessage
                 {
                     Role = role,
-                    Content = contentRaw ?? string.Empty,
-                    Citations = citationsList,
+                    Content = content,
+                    Citations = citations,
                     Feedback = feedback
                 });
             }

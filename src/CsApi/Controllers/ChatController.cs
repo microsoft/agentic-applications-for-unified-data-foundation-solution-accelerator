@@ -29,7 +29,7 @@ public class ChatController : ControllerBase
         Response.ContentType = "application/json-lines";
         Console.WriteLine("Processing chat request...");
         Console.WriteLine("Request Body: " + JsonSerializer.Serialize(request));
-        var query = request.Messages?.LastOrDefault()?.Content;
+        var query = request.Messages?.LastOrDefault()?.GetContentAsString();
         if (string.IsNullOrWhiteSpace(query))
         {
             await Response.WriteAsync(JsonSerializer.Serialize(new { error = "query is required" }) + "\n\n", ct);
@@ -42,10 +42,11 @@ public class ChatController : ControllerBase
         //    await Response.WriteAsync(JsonSerializer.Serialize(new { error = "Missing user id header" }) + "\n\n", ct);
         //    return;
         //}
-        var convId = await _sqlRepo.EnsureConversationAsync(userId, request.ConversationId, title: string.Empty, ct);
-        var userMessage = new ChatMessage { Id = Guid.NewGuid().ToString(), Role = "user", Content = query, CreatedAt = DateTime.UtcNow };
-        await _sqlRepo.AddMessageAsync(userId, convId, userMessage, ct);
-
+        var (convId, _) = await _sqlRepo.EnsureConversationAsync(userId ?? string.Empty, request.ConversationId, title: string.Empty, ct);
+        
+        // Note: Messages are NOT saved here during streaming
+        // They will be saved later when the frontend calls the update endpoint
+        
         // Use orchestrator agent for RAG/AI response with plugin support
         var agent = orchestrator.Agent;
         var thread = new Microsoft.SemanticKernel.Agents.AzureAI.AzureAIAgentThread(agent.Client);
@@ -78,8 +79,10 @@ public class ChatController : ControllerBase
             var errorEnvelope = new { error = ex.Message };
             await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
         }
-        var assistant = new ChatMessage { Id = Guid.NewGuid().ToString(), Role = "assistant", Content = acc, CreatedAt = DateTime.UtcNow };
-        await _sqlRepo.AddMessageAsync(userId, convId, assistant, ct);
+        
+        // Note: Assistant response is NOT saved here during streaming
+        // It will be saved later when the frontend calls the update endpoint
+        
         await thread.DeleteAsync();
     }
 
