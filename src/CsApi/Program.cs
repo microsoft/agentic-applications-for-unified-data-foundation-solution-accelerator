@@ -12,8 +12,9 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Bind to port 8000 to mirror FastAPI default run configuration
-builder.WebHost.UseUrls("http://0.0.0.0:8000");
+// Note: URL configuration is handled by environment variables:
+// - Development: Set ASPNETCORE_URLS or use default
+// - Production: Uses ASPNETCORE_URLS from Dockerfile (http://+:80)
 
 // CORS - allow all origins (adjust if needed)
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] {"*"};

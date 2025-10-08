@@ -36,8 +36,12 @@ public class SqlConversationRepository : ISqlConversationRepository
         // In prod, fall back to connection string from config (if needed)
         if (appEnv == "prod")
         {
-            var cs = _config["FABRIC_SQL_CONNECTION_STRING"];
-            var sqlConn = new SqlConnection(cs);
+            var odbcCs = _config["FABRIC_SQL_CONNECTION_STRING"];
+            
+            // Convert ODBC connection string to SQL Server format
+            var sqlCs = ConvertOdbcToSqlConnectionString(odbcCs);
+            
+            var sqlConn = new SqlConnection(sqlCs);
             await sqlConn.OpenAsync();
             Console.WriteLine("✅ Connected to Fabric SQL using connection string.");
             return sqlConn;
@@ -468,5 +472,70 @@ public class SqlConversationRepository : ISqlConversationRepository
             _logger.LogError(ex, "Error executing chat query");
         }
         return JsonSerializer.Serialize(results);
+    }
+
+    /// <summary>
+    /// Converts ODBC connection string format to SQL Server connection string format
+    /// </summary>
+    private string ConvertOdbcToSqlConnectionString(string odbcConnectionString)
+    {
+        if (string.IsNullOrWhiteSpace(odbcConnectionString))
+            throw new ArgumentException("Connection string cannot be null or empty", nameof(odbcConnectionString));
+
+        // Parse ODBC connection string
+        var parts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var pairs = odbcConnectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        
+        foreach (var pair in pairs)
+        {
+            var keyValue = pair.Split('=', 2, StringSplitOptions.RemoveEmptyEntries);
+            if (keyValue.Length == 2)
+            {
+                var key = keyValue[0].Trim();
+                var value = keyValue[1].Trim();
+                // Remove curly braces if present
+                if (value.StartsWith("{") && value.EndsWith("}"))
+                    value = value.Trim('{', '}');
+                parts[key] = value;
+            }
+        }
+
+        // Build SQL Server connection string
+        var sqlConnectionString = new List<string>();
+
+        // Map ODBC keywords to SQL Server keywords
+        if (parts.TryGetValue("SERVER", out var server))
+        {
+            sqlConnectionString.Add($"Server=tcp:{server},1433");
+        }
+
+        if (parts.TryGetValue("DATABASE", out var database))
+        {
+            sqlConnectionString.Add($"Database={database}");
+        }
+
+        if (parts.TryGetValue("UID", out var uid))
+        {
+            sqlConnectionString.Add($"User Id={uid}");
+        }
+
+        if (parts.TryGetValue("PWD", out var pwd))
+        {
+            sqlConnectionString.Add($"Password={pwd}");
+        }
+
+        if (parts.TryGetValue("Authentication", out var auth))
+        {
+            sqlConnectionString.Add($"Authentication={auth}");
+        }
+
+        // Add standard settings for Fabric SQL
+        sqlConnectionString.Add("Encrypt=True");
+        sqlConnectionString.Add("TrustServerCertificate=False");
+        sqlConnectionString.Add("Connection Timeout=30");
+
+        var result = string.Join(";", sqlConnectionString);
+        _logger.LogInformation("Converted ODBC connection string to SQL Server format");
+        return result;
     }    
 }

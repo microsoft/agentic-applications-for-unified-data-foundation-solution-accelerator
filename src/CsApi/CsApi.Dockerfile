@@ -9,6 +9,11 @@ RUN apk add --no-cache \
     libgcc \
     libstdc++ \
     icu-libs \
+    icu-dev \
+    icu-data-full \
+    musl-locales \
+    musl-locales-lang \
+    tzdata \
     krb5-libs \
     libssl3 \
     libcrypto3 \
@@ -21,6 +26,9 @@ RUN curl -O https://download.microsoft.com/download/fae28b9a-d880-42fd-9b98-d779
 
 # Set the working directory inside the container
 WORKDIR /app
+
+# Create the app directory and set proper permissions from the start
+RUN mkdir -p /app && chown -R 1001:1001 /app
 
 # Use multi-stage build for optimization
 FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
@@ -48,20 +56,32 @@ RUN dotnet publish "CsApi.csproj" -c Release -o /app/publish /p:UseAppHost=false
 FROM runtime AS final
 WORKDIR /app
 
-# Copy the published application from the build stage
-COPY --from=publish /app/publish .
-
 # Create a non-root user for security
 RUN addgroup -g 1001 -S appgroup && \
     adduser -S appuser -G appgroup -u 1001
+
+# Copy the published application from the build stage with proper ownership
+COPY --from=publish --chown=1001:1001 /app/publish .
+
+# Switch to non-root user
 USER appuser
 
-# Expose port 80 for incoming traffic
+# Expose port 80 for incoming traffic (matching Python API pattern)
 EXPOSE 80
 
 # Set environment variables for ASP.NET Core
 ENV ASPNETCORE_URLS=http://+:80
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV WEBSITES_PORT=80
+ENV DOTNET_EnableDiagnostics=0
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+ENV LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV TZ=UTC
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:80/health || exit 1
 
 # Start the application
 ENTRYPOINT ["dotnet", "CsApi.dll"]

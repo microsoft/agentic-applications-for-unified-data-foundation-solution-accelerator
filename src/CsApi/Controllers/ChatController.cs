@@ -36,7 +36,10 @@ public class ChatController : ControllerBase
             return;
         }
         Console.WriteLine($"Received chat request: {query}");
-        var userId = Request.Headers["x-ms-client-principal-id"].FirstOrDefault();
+        
+        var user = _userContextAccessor.GetCurrentUser();
+        var userId = user.UserPrincipalId;
+        
         //if (string.IsNullOrWhiteSpace(userId))
         //{
         //    await Response.WriteAsync(JsonSerializer.Serialize(new { error = "Missing user id header" }) + "\n\n", ct);

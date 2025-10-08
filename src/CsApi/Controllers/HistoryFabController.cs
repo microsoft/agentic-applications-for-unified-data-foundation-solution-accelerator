@@ -13,18 +13,21 @@ public class HistoryFabController : ControllerBase
     private readonly ISqlConversationRepository _repo;
     private readonly ITitleGenerationService _titleService;
     private readonly ILogger<HistoryFabController> _logger;
+    private readonly IUserContextAccessor _userContext;
 
-    public HistoryFabController(ISqlConversationRepository repo, ITitleGenerationService titleService, ILogger<HistoryFabController> logger)
+    public HistoryFabController(ISqlConversationRepository repo, ITitleGenerationService titleService, ILogger<HistoryFabController> logger, IUserContextAccessor userContext)
     { 
         _repo = repo; 
         _titleService = titleService;
-        _logger = logger; 
+        _logger = logger;
+        _userContext = userContext;
     }
 
     private string? GetUserId() 
     {
-        var userId = Request.Headers["x-ms-client-principal-id"].FirstOrDefault();
-        _logger.LogInformation("GetUserId returned: '{UserId}'", userId ?? "NULL");
+        var user = _userContext.GetCurrentUser();
+        var userId = user.UserPrincipalId;
+        _logger.LogInformation("GetUserId returned: '{UserId}' (from user context)", userId ?? "NULL");
         return userId;
     }
 
@@ -255,7 +258,7 @@ public class HistoryFabController : ControllerBase
                 success = true,
                 data = new {
                     title = updatedConversation.Title ?? "New Conversation",
-                    date = updatedConversation.UpdatedAt.ToString("o"),
+                    date = updatedConversation.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ss.ffffff"),
                     conversation_id = updatedConversation.ConversationId
                 }
             });
