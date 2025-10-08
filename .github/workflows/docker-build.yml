@@ -79,3 +79,13 @@ jobs:
           tags: |
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api:${{ steps.determine_tag.outputs.tagname }}
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
+
+      - name: Build and Push Docker Image for CsApi
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/CsApi
+          file: ./src/CsApi/CsApi.Dockerfile
+          push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'  || github.ref_name == 'dependabotchanges' }}
+          tags: |
+            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-csapi:${{ steps.determine_tag.outputs.tagname }}
+            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-csapi:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
