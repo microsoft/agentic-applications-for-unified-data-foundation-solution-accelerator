@@ -37,6 +37,9 @@
     },
     "azureExistingAIProjectResourceId": {
       "value": "${AZURE_EXISTING_AI_PROJECT_RESOURCE_ID}"
+    },
+    "backendLanguage": {
+      "value": "${AZURE_BACKEND_LANGUAGE}"
     }
   }
 }

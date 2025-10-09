@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.177.2456",
-      "templateHash": "9781455968784294255"
+      "templateHash": "14537213243928601859"
     }
   },
   "parameters": {
@@ -33,7 +33,6 @@
     },
     "backendLanguage": {
       "type": "string",
-      "defaultValue": "csharp",
       "allowedValues": [
         "python",
         "csharp"
@@ -2173,7 +2172,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.36.177.2456",
-              "templateHash": "10332020767869181642"
+              "templateHash": "5063172010782352338"
             }
           },
           "parameters": {
@@ -2218,7 +2217,7 @@
             "existingAIServiceResourceGroup": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[4], resourceGroup().name)]",
             "existingAIServicesName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[8], '')]",
             "existingAIProjectName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[10], '')]",
-            "imageName": "[format('DOCKER|{0}.azurecr.io/da-csapi:{1}', parameters('acrName'), parameters('imageTag'))]",
+            "imageName": "[format('DOCKER|{0}.azurecr.io/da-api-cs:{1}', parameters('acrName'), parameters('imageTag'))]",
             "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
           },
           "resources": [

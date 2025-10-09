@@ -17,7 +17,7 @@ param azureExistingAIProjectResourceId string = ''
   'python'
   'csharp'
 ])
-param backendLanguage string = 'csharp'
+param backendLanguage string
 
 // @minLength(1)
 // @description('Location for the Content Understanding service deployment:')
