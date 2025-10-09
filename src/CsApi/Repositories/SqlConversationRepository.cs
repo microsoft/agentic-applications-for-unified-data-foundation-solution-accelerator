@@ -43,7 +43,7 @@ public class SqlConversationRepository : ISqlConversationRepository
             
             var sqlConn = new SqlConnection(sqlCs);
             await sqlConn.OpenAsync();
-            Console.WriteLine("✅ Connected to Fabric SQL using connection string.");
+            // Console.WriteLine("✅ Connected to Fabric SQL using connection string."); // Verbose logging removed
             return sqlConn;
         }
 
@@ -51,7 +51,8 @@ public class SqlConversationRepository : ISqlConversationRepository
         var db = _config["FABRIC_SQL_DATABASE"]?.Trim(' ', '{', '}');
         var server = _config["FABRIC_SQL_SERVER"];
 
-        Console.WriteLine($"Using Azure CLI/Azure AD authentication for {server}, database {db}");
+        // REDUNDANT: Verbose connection info logging
+        // Console.WriteLine($"Using Azure CLI/Azure AD authentication for {server}, database {db}");
 
         var connectionString =
             $"Server=tcp:{server},1433;" +
@@ -69,7 +70,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         };
 
         await sqlConnWithToken.OpenAsync();
-        Console.WriteLine("✅ Connected to Fabric SQL using Azure Identity (no username/password).");
+        // Console.WriteLine("✅ Connected to Fabric SQL using Azure Identity (no username/password)."); // Verbose logging removed
 
         return sqlConnWithToken;
 
@@ -196,7 +197,8 @@ public class SqlConversationRepository : ISqlConversationRepository
             using var conn = await CreateConnectionAsync();
             string sql;
             bool filterByUser = !string.IsNullOrEmpty(userId);
-            Console.WriteLine($"Listing conversations for user '{userId}' (filterByUser={filterByUser})");
+            // REDUNDANT: Detailed user listing logging
+            // Console.WriteLine($"Listing conversations for user '{userId}' (filterByUser={filterByUser})");
             if (filterByUser)
             {
                 sql = "SELECT conversation_id, userId, title, createdAt, updatedAt FROM hst_conversations WHERE userId=@userId ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
@@ -234,11 +236,12 @@ public class SqlConversationRepository : ISqlConversationRepository
                     });
                 }
             }
-            Console.WriteLine($"Retrieved {list.Count} conversations from database");
-            foreach (var conv in list)
-            {
-                Console.WriteLine($"  - {conv.ConversationId}: '{conv.Title}' (user: {conv.UserId}) [created: {conv.CreatedAt}, updated: {conv.UpdatedAt}]");
-            }
+            // REDUNDANT: Verbose logging can be reduced in production
+            // Console.WriteLine($"Retrieved {list.Count} conversations from database");
+            // foreach (var conv in list)
+            // {
+            //     Console.WriteLine($"  - {conv.ConversationId}: '{conv.Title}' (user: {conv.UserId}) [created: {conv.CreatedAt}, updated: {conv.UpdatedAt}]");
+            // }
         }
         catch (Exception ex)
         {
@@ -252,7 +255,8 @@ public class SqlConversationRepository : ISqlConversationRepository
         var order = sortOrder.Equals("asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
         string sql;
         bool filterByUser = !string.IsNullOrEmpty(userId);
-        Console.WriteLine($"Reading messages for user '{userId}' and conversation '{conversationId}' (filterByUser={filterByUser})");
+        // REDUNDANT: Detailed message reading logging
+        // Console.WriteLine($"Reading messages for user '{userId}' and conversation '{conversationId}' (filterByUser={filterByUser})");
         if (string.IsNullOrEmpty(conversationId))
             return new List<ChatMessage>();
         if (filterByUser)
@@ -261,7 +265,8 @@ public class SqlConversationRepository : ISqlConversationRepository
         }
         else
         {   
-            Console.WriteLine("No userId provided, reading messages without user filter.");
+            // REDUNDANT: Filter logic logging
+            // Console.WriteLine("No userId provided, reading messages without user filter.");
             sql = $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE conversation_id=@conversationId ORDER BY updatedAt {order}";
         }
         var list = new List<ChatMessage>();
@@ -320,7 +325,8 @@ public class SqlConversationRepository : ISqlConversationRepository
                 });
             }
         }
-        Console.WriteLine($"Read {list.Count} messages for conversation '{conversationId}'");
+        // REDUNDANT: Message count logging
+        // Console.WriteLine($"Read {list.Count} messages for conversation '{conversationId}'");
         return list;
     }
 

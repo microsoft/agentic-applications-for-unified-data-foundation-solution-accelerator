@@ -11,12 +11,13 @@ namespace CsApi.Controllers;
 [Route("api")] // matches /api prefix
 public class ChatController : ControllerBase
 {
-    private readonly IChatService _chatService;
+    // REDUNDANT: _chatService is never used - the controller uses AzureAIAgentOrchestrator directly
+    // private readonly IChatService _chatService;
     private readonly IUserContextAccessor _userContextAccessor;
     private readonly ISqlConversationRepository _sqlRepo;
 
-    public ChatController(IChatService chatService, IUserContextAccessor userContextAccessor, ISqlConversationRepository sqlRepo)
-    { _chatService = chatService; _userContextAccessor = userContextAccessor; _sqlRepo = sqlRepo; }
+    public ChatController(IUserContextAccessor userContextAccessor, ISqlConversationRepository sqlRepo)
+    { _userContextAccessor = userContextAccessor; _sqlRepo = sqlRepo; }
 
     /// <summary>
     /// Streaming chat endpoint. Invokes the AzureAIAgent with plugin support (e.g., ChatWithDataPlugin).
@@ -27,15 +28,16 @@ public class ChatController : ControllerBase
     public async Task Chat([FromBody] ChatRequest request, [FromServices] AzureAIAgentOrchestrator orchestrator, CancellationToken ct)
     {
         Response.ContentType = "application/json-lines";
-        Console.WriteLine("Processing chat request...");
-        Console.WriteLine("Request Body: " + JsonSerializer.Serialize(request));
+        // REDUNDANT: Excessive console logging can be reduced in production
+        // Console.WriteLine("Processing chat request...");
+        // Console.WriteLine("Request Body: " + JsonSerializer.Serialize(request));
         var query = request.Messages?.LastOrDefault()?.GetContentAsString();
         if (string.IsNullOrWhiteSpace(query))
         {
             await Response.WriteAsync(JsonSerializer.Serialize(new { error = "query is required" }) + "\n\n", ct);
             return;
         }
-        Console.WriteLine($"Received chat request: {query}");
+        Console.WriteLine($"Received chat request: {query}"); // Keep this for basic logging
         
         var user = _userContextAccessor.GetCurrentUser();
         var userId = user.UserPrincipalId;

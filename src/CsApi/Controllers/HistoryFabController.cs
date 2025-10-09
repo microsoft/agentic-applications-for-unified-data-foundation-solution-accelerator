@@ -132,9 +132,9 @@ public class HistoryFabController : ControllerBase
     [HttpDelete("delete")]
     public async Task<IActionResult> Delete([FromQuery(Name="id")] string id, CancellationToken ct = default)
     {
-        _logger.LogInformation($"[DEBUG] Entered Delete endpoint with id={id}");
+        // _logger.LogInformation($"[DEBUG] Entered Delete endpoint with id={id}"); // Debug logging removed
         if (string.IsNullOrWhiteSpace(id)) return Problem(statusCode:400, title:"Bad Request", detail:"conversation_id is required");
-        // TEMP: Test if controller is hit
+        // REDUNDANT: Test debug return commented out
         // return Ok(new { debug = "Delete endpoint reached", id });
         var user = GetUserId();
         var result = await _repo.DeleteAsync(user, id, ct);

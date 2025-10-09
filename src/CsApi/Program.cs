@@ -5,6 +5,7 @@ using CsApi.Middleware;
 using CsApi.Plugins;
 using CsApi.Repositories;
 using CsApi.Services;
+using CsApi.Converters;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
@@ -36,6 +37,8 @@ builder.Services.AddControllers().AddJsonOptions(o =>
 {
     o.JsonSerializerOptions.PropertyNamingPolicy = null; // preserve original casing
     o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    // Add custom DateTime converter to match Python .isoformat() output
+    o.JsonSerializerOptions.Converters.Add(new PythonCompatibleDateTimeConverter());
 });
 
 // Swagger
@@ -55,10 +58,12 @@ builder.Services.AddSwaggerGen(c =>
 // Dependency Injection registrations
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IUserContextAccessor, HeaderUserContextAccessor>();
-builder.Services.AddScoped<IChatService, ChatService>();
-builder.Services.AddScoped<IChatRepository, ChatRepository>();
-builder.Services.AddScoped<IHistoryService, HistoryService>();
-builder.Services.AddScoped<IHistoryRepository, HistoryRepository>();
+// REDUNDANT: Chat services are not used (ChatController uses AzureAIAgentOrchestrator directly)
+// builder.Services.AddScoped<IChatService, ChatService>();
+// builder.Services.AddScoped<IChatRepository, ChatRepository>();
+// REDUNDANT: History services are not used (HistoryFabController uses SqlConversationRepository directly)
+// builder.Services.AddScoped<IHistoryService, HistoryService>();
+// builder.Services.AddScoped<IHistoryRepository, HistoryRepository>();
 // SQL conversation repository for historyfab endpoints & streaming persistence
 builder.Services.AddScoped<ISqlConversationRepository, SqlConversationRepository>();
 // Agent kernel service for SQL and chart agent integration
@@ -88,11 +93,11 @@ builder.Services.AddSingleton<AzureAIAgentOrchestrator>(sp =>
 // Azure credential factory
 builder.Services.AddSingleton<IAzureCredentialFactory, AzureCredentialFactory>();
 
-// ProblemDetails customization
-builder.Services.Configure<MvcOptions>(options =>
-{
-    // Additional filters if required
-});
+// REDUNDANT: Empty ProblemDetails configuration - no additional filters are actually configured
+// builder.Services.Configure<MvcOptions>(options =>
+// {
+//     // Additional filters if required
+// });
 
 var app = builder.Build();
 

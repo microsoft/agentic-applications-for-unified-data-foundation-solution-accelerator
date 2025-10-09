@@ -29,7 +29,7 @@ namespace CsApi.Plugins
         public async Task<string> GetSqlResponseAsync(
             [Description("the question")] string input)
         {
-            Console.WriteLine("---------Fabric-SQL-Kernel-invoked---------");
+            // Console.WriteLine("---------Fabric-SQL-Kernel-invoked---------"); // Verbose logging removed
             var endpoint = _config["AZURE_AI_AGENT_ENDPOINT"];
             var sqlAgentId = _config["AGENT_ID_SQL"];
             if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(sqlAgentId))
@@ -85,14 +85,14 @@ namespace CsApi.Plugins
                     }
                 }
                 sqlQuery = sqlQuery.Replace("```sql", string.Empty).Replace("```", string.Empty).Trim();
-                Console.WriteLine("USER INPUT: " + input);
-                Console.WriteLine("SQL QUERY GENERATED: " + sqlQuery);
+                // Console.WriteLine("USER INPUT: " + input); // Verbose logging removed
+                // Console.WriteLine("SQL QUERY GENERATED: " + sqlQuery); // Verbose logging removed
 
                 // Call runSqlQuery (delegate to kernel service or implement here)
                 var answerRaw = await _sqlConversationRepository.ExecuteChatQuery(sqlQuery, CancellationToken.None);
                 //var answerRaw = await _kernelService.GetSqlResponseAsync(sqlQuery);
                 string answer = answerRaw?.Length > 20000 ? answerRaw.Substring(0, 20000) : answerRaw;
-                Console.WriteLine("SQL QUERY RESULT: " + answer);
+                // Console.WriteLine("SQL QUERY RESULT: " + answer); // Verbose logging removed
                 if (string.IsNullOrWhiteSpace(answer))
                     answer = "No results found.";
 
