@@ -265,7 +265,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (backendLanguage == 'py
 module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendLanguage == 'csharp') {
   name: 'deploy_backend_csapi_docker'
   params: {
-    name: 'csapi-${solutionPrefix}'
+    name: 'api-cs-${solutionPrefix}'
     solutionLocation: solutionLocation
     imageTag: imageTag
     acrName: acrName
