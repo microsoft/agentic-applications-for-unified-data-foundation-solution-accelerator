@@ -78,9 +78,9 @@ const ChatChart: React.FC<ChartProps> = ({ chartContent }) => {
 
       const resizeObserver = new ResizeObserver(() => {
         requestAnimationFrame(() => {
-          if (chartRef.current && myChart) {
-            myChart.resize();
-            myChart.update();
+          if (chartRef?.current && myChart) {
+            myChart?.resize();
+            myChart?.update();
           }
         });
       });

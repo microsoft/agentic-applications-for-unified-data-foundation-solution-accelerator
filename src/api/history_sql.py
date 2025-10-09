@@ -5,8 +5,10 @@ import struct
 import uuid
 from datetime import datetime, date
 from typing import Tuple, Any
+from decimal import Decimal
 
 from openai import AsyncAzureOpenAI
+from pydantic import BaseModel, ConfigDict
 import pyodbc
 from azure.identity.aio import AzureCliCredential, get_bearer_token_provider
 from azure.monitor.events.extension import track_event
@@ -288,35 +290,38 @@ async def execute_sql_query(sql_query):
         conn.close()
 
 
-async def run_sql_query(sql_query):
-    """
-    Execute parameterized SQL query and return results as list of dictionaries.
-    """
-    # Connect to the database
-    conn = await get_fabric_db_connection()
-    cursor = None
-    try:
-        cursor = conn.cursor()
-        cursor.execute(sql_query)
-        columns = [desc[0] for desc in cursor.description]
-        result = []
-        for row in cursor.fetchall():
-            row_dict = {}
-            for col_name, value in zip(columns, row):
-                if isinstance(value, (datetime, date)):
-                    row_dict[col_name] = value.isoformat()
-                else:
-                    row_dict[col_name] = value
-            result.append(row_dict)
+class SqlQueryTool(BaseModel):
+    """SQL query tool for executing database queries using Agent Framework."""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    pyodbc_conn: pyodbc.Connection
 
-        return result
-    except Exception as e:
-        logging.error("Error executing SQL query: %s", e)
-        return None
-    finally:
-        if cursor:
-            cursor.close()
-        conn.close()
+    async def run_sql_query(self, sql_query):
+        """Execute parameterized SQL query and return results as list of dictionaries."""
+        # Connect to the database
+        try:
+            cursor = self.pyodbc_conn.cursor()
+            cursor.execute(sql_query)
+            columns = [desc[0] for desc in cursor.description]
+            result = []
+            for row in cursor.fetchall():
+                row_dict = {}
+                for col_name, value in zip(columns, row):
+                    if isinstance(value, (datetime, date)):
+                        row_dict[col_name] = value.isoformat()
+                    elif isinstance(value, Decimal):
+                        row_dict[col_name] = float(value)
+                    else:
+                        row_dict[col_name] = value
+                result.append(row_dict)
+
+            return result
+        except Exception as e:
+            logging.error("Error executing SQL query: %s", e)
+            return None
+        finally:
+            if cursor:
+                cursor.close()
+
 
 # Configuration variable
 USE_CHAT_HISTORY_ENABLED = os.getenv("USE_CHAT_HISTORY_ENABLED", "true").lower() == "true"

@@ -11,7 +11,7 @@ import re
 import time
 import uuid
 from types import SimpleNamespace
-from typing import Annotated, AsyncGenerator
+from typing import AsyncGenerator
 
 from cachetools import TTLCache
 from dotenv import load_dotenv
@@ -21,18 +21,17 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 # Azure SDK
-from azure.ai.agents.models import TruncationObject, MessageRole, ListSortOrder
+from azure.ai.agents.models import TruncationObject
 from azure.monitor.events.extension import track_event
 from azure.monitor.opentelemetry import configure_azure_monitor
-from azure.ai.projects import AIProjectClient
+from azure.ai.projects.aio import AIProjectClient
 
-# Semantic Kernel
-from semantic_kernel.agents import AzureAIAgentThread
-from semantic_kernel.exceptions.agent_exceptions import AgentException
-from semantic_kernel.functions.kernel_function_decorator import kernel_function
+from agent_framework import ChatAgent, AgentThread
+from agent_framework.azure import AzureAIAgentClient
+from agent_framework.exceptions import AgentException
 
 # Azure Auth
-from auth.azure_credential_utils import get_azure_credential
+from auth.azure_credential_utils import get_azure_credential_async, get_azure_credential
 
 load_dotenv()
 
@@ -70,163 +69,92 @@ logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
     logging.WARNING
 )
 
+# Load schema from tables.json
+file_path = "tables.json"
+if not os.path.isfile(file_path):
+    raise FileNotFoundError(f"Could not find tables.json at {file_path}")
 
-class ChatWithDataPlugin:
-    """Plugin for handling chat interactions with data using various AI agents."""
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
 
-    def __init__(self):
-        self.ai_project_endpoint = os.getenv("AZURE_AI_AGENT_ENDPOINT")
-        self.ai_project_api_version = os.getenv("AZURE_AI_AGENT_API_VERSION", "2025-05-01")
-        self.foundry_sql_agent_id = os.getenv("AGENT_ID_SQL")
-        self.foundry_chart_agent_id = os.getenv("AGENT_ID_CHART")
+# Prepare SQL instructions with table/column metadata
+counter = 1
+tables_str = ''
+for table in data['tables']:
+    tables_str += f"\n {counter}.Table:dbo.{table['tablename']}\n        Columns: " + ', '.join(table['columns'])
+    counter += 1
 
-    @kernel_function(name="ChatWithSQLDatabase",
-                     description="Provides quantified results, metrics, or structured data from the SQL database.")
-    async def get_sql_response(
-            self,
-            input: Annotated[str, "the question"]
-    ):
-        """
-        Executes a SQL generation agent to convert a natural language query into a T-SQL query,
-        executes the SQL, and returns the result.
+agent_instructions = '''You are a helpful assistant.
 
-        Args:
-            input (str): Natural language question to be converted into SQL.
+Generate a valid T-SQL query for SQL database in Fabric for the user's request using these tables:''' + tables_str + '''Use accurate and semantically appropriate T-SQL expressions, data types, functions, aliases, and conversions based strictly on the column definitions and the explicit or implicit intent of the user query.
+Avoid assumptions or defaults not grounded in schema or context.
+Ensure all aggregations, filters, grouping logic, and time-based calculations are precise, logically consistent, and reflect the user's intent without ambiguity.
+Only use the tables listed above. If the user query does not pertain to these tables, respond with "I don't know".
+Always Use the get_sql_response function to execute the SQL query and get the results.
 
-        Returns:
-            str: SQL query result or an error message if failed.
-        """
+if the user query is asking for a chart,
+    generate valid chart data to be shown using chart.js with version 4.4.4 compatible.
+    Include chart type and chart options.
+    Pick the best chart type for given data.
+    Do not generate a chart unless the input contains some numbers. Otherwise return a message that Chart cannot be generated.
+    **ONLY** return a valid JSON output and nothing else.
+    Verify that the generated JSON can be parsed using json.loads.
+    Do not include tooltip callbacks in JSON.
+    Always make sure that the generated json can be rendered in chart.js.
+    Always remove any extra trailing commas.
+    Verify and refine that JSON should not have any syntax errors like extra closing brackets.
+    Ensure Y-axis labels are fully visible by increasing **ticks.padding**, **ticks.maxWidth**, or enabling word wrapping where necessary.
+    Ensure bars and data points are evenly spaced and not squished or cropped at **100%** resolution by maintaining appropriate **barPercentage** and **categoryPercentage** values.
 
-        query = input
-        try:
-            from history_sql import run_sql_query
-            project_client = AIProjectClient(
-                endpoint=self.ai_project_endpoint,
-                credential=get_azure_credential(),
-                api_version=self.ai_project_api_version,
-            )
+If the question is unrelated to data but is conversational (e.g., greetings or follow-ups), respond appropriately using context.
 
-            thread = project_client.agents.threads.create()
-
-            project_client.agents.messages.create(
-                thread_id=thread.id,
-                role=MessageRole.USER,
-                content=query,
-            )
-
-            run = project_client.agents.runs.create_and_process(
-                thread_id=thread.id,
-                agent_id=self.foundry_sql_agent_id,
-            )
-
-            if run.status == "failed":
-                print(f"Run failed: {run.last_error}")
-                return "Details could not be retrieved. Please try again later."
-
-            sql_query = ""
-            messages = project_client.agents.messages.list(thread_id=thread.id, order=ListSortOrder.ASCENDING)
-            for msg in messages:
-                if msg.role == MessageRole.AGENT and msg.text_messages:
-                    sql_query = msg.text_messages[-1].text.value
-                    break
-            sql_query = sql_query.replace("```sql", '').replace("```", '').strip()
-            # logger.info("Generated SQL Query: %s", sql_query)
-            answer_raw = await run_sql_query(sql_query)
-            if isinstance(answer_raw, str):
-                answer = answer_raw[:20000] if len(answer_raw) > 20000 else answer_raw
-            else:
-                answer = answer_raw or "No results found."
-
-            # Clean up
-            project_client.agents.threads.delete(thread_id=thread.id)
-
-        except Exception as e:
-            print(f"Fabric-SQL-Kernel-error: {e}", flush=True)
-            answer = 'Details could not be retrieved. Please try again later.'
-
-        print(f"fabric-SQL-Kernel-response: {answer}", flush=True)
-        return answer
-
-    @kernel_function(name="GenerateChartData", description="Generates Chart.js v4.4.4 compatible JSON data for data visualization requests using current and immediate previous context.")
-    async def get_chart_data(
-            self,
-            input: Annotated[str, "The user's data visualization request along with relevant conversation history and context needed to generate appropriate chart data"],
-    ):
-        query = input
-        query = query.strip()
-        try:
-            project_client = AIProjectClient(
-                endpoint=self.ai_project_endpoint,
-                credential=get_azure_credential(),
-                api_version=self.ai_project_api_version,
-            )
-
-            thread = project_client.agents.threads.create()
-
-            project_client.agents.messages.create(
-                thread_id=thread.id,
-                role=MessageRole.USER,
-                content=query,
-            )
-
-            run = project_client.agents.runs.create_and_process(
-                thread_id=thread.id,
-                agent_id=self.foundry_chart_agent_id,
-            )
-
-            if run.status == "failed":
-                print(f"Run failed: {run.last_error}")
-                return "Details could not be retrieved. Please try again later."
-
-            chartdata = ""
-            messages = project_client.agents.messages.list(thread_id=thread.id, order=ListSortOrder.ASCENDING)
-            for msg in messages:
-                if msg.role == MessageRole.AGENT and msg.text_messages:
-                    chartdata = msg.text_messages[-1].text.value
-                    break
-            # Clean up
-            project_client.agents.threads.delete(thread_id=thread.id)
-
-        except Exception as e:
-            print(f"fabric-Chat-Kernel-error: {e}", flush=True)
-            chartdata = 'Details could not be retrieved. Please try again later.'
-
-        print(f"fabric-Chat-Kernel-response: {chartdata}", flush=True)
-        return chartdata
+Always use the structure { "answer": "", "citations": [ {"url":"","title":""} ] } to return final response.
+If you do not know the answer, just say "I don't know" and do not try to make up an answer.'''
 
 
 class ExpCache(TTLCache):
     """Extended TTLCache that deletes Azure AI agent threads when items expire."""
 
-    def __init__(self, *args, agent=None, **kwargs):
-        """Initialize cache with optional agent for thread cleanup."""
+    def __init__(self, *args, **kwargs):
+        """Initialize cache without creating persistent client connections."""
         super().__init__(*args, **kwargs)
-        self.agent = agent
 
     def expire(self, time=None):
         """Remove expired items and delete associated Azure AI threads."""
         items = super().expire(time)
         for key, thread_id in items:
             try:
-                if self.agent:
-                    thread = AzureAIAgentThread(client=self.agent.client, thread_id=thread_id)
-                    asyncio.create_task(thread.delete())
-                    logger.info("Thread deleted: %s", thread_id)
+                # Create task for async deletion with proper session management
+                asyncio.create_task(self._delete_thread_async(thread_id))
+                logger.info("Scheduled thread deletion: %s", thread_id)
             except Exception as e:
-                logger.error("Failed to delete thread for key %s: %s", key, e)
+                logger.error("Failed to schedule thread deletion for key %s: %s", key, e)
         return items
 
     def popitem(self):
         """Remove item using LRU eviction and delete associated Azure AI thread."""
         key, thread_id = super().popitem()
         try:
-            if self.agent:
-                thread = AzureAIAgentThread(client=self.agent.client, thread_id=thread_id)
-                asyncio.create_task(thread.delete())
-                logger.info("Thread deleted (LRU evict): %s", thread_id)
+            # Create task for async deletion with proper session management
+            asyncio.create_task(self._delete_thread_async(thread_id))
+            logger.info("Scheduled thread deletion (LRU evict): %s", thread_id)
         except Exception as e:
-            logger.error("Failed to delete thread for key %s (LRU evict): %s", key, e)
+            logger.error("Failed to schedule thread deletion for key %s (LRU evict): %s", key, e)
         return key, thread_id
+
+    async def _delete_thread_async(self, thread_id: str):
+        """Asynchronously delete a thread using a properly managed Azure AI Project Client."""
+        try:
+            if thread_id:
+                # Use async context manager to ensure proper cleanup
+                async with AIProjectClient(
+                    endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
+                    credential=await get_azure_credential_async()
+                ) as client:
+                    await client.agents.threads.delete(thread_id=thread_id)
+                    logger.info("Thread deleted successfully: %s", thread_id)
+        except Exception as e:
+            logger.error("Failed to delete thread %s: %s", thread_id, e)
 
 
 def track_event_if_configured(event_name: str, event_data: dict):
@@ -253,6 +181,12 @@ def format_stream_response(chat_completion_chunk, history_metadata, apim_request
     if len(chat_completion_chunk.choices) > 0:
         delta = chat_completion_chunk.choices[0].delta
         if delta:
+            content = getattr(delta, "content", "")
+            if isinstance(content, str):
+                try:
+                    content = json.loads(content)
+                except json.JSONDecodeError:
+                    pass
             if hasattr(delta, "context"):
                 message_obj = {"role": "tool", "content": json.dumps(delta.context)}
                 response_obj["choices"][0]["messages"].append(message_obj)
@@ -268,7 +202,7 @@ def format_stream_response(chat_completion_chunk, history_metadata, apim_request
                 if delta.content:
                     message_obj = {
                         "role": "assistant",
-                        "content": delta.content,
+                        "content": content,
                     }
                     response_obj["choices"][0]["messages"].append(message_obj)
                     return response_obj
@@ -280,15 +214,15 @@ def format_stream_response(chat_completion_chunk, history_metadata, apim_request
 thread_cache = None
 
 
-def get_thread_cache(agent):
+def get_thread_cache():
     """Get or create the global thread cache."""
     global thread_cache
     if thread_cache is None:
-        thread_cache = ExpCache(maxsize=1000, ttl=3600.0, agent=agent)
+        thread_cache = ExpCache(maxsize=1000, ttl=3600.0)
     return thread_cache
 
 
-async def stream_openai_text(conversation_id: str, query: str, agent) -> AsyncGenerator[str, None]:
+async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator[str, None]:
     """
     Get a streaming text response from OpenAI.
     """
@@ -298,18 +232,42 @@ async def stream_openai_text(conversation_id: str, query: str, agent) -> AsyncGe
         if not query:
             query = "Please provide a query."
 
-        cache = get_thread_cache(agent)
-        thread_id = cache.get(conversation_id, None)
+        async with AIProjectClient(
+            endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
+            credential=await get_azure_credential_async()
+        ) as client:
+            foundry_agent = await client.agents.get_agent(os.getenv("AGENT_ID_CHAT"))
+            # print(f"Using Agent: {foundry_agent.name} with ID: {foundry_agent.id}")
 
-        if thread_id:
-            thread = AzureAIAgentThread(client=agent.client, thread_id=thread_id)
+            cache = get_thread_cache()
+            thread_id = cache.get(conversation_id, None)
 
-        truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
+            truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
 
-        async for response in agent.invoke_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
-            cache[conversation_id] = response.thread.id
-            complete_response += str(response.content)
-            yield response.content
+            from history_sql import SqlQueryTool, get_fabric_db_connection
+            custom_tool = SqlQueryTool(pyodbc_conn=await get_fabric_db_connection())
+            async with ChatAgent(
+                chat_client=AzureAIAgentClient(project_client=client, agent_id=foundry_agent.id),
+                instructions=agent_instructions,
+                tools=[custom_tool.run_sql_query],
+                tool_choice="auto"
+            ) as chat_agent:
+                if thread_id:
+                    # print(f"Resuming existing thread with ID: {thread_id}")
+                    thread = chat_agent.get_new_thread(service_thread_id=thread_id)
+                    assert thread.is_initialized
+                else:
+                    service_thread = await client.agents.threads.create()
+                    thread = chat_agent.get_new_thread(service_thread_id=service_thread.id)
+                    assert thread.is_initialized
+                    # print(f"Created new thread with ID: {service_thread.id}")
+                    cache[conversation_id] = service_thread.id
+                
+                async for response in chat_agent.run_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
+                    if response.text:
+                        complete_response += response.text
+                        # print(f"Complete response so far: {complete_response}")
+                        yield response.text
 
     except RuntimeError as e:
         complete_response = str(e)
@@ -329,7 +287,7 @@ async def stream_openai_text(conversation_id: str, query: str, agent) -> AsyncGe
         # Provide a fallback response when no data is received from OpenAI.
         if complete_response == "":
             logger.info("No response received from OpenAI.")
-            cache = get_thread_cache(agent)
+            cache = get_thread_cache()
             thread_id = cache.pop(conversation_id, None)
             if thread_id is not None:
                 corrupt_key = f"{conversation_id}_corrupt_{random.randint(1000, 9999)}"
@@ -337,7 +295,7 @@ async def stream_openai_text(conversation_id: str, query: str, agent) -> AsyncGe
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-async def stream_chat_request(request_body, conversation_id, query, agent):
+async def stream_chat_request(request_body, conversation_id, query):
     """
     Handles streaming chat requests.
     """
@@ -346,7 +304,7 @@ async def stream_chat_request(request_body, conversation_id, query, agent):
     async def generate():
         try:
             assistant_content = ""
-            async for chunk in stream_openai_text(conversation_id, query, agent):
+            async for chunk in stream_openai_text(conversation_id, query):
                 if isinstance(chunk, dict):
                     chunk = json.dumps(chunk)  # Convert dict to JSON string
                 assistant_content += str(chunk)
@@ -383,7 +341,8 @@ async def stream_chat_request(request_body, conversation_id, query, agent):
                         json.dumps(chat_completion_chunk),
                         object_hook=lambda d: SimpleNamespace(**d),
                     )
-                    yield json.dumps(format_stream_response(completion_chunk_obj, history_metadata, "")) + "\n\n"
+                    formatted = format_stream_response(completion_chunk_obj, history_metadata, "")
+                    yield json.dumps(formatted, ensure_ascii=False) + "\n\n"
 
         except AgentException as e:
             error_message = str(e)
@@ -422,9 +381,7 @@ async def conversation(request: Request):
 
         query = request_json.get("messages")[-1].get("content")
 
-        agent = request.app.state.orchestrator_agent
-
-        result = await stream_chat_request(request_json, conversation_id, query, agent)
+        result = await stream_chat_request(request_json, conversation_id, query)
         track_event_if_configured(
             "ChatStreamSuccess",
             {"conversation_id": conversation_id, "query": query}
