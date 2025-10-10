@@ -5,7 +5,7 @@ import struct
 import uuid
 from datetime import datetime, date
 from typing import Tuple, Any
-
+from decimal import Decimal
 from openai import AsyncAzureOpenAI
 import pyodbc
 from azure.identity.aio import AzureCliCredential, get_bearer_token_provider
@@ -127,79 +127,79 @@ async def get_fabric_db_connection():
         return None
 
 
-async def run_query_and_return_json(sql_query: str):
-    """
-    Execute SQL query and return results as JSON string.
+# async def run_query_and_return_json(sql_query: str):
+#     """
+#     Execute SQL query and return results as JSON string.
 
-    Args:
-        sql_query (str): The SQL query to execute.
+#     Args:
+#         sql_query (str): The SQL query to execute.
 
-    Returns:
-        str: JSON string containing query results, or None if an error occurs.
-    """
-    # Connect to the database
-    conn = await get_fabric_db_connection()
-    cursor = None
-    try:
-        cursor = conn.cursor()
-        cursor.execute(sql_query)
-        columns = [desc[0] for desc in cursor.description]
-        result = []
-        for row in cursor.fetchall():
-            row_dict = {}
-            for col_name, value in zip(columns, row):
-                if isinstance(value, (datetime, date)):
-                    row_dict[col_name] = value.isoformat()
-                else:
-                    row_dict[col_name] = value
-            result.append(row_dict)
+#     Returns:
+#         str: JSON string containing query results, or None if an error occurs.
+#     """
+#     # Connect to the database
+#     conn = await get_fabric_db_connection()
+#     cursor = None
+#     try:
+#         cursor = conn.cursor()
+#         cursor.execute(sql_query)
+#         columns = [desc[0] for desc in cursor.description]
+#         result = []
+#         for row in cursor.fetchall():
+#             row_dict = {}
+#             for col_name, value in zip(columns, row):
+#                 if isinstance(value, (datetime, date)):
+#                     row_dict[col_name] = value.isoformat()
+#                 else:
+#                     row_dict[col_name] = value
+#             result.append(row_dict)
 
-        return json.dumps(result, indent=2)
-    except Exception as e:
-        logging.error("Error executing SQL query: %s", e)
-        return None
-    finally:
-        if cursor:
-            cursor.close()
-        conn.close()
+#         return json.dumps(result, indent=2)
+#     except Exception as e:
+#         logging.error("Error executing SQL query: %s", e)
+#         return None
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         conn.close()
 
 
-async def run_query_and_return_json_params(sql_query, params: Tuple[Any, ...] = ()):
-    """
-    Execute parameterized SQL query and return results as JSON string.
+# async def run_query_and_return_json_params(sql_query, params: Tuple[Any, ...] = ()):
+#     """
+#     Execute parameterized SQL query and return results as JSON string.
 
-    Args:
-        sql_query (str): The SQL query to execute with parameter placeholders.
-        params (Tuple[Any, ...]): Parameters to bind to the query.
+#     Args:
+#         sql_query (str): The SQL query to execute with parameter placeholders.
+#         params (Tuple[Any, ...]): Parameters to bind to the query.
 
-    Returns:
-        str: JSON string containing query results, or None if an error occurs.
-    """
-    # Connect to the database
-    conn = await get_fabric_db_connection()
-    cursor = None
-    try:
-        cursor = conn.cursor()
-        cursor.execute(sql_query, params)
-        columns = [desc[0] for desc in cursor.description]
-        result = []
-        for row in cursor.fetchall():
-            row_dict = {}
-            for col_name, value in zip(columns, row):
-                if isinstance(value, (datetime, date)):
-                    row_dict[col_name] = value.isoformat()
-                else:
-                    row_dict[col_name] = value
-            result.append(row_dict)
+#     Returns:
+#         str: JSON string containing query results, or None if an error occurs.
+#     """
+#     # Connect to the database
+#     conn = await get_fabric_db_connection()
+#     cursor = None
+#     try:
+#         cursor = conn.cursor()
+#         cursor.execute(sql_query, params)
+#         columns = [desc[0] for desc in cursor.description]
+#         result = []
+#         for row in cursor.fetchall():
+#             row_dict = {}
+#             for col_name, value in zip(columns, row):
+#                 if isinstance(value, (datetime, date)):
+#                     row_dict[col_name] = value.isoformat()
+#                 else:
+#                     row_dict[col_name] = value
+#             result.append(row_dict)
 
-        return json.dumps(result, indent=2)
-    except Exception as e:
-        logging.error("Error executing SQL query: %s", e)
-        return None
-    finally:
-        if cursor:
-            cursor.close()
-        conn.close()
+#         return json.dumps(result, indent=2)
+#     except Exception as e:
+#         logging.error("Error executing SQL query: %s", e)
+#         return None
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         conn.close()
 
 
 async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
@@ -253,6 +253,8 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
             for col_name, value in zip(columns, row):
                 if isinstance(value, (datetime, date)):
                     row_dict[col_name] = value.isoformat()
+                elif isinstance(value, Decimal):
+                    row_dict[col_name]= float(value)
                 else:
                     row_dict[col_name] = value
             result.append(row_dict)
@@ -267,25 +269,25 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
         conn.close()
 
 
-async def execute_sql_query(sql_query):
-    """
-    Executes a given SQL query and returns the result as a concatenated string.
-    """
-    conn = await get_fabric_db_connection()
-    cursor = None
-    try:
-        cursor = conn.cursor()
-        cursor.execute(sql_query)
-        result = ''.join(str(row) for row in cursor.fetchall())
+# async def execute_sql_query(sql_query):
+#     """
+#     Executes a given SQL query and returns the result as a concatenated string.
+#     """
+#     conn = await get_fabric_db_connection()
+#     cursor = None
+#     try:
+#         cursor = conn.cursor()
+#         cursor.execute(sql_query)
+#         result = ''.join(str(row) for row in cursor.fetchall())
 
-        return result
-    except Exception as e:
-        logging.error("Error executing SQL query: %s", e)
-        return None
-    finally:
-        if cursor:
-            cursor.close()
-        conn.close()
+#         return result
+#     except Exception as e:
+#         logging.error("Error executing SQL query: %s", e)
+#         return None
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         conn.close()
 
 
 async def run_sql_query(sql_query):
@@ -305,6 +307,8 @@ async def run_sql_query(sql_query):
             for col_name, value in zip(columns, row):
                 if isinstance(value, (datetime, date)):
                     row_dict[col_name] = value.isoformat()
+                elif isinstance(value, Decimal):
+                    row_dict[col_name]= float(value)
                 else:
                     row_dict[col_name] = value
             result.append(row_dict)
