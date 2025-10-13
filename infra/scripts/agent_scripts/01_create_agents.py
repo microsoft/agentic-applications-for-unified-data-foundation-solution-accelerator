@@ -25,7 +25,6 @@ orchestrator_agent_instructions = '''You are a helpful assistant.
         Always return the citations as is in final response.
         Always return citation markers exactly as they appear in the source data, placed in the "answer" field at the correct location. Do not modify, convert, or simplify these markers.
         Only include citation markers if their sources are present in the "citations" list. Only include sources in the "citations" list if they are used in the answer.
-        Whenever data needs to be shown in a table or list format, always use an HTML table with <table>, <tr>, <th>, and <td> tags. Do not use Markdown tables or JSON for this.
         Use the structure { "answer": "", "citations": [ {"url":"","title":""} ] } to return.
         You may use prior conversation history to understand context ONLY and clarify follow-up questions. The response from the function or plugin must not be influenced or reshaped by prior conversation history - it must be returned faithfully.
         If the question is unrelated to data but is conversational (e.g., greetings or follow-ups), respond appropriately using context.
