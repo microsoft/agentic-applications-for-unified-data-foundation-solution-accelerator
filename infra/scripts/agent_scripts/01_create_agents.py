@@ -39,7 +39,7 @@ for table in data['tables']:
     counter += 1
 # print(tables_str)
 
-agent_instructions = '''You are a helpful assistant. 
+agent_instructions = '''You are a helpful assistant.
 
 Generate a valid T-SQL query for SQL database in Fabric for the user's request using these tables:''' + tables_str + '''Use accurate and semantically appropriate T-SQL expressions, data types, functions, aliases, and conversions based strictly on the column definitions and the explicit or implicit intent of the user query.
 Avoid assumptions or defaults not grounded in schema or context.
@@ -67,6 +67,7 @@ If the user query is asking for a chart,
 
 If the question is unrelated to data but is conversational (e.g., greetings or follow-ups), respond appropriately using context.
 
+When the output needs to display data in structured form(e.g., bullet points, tables, lists), use appropriate HTML formatting (e.g., tags like <table>, <tr>, <td>, <ul>, <ol>, <li>).
 Always use the structure { "answer": "", "citations": [ {"url":"","title":""} ] } to return final response.
 You may use prior conversation history to understand context ONLY and clarify follow-up questions.
 If you do not know the answer, just say "I don't know" and do not try to make up an answer.
