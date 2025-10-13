@@ -254,7 +254,7 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
                 if isinstance(value, (datetime, date)):
                     row_dict[col_name] = value.isoformat()
                 elif isinstance(value, Decimal):
-                    row_dict[col_name]= float(value)
+                    row_dict[col_name] = float(value)
                 else:
                     row_dict[col_name] = value
             result.append(row_dict)
@@ -308,7 +308,7 @@ async def run_sql_query(sql_query):
                 if isinstance(value, (datetime, date)):
                     row_dict[col_name] = value.isoformat()
                 elif isinstance(value, Decimal):
-                    row_dict[col_name]= float(value)
+                    row_dict[col_name] = float(value)
                 else:
                     row_dict[col_name] = value
             result.append(row_dict)
