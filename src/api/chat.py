@@ -189,8 +189,6 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
             credential=await get_azure_credential_async()
         ) as client:
             foundry_agent = await client.agents.get_agent(os.getenv("AGENT_ID_CHAT"))
-            print(f"Using Agent: {foundry_agent.name} with ID: {foundry_agent.id}")
-            # print(f"Agent Instruction: {foundry_agent.instructions}")
 
             cache = get_thread_cache()
             thread_id = cache.get(conversation_id, None)
@@ -213,20 +211,17 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
                     store=True
                 ) as chat_agent:
                     if thread_id:
-                        print(f"Resuming existing thread with ID: {thread_id}")
                         thread = chat_agent.get_new_thread(service_thread_id=thread_id)
                         assert thread.is_initialized
                     else:
                         service_thread = await client.agents.threads.create()
                         thread = chat_agent.get_new_thread(service_thread_id=service_thread.id)
                         assert thread.is_initialized
-                        print(f"Created new thread with ID: {service_thread.id}")
                         cache[conversation_id] = service_thread.id
 
                     async for response in chat_agent.run_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
                         if response.text:
                             complete_response += response.text
-                            print(f"Complete response so far: {complete_response}")
                             yield response.text
             finally:
                 if db_connection:
