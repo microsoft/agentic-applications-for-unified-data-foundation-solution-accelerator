@@ -26,12 +26,12 @@ from azure.monitor.events.extension import track_event
 from azure.monitor.opentelemetry import configure_azure_monitor
 from azure.ai.projects.aio import AIProjectClient
 
-from agent_framework import ChatAgent, AgentThread
+from agent_framework import ChatAgent
 from agent_framework.azure import AzureAIAgentClient
 from agent_framework.exceptions import AgentException
 
 # Azure Auth
-from auth.azure_credential_utils import get_azure_credential_async, get_azure_credential
+from auth.azure_credential_utils import get_azure_credential_async
 
 load_dotenv()
 
@@ -68,6 +68,7 @@ logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
 logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
     logging.WARNING
 )
+
 
 class ExpCache(TTLCache):
     """Extended TTLCache that deletes Azure AI agent threads when items expire."""
@@ -201,9 +202,9 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
             if not db_connection:
                 logger.error("Failed to establish database connection")
                 raise Exception("Database connection failed")
-                
+
             custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
-            
+
             try:
                 async with ChatAgent(
                     chat_client=AzureAIAgentClient(project_client=client, agent_id=foundry_agent.id),
@@ -221,7 +222,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
                         assert thread.is_initialized
                         print(f"Created new thread with ID: {service_thread.id}")
                         cache[conversation_id] = service_thread.id
-                    
+
                     async for response in chat_agent.run_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
                         if response.text:
                             complete_response += response.text
