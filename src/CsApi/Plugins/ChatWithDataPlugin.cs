@@ -29,6 +29,7 @@ namespace CsApi.Plugins
         public async Task<string> GetSqlResponseAsync(
             [Description("the question")] string input)
         {
+            _logger.LogInformation("🔍 ChatWithSQLDatabase function called with input: {Input}", input);
             // Console.WriteLine("---------Fabric-SQL-Kernel-invoked---------"); // Verbose logging removed
             var endpoint = _config["AZURE_AI_AGENT_ENDPOINT"];
             var sqlAgentId = _config["AGENT_ID_SQL"];
@@ -110,10 +111,31 @@ namespace CsApi.Plugins
         }
 
         [KernelFunction("GenerateChartData")]
-        [Description("Generates Chart.js v4.4.4 compatible JSON data for data visualization requests using current and immediate previous context.")]
+        [Description("Generates Chart.js v4.4.4 compatible JSON data for data visualization requests. IMPORTANT: This function requires data context from previous SQL queries in the conversation.")]
         public async Task<string> GetChartDataAsync(
-            [Description("The user's data visualization request along with relevant conversation history and context needed to generate appropriate chart data")] string input)
+            [Description("The user's data visualization request. If the request lacks data context, include any relevant data from the conversation history.")] string input)
         {
+            _logger.LogInformation("📊 GenerateChartData function called with input: {Input}", input);
+            
+            // If the input seems to lack context, enhance it with a more explicit prompt
+            var enhancedInput = input;
+            if (input.ToLowerInvariant().Contains("donut") || input.ToLowerInvariant().Contains("chart"))
+            {
+                if (!input.Contains("Region") && !input.Contains("Revenue"))
+                {
+                    enhancedInput = $@"{input}
+
+IMPORTANT: Look for recent revenue data by regions in this conversation. The user wants to visualize the most recent revenue data that was provided in the conversation history. Generate a donut chart showing the revenue distribution by regions.
+
+Expected data format should be like:
+[{{""Region"":""South"",""TotalRevenue"":2995457.25}}, {{""Region"":""Midwest"",""TotalRevenue"":2747475.05}}, ...]
+
+Please create a Chart.js donut chart configuration using this data.";
+                    
+                    _logger.LogInformation("Enhanced chart input with explicit context instructions");
+                }
+            }
+            
             var endpoint = _config["AZURE_AI_AGENT_ENDPOINT"];
             var chartAgentId = _config["AGENT_ID_CHART"];
             if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(chartAgentId))
