@@ -38,70 +38,76 @@ const ChatChart: React.FC<ChartProps> = ({ chartContent }) => {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const validChart = isValidChartConfig(chartContent);
 
-  useEffect(() => {
-    if (validChart && chartRef.current && chartContent.data && chartContent?.type) {
-      ChartJS.register(...registerables);
+useEffect(() => {
+  if (validChart && chartRef.current && chartContent.data && chartContent?.type) {
+    ChartJS.register(...registerables);
 
-      const chartConfigData = {
-        type:
+    const chartConfigData = {
+      type:
+        chartContent.type === "horizontalBar"
+          ? chartTypes.barChart
+          : (chartContent.type as keyof ChartTypeRegistry),
+      data: { ...chartContent.data },
+      options: {
+        ...chartContent?.options,
+        responsive: false,
+        indexAxis:
           chartContent.type === "horizontalBar"
-            ? chartTypes.barChart
-            : (chartContent.type as keyof ChartTypeRegistry),
-        data: { ...chartContent.data },
-        options: {
-          ...chartContent?.options,
-          responsive: false,
-          indexAxis:
-            chartContent.type === "horizontalBar"
-              ? "y"
-              : chartContent?.options?.indexAxis,
-        },
-      };
-      if (
-        [chartTypes.barChart, chartTypes.lineChart].includes(
-          chartConfigData.type
-        )
-      ) {
-        if (typeof chartConfigData.options.plugins === "object") {
-          chartConfigData.options.plugins = {
-            ...chartConfigData.options.plugins,
-            legend: hideDataSetsLabelConfig,
-          };
-        } else if (!chartConfigData.options.plugins) {
-          chartConfigData.options.plugins = {
-            legend: hideDataSetsLabelConfig,
-          };
-        }
-      }
+            ? "y"
+            : chartContent?.options?.indexAxis,
+      },
+    };
 
-      const myChart = new ChartJS(chartRef.current, chartConfigData);
+    // Restore tooltip callback if it’s missing or a string placeholder
+    const tooltipCallbacks =
+      chartConfigData.options?.plugins?.tooltip?.callbacks;
+    const tooltipCb = tooltipCallbacks?.label;
 
-      const resizeObserver = new ResizeObserver(() => {
-        requestAnimationFrame(() => {
-          if (chartRef?.current && myChart) {
-            myChart?.resize();
-            myChart?.update();
+    if (typeof tooltipCb !== "function") {
+      if (tooltipCallbacks) {
+        tooltipCallbacks.label = (tooltipItem: any) => {
+          try {
+            const label = tooltipItem.label || "";
+            const value =
+              typeof tooltipItem.raw === "number"
+                ? tooltipItem.raw.toLocaleString()
+                : tooltipItem.raw;
+            return `${label}: ${value}`;
+          } catch {
+            return tooltipItem.label ?? "";
           }
-        });
-      });
-
-      if (chartRef?.current?.parentElement !== null) {
-        resizeObserver.observe(chartRef.current.parentElement);
+        };
       }
-
-      return () => {
-        if (
-          chartRef?.current !== null &&
-          chartRef?.current?.parentElement !== null
-        ) {
-          resizeObserver.unobserve(chartRef?.current?.parentElement);
-        }
-        if (myChart.destroy) {
-          myChart.destroy();
-        }
-      };
     }
-  }, [chartContent.data, chartContent?.options, chartContent?.type, validChart]);
+
+    const myChart = new ChartJS(chartRef.current, chartConfigData);
+
+    const resizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(() => {
+        if (chartRef?.current && myChart) {
+          myChart?.resize();
+          myChart?.update();
+        }
+      });
+    });
+
+    if (chartRef?.current?.parentElement !== null) {
+      resizeObserver.observe(chartRef.current.parentElement);
+    }
+
+    return () => {
+      if (
+        chartRef?.current !== null &&
+        chartRef?.current?.parentElement !== null
+      ) {
+        resizeObserver.unobserve(chartRef?.current?.parentElement);
+      }
+      if (myChart.destroy) {
+        myChart.destroy();
+      }
+    };
+  }
+}, [chartContent.data, chartContent?.options, chartContent?.type, validChart]);
 
   return (
     <div style={{ maxHeight: 350 }}>
