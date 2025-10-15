@@ -14,7 +14,6 @@ import {
 import { ApiErrorHandler } from "../utils/errorHandler";
 import { getApiBaseUrl } from "../config";
 
-// const baseURL = process.env.REACT_APP_API_BASE_URL;// base API URL
 const baseURL = getApiBaseUrl(); // base API URL
 
 export type UserInfo = {
