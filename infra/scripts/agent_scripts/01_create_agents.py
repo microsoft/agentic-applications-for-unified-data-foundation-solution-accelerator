@@ -58,8 +58,9 @@ If the user query is asking for a chart,
         Do not generate a chart if there is no numeric data; instead, return a message stating 'Chart cannot be generated.'
         **NEVER** create or assume data that is not explicitly provided or derived from grounded numeric context.
         **ONLY** return a valid JSON output that can be parsed by json.loads or JSON.parse, with no additional text, formatting, or explanations. 
-        **DO NOT** include any JavaScript functions, tooltip callbacks, or other non-JSON elements in the output.  
-        **ALWAYS** make sure that the generated JSON can render correctly in chart.js.
+        **CRITICAL**: DO NOT include any JavaScript functions, callbacks (including tooltip callbacks), function expressions, or any executable code in the JSON output. The JSON must contain ONLY static configuration values.
+        Never include "function", "callbacks", "=>", "return", or any other JavaScript syntax in the output.
+        **ALWAYS** make sure that the generated JSON can render correctly in chart.js using only static configuration.
         Always remove any extra trailing commas or unmatched closing braces/brackets to ensure valid JSON.
         Verify and refine that JSON should not have any syntax errors like extra closing brackets.
         Ensure Y-axis labels are fully visible by increasing **ticks.padding**, **ticks.maxWidth**, or enabling word wrapping where necessary.
@@ -67,7 +68,7 @@ If the user query is asking for a chart,
         You **MUST NOT** attempt to generate a chart/graph/data visualization without numeric data. 
             - If numeric data is not available, you MUST first use the run_sql_query function to execute the SQL query and generate representative numeric data from the available grounded context.
             - Only after numeric data is available you should proceed to generate the visualization.
-        For chart responses: The JSON must strictly follow the structure: { 'answer': <chart_object>, 'citations': [] }, where <chart_object> is a **valid** chart.js configuration object and citations is an empty list.
+        For chart responses: The JSON must strictly follow the structure: { 'answer': <chart_object>, 'citations': [] }, where <chart_object> is a **valid** chart.js configuration object containing ONLY static values and citations is an empty list.
 
 If the question is unrelated to data but is conversational (e.g., greetings or follow-ups), respond appropriately using context.
 
