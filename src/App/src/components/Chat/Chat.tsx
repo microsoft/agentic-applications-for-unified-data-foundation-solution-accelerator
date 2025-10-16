@@ -25,6 +25,7 @@ import { ChatAdd24Regular } from "@fluentui/react-icons";
 import { generateUUIDv4 } from "../../configs/Utils";
 import ChatChart from "../ChatChart/ChatChart";
 import Citations from "../Citations/Citations";
+import { getChatLandingText } from "../../config";
 
 type ChatProps = {
   onHandlePanelStates: (name: string) => void;
@@ -33,6 +34,8 @@ type ChatProps = {
 };
 
 const [ASSISTANT, TOOL, ERROR, USER] = ["assistant", "tool", "error", "user"];
+
+const chatLandingText = getChatLandingText();
 
 const Chat: React.FC<ChatProps> = ({
   onHandlePanelStates,
@@ -809,7 +812,7 @@ const Chat: React.FC<ChatProps> = ({
               <h2>✨</h2>
               <Subtitle2>Start Chatting</Subtitle2>
               <Body1 style={{ textAlign: "center" }}>
-                You can ask questions around sales, products and orders.
+                {chatLandingText}
               </Body1>
             </div>
           )}
