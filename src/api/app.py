@@ -38,10 +38,12 @@ async def lifespan(fastapi_app: FastAPI):
         credential=await get_azure_credential_async(),
         endpoint=ai_agent_settings.endpoint,
     )
-    agent = await client.agents.get_agent(
-        agent_id=os.getenv("AGENT_ID_ORCHESTRATOR")
-    )
-    # print(f"Agent retrieved: {agent}")
+    agent_id = os.getenv("AGENT_ID_ORCHESTRATOR")
+    if not agent_id or agent_id.strip() == "":
+        raise ValueError("AGENT_ID_ORCHESTRATOR environment variable is not set or is empty. Please set the correct orchestrator agent ID.")
+    
+    agent = await client.agents.get_agent(agent_id=agent_id)
+    print(f"Agent retrieved: {agent.id}")
     fastapi_app.state.orchestrator_agent = AzureAIAgent(
         client=client,
         definition=agent,
