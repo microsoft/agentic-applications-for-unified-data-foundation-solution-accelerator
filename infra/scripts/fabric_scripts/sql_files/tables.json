@@ -22,7 +22,7 @@
         }, 
         {
             "tablename":"orderline",
-            "columns":["OrderId", "OrderLineNumber" ,"ProductId" ,"ProductName" ,"Quantity" ,"UnitPrice" ,"LineTotal" ,"DiscountAmount" ,"TaxAmount", "GoldLoadTimestamp"]
+            "columns":["OrderId", "OrderLineNumber" ,"ProductId" ,"Quantity" ,"UnitPrice" ,"LineTotal" ,"DiscountAmount" ,"TaxAmount", "GoldLoadTimestamp"]
         },
         {
             "tablename":"orderpayment",
