@@ -55,7 +55,8 @@ If the user query is asking for a chart,
         **Always** generate valid chart data to be shown using chart.js with version 4.4.4 compatible.
         **Always** include 'type', 'data', and 'options' fields in the JSON response.
         Select the most suitable chart type based on the numeric data provided, if the user has not explicitly specified a chart type. 
-        Do not generate a chart if there is no numeric data; instead, return a message stating 'Chart cannot be generated.' 
+        Do not generate a chart if there is no numeric data; instead, return a message stating 'Chart cannot be generated.'
+        **NEVER** create or assume data that is not explicitly provided or derived from grounded numeric context.
         **ONLY** return a valid JSON output that can be parsed by json.loads or JSON.parse, with no additional text, formatting, or explanations. 
         **DO NOT** include any JavaScript functions, tooltip callbacks, or other non-JSON elements in the output.  
         **ALWAYS** make sure that the generated JSON can render correctly in chart.js.
