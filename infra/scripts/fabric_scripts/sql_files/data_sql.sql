@@ -3670,7 +3670,7 @@ INSERT INTO [dbo].[orders] ([OrderId], [SalesChannelId], [OrderNumber], [Custome
 ('3c792217-7105-4f40-b9ee-498f22a8ccd9', 'Fabric', 'F100995', 'CID-294', 'CA-0520', '2025-05-12', 'Completed', '1904.35', '95.22', '1999.57', 'VISA', 'USD', 'SampleGen'),
 ('447b86fc-8bc9-43de-aaf2-6cb276765fd5', 'Fabric', 'F100996', 'CID-294', 'CA-0520', '2023-08-03', 'Completed', '23899.35', '1194.96', '25094.31', 'MC', 'USD', 'SampleGen'),
 ('6985571b-ea2a-4288-9bda-88b061d1aa80', 'Fabric', 'F100997', 'CID-294', 'CA-0520', '2020-04-11', 'Completed', '16464.0', '823.19', '17287.19', 'VISA', 'USD', 'SampleGen'),
-('bad37ac2-cde6-45d5-a965-7d04585a0c86', 'Fabric', 'F100998', 'CID-294', 'CA-0520', '2022-12-16', 'Completed', '1931.53', '96.58', '2028.1', 'PayPal', 'USD', 'SampleGen')
+('bad37ac2-cde6-45d5-a965-7d04585a0c86', 'Fabric', 'F100998', 'CID-294', 'CA-0520', '2022-12-16', 'Completed', '1931.53', '96.58', '2028.11', 'PayPal', 'USD', 'SampleGen')
 
 INSERT INTO [dbo].[orders] ([OrderId], [SalesChannelId], [OrderNumber], [CustomerId], [CustomerAccountId], [OrderDate], [OrderStatus], [SubTotal], [TaxAmount], [OrderTotal], [PaymentMethod], [IsoCurrencyCode], [CreatedBy]) 
     VALUES ('a873bc86-ccd2-4bd7-822a-f9c2c0d025a0', 'Fabric', 'F100999', 'CID-294', 'CA-0520', '2025-04-28', 'Pending', '22629.14', '1131.46', '23760.6', 'Discover', 'USD', 'SampleGen'),
