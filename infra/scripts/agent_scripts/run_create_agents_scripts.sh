@@ -89,7 +89,6 @@ python -m pip install --quiet -r "$requirementFile"
 
 # Execute the Python scripts
 echo "Running Python agents creation script..."
-# python 01_create_agents.py
 eval $(python infra/scripts/agent_scripts/01_create_agents.py --ai_project_endpoint="$projectEndpoint" --solution_name="$solutionName" --gpt_model_name="$gptModelName")
 
 echo "Agents creation completed."
@@ -98,7 +97,7 @@ echo "Agents creation completed."
 az webapp config appsettings set \
   --resource-group "$resourceGroup" \
   --name "$apiAppName" \
-  --settings AGENT_ID_ORCHESTRATOR="$orchestratorAgentId" AGENT_ID_SQL="$sqlAgentId" AGENT_ID_CHART="$chartAgentId" \
+  --settings AGENT_ID_CHAT="$chatAgentId" \
   -o none
 
 echo "Environment variables updated for App Service: $apiAppName"

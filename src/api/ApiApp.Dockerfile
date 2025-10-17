@@ -9,7 +9,8 @@ RUN apk add --no-cache --virtual .build-deps \
     unixodbc-dev \
     libpq \
     opus-dev \
-    libvpx-dev
+    libvpx-dev \
+    git
 
 # Download and install Microsoft ODBC Driver 18 and MSSQL tools (latest release)
 RUN curl -O https://download.microsoft.com/download/fae28b9a-d880-42fd-9b98-d779f0fdd77f/msodbcsql18_18.5.1.1-1_amd64.apk \

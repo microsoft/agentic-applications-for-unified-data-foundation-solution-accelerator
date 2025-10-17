@@ -7,6 +7,7 @@ from datetime import datetime, date
 from typing import Tuple, Any
 from decimal import Decimal
 from openai import AsyncAzureOpenAI
+from pydantic import BaseModel, ConfigDict
 import pyodbc
 from azure.identity.aio import AzureCliCredential, get_bearer_token_provider
 from azure.monitor.events.extension import track_event
@@ -91,7 +92,8 @@ async def get_fabric_db_connection():
         conn = None
         try:
             if app_env == 'dev':
-                async with AzureCliCredential() as credential:
+                credential = AzureCliCredential()
+                try:
                     token = await credential.get_token("https://database.windows.net/.default")
                     token_bytes = token.token.encode("utf-16-LE")
                     token_struct = struct.pack(
@@ -102,12 +104,15 @@ async def get_fabric_db_connection():
                     SQL_COPT_SS_ACCESS_TOKEN = 1256
                     connection_string = f"DRIVER={driver18};SERVER={server};DATABASE={database};"
                     conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+                finally:
+                    await credential.close()
             else:
                 # connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};UID={api_uid};Authentication=ActiveDirectoryMSI;"
                 conn = pyodbc.connect(fabric_sql_connection_string18)
         except Exception:
             if app_env == 'dev':
-                async with AzureCliCredential() as credential:
+                credential = AzureCliCredential()
+                try:
                     token = await credential.get_token("https://database.windows.net/.default")
                     token_bytes = token.token.encode("utf-16-LE")
                     token_struct = struct.pack(
@@ -118,6 +123,8 @@ async def get_fabric_db_connection():
                     SQL_COPT_SS_ACCESS_TOKEN = 1256
                     connection_string = f"DRIVER={driver17};SERVER={server};DATABASE={database};"
                     conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+                finally:
+                    await credential.close()
             else:
                 conn = pyodbc.connect(fabric_sql_connection_string17)
 
@@ -290,37 +297,38 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
 #         conn.close()
 
 
-async def run_sql_query(sql_query):
-    """
-    Execute parameterized SQL query and return results as list of dictionaries.
-    """
-    # Connect to the database
-    conn = await get_fabric_db_connection()
-    cursor = None
-    try:
-        cursor = conn.cursor()
-        cursor.execute(sql_query)
-        columns = [desc[0] for desc in cursor.description]
-        result = []
-        for row in cursor.fetchall():
-            row_dict = {}
-            for col_name, value in zip(columns, row):
-                if isinstance(value, (datetime, date)):
-                    row_dict[col_name] = value.isoformat()
-                elif isinstance(value, Decimal):
-                    row_dict[col_name] = float(value)
-                else:
-                    row_dict[col_name] = value
-            result.append(row_dict)
+class SqlQueryTool(BaseModel):
+    """SQL query tool for executing database queries using Agent Framework."""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    pyodbc_conn: pyodbc.Connection
 
-        return result
-    except Exception as e:
-        logging.error("Error executing SQL query: %s", e)
-        return None
-    finally:
-        if cursor:
-            cursor.close()
-        conn.close()
+    async def run_sql_query(self, sql_query):
+        """Execute parameterized SQL query and return results as list of dictionaries."""
+        # Connect to the database
+        try:
+            cursor = self.pyodbc_conn.cursor()
+            cursor.execute(sql_query)
+            columns = [desc[0] for desc in cursor.description]
+            result = []
+            for row in cursor.fetchall():
+                row_dict = {}
+                for col_name, value in zip(columns, row):
+                    if isinstance(value, (datetime, date)):
+                        row_dict[col_name] = value.isoformat()
+                    elif isinstance(value, Decimal):
+                        row_dict[col_name] = float(value)
+                    else:
+                        row_dict[col_name] = value
+                result.append(row_dict)
+
+            return result
+        except Exception as e:
+            logging.error("Error executing SQL query: %s", e)
+            return None
+        finally:
+            if cursor:
+                cursor.close()
+
 
 # Configuration variable
 USE_CHAT_HISTORY_ENABLED = os.getenv("USE_CHAT_HISTORY_ENABLED", "true").lower() == "true"
