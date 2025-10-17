@@ -73,8 +73,8 @@ jobs:
       - name: Build and Push Docker Image for api
         uses: docker/build-push-action@v6
         with:
-          context: ./src/api
-          file: ./src/api/ApiApp.Dockerfile
+          context: ./src/api/python
+          file: ./src/api/python/ApiApp.Dockerfile
           push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'  || github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api:${{ steps.determine_tag.outputs.tagname }}
@@ -83,8 +83,8 @@ jobs:
       - name: Build and Push Docker Image for CsApi
         uses: docker/build-push-action@v6
         with:
-          context: ./src/CsApi
-          file: ./src/CsApi/CsApi.Dockerfile
+          context: ./src/api/dotnet
+          file: ./src/api/dotnet/CsApi.Dockerfile
           push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'  || github.ref_name == 'dependabotchanges' }}
           tags: |
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api-cs:${{ steps.determine_tag.outputs.tagname }}
