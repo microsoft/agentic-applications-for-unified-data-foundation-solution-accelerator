@@ -13510,7 +13510,7 @@ INSERT INTO [dbo].[orderline] ([OrderId], [OrderLineNumber], [ProductId], [Quant
 ('5bbcc8e7-cfca-418f-bedf-dd0c1feb63ad', '2', '284', '4.00', '564.99', '2178.29', '81.67', '108.91', 'None'),
 ('f4d8e4ed-aab0-4c2b-944c-d28cabf57e6b', '2', '137', '4.00', '59.99', '232.73', '7.23', '11.64', 'None')
 INSERT INTO [dbo].[orderline] ([OrderId], [OrderLineNumber], [ProductId], [Quantity], [UnitPrice], [LineTotal], [DiscountAmount], [TaxAmount], [GoldLoadTimestamp]) 
-    VALUES ('c8a2eb2e-1eaf-40eb-bf66-b29ee73fc106', '2', '120', '4.00', '236.03', '933.81', '10.29', '46.69', 'None'),
+    VALUES ('c8a2eb2e-1eaf-40eb-bf66-b29ee73fc106', '2', '120', '4.00', '236.03', '933.83', '10.29', '46.69', 'None'),
 ('5f6c703e-712a-4d80-b40a-b8e0e2d5ce7a', '2', '208', '4.00', '39.14', '153.75', '2.81', '7.69', 'None'),
 ('8a887332-b1fe-460e-9756-1d45840bd3fa', '2', '181', '4.00', '1003.91', '3917.74', '97.90', '195.89', 'None'),
 ('02765c5d-46d7-4b5b-a747-adc848892b6a', '2', '291', '4.00', '101.24', '400.10', '4.86', '20.01', 'None'),
