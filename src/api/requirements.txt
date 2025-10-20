@@ -12,8 +12,9 @@ types-requests==2.32.4.20250913
 aiohttp==3.13.0
 
 # Azure Services
-agent-framework-core @ git+https://github.com/microsoft/agent-framework.git@main#subdirectory=python/packages/core
-agent-framework-azure-ai @ git+https://github.com/microsoft/agent-framework.git@main#subdirectory=python/packages/azure-ai
+# agent-framework-core @ git+https://github.com/microsoft/agent-framework.git@main#subdirectory=python/packages/core
+# agent-framework-azure-ai @ git+https://github.com/microsoft/agent-framework.git@main#subdirectory=python/packages/azure-ai
+agent-framework==1.0.0b251016
 azure-identity==1.25.1
 azure-search-documents==11.6.0
 azure-ai-projects==1.0.0 # azure-ai-projects==1.1.0b2 --pre
