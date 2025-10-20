@@ -249,6 +249,7 @@ module frontend_docker 'deploy_frontend_docker.bicep' = {
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     appSettings:{
       APP_API_BASE_URL:backend_docker.outputs.appUrl
+      CHAT_LANDING_TEXT:'You can ask questions around sales, products and orders.'
     }
   }
   scope: resourceGroup(resourceGroup().name)
