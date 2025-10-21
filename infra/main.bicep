@@ -302,59 +302,6 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendLan
       SOLUTION_NAME: solutionPrefix
       APP_ENV: 'Prod'
 
-      AGENT_ID_CHAT: ''
-
-      FABRIC_SQL_DATABASE: ''
-      FABRIC_SQL_SERVER: ''
-      FABRIC_SQL_CONNECTION_STRING: ''
-    }
-  }
-  scope: resourceGroup(resourceGroup().name)
-}
-
-// ========== Backend Deployment (C#) ========== //
-module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendLanguage == 'csharp') {
-  name: 'deploy_backend_csapi_docker'
-  params: {
-    name: 'api-cs-${solutionPrefix}'
-    solutionLocation: solutionLocation
-    imageTag: imageTag
-    acrName: acrName
-    appServicePlanId: hostingplan.outputs.name
-    applicationInsightsId: aifoundry.outputs.applicationInsightsId
-    userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
-    // keyVaultName: kvault.outputs.keyvaultName
-    aiServicesName: aifoundry.outputs.aiServicesName
-    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
-    // aiSearchName: aifoundry.outputs.aiSearchName 
-    appSettings: {
-      AZURE_OPENAI_DEPLOYMENT_MODEL: gptModelName
-      AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_RESOURCE: aifoundry.outputs.aiServicesName
-      AZURE_AI_AGENT_ENDPOINT: aifoundry.outputs.projectEndpoint
-      AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
-      AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
-      USE_CHAT_HISTORY_ENABLED: 'True'
-      // AZURE_COSMOSDB_ACCOUNT: '' //cosmosDBModule.outputs.cosmosAccountName
-      // AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: '' //cosmosDBModule.outputs.cosmosContainerName
-      // AZURE_COSMOSDB_DATABASE: '' //cosmosDBModule.outputs.cosmosDatabaseName
-      // AZURE_COSMOSDB_ENABLE_FEEDBACK: '' //'True'
-      // SQLDB_DATABASE: '' //sqlDBModule.outputs.sqlDbName
-      // SQLDB_SERVER: '' //sqlDBModule.outputs.sqlServerName
-      // SQLDB_USER_MID: '' //managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-      API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-      // AZURE_AI_SEARCH_ENDPOINT: '' //aifoundry.outputs.aiSearchTarget
-      // AZURE_AI_SEARCH_INDEX: '' //'call_transcripts_index'
-      // AZURE_AI_SEARCH_CONNECTION_NAME: '' //aifoundry.outputs.aiSearchConnectionName
-
-      USE_AI_PROJECT_CLIENT: 'True'
-      DISPLAY_CHART_DEFAULT: 'False'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: aifoundry.outputs.applicationInsightsConnectionString
-      DUMMY_TEST: 'True'
-      SOLUTION_NAME: solutionPrefix
-      APP_ENV: 'Prod'
-
       AGENT_ID_ORCHESTRATOR: ''
       AGENT_ID_SQL: ''
       AGENT_ID_CHART: ''
