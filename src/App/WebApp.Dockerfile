@@ -13,12 +13,11 @@ FROM nginx:alpine
 
 COPY --from=build /home/node/app/build /usr/share/nginx/html  
 
-COPY env.sh /docker-entrypoint.d/env.sh
-RUN chmod +x /docker-entrypoint.d/env.sh
-RUN sed -i 's/\r$//' /docker-entrypoint.d/env.sh
+COPY public/startup.sh /usr/share/nginx/html/startup.sh
+RUN chmod +x /usr/share/nginx/html/startup.sh && sed -i 's/\r$//' /usr/share/nginx/html/startup.sh
 
 # Expose the application port
 EXPOSE 3000
 
-# Start NGINX and run env.sh
-CMD ["/bin/sh", "-c", "/docker-entrypoint.d/env.sh && nginx -g 'daemon off;'"]
+# Run startup script instead of nginx directly
+CMD ["/bin/sh", "/usr/share/nginx/html/startup.sh"]
