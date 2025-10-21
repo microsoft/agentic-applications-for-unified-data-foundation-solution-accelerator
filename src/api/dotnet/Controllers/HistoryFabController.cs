@@ -3,6 +3,7 @@ using CsApi.Repositories;
 using CsApi.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace CsApi.Controllers;
 
@@ -29,6 +30,47 @@ public class HistoryFabController : ControllerBase
         var userId = user.UserPrincipalId;
         _logger.LogInformation("GetUserId returned: '{UserId}' (from user context)", userId ?? "NULL");
         return userId;
+    }
+    
+    private static bool NeedsTitle(ConversationSummary? conversation)
+    {
+        if (conversation == null) return true;
+        
+        // Check if title is null, empty, or the default "New Conversation"
+        return string.IsNullOrWhiteSpace(conversation.Title) || 
+               conversation.Title.Equals("New Conversation", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool ShouldUpdateTitle(ConversationSummary? conversation, List<ChatMessage> messages)
+    {
+        if (conversation == null) return true;
+        
+        // Always update if no title or default title
+        if (NeedsTitle(conversation)) return true;
+        
+        // Count user messages to see if conversation has evolved
+        var userMessages = messages.Where(m => m.Role == "user").ToList();
+        
+        // If there are multiple user messages, check if we should update based on content
+        if (userMessages.Count >= 2)
+        {
+            var latestMessage = userMessages.LastOrDefault()?.GetContentAsString()?.ToLowerInvariant() ?? "";
+            
+            // Check if the latest message contains substantive data analysis terms
+            var dataAnalysisTerms = new[] { 
+                "revenue", "sales", "chart", "graph", "report", "data", "analysis", "show", "display", 
+                "total", "sum", "count", "average", "trend", "year", "month", "dashboard", "metric",
+                "line chart", "bar chart", "pie chart", "table", "list", "breakdown", "summary"
+            };
+            
+            // If latest message is about data analysis, always update the title to reflect it
+            if (dataAnalysisTerms.Any(term => latestMessage.Contains(term)))
+            {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     [HttpGet("list")]
@@ -198,25 +240,76 @@ public class HistoryFabController : ControllerBase
         
         try
         {
+            _logger.LogInformation("UPDATE ENDPOINT CALLED - ConversationId: {ConversationId}, MessageCount: {MessageCount}", 
+                req.Conversation_Id, req.Messages?.Count ?? 0);
+            
             // Ensure conversation exists and user has permission
             var (convId, isNewConversation) = await _repo.EnsureConversationAsync(user, req.Conversation_Id, title:"", ct);
             
-            // Generate title ONLY for new conversations (matches Python behavior exactly)
-            if (isNewConversation && req.Messages.Count > 0)
+            _logger.LogInformation(" Conversation Status - ID: {ConversationId}, IsNew: {IsNew}, OriginalId: {OriginalId}", 
+                convId, isNewConversation, req.Conversation_Id);
+            
+            // Get conversation details early to check if it needs a title
+            var conversations = await _repo.ListAsync(user, 0, 1000, "DESC", ct);
+            var updatedConversation = conversations.FirstOrDefault(c => c.ConversationId == convId);
+            
+            if (updatedConversation == null)
+            {
+                _logger.LogError("Could not find conversation {ConversationId} after ensure", convId);
+                return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to retrieve conversation");
+            }
+            
+            // Generate title for new conversations OR existing conversations that should be updated
+            if ((isNewConversation || ShouldUpdateTitle(updatedConversation, req.Messages)) && req.Messages.Count > 0)
             {
                 try
                 {
-                    _logger.LogInformation("Generating title for new conversation {ConversationId} with {MessageCount} messages", 
-                        convId, req.Messages.Count);
+                    if (isNewConversation)
+                    {
+                        _logger.LogInformation(" NEW CONVERSATION DETECTED! Generating title for conversation {ConversationId} with {MessageCount} messages", 
+                            convId, req.Messages.Count);
+                    }
+                    else if (NeedsTitle(updatedConversation))
+                    {
+                        _logger.LogInformation(" EXISTING CONVERSATION with default title! Generating title for conversation {ConversationId} with {MessageCount} messages", 
+                            convId, req.Messages.Count);
+                    }
+                    else
+                    {
+                        _logger.LogInformation(" UPDATING TITLE for substantive query! Old title: '{OldTitle}', conversation {ConversationId} with {MessageCount} messages", 
+                            updatedConversation.Title, convId, req.Messages.Count);
+                    }
+                    
+                    // Log the messages being sent for title generation (focus on latest message)
+                    var latestUserMessage = req.Messages.Where(m => m.Role == "user").LastOrDefault();
+                    if (latestUserMessage != null)
+                    {
+                        var content = latestUserMessage.GetContentAsString();
+                        _logger.LogInformation(" Latest message for title generation: '{Content}'", 
+                            content?.Substring(0, Math.Min(100, content?.Length ?? 0)) ?? "EMPTY");
+                    }
+                    
                     var generatedTitle = await _titleService.GenerateTitleAsync(req.Messages, ct);
-                    _logger.LogInformation("Generated title: '{Title}' for conversation {ConversationId}", 
+                    _logger.LogInformation(" Generated title: '{Title}' for conversation {ConversationId}", 
                         generatedTitle, convId);
                     await _repo.UpdateConversationTitleAsync(user, convId, generatedTitle, ct);
+                    _logger.LogInformation(" Title updated in database for conversation {ConversationId}", convId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to generate title for conversation {ConversationId}", convId);
+                    _logger.LogError(ex, " Failed to generate title for conversation {ConversationId}", convId);
                     await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
+                }
+            }
+            else
+            {
+                if (!isNewConversation)
+                {
+                    _logger.LogInformation(" EXISTING CONVERSATION with proper title - No title generation needed for {ConversationId}", convId);
+                }
+                else
+                {
+                    _logger.LogWarning(" NEW CONVERSATION but no messages - Cannot generate title for {ConversationId}", convId);
                 }
             }
             
@@ -243,25 +336,31 @@ public class HistoryFabController : ControllerBase
                 }
             }
             
-            // Get the final conversation details from database (matches Python exactly)
-            var conversations = await _repo.ListAsync(user, 0, 1000, "DESC", ct);
-            var updatedConversation = conversations.FirstOrDefault(c => c.ConversationId == convId);
+            // Get the final conversation details from database (refresh after potential title update)
+            conversations = await _repo.ListAsync(user, 0, 1000, "DESC", ct);
+            updatedConversation = conversations.FirstOrDefault(c => c.ConversationId == convId);
             
             if (updatedConversation == null)
             {
-                _logger.LogError("Could not find updated conversation {ConversationId}", convId);
+                _logger.LogError(" Could not find updated conversation {ConversationId}", convId);
                 return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to retrieve updated conversation");
             }
 
+            _logger.LogInformation(" Final conversation data - ID: {ConversationId}, Title: '{Title}', UpdatedAt: {UpdatedAt}", 
+                updatedConversation.ConversationId, updatedConversation.Title, updatedConversation.UpdatedAt);
+
             // Return detailed response matching Python format exactly
-            return Ok(new { 
+            var response = new { 
                 success = true,
                 data = new {
                     title = updatedConversation.Title ?? "New Conversation",
                     date = updatedConversation.UpdatedAt.ToString("yyyy-MM-ddTHH:mm:ss.ffffff"),
                     conversation_id = updatedConversation.ConversationId
                 }
-            });
+            };
+            
+            _logger.LogInformation(" RESPONSE BEING SENT: {Response}", JsonSerializer.Serialize(response));
+            return Ok(response);
         }
         catch (UnauthorizedAccessException)
         {
