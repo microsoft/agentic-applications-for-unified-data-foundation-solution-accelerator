@@ -2,7 +2,6 @@ using Azure.Identity;
 using CsApi.Auth;
 using CsApi.Interfaces;
 using CsApi.Middleware;
-using CsApi.Plugins;
 using CsApi.Repositories;
 using CsApi.Services;
 using CsApi.Converters;
@@ -71,24 +70,8 @@ builder.Services.AddScoped<IAgentKernelService, AgentKernelService>();
 // Title generation service for automatic conversation titles
 builder.Services.AddScoped<ITitleGenerationService, TitleGenerationService>();
 
-// Register ChatWithDataPlugin for agent plugins (with IAgentKernelService DI)
-builder.Services.AddSingleton<ChatWithDataPlugin>(sp =>
-    new ChatWithDataPlugin(
-        sp.GetRequiredService<IAgentKernelService>(),
-        sp.GetRequiredService<IConfiguration>(),
-        sp.GetRequiredService<ILogger<ChatWithDataPlugin>>(),
-        sp.GetRequiredService<ISqlConversationRepository>()
-    ));
-
-// Register orchestrator agent as singleton (initialized at startup)
-builder.Services.AddSingleton<AzureAIAgentOrchestrator>(sp =>
-{
-    var config = sp.GetRequiredService<IConfiguration>();
-    var logger = sp.GetRequiredService<ILogger<AzureAIAgentOrchestrator>>();
-    var plugin = sp.GetRequiredService<ChatWithDataPlugin>();
-    // Synchronous startup for demo; consider async startup for production
-    return AzureAIAgentOrchestrator.CreateAsync(config, logger, new[] { plugin }).GetAwaiter().GetResult();
-});
+// Register Agent Framework service as singleton
+builder.Services.AddSingleton<IAgentFrameworkService, AgentFrameworkService>();
 
 // Azure credential factory
 builder.Services.AddSingleton<IAzureCredentialFactory, AzureCredentialFactory>();
