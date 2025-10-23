@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.38.33.27573",
-      "templateHash": "11150533182647325179"
+      "templateHash": "1523780219402225671"
     }
   },
   "parameters": {
@@ -2154,7 +2154,7 @@
               "DUMMY_TEST": "True",
               "SOLUTION_NAME": "[variables('solutionPrefix')]",
               "APP_ENV": "Prod",
-              "AGENT_ID_CHAT": "",
+              "AGENT_ID_ORCHESTRATOR": "",
               "FABRIC_SQL_DATABASE": "",
               "FABRIC_SQL_SERVER": "",
               "FABRIC_SQL_CONNECTION_STRING": ""

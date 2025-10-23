@@ -39,19 +39,17 @@ namespace CsApi.Services
             _logger = logger;
             _sqlRepo = sqlRepo;
 
-            // Create Agent Framework client similar to Python implementation using single AGENT_ID_CHAT
+            // Create Agent Framework client similar to Python implementation using single AGENT_ID_ORCHESTRATOR
             var endpoint = config["AZURE_AI_AGENT_ENDPOINT"] 
                 ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is required");
-            
-            var chatAgentId = config["AGENT_ID_CHAT"]
-                ?? throw new InvalidOperationException("AGENT_ID_CHAT is required");
+
+            var foundryAgentId = config["AGENT_ID_ORCHESTRATOR"]
+                ?? throw new InvalidOperationException("AGENT_ID_ORCHESTRATOR is required");
 
             // Create function tools for SQL operations like Python SqlQueryTool
-            // Note: Python only has SqlQueryTool.run_sql_query - no separate chart tool
             var sqlTool = AIFunctionFactory.Create(RunSqlQueryAsync);
 
             // Use Azure AI Projects agent endpoint to get the existing agent with custom tools
-            // This is the .NET equivalent of Python's client.agents.get_agent(AGENT_ID_CHAT) + ChatAgent wrapper
             var persistentAgentsClient = new PersistentAgentsClient(endpoint, new DefaultAzureCredential());
             
             var chatOptions = new ChatOptions
@@ -61,9 +59,9 @@ namespace CsApi.Services
 
             // Get the existing Azure AI Foundry agent and add our custom tools
             // Note: Using GetAwaiter().GetResult() instead of .Result to avoid AggregateException wrapping
-            _agent = persistentAgentsClient.GetAIAgentAsync(chatAgentId, chatOptions).GetAwaiter().GetResult();
+            _agent = persistentAgentsClient.GetAIAgentAsync(foundryAgentId, chatOptions).GetAwaiter().GetResult();
 
-            _logger.LogInformation("AgentFrameworkService initialized with Azure AI Foundry agent: {AgentId}", chatAgentId);
+            _logger.LogInformation("AgentFrameworkService initialized with Azure AI Foundry agent: {AgentId}", foundryAgentId);
         }
 
         /// <summary>
