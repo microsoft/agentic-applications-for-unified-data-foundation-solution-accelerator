@@ -39,7 +39,7 @@ def build_app() -> FastAPI:
     # Include routers
     fastapi_app.include_router(chat_router, prefix="/api", tags=["chat"])
 
-    history_db="sql"
+    history_db="cosmos"
     if history_db=="cosmos":
         fastapi_app.include_router(history_router, prefix="/history", tags=["history - cosmos"])
     else:
