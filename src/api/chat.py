@@ -188,7 +188,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
             endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
             credential=await get_azure_credential_async()
         ) as client:
-            foundry_agent = await client.agents.get_agent(os.getenv("AGENT_ID_CHAT"))
+            foundry_agent = await client.agents.get_agent(os.getenv("AGENT_ID_ORCHESTRATOR"))
 
             cache = get_thread_cache()
             thread_id = cache.get(conversation_id, None)

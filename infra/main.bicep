@@ -225,7 +225,7 @@ module backend_docker 'deploy_backend_docker.bicep' = {
       SOLUTION_NAME: solutionPrefix
       APP_ENV: 'Prod'
 
-      AGENT_ID_CHAT: ''
+      AGENT_ID_ORCHESTRATOR: ''
 
       FABRIC_SQL_DATABASE: ''
       FABRIC_SQL_SERVER: ''
@@ -294,7 +294,7 @@ output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppO
 output API_APP_URL string = backend_docker.outputs.appUrl
 output WEB_APP_URL string = frontend_docker.outputs.appUrl
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = aifoundry.outputs.applicationInsightsConnectionString
-output AGENT_ID_CHAT string = ''
+output AGENT_ID_ORCHESTRATOR string = ''
 output FABRIC_SQL_DATABASE string = ''
 output FABRIC_SQL_SERVER string = ''
 output FABRIC_SQL_CONNECTION_STRING string = ''

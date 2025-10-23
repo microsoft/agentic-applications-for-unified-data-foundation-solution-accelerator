@@ -97,7 +97,7 @@ echo "Agents creation completed."
 az webapp config appsettings set \
   --resource-group "$resourceGroup" \
   --name "$apiAppName" \
-  --settings AGENT_ID_CHAT="$chatAgentId" \
+  --settings AGENT_ID_ORCHESTRATOR="$orchestratorAgentId" \
   -o none
 
 echo "Environment variables updated for App Service: $apiAppName"
