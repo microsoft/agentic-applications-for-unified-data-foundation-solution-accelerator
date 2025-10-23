@@ -52,7 +52,7 @@ function getUserIdFromLocalStorage(): string | null {
 
 export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
   const userId = getUserIdFromLocalStorage();
-  const endpoint = `/historyfab/read?id=${encodeURIComponent(convId)}`;
+  const endpoint = `/history/read?id=${encodeURIComponent(convId)}`;
   
   try {
     const response = await fetch(`${baseURL}${endpoint}`, {
@@ -111,7 +111,7 @@ export const historyList = async (
   limit = 25
 ): Promise<Conversation[] | null> => {
   const userId = getUserIdFromLocalStorage();
-  const endpoint = `/historyfab/list?offset=${offset}&limit=${limit}`;
+  const endpoint = `/history/list?offset=${offset}&limit=${limit}`;
   
   try {
     const response = await fetch(`${baseURL}${endpoint}`, {
@@ -179,7 +179,7 @@ export const historyUpdate = async (
   convId: string
 ): Promise<Response> => {
   const userId = getUserIdFromLocalStorage();
-  const endpoint = `/historyfab/update`;
+  const endpoint = `/history/update`;
   
   try {
     const response = await fetch(`${baseURL}${endpoint}`, {
@@ -265,7 +265,7 @@ export const historyRename = async (
   title: string
 ): Promise<Response> => {
   const userId = getUserIdFromLocalStorage();
-  const endpoint = `/historyfab/rename`;
+  const endpoint = `/history/rename`;
   
   try {
     const response = await fetch(`${baseURL}${endpoint}`, {
@@ -304,7 +304,7 @@ export const historyRename = async (
 
 export const historyDelete = async (convId: string): Promise<Response> => {
   const userId = getUserIdFromLocalStorage();  
-  const endpoint = `/historyfab/delete?id=${encodeURIComponent(convId)}`;
+  const endpoint = `/history/delete?id=${encodeURIComponent(convId)}`;
   
   try {
     const response = await fetch(`${baseURL}${endpoint}`, {
@@ -338,7 +338,7 @@ export const historyDelete = async (convId: string): Promise<Response> => {
 
 export const historyDeleteAll = async (): Promise<Response> => {
   const userId = getUserIdFromLocalStorage();
-  const endpoint = `/historyfab/delete_all`;
+  const endpoint = `/history/delete_all`;
   
   try {
     const response = await fetch(`${baseURL}${endpoint}`, {
