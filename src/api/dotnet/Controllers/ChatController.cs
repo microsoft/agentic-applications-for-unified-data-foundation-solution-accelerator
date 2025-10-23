@@ -3,6 +3,7 @@ using CsApi.Interfaces;
 using CsApi.Models;
 using CsApi.Services;
 using CsApi.Repositories;
+using CsApi.Utils;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
 using Microsoft.Agents.AI;
@@ -14,13 +15,24 @@ namespace CsApi.Controllers;
 [Route("api")] // matches /api prefix
 public class ChatController : ControllerBase
 {
-    // REDUNDANT: _chatService is never used - the controller uses AzureAIAgentOrchestrator directly
-    // private readonly IChatService _chatService;
     private readonly IUserContextAccessor _userContextAccessor;
     private readonly ISqlConversationRepository _sqlRepo;
+    
+    // Thread cache to maintain conversation context like Python ExpCache  
+    private static ExpCache<string, AgentThread>? _threadCache;
 
-    public ChatController(IUserContextAccessor userContextAccessor, ISqlConversationRepository sqlRepo)
-    { _userContextAccessor = userContextAccessor; _sqlRepo = sqlRepo; }
+    public ChatController(IUserContextAccessor userContextAccessor, ISqlConversationRepository sqlRepo, IConfiguration configuration)
+    { 
+        _userContextAccessor = userContextAccessor; 
+        _sqlRepo = sqlRepo;
+        
+        // Initialize thread cache with Azure AI endpoint if not already initialized
+        if (_threadCache == null)
+        {
+            var endpoint = configuration["AZURE_AI_AGENT_ENDPOINT"] ?? string.Empty;
+            _threadCache = new ExpCache<string, AgentThread>(maxSize: 1000, ttlSeconds: 3600.0, azureAIEndpoint: endpoint);
+        }
+    }
 
     /// <summary>
     /// Streaming chat endpoint. Uses Agent Framework ChatClientAgent with function tools.
@@ -31,16 +43,12 @@ public class ChatController : ControllerBase
     public async Task Chat([FromBody] ChatRequest request, [FromServices] IAgentFrameworkService agentService, CancellationToken ct)
     {
         Response.ContentType = "application/json-lines";
-        // REDUNDANT: Excessive console logging can be reduced in production
-        // Console.WriteLine("Processing chat request...");
-        // Console.WriteLine("Request Body: " + JsonSerializer.Serialize(request));
         var query = request.Messages?.LastOrDefault()?.GetContentAsString();
         if (string.IsNullOrWhiteSpace(query))
         {
             await Response.WriteAsync(JsonSerializer.Serialize(new { error = "query is required" }) + "\n\n", ct);
             return;
         }
-        Console.WriteLine($"Received chat request: {query}"); // Keep this for basic logging
         
         var user = _userContextAccessor.GetCurrentUser();
         var userId = user.UserPrincipalId;
@@ -55,13 +63,25 @@ public class ChatController : ControllerBase
         // Use Agent Framework AIAgent for RAG/AI response with function tools  
         var agent = agentService.Agent;
         
+        AgentThread? thread = null;
+        if (_threadCache?.TryGet(convId, out var cachedThread) == true)
+        {
+            thread = cachedThread;
+            Console.WriteLine($"Using cached thread for conversation {convId}, {thread}");
+        }
+        else
+        {
+           thread = agent.GetNewThread();
+            _threadCache?.Set(convId, thread);
+            Console.WriteLine($"Created new thread for conversation {convId}, {thread}");
+        }
         try
         {
             var messageContent = query;
             var acc = "";
             
             // Stream response from Agent Framework with thread context
-            await foreach (var update in agent.RunStreamingAsync(messageContent))
+            await foreach (var update in agent.RunStreamingAsync(messageContent, thread))
             {
                 // Agent Framework returns string updates directly
                 var content = update?.ToString() ?? string.Empty;
@@ -84,8 +104,6 @@ public class ChatController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error during agent invocation: {ex.Message}");
-            
             // Stream error as JSON line
             var errorEnvelope = new { error = ex.Message };
             await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
@@ -93,42 +111,6 @@ public class ChatController : ControllerBase
         
         // Note: Assistant response is NOT saved here during streaming
         // It will be saved later when the frontend calls the update endpoint
-    }
-
-
-
-
-
-    /// <summary>
-    /// Helper method to clear thread cache for a specific conversation (useful for testing)
-    /// </summary>
-    // [HttpPost("clear-thread-cache")]
-    // public async Task<IActionResult> ClearThreadCache([FromBody] ClearThreadCacheRequest request)
-    // {
-    //     if (!string.IsNullOrEmpty(request.ConversationId))
-    //     {
-    //         if (_threadCache.TryGet(request.ConversationId, out var thread))
-    //         {
-    //             _threadCache.Remove(request.ConversationId);
-                
-    //             // Clean up thread like your example: if (thread is ChatClientAgentThread chatThread)
-    //             // Note: Thread cleanup implementation may depend on specific AgentThread type
-    //             // For now, just remove from cache
-    //             Console.WriteLine($"Manually cleared thread cache for conversation {request.ConversationId}");
-    //             return Ok(new { message = $"Thread cache cleared for conversation {request.ConversationId}" });
-    //         }
-    //         return NotFound(new { message = $"No cached thread found for conversation {request.ConversationId}" });
-    //     }
-        
-    //     var clearedCount = _threadCache.Count;
-    //     _threadCache.Clear();
-    //     Console.WriteLine($"Manually cleared all {clearedCount} threads from cache");
-    //     return Ok(new { message = $"Cleared {clearedCount} threads from cache" });
-    // }
-
-    public class ClearThreadCacheRequest 
-    { 
-        public string? ConversationId { get; set; } 
     }
 
 

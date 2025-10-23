@@ -12,6 +12,7 @@ using Azure.AI.Agents.Persistent;
 using OpenAI;
 using CsApi.Interfaces;
 using CsApi.Repositories;
+using CsApi.Auth;
 
 namespace CsApi.Services
 {
@@ -49,9 +50,11 @@ namespace CsApi.Services
             // Create function tools for SQL operations like Python SqlQueryTool
             var sqlTool = AIFunctionFactory.Create(RunSqlQueryAsync);
 
+            var credentialFactory = new AzureCredentialFactory();
+            var credential = credentialFactory.Create();
             // Use Azure AI Projects agent endpoint to get the existing agent with custom tools
-            var persistentAgentsClient = new PersistentAgentsClient(endpoint, new DefaultAzureCredential());
-            
+            var persistentAgentsClient = new PersistentAgentsClient(endpoint, credential);
+
             var chatOptions = new ChatOptions
             {
                 Tools = new[] { sqlTool }
