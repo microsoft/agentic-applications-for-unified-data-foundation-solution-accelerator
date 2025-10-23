@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.38.33.27573",
-      "templateHash": "6589789184204805056"
+      "templateHash": "11150533182647325179"
     }
   },
   "parameters": {
@@ -1500,7 +1500,7 @@
               "DUMMY_TEST": "True",
               "SOLUTION_NAME": "[variables('solutionPrefix')]",
               "APP_ENV": "Prod",
-              "AGENT_ID_CHAT": "",
+              "AGENT_ID_ORCHESTRATOR": "",
               "FABRIC_SQL_DATABASE": "",
               "FABRIC_SQL_SERVER": "",
               "FABRIC_SQL_CONNECTION_STRING": ""
@@ -3172,7 +3172,7 @@
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.applicationInsightsConnectionString.value]"
     },
-    "AGENT_ID_CHAT": {
+    "AGENT_ID_ORCHESTRATOR": {
       "type": "string",
       "value": ""
     },
