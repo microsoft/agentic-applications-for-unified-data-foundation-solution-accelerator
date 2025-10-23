@@ -871,10 +871,10 @@ async def delete_conversation_route(request: Request, id: str = Query(...)):
         authenticated_user = get_authenticated_user_details(
             request_headers=request.headers)
         user_id = authenticated_user["user_principal_id"]
-        
+
         # Get conversation_id from query parameter
         conversation_id = id
-        
+ 
         if not conversation_id:
             track_event_if_configured("DeleteConversationValidationError", {
                 "error": "conversation_id is missing",
