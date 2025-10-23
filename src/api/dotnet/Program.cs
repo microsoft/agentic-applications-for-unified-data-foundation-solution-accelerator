@@ -44,7 +44,7 @@ builder.Services.AddControllers().AddJsonOptions(o =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Conversation Knowledge Mining API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Agentic Applications for Unified Data Foundation Solution Accelerator", Version = "v1" });
     // Stable operation ids (controller + action name)
     c.CustomOperationIds(apiDesc =>
     {
