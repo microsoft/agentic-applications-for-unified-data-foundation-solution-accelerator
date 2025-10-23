@@ -302,9 +302,7 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendLan
       SOLUTION_NAME: solutionPrefix
       APP_ENV: 'Prod'
 
-      AGENT_ID_ORCHESTRATOR: ''
-      AGENT_ID_SQL: ''
-      AGENT_ID_CHART: ''
+      AGENT_ID_CHAT: ''
 
       FABRIC_SQL_DATABASE: ''
       FABRIC_SQL_SERVER: ''

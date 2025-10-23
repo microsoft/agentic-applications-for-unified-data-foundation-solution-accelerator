@@ -65,8 +65,6 @@ builder.Services.AddSingleton<IUserContextAccessor, HeaderUserContextAccessor>()
 // builder.Services.AddScoped<IHistoryRepository, HistoryRepository>();
 // SQL conversation repository for historyfab endpoints & streaming persistence
 builder.Services.AddScoped<ISqlConversationRepository, SqlConversationRepository>();
-// Agent kernel service for SQL and chart agent integration
-builder.Services.AddScoped<IAgentKernelService, AgentKernelService>();
 // Title generation service for automatic conversation titles
 builder.Services.AddScoped<ITitleGenerationService, TitleGenerationService>();
 
