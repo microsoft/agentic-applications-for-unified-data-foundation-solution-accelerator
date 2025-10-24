@@ -32,47 +32,6 @@ public class HistoryFabController : ControllerBase
         return userId;
     }
     
-    private static bool NeedsTitle(ConversationSummary? conversation)
-    {
-        if (conversation == null) return true;
-        
-        // Check if title is null, empty, or the default "New Conversation"
-        return string.IsNullOrWhiteSpace(conversation.Title) || 
-               conversation.Title.Equals("New Conversation", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool ShouldUpdateTitle(ConversationSummary? conversation, List<ChatMessage> messages)
-    {
-        if (conversation == null) return true;
-        
-        // Always update if no title or default title
-        if (NeedsTitle(conversation)) return true;
-        
-        // Count user messages to see if conversation has evolved
-        var userMessages = messages.Where(m => m.Role == "user").ToList();
-        
-        // If there are multiple user messages, check if we should update based on content
-        if (userMessages.Count >= 2)
-        {
-            var latestMessage = userMessages.LastOrDefault()?.GetContentAsString()?.ToLowerInvariant() ?? "";
-            
-            // Check if the latest message contains substantive data analysis terms
-            var dataAnalysisTerms = new[] { 
-                "revenue", "sales", "chart", "graph", "report", "data", "analysis", "show", "display", 
-                "total", "sum", "count", "average", "trend", "year", "month", "dashboard", "metric",
-                "line chart", "bar chart", "pie chart", "table", "list", "breakdown", "summary"
-            };
-            
-            // If latest message is about data analysis, always update the title to reflect it
-            if (dataAnalysisTerms.Any(term => latestMessage.Contains(term)))
-            {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
     [HttpGet("list")]
     public async Task<IActionResult> List([FromQuery] int offset = 0, [FromQuery] int limit = 25, [FromQuery(Name="sort")] string sort = "DESC", CancellationToken ct = default)
     {
@@ -246,9 +205,6 @@ public class HistoryFabController : ControllerBase
             // Ensure conversation exists and user has permission
             var (convId, isNewConversation) = await _repo.EnsureConversationAsync(user, req.Conversation_Id, title:"", ct);
             
-            _logger.LogInformation(" Conversation Status - ID: {ConversationId}, IsNew: {IsNew}, OriginalId: {OriginalId}", 
-                convId, isNewConversation, req.Conversation_Id);
-            
             // Get conversation details early to check if it needs a title
             var conversations = await _repo.ListAsync(user, 0, 1000, "DESC", ct);
             var updatedConversation = conversations.FirstOrDefault(c => c.ConversationId == convId);
@@ -259,27 +215,18 @@ public class HistoryFabController : ControllerBase
                 return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to retrieve conversation");
             }
             
-            // Generate title for new conversations OR existing conversations that should be updated
-            if ((isNewConversation || ShouldUpdateTitle(updatedConversation, req.Messages)) && req.Messages.Count > 0)
+            // Check if conversation has no messages yet (like Python logic)
+            var existingMessages = await _repo.ReadAsync(user, convId, "ASC", ct);
+            var hasNoMessages = existingMessages.Count == 0;
+            
+            // Generate title for new conversations OR existing conversations with no messages
+            if (isNewConversation || hasNoMessages)
             {
                 try
                 {
-                    if (isNewConversation)
-                    {
-                        _logger.LogInformation(" NEW CONVERSATION DETECTED! Generating title for conversation {ConversationId} with {MessageCount} messages", 
+                   
+                    _logger.LogInformation(" NEW CONVERSATION OR EMPTY CONVERSATION DETECTED! Generating title for conversation {ConversationId} with {MessageCount} messages", 
                             convId, req.Messages.Count);
-                    }
-                    else if (NeedsTitle(updatedConversation))
-                    {
-                        _logger.LogInformation(" EXISTING CONVERSATION with default title! Generating title for conversation {ConversationId} with {MessageCount} messages", 
-                            convId, req.Messages.Count);
-                    }
-                    else
-                    {
-                        _logger.LogInformation(" UPDATING TITLE for substantive query! Old title: '{OldTitle}', conversation {ConversationId} with {MessageCount} messages", 
-                            updatedConversation.Title, convId, req.Messages.Count);
-                    }
-                    
                     // Log the messages being sent for title generation (focus on latest message)
                     var latestUserMessage = req.Messages.Where(m => m.Role == "user").LastOrDefault();
                     if (latestUserMessage != null)
@@ -301,25 +248,12 @@ public class HistoryFabController : ControllerBase
                     await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
                 }
             }
-            else
-            {
-                if (!isNewConversation)
-                {
-                    _logger.LogInformation(" EXISTING CONVERSATION with proper title - No title generation needed for {ConversationId}", convId);
-                }
-                else
-                {
-                    _logger.LogWarning(" NEW CONVERSATION but no messages - Cannot generate title for {ConversationId}", convId);
-                }
-            }
-            
             _logger.LogInformation("Update endpoint - ConversationId: {ConversationId}, IsNew: {IsNew}", 
                 convId, isNewConversation);
             
             // Add messages (store last user+assistant like Python logic)
             // But first check if they already exist to avoid duplicates
             var messagesToStore = req.Messages.TakeLast(2).ToList();
-            var existingMessages = await _repo.ReadAsync(user, convId, "ASC", ct);
             var existingMessageIds = existingMessages.Select(m => m.Id).ToHashSet();
             
             int newMessagesAdded = 0;

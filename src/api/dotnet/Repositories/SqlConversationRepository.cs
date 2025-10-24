@@ -82,26 +82,41 @@ public class SqlConversationRepository : ISqlConversationRepository
         var id = conversationId ?? Guid.NewGuid().ToString();
         using var conn = await CreateConnectionAsync();
         
+        _logger.LogInformation("EnsureConversationAsync - Input: userId={UserId}, conversationId={ConversationId}, generatedId={GeneratedId}", 
+            userId ?? "NULL", conversationId ?? "NULL", id);
+        
         // Check if conversation exists
-        const string existsSql = "SELECT userId FROM hst_conversations WHERE conversation_id=@c";
+        string existsSql;
         string foundUserId = null;
+        
+        // Only filter by userId if it's provided (not null/empty)
+        if (!string.IsNullOrEmpty(userId))
+        {
+            existsSql = "SELECT userId FROM hst_conversations WHERE conversation_id=@c AND userId=@u";
+        }
+        else
+        {
+            existsSql = "SELECT userId FROM hst_conversations WHERE conversation_id=@c";
+        }
+        
         using (var check = new SqlCommand(existsSql, (SqlConnection)conn))
         {
             check.Parameters.Add(new SqlParameter("@c", id));
+            if (!string.IsNullOrEmpty(userId))
+            {
+                check.Parameters.Add(new SqlParameter("@u", userId));
+            }
+            
             var result = check.ExecuteScalar();
             if (result != null)
             {
-                foundUserId = result.ToString();
-                // If conversation exists, check permission
-                if (!string.IsNullOrEmpty(userId) && foundUserId != userId)
-                {
-                    throw new UnauthorizedAccessException($"User {userId} does not have permission to access conversation {id}");
-                }
-                return (id, false); // Conversation exists and user has permission
+                foundUserId = result.ToString() ?? string.Empty;
+                 return (id, false); // Conversation exists and user has permission
             }
         }
         
         // Conversation doesn't exist, create it
+        _logger.LogInformation("EnsureConversationAsync - Creating NEW conversation with id={ConversationId}", id);
         const string insertSql = "INSERT INTO hst_conversations (userId, conversation_id, title, createdAt, updatedAt) VALUES (@u, @c, @t, @n, @n)";
         var now = DateTime.UtcNow.ToString("o");
         using (var cmd = new SqlCommand(insertSql, (SqlConnection)conn))
@@ -110,7 +125,8 @@ public class SqlConversationRepository : ISqlConversationRepository
             cmd.Parameters.Add(new SqlParameter("@c", id));
             cmd.Parameters.Add(new SqlParameter("@t", title ?? string.Empty));
             cmd.Parameters.Add(new SqlParameter("@n", now));
-            cmd.ExecuteNonQuery();
+            var rowsAffected = cmd.ExecuteNonQuery();
+            _logger.LogInformation("EnsureConversationAsync - Created conversation, rows affected: {RowsAffected}", rowsAffected);
         }
         return (id, true); // New conversation created
     }
