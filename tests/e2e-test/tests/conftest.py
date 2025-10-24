@@ -31,7 +31,7 @@ def login_logout():
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_html_report_title(report):
-    report.title = "Automation_CodeGen"
+    report.title = "Automation_FabricSQL"
 
 
 # Add a column for descriptions
