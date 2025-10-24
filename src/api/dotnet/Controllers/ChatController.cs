@@ -53,11 +53,6 @@ public class ChatController : ControllerBase
         var user = _userContextAccessor.GetCurrentUser();
         var userId = user.UserPrincipalId;
         
-        //if (string.IsNullOrWhiteSpace(userId))
-        //{
-        //    await Response.WriteAsync(JsonSerializer.Serialize(new { error = "Missing user id header" }) + "\n\n", ct);
-        //    return;
-        //}
         var (convId, _) = await _sqlRepo.EnsureConversationAsync(userId ?? string.Empty, request.ConversationId, title: string.Empty, ct);
         
         // Use Agent Framework AIAgent for RAG/AI response with function tools  
@@ -67,13 +62,11 @@ public class ChatController : ControllerBase
         if (_threadCache?.TryGet(convId, out var cachedThread) == true)
         {
             thread = cachedThread;
-            // Console.WriteLine($"Using cached thread for conversation {convId}, {thread}");
         }
         else
         {
            thread = agent.GetNewThread();
             _threadCache?.Set(convId, thread);
-            // Console.WriteLine($"Created new thread for conversation {convId}, {thread}");
         }
         try
         {
