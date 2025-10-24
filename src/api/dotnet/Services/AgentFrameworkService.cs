@@ -50,7 +50,7 @@ namespace CsApi.Services
             // Create function tools for SQL operations like Python SqlQueryTool
             var sqlTool = AIFunctionFactory.Create(RunSqlQueryAsync);
 
-            var credentialFactory = new AzureCredentialFactory();
+            var credentialFactory = new AzureCredentialFactory(_config);
             var credential = credentialFactory.Create();
             // Use Azure AI Projects agent endpoint to get the existing agent with custom tools
             var persistentAgentsClient = new PersistentAgentsClient(endpoint, credential);

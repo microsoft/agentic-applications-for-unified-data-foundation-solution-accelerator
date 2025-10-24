@@ -1,6 +1,7 @@
 using Azure.Core;
 using Azure.Identity;
 using CsApi.Interfaces;
+using Microsoft.Extensions.Configuration;
 
 namespace CsApi.Auth;
 
@@ -11,9 +12,16 @@ public interface IAzureCredentialFactory
 
 public class AzureCredentialFactory : IAzureCredentialFactory
 {
+    private readonly IConfiguration _configuration;
+
+    public AzureCredentialFactory(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+
     public TokenCredential Create(string? clientId = null)
     {
-        var appEnv = Environment.GetEnvironmentVariable("APP_ENV")?.ToLowerInvariant() ?? "prod";
+        var appEnv = _configuration["APP_ENV"]?.ToLowerInvariant() ?? "prod";
         if (appEnv == "dev")
         {
             return new DefaultAzureCredential();

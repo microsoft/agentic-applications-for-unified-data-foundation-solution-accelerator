@@ -6,6 +6,7 @@ using Microsoft.Agents.AI;
 using Azure.Identity;
 using Azure.AI.Agents.Persistent;
 using CsApi.Auth;
+using Microsoft.Extensions.Configuration;
 
 namespace CsApi.Utils
 {
@@ -21,13 +22,15 @@ namespace CsApi.Utils
         private readonly int _maxSize;
         private readonly double _ttlSeconds;
         private readonly string _azureAIEndpoint;
+        private readonly IConfiguration _configuration;
 
-        public ExpCache(int maxSize, double ttlSeconds, string azureAIEndpoint = "")
+        public ExpCache(int maxSize, double ttlSeconds, IConfiguration configuration, string azureAIEndpoint = "")
         {
             _cache = new ConcurrentDictionary<TKey, CacheItem>();
             _maxSize = maxSize;
             _ttlSeconds = ttlSeconds;
             _azureAIEndpoint = azureAIEndpoint;
+            _configuration = configuration;
         }
 
         public bool TryGet(TKey key, out TValue value)
@@ -150,7 +153,7 @@ namespace CsApi.Utils
                     // Clean up using Agent Framework pattern: thread is ChatClientAgentThread
                     if (agentThread is ChatClientAgentThread chatThread)
                     {
-                        var credentialFactory = new AzureCredentialFactory();
+                        var credentialFactory = new AzureCredentialFactory(_configuration);
                         var credential = credentialFactory.Create();
                         var persistentClient = new PersistentAgentsClient(_azureAIEndpoint, credential);
                         await persistentClient.Threads.DeleteThreadAsync(chatThread.ConversationId);

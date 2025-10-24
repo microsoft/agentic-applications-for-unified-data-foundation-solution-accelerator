@@ -116,7 +116,7 @@ public class TitleGenerationService : ITitleGenerationService
             throw new InvalidOperationException("Azure OpenAI endpoint is not configured");
         }
 
-        var credentialFactory = new AzureCredentialFactory();
+        var credentialFactory = new AzureCredentialFactory(_configuration);
         var credential = credentialFactory.Create();
         return new AzureOpenAIClient(new Uri(_endpoint), credential);
     }
