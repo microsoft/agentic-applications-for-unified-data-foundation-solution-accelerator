@@ -1,0 +1,33 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "Cors": {
+    "AllowedOrigins": [ "*" ]
+  },
+  "FABRIC_SQL_CONNECTION_STRING": "",
+  "FABRIC_SQL_DATABASE": "",
+  "FABRIC_SQL_SERVER": "",
+  "APP_ENV": "dev",
+  "AGENT_ID_ORCHESTRATOR": "",
+  "API_UID": "",
+  "APPINSIGHTS_INSTRUMENTATIONKEY": "",
+  "APPLICATIONINSIGHTS_CONNECTION_STRING": "",
+  "AZURE_AI_AGENT_API_VERSION": "2025-05-01",
+  "AZURE_AI_AGENT_ENDPOINT": "",
+  "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "gpt-4o-mini",
+  "AZURE_OPENAI_API_VERSION": "2025-01-01-preview",
+  "AZURE_OPENAI_DEPLOYMENT_MODEL": "gpt-4o-mini",
+  "AZURE_OPENAI_ENDPOINT": "",
+  "AZURE_OPENAI_RESOURCE": "",
+  "DISPLAY_CHART_DEFAULT": "False",
+  "DUMMY_TEST": "True",
+  "REACT_APP_LAYOUT_CONFIG": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}",
+  "SOLUTION_NAME": "",
+  "USE_AI_PROJECT_CLIENT": "False",
+  "USE_CHAT_HISTORY_ENABLED": "False"
+}

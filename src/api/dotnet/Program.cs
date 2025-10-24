@@ -82,25 +82,11 @@ builder.Services.AddSingleton<IAzureCredentialFactory, AzureCredentialFactory>()
 
 var app = builder.Build();
 
+// Add global exception handler middleware first
+app.UseGlobalExceptionHandler();
+
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<UserContextMiddleware>();
-
-app.UseExceptionHandler(appErr =>
-{
-    appErr.Run(async context =>
-    {
-        var feature = context.Features.Get<IExceptionHandlerPathFeature>();
-        var problem = new ProblemDetails
-        {
-            Status = StatusCodes.Status500InternalServerError,
-            Title = "Internal Server Error",
-            Detail = feature?.Error.Message,
-            Instance = context.Request.Path
-        };
-        context.Response.StatusCode = problem.Status ?? 500;
-        await context.Response.WriteAsJsonAsync(problem);
-    });
-});
 
 app.UseSwagger();
 app.UseSwaggerUI();
