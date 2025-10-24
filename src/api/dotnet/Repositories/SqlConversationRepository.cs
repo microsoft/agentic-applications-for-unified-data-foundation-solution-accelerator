@@ -10,14 +10,14 @@ namespace CsApi.Repositories;
 
 public interface ISqlConversationRepository
 {
-    Task<(string ConversationId, bool IsNewConversation)> EnsureConversationAsync(string userId, string? conversationId, string title, CancellationToken ct);
-    Task UpdateConversationTitleAsync(string userId, string conversationId, string title, CancellationToken ct);
-    Task AddMessageAsync(string userId, string conversationId, ChatMessage message, CancellationToken ct);
-    Task<IReadOnlyList<ConversationSummary>> ListAsync(string userId, int offset, int limit, string sortOrder, CancellationToken ct);
-    Task<IReadOnlyList<ChatMessage>> ReadAsync(string userId, string conversationId, string sortOrder, CancellationToken ct);
-    Task<bool?> DeleteAsync(string userId, string conversationId, CancellationToken ct);
-    Task<int?> DeleteAllAsync(string userId, CancellationToken ct);
-    Task<bool?> RenameAsync(string userId, string conversationId, string title, CancellationToken ct);
+    Task<(string ConversationId, bool IsNewConversation)> EnsureConversationAsync(string? userId, string? conversationId, string title, CancellationToken ct);
+    Task UpdateConversationTitleAsync(string? userId, string conversationId, string title, CancellationToken ct);
+    Task AddMessageAsync(string? userId, string conversationId, ChatMessage message, CancellationToken ct);
+    Task<IReadOnlyList<ConversationSummary>> ListAsync(string? userId, int offset, int limit, string sortOrder, CancellationToken ct);
+    Task<IReadOnlyList<ChatMessage>> ReadAsync(string? userId, string conversationId, string sortOrder, CancellationToken ct);
+    Task<bool?> DeleteAsync(string? userId, string conversationId, CancellationToken ct);
+    Task<int?> DeleteAllAsync(string? userId, CancellationToken ct);
+    Task<bool?> RenameAsync(string? userId, string conversationId, string title, CancellationToken ct);
     Task<string> ExecuteChatQuery(string query, CancellationToken ct);
 }
 
@@ -39,6 +39,10 @@ public class SqlConversationRepository : ISqlConversationRepository
             var odbcCs = _config["FABRIC_SQL_CONNECTION_STRING"];
             
             // Convert ODBC connection string to SQL Server format
+            if (string.IsNullOrWhiteSpace(odbcCs))
+            {
+                throw new InvalidOperationException("FABRIC_SQL_CONNECTION_STRING is not configured.");
+            }
             var sqlCs = ConvertOdbcToSqlConnectionString(odbcCs);
             
             var sqlConn = new SqlConnection(sqlCs);
@@ -77,14 +81,14 @@ public class SqlConversationRepository : ISqlConversationRepository
     }
 
 
-    public async Task<(string ConversationId, bool IsNewConversation)> EnsureConversationAsync(string userId, string? conversationId, string title, CancellationToken ct)
+    public async Task<(string ConversationId, bool IsNewConversation)> EnsureConversationAsync(string? userId, string? conversationId, string title, CancellationToken ct)
     {
         var id = conversationId ?? Guid.NewGuid().ToString();
         using var conn = await CreateConnectionAsync();
         
         // Check if conversation exists
         const string existsSql = "SELECT userId FROM hst_conversations WHERE conversation_id=@c";
-        string foundUserId = null;
+        string? foundUserId = null;
         using (var check = new SqlCommand(existsSql, (SqlConnection)conn))
         {
             check.Parameters.Add(new SqlParameter("@c", id));
@@ -115,7 +119,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         return (id, true); // New conversation created
     }
 
-    public async Task UpdateConversationTitleAsync(string userId, string conversationId, string title, CancellationToken ct)
+    public async Task UpdateConversationTitleAsync(string? userId, string conversationId, string title, CancellationToken ct)
     {
         using var conn = await CreateConnectionAsync();
         string sql;
@@ -141,7 +145,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         }
     }
 
-    public async Task AddMessageAsync(string userId, string conversationId, ChatMessage message, CancellationToken ct)
+    public async Task AddMessageAsync(string? userId, string conversationId, ChatMessage message, CancellationToken ct)
     {
         var now = DateTime.UtcNow.ToString("o");
         using var conn = await CreateConnectionAsync();
@@ -188,7 +192,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         }
     }
 
-    public async Task<IReadOnlyList<ConversationSummary>> ListAsync(string userId, int offset, int limit, string sortOrder, CancellationToken ct)
+    public async Task<IReadOnlyList<ConversationSummary>> ListAsync(string? userId, int offset, int limit, string sortOrder, CancellationToken ct)
     {
         var list = new List<ConversationSummary>();
         try
@@ -250,7 +254,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         return list;
     }
 
-    public async Task<IReadOnlyList<ChatMessage>> ReadAsync(string userId, string conversationId, string sortOrder, CancellationToken ct)
+    public async Task<IReadOnlyList<ChatMessage>> ReadAsync(string? userId, string conversationId, string sortOrder, CancellationToken ct)
     {
         var order = sortOrder.Equals("asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
         string sql;
@@ -318,10 +322,10 @@ public class SqlConversationRepository : ISqlConversationRepository
                 
                 list.Add(new ChatMessage
                 {
-                    Role = role,
+                    Role = role ?? string.Empty,
                     Content = content,
                     Citations = citations,
-                    Feedback = feedback
+                    Feedback = feedback ?? string.Empty
                 });
             }
         }
@@ -330,12 +334,13 @@ public class SqlConversationRepository : ISqlConversationRepository
         return list;
     }
 
-    public async Task<bool?> DeleteAsync(string userId, string conversationId, CancellationToken ct)
+    public async Task<bool?> DeleteAsync(string? userId, string conversationId, CancellationToken ct)
     {
         // 1. Check if conversation exists
         const string checkSql = "SELECT userId FROM hst_conversations WHERE conversation_id=@c";
         using var conn = await CreateConnectionAsync();
-        string foundUserId = null;
+        string? foundUserId;
+        
         using (var checkCmd = new SqlCommand(checkSql, (SqlConnection)conn))
         {
             checkCmd.Parameters.AddWithValue("@c", conversationId);
@@ -377,7 +382,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         return rows > 0;
     }
 
-    public async Task<int?> DeleteAllAsync(string userId, CancellationToken ct)
+    public async Task<int?> DeleteAllAsync(string? userId, CancellationToken ct)
     {
         using var conn = await CreateConnectionAsync();
         
@@ -410,12 +415,12 @@ public class SqlConversationRepository : ISqlConversationRepository
         return conversationsDeleted;
     }
 
-    public async Task<bool?> RenameAsync(string userId, string conversationId, string title, CancellationToken ct)
+    public async Task<bool?> RenameAsync(string? userId, string conversationId, string title, CancellationToken ct)
     {
         // 1. Check if conversation exists
         const string checkSql = "SELECT userId FROM hst_conversations WHERE conversation_id=@c";
         using var conn = await CreateConnectionAsync();
-        string foundUserId = null;
+        string? foundUserId;
         using (var checkCmd = new SqlCommand(checkSql, (SqlConnection)conn))
         {
             checkCmd.Parameters.AddWithValue("@c", conversationId);
