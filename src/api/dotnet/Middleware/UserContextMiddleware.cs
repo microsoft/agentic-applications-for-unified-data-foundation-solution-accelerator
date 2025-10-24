@@ -19,7 +19,6 @@ public class UserContextMiddleware
     {
         var user = _userContextAccessor.GetCurrentUser();
         context.Items[nameof(UserContext)] = user;
-        _logger.LogDebug("UserContext set for {UserId}", user.UserPrincipalId);
         await _next(context);
     }
 }

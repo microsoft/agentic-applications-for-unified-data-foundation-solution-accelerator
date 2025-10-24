@@ -28,7 +28,6 @@ public class HistoryFabController : ControllerBase
     {
         var user = _userContext.GetCurrentUser();
         var userId = user.UserPrincipalId;
-        _logger.LogInformation("GetUserId returned: '{UserId}' (from user context)", userId ?? "NULL");
         return userId;
     }
     
@@ -36,9 +35,7 @@ public class HistoryFabController : ControllerBase
     public async Task<IActionResult> List([FromQuery] int offset = 0, [FromQuery] int limit = 25, [FromQuery(Name="sort")] string sort = "DESC", CancellationToken ct = default)
     {
         var user = GetUserId();
-        _logger.LogInformation("List endpoint called for user: {UserId}, offset: {Offset}, limit: {Limit}", user, offset, limit);
         var items = await _repo.ListAsync(user, offset, limit, sort, ct);
-        _logger.LogInformation("Retrieved {Count} conversations for user: {UserId}", items.Count, user);
         
         // Return conversations directly as array (matches Python behavior)
         return Ok(items);
@@ -53,9 +50,7 @@ public class HistoryFabController : ControllerBase
         if (string.IsNullOrWhiteSpace(id))
             return Problem(statusCode:400, title:"Bad Request", detail:"conversation_id or id is required");
         var user = GetUserId();
-        _logger.LogInformation("Read endpoint called for user: {UserId}, conversation_id: {ConversationId}", user, id);
         var allMessages = await _repo.ReadAsync(user, id, sort, ct);
-        _logger.LogInformation("Retrieved {Count} raw messages for conversation: {ConversationId}", allMessages.Count, id);
         if (allMessages.Count == 0) return NotFound(new { error = $"Conversation {id} not found" });
         
         // Filter messages to show only complete question-answer pairs
@@ -126,17 +121,13 @@ public class HistoryFabController : ControllerBase
             }
         }
         
-        _logger.LogInformation("Filtered to {Count} final messages for conversation: {ConversationId}", finalMessages.Count, id);
         return Ok(new { conversation_id = id, messages = finalMessages });
     }
 
     [HttpDelete("delete")]
     public async Task<IActionResult> Delete([FromQuery(Name="id")] string id, CancellationToken ct = default)
     {
-        // _logger.LogInformation($"[DEBUG] Entered Delete endpoint with id={id}"); // Debug logging removed
         if (string.IsNullOrWhiteSpace(id)) return Problem(statusCode:400, title:"Bad Request", detail:"conversation_id is required");
-        // REDUNDANT: Test debug return commented out
-        // return Ok(new { debug = "Delete endpoint reached", id });
         var user = GetUserId();
         var result = await _repo.DeleteAsync(user, id, ct);
         if (result == null)
@@ -199,9 +190,6 @@ public class HistoryFabController : ControllerBase
         
         try
         {
-            _logger.LogInformation("UPDATE ENDPOINT CALLED - ConversationId: {ConversationId}, MessageCount: {MessageCount}", 
-                req.Conversation_Id, req.Messages?.Count ?? 0);
-            
             // Ensure conversation exists and user has permission
             var (convId, isNewConversation) = await _repo.EnsureConversationAsync(user, req.Conversation_Id, title:"", ct);
             
@@ -211,7 +199,6 @@ public class HistoryFabController : ControllerBase
             
             if (updatedConversation == null)
             {
-                _logger.LogError("Could not find conversation {ConversationId} after ensure", convId);
                 return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to retrieve conversation");
             }
             
@@ -224,33 +211,15 @@ public class HistoryFabController : ControllerBase
             {
                 try
                 {
-                   
-                    _logger.LogInformation(" NEW CONVERSATION OR EMPTY CONVERSATION DETECTED! Generating title for conversation {ConversationId} with {MessageCount} messages", 
-                            convId, req.Messages.Count);
-                    // Log the messages being sent for title generation (focus on latest message)
-                    var latestUserMessage = req.Messages.Where(m => m.Role == "user").LastOrDefault();
-                    if (latestUserMessage != null)
-                    {
-                        var content = latestUserMessage.GetContentAsString();
-                        _logger.LogInformation(" Latest message for title generation: '{Content}'", 
-                            content?.Substring(0, Math.Min(100, content?.Length ?? 0)) ?? "EMPTY");
-                    }
-                    
                     var generatedTitle = await _titleService.GenerateTitleAsync(req.Messages, ct);
-                    _logger.LogInformation(" Generated title: '{Title}' for conversation {ConversationId}", 
-                        generatedTitle, convId);
                     await _repo.UpdateConversationTitleAsync(user, convId, generatedTitle, ct);
-                    _logger.LogInformation(" Title updated in database for conversation {ConversationId}", convId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, " Failed to generate title for conversation {ConversationId}", convId);
+                    _logger.LogError(ex, "Failed to generate title for conversation {ConversationId}", convId);
                     await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
                 }
             }
-            _logger.LogInformation("Update endpoint - ConversationId: {ConversationId}, IsNew: {IsNew}", 
-                convId, isNewConversation);
-            
             // Add messages (store last user+assistant like Python logic)
             // But first check if they already exist to avoid duplicates
             var messagesToStore = req.Messages.TakeLast(2).ToList();
@@ -276,12 +245,8 @@ public class HistoryFabController : ControllerBase
             
             if (updatedConversation == null)
             {
-                _logger.LogError(" Could not find updated conversation {ConversationId}", convId);
                 return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to retrieve updated conversation");
             }
-
-            _logger.LogInformation(" Final conversation data - ID: {ConversationId}, Title: '{Title}', UpdatedAt: {UpdatedAt}", 
-                updatedConversation.ConversationId, updatedConversation.Title, updatedConversation.UpdatedAt);
 
             // Return detailed response matching Python format exactly
             var response = new { 
@@ -293,7 +258,6 @@ public class HistoryFabController : ControllerBase
                 }
             };
             
-            _logger.LogInformation(" RESPONSE BEING SENT: {Response}", JsonSerializer.Serialize(response));
             return Ok(response);
         }
         catch (UnauthorizedAccessException)

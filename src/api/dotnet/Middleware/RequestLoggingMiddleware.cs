@@ -13,7 +13,6 @@ public class RequestLoggingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        _logger.LogInformation("HTTP {Method} {Path}", context.Request.Method, context.Request.Path);
         await _next(context);
     }
 }

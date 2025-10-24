@@ -67,13 +67,13 @@ public class ChatController : ControllerBase
         if (_threadCache?.TryGet(convId, out var cachedThread) == true)
         {
             thread = cachedThread;
-            Console.WriteLine($"Using cached thread for conversation {convId}, {thread}");
+            // Console.WriteLine($"Using cached thread for conversation {convId}, {thread}");
         }
         else
         {
            thread = agent.GetNewThread();
             _threadCache?.Set(convId, thread);
-            Console.WriteLine($"Created new thread for conversation {convId}, {thread}");
+            // Console.WriteLine($"Created new thread for conversation {convId}, {thread}");
         }
         try
         {

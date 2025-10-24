@@ -64,7 +64,7 @@ namespace CsApi.Services
             // Note: Using GetAwaiter().GetResult() instead of .Result to avoid AggregateException wrapping
             _agent = persistentAgentsClient.GetAIAgentAsync(foundryAgentId, chatOptions).GetAwaiter().GetResult();
 
-            _logger.LogInformation("AgentFrameworkService initialized with Azure AI Foundry agent: {AgentId}", foundryAgentId);
+    
         }
 
         /// <summary>
@@ -74,8 +74,6 @@ namespace CsApi.Services
         public async Task<string> RunSqlQueryAsync(
             [System.ComponentModel.Description("A SQL query to execute against the database")] string sqlQuery)
         {
-            _logger.LogInformation("🔍 RunSqlQuery function called with SQL: {SqlQuery}", sqlQuery);
-            
             try
             {
                 // Clean up the SQL query similar to the original implementation
@@ -88,7 +86,6 @@ namespace CsApi.Services
                 if (string.IsNullOrWhiteSpace(answer))
                     answer = "No results found.";
 
-                _logger.LogInformation("SQL query executed successfully, returned {Length} characters", answer.Length);
                 return answer;
             }
             catch (Exception ex)
