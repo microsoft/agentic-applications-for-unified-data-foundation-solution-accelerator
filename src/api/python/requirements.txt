@@ -2,8 +2,8 @@
 cachetools==6.2.1
 python-dotenv==1.1.1
 fastapi==0.119.0
-uvicorn[standard]
-pydantic[email]
+uvicorn[standard]==0.38.0
+pydantic[email]==2.12.3
 
 # Azure SDK Core
 azure-core==1.35.1
@@ -28,10 +28,9 @@ openai==1.109.1
 pyodbc==5.2.0
 pandas==2.3.3
 
-opentelemetry-exporter-otlp-proto-grpc
-opentelemetry-exporter-otlp-proto-http
-opentelemetry-exporter-otlp-proto-grpc
-azure-monitor-events-extension
+opentelemetry-exporter-otlp-proto-grpc==1.37.0
+opentelemetry-exporter-otlp-proto-http==1.37.0
+azure-monitor-events-extension==0.1.0
 opentelemetry-sdk==1.37.0
 opentelemetry-api==1.37.0
 opentelemetry-semantic-conventions==0.58b0

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.38.33.27573",
-      "templateHash": "1523780219402225671"
+      "templateHash": "3932821493495748351"
     }
   },
   "parameters": {
@@ -31,14 +31,22 @@
         "description": "Use this parameter to use an existing AI project resource ID"
       }
     },
-    "backendLanguage": {
+    "createdBy": {
       "type": "string",
+      "defaultValue": "[if(contains(deployer(), 'userPrincipalName'), split(deployer().userPrincipalName, '@')[0], deployer().objectId)]",
+      "metadata": {
+        "description": "Optional. created by user name"
+      }
+    },
+    "backendRuntimeStack": {
+      "type": "string",
+      "defaultValue": "python",
       "allowedValues": [
         "python",
-        "csharp"
+        "dotnet"
       ],
       "metadata": {
-        "description": "Choose the backend implementation language:"
+        "description": "Choose the backend runtime stack:"
       }
     },
     "secondaryLocation": {
@@ -90,6 +98,16 @@
       "metadata": {
         "description": "Capacity of the GPT deployment:"
       }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "__bicep_resource_derived_type!": {
+          "source": "Microsoft.Resources/resourceGroups@2025-04-01#properties/tags"
+        },
+        "description": "Optional. The tags to apply to all deployed Azure resources."
+      },
+      "defaultValue": {}
     },
     "imageTag": {
       "type": "string",
@@ -357,9 +375,7 @@
       "apiVersion": "2021-04-01",
       "name": "default",
       "properties": {
-        "tags": {
-          "TemplateName": "Unified Data Analysis Agents"
-        }
+        "tags": "[union(coalesce(reference(resourceGroup().id, '2021-04-01', 'Full').tags, createObject()), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy')), parameters('tags'))]"
       }
     },
     {
@@ -1445,7 +1461,7 @@
       }
     },
     {
-      "condition": "[equals(parameters('backendLanguage'), 'python')]",
+      "condition": "[equals(parameters('backendRuntimeStack'), 'python')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "deploy_backend_docker",
@@ -2099,7 +2115,7 @@
       ]
     },
     {
-      "condition": "[equals(parameters('backendLanguage'), 'csharp')]",
+      "condition": "[equals(parameters('backendRuntimeStack'), 'dotnet')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "deploy_backend_csapi_docker",
@@ -2168,7 +2184,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.38.33.27573",
-              "templateHash": "1396794612707493713"
+              "templateHash": "16262809134447798894"
             }
           },
           "parameters": {
@@ -2213,7 +2229,7 @@
             "existingAIServiceResourceGroup": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[4], resourceGroup().name)]",
             "existingAIServicesName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[8], '')]",
             "existingAIProjectName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[10], '')]",
-            "imageName": "[format('DOCKER|{0}.azurecr.io/da-api-cs:{1}', parameters('acrName'), parameters('imageTag'))]",
+            "imageName": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('acrName'), parameters('imageTag'))]",
             "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
           },
           "resources": [
@@ -2783,7 +2799,7 @@
           },
           "appSettings": {
             "value": {
-              "APP_API_BASE_URL": "[if(equals(parameters('backendLanguage'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]",
+              "APP_API_BASE_URL": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]",
               "CHAT_LANDING_TEXT": "You can ask questions around sales, products and orders."
             }
           }
@@ -3074,7 +3090,7 @@
     },
     "APPINSIGHTS_INSTRUMENTATIONKEY": {
       "type": "string",
-      "value": "[if(equals(parameters('backendLanguage'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value)]"
+      "value": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value)]"
     },
     "AZURE_AI_PROJECT_CONN_STRING": {
       "type": "string",
@@ -3114,7 +3130,7 @@
     },
     "REACT_APP_LAYOUT_CONFIG": {
       "type": "string",
-      "value": "[if(equals(parameters('backendLanguage'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value)]"
+      "value": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value)]"
     },
     "API_UID": {
       "type": "string",
@@ -3154,7 +3170,7 @@
     },
     "API_APP_NAME": {
       "type": "string",
-      "value": "[if(equals(parameters('backendLanguage'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appName.value)]"
+      "value": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appName.value)]"
     },
     "API_PID": {
       "type": "string",
@@ -3162,7 +3178,7 @@
     },
     "API_APP_URL": {
       "type": "string",
-      "value": "[if(equals(parameters('backendLanguage'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]"
+      "value": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]"
     },
     "WEB_APP_URL": {
       "type": "string",
@@ -3196,9 +3212,9 @@
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiFoundryResourceId.value]"
     },
-    "BACKEND_LANGUAGE": {
+    "BACKEND_RUNTIME_STACK": {
       "type": "string",
-      "value": "[parameters('backendLanguage')]"
+      "value": "[parameters('backendRuntimeStack')]"
     }
   }
 }
