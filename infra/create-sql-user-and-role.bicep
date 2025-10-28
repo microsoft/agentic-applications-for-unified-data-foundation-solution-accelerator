@@ -34,7 +34,7 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-
 resource createSqlUserAndRole 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   name: 'sqlUserRole-${guid(principalId, sqlServerName, sqlDatabaseName)}'
   location: location
-  tags: union(resourceGroup().tags, tags)
+  tags: tags
   kind: 'AzurePowerShell'
   identity: {
     type: 'UserAssigned'

@@ -14,9 +14,6 @@ param aiServicesName string
 param azureExistingAIProjectResourceId string = ''
 // param aiSearchName string
 
-@description('Tags to apply to resources')
-param tags object = {}
-
 var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
 var existingAIServicesName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[8] : ''
@@ -42,7 +39,6 @@ module appService 'deploy_app_service.bicep' = {
     appServicePlanId: appServicePlanId
     appImageName: imageName
     userassignedIdentityId:userassignedIdentityId
-    tags: tags
     appSettings: union(
       appSettings,
       {

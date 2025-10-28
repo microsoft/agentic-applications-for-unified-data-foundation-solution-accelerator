@@ -15,9 +15,6 @@ param existingLogAnalyticsWorkspaceId string = ''
 param azureExistingAIProjectResourceId string = ''
 param deployingUserPrincipalId string = ''
 
-@description('Tags to apply to resources')
-param tags object = {}
-
 var abbrs = loadJsonContent('./abbreviations.json')
 var aiServicesName = '${abbrs.ai.aiServices}${solutionName}'
 // var aiServicesName_cu = '${abbrs.ai.aiServices}${solutionName}-cu'
@@ -76,7 +73,6 @@ resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (!useExisting){
   name: workspaceName
   location: location
-  tags: tags
   properties: {
     retentionInDays: 30
     sku: {
@@ -89,7 +85,6 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: applicationInsightsName
   location: location
   kind: 'web'
-  tags: tags
   properties: {
     Application_Type: 'web'
     publicNetworkAccessForIngestion: 'Enabled'
@@ -105,7 +100,6 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = 
     name: 'S0'
   }
   kind: 'AIServices'
-  tags: tags
   identity: {
     type: 'SystemAssigned'
   }
@@ -201,7 +195,6 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-pre
   name: aiProjectName
   location: solutionLocation
   kind: 'AIServices'
-  tags: tags
   identity: {
     type: 'SystemAssigned'
   }

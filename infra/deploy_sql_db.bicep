@@ -15,7 +15,6 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
   name: serverName
   location: location
   kind: 'v12.0'
-  tags: resourceGroup().tags
   properties: {
     publicNetworkAccess: 'Enabled'
     version: '12.0'
@@ -53,7 +52,6 @@ resource sqlDB 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   parent: sqlServer
   name: sqlDBName
   location: location
-  tags: resourceGroup().tags
   sku: {
     name: 'GP_S_Gen5'
     tier: 'GeneralPurpose'

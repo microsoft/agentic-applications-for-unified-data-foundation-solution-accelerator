@@ -6,7 +6,6 @@ param keyvaultName string
 resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' = {
   name: keyvaultName
   location: solutionLocation
-  tags: resourceGroup().tags
   properties: {
     createMode: 'default'
     accessPolicies: [

@@ -12,13 +12,9 @@ param HostingPlanName string
 )
 param HostingPlanSku string = 'B2'
 
-@description('Tags to apply to resources')
-param tags object = {}
-
 resource HostingPlan 'Microsoft.Web/serverfarms@2020-06-01' = {
   name: HostingPlanName
   location: solutionLocation
-  tags: tags
   sku: {
     name: HostingPlanSku
   }
