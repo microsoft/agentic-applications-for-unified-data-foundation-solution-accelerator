@@ -96,8 +96,6 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
     tags: {
       ...resourceGroup().tags
       TemplateName: 'Unified Data Analysis Agents'
-      Environment: environmentName
-      SolutionName: solutionPrefix
     }
   }
 }

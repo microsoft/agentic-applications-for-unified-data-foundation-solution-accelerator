@@ -73,6 +73,7 @@ resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (!useExisting){
   name: workspaceName
   location: location
+  tags: {}
   properties: {
     retentionInDays: 30
     sku: {
