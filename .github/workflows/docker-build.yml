@@ -87,5 +87,5 @@ jobs:
           file: ./src/api/dotnet/CsApi.Dockerfile
           push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'  || github.ref_name == 'dependabotchanges' }}
           tags: |
-            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api-cs:${{ steps.determine_tag.outputs.tagname }}
-            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api-cs:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
+            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api-dotnet:${{ steps.determine_tag.outputs.tagname }}
+            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api-dotnet:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}

@@ -18,9 +18,9 @@ param createdBy string = contains(deployer(), 'userPrincipalName')? split(deploy
 @description('Choose the backend implementation language:')
 @allowed([
   'python'
-  'csharp'
+  'dotnet'
 ])
-param backendLanguage string
+param backendLanguage string = 'python'
 
 // @minLength(1)
 // @description('Location for the Content Understanding service deployment:')
@@ -275,7 +275,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (backendLanguage == 'py
 }
 
 // ========== Backend Deployment (C#) ========== //
-module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendLanguage == 'csharp') {
+module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendLanguage == 'dotnet') {
   name: 'deploy_backend_csapi_docker'
   params: {
     name: 'api-cs-${solutionPrefix}'

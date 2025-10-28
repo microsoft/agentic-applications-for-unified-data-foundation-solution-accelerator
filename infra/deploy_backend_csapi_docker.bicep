@@ -18,7 +18,7 @@ var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? 
 var existingAIServicesName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[8] : ''
 var existingAIProjectName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[10] : ''
 
-var imageName = 'DOCKER|${acrName}.azurecr.io/da-api-cs:${imageTag}'
+var imageName = 'DOCKER|${acrName}.azurecr.io/da-api-dotnet:${imageTag}'
 param name string 
 var reactAppLayoutConfig ='''{
   "appConfig": {
