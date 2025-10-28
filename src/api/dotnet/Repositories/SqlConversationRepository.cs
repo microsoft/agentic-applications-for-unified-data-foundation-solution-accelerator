@@ -591,7 +591,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         sqlConnectionString.Add("Connection Timeout=30");
 
         var result = string.Join(";", sqlConnectionString);
-        _logger.LogInformation("Converted ODBC connection string to SQL Server format");
+        // _logger.LogInformation("Converted ODBC connection string to SQL Server format");
         return result;
     }    
 }
