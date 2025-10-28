@@ -12,6 +12,9 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('Use this parameter to use an existing AI project resource ID')
 param azureExistingAIProjectResourceId string = ''
 
+@description('Optional. created by user name')
+param createdBy string = contains(deployer(), 'userPrincipalName')? split(deployer().userPrincipalName, '@')[0]: deployer().objectId
+
 @description('Choose the backend implementation language:')
 @allowed([
   'python'
@@ -58,6 +61,9 @@ param azureAiAgentApiVersion string = '2025-05-01'
 // https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits
 param gptDeploymentCapacity int = 150
 
+@description('Optional. The tags to apply to all deployed Azure resources.')
+param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
+
 // @minLength(1)
 // @description('Name of the Text Embedding model to deploy:')
 // @allowed([
@@ -100,9 +106,18 @@ var deployingUserPrincipalId = deployerInfo.objectId
 resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
   name: 'default'
   properties: {
-    tags: {
-      TemplateName: 'Unified Data Analysis Agents'
-    }
+    tags: union(
+      reference(
+        resourceGroup().id, 
+        '2021-04-01', 
+        'Full'
+      ).tags ?? {},
+      {
+        TemplateName: 'Unified Data Analysis Agents'
+        CreatedBy: createdBy
+      },
+      tags
+    )
   }
 }
 
