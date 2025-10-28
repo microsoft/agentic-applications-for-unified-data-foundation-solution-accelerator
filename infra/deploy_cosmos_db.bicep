@@ -22,7 +22,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' = {
   name: accountName
   kind: kind
   location: solutionLocation
-  tags: tags
+  tags: union(resourceGroup().tags, tags)
   properties: {
     consistencyPolicy: { defaultConsistencyLevel: 'Session' }
     locations: [

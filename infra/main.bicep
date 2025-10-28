@@ -99,6 +99,13 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
   }
 }
 
+// Common tags to be applied to all resources
+var commonTags = {
+  ...resourceGroup().tags
+  TemplateName: 'Unified Data Analysis Agents'
+  Environment: environmentName
+}
+
 // ========== Managed Identity ========== //
 module managedIdentityModule 'deploy_managed_identity.bicep' = {
   name: 'deploy_managed_identity'
@@ -106,6 +113,7 @@ module managedIdentityModule 'deploy_managed_identity.bicep' = {
     miName:'${abbrs.security.managedIdentity}${solutionPrefix}'
     solutionName: solutionPrefix
     solutionLocation: solutionLocation
+    tags: commonTags
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -140,6 +148,7 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
     deployingUserPrincipalId: deployingUserPrincipalId
+    tags: commonTags
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -181,6 +190,7 @@ module hostingplan 'deploy_app_service_plan.bicep' = {
   params: {
     solutionLocation: solutionLocation
     HostingPlanName: '${abbrs.compute.appServicePlan}${solutionPrefix}'
+    tags: commonTags
   }
 }
 
@@ -197,6 +207,7 @@ module backend_docker 'deploy_backend_docker.bicep' = {
     // keyVaultName: kvault.outputs.keyvaultName
     aiServicesName: aifoundry.outputs.aiServicesName
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
+    tags: commonTags
     // aiSearchName: aifoundry.outputs.aiSearchName 
     appSettings: {
       AZURE_OPENAI_DEPLOYMENT_MODEL: gptModelName
@@ -247,6 +258,7 @@ module frontend_docker 'deploy_frontend_docker.bicep' = {
     acrName: acrName
     appServicePlanId: hostingplan.outputs.name
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
+    tags: commonTags
     appSettings:{
       APP_API_BASE_URL:backend_docker.outputs.appUrl
       CHAT_LANDING_TEXT:'You can ask questions around sales, products and orders.'

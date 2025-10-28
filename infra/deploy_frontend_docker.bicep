@@ -9,6 +9,9 @@ param solutionLocation string
 param appSettings object = {}
 param appServicePlanId string
 
+@description('Tags to apply to resources')
+param tags object = {}
+
 var imageName = 'DOCKER|${acrName}.azurecr.io/da-app:${imageTag}'
 //var name = '${solutionName}-app'
 param name string
@@ -19,6 +22,7 @@ module appService 'deploy_app_service.bicep' = {
     solutionName: name
     appServicePlanId: appServicePlanId
     appImageName: imageName
+    tags: tags
     appSettings: union(
       appSettings,
       {

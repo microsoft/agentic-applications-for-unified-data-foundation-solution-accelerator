@@ -12,6 +12,7 @@ var containerRegistryNameCleaned = replace(containerRegistryName, '-', '')
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' = {
   name: containerRegistryName
   location: solutionLocation
+  tags: resourceGroup().tags
   sku: {
     name: 'Premium'
   }

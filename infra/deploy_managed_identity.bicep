@@ -12,10 +12,14 @@ param solutionLocation string
 @description('Name')
 param miName string 
 
+@description('Tags to apply to resources')
+param tags object = {}
+
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: miName
   location: solutionLocation
   tags: {
+    ...tags
     app: solutionName
     location: solutionLocation
   }
@@ -40,6 +44,7 @@ resource managedIdentityBackendApp 'Microsoft.ManagedIdentity/userAssignedIdenti
   name: '${solutionName}-backend-app-mi'
   location: solutionLocation
   tags: {
+    ...tags
     app: solutionName
     location: solutionLocation
   }
