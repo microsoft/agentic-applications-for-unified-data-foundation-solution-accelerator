@@ -15,7 +15,7 @@ param azureExistingAIProjectResourceId string = ''
 @description('Optional. created by user name')
 param createdBy string = contains(deployer(), 'userPrincipalName')? split(deployer().userPrincipalName, '@')[0]: deployer().objectId
 
-@description('Choose the backend runtime stack:')
+@description('Choose the programming language:')
 @allowed([
   'python'
   'dotnet'
