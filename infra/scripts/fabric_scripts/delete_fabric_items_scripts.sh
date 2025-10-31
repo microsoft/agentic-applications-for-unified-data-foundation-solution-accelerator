@@ -21,8 +21,8 @@ if [ -z "$fabricWorkspaceId" ] || [ -z "$solutionName" ] || [ -z "$backend_app_p
     echo ""
     echo "Arguments:"
     echo "  fabricWorkspaceId : The Fabric workspace ID"
-    echo "  solutionName      : The solution name (optional, will use SOLUTION_NAME from azd env)"
-    echo "  backend_app_pid   : The backend app principal ID (optional, will use API_PID from azd env)"
+    echo "  solutionName      : The solution name"
+    echo "  backend_app_pid   : The backend app principal ID"
     exit 1
 fi
 

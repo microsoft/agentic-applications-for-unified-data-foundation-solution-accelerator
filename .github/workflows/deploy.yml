@@ -198,13 +198,15 @@ jobs:
           echo "Deployment completed successfully."
 
       - name: Run Post-Deployment Scripts
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         run: |
           set -e
 
           bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
 
           bash infra/scripts/fabric_scripts/run_fabric_items_scripts.sh \
-            "${{ secrets.FABRIC_WORKSPACE_ID }}" \
+            "${{ secrets.FABRIC_WORKSPACE_ID }}"
 
       - name: Extract Environment Values
         id: extract_env_values
@@ -289,9 +291,9 @@ jobs:
 
       - name: Cleanup Fabric Items
         run: |
-          set -e
           bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh \
             "${{ secrets.FABRIC_WORKSPACE_ID }}"
+        continue-on-error: true
 
       - name: Delete deployment using azd
         run: |
