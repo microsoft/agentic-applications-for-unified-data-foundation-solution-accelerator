@@ -1,0 +1,325 @@
+name: Deploy-Test-Cleanup
+
+on:
+  push:
+    branches:
+      - psl-hb-e2e-wf
+  pull_request:
+    branches:
+      - main
+  workflow_run:
+    workflows: ["Build Docker and Optional Push - Agentic Applications for Unified Data Foundation"]
+    types:
+      - completed
+    branches:
+      - main
+      - dev
+      - demo
+  schedule:
+    - cron: "0 5,17 * * *" # Runs at 5:00 AM and 5:00 PM GMT
+  workflow_dispatch: #Allow manual triggering
+    inputs:
+        BACKEND_RUNTIME_STACK:
+          description: 'Specify the backend runtime stack (python/dotnet)'
+          type: 'choice'
+          options:
+            - 'python'
+            - 'dotnet'
+          required: false
+          default: 'python'
+env:
+  GPT_MIN_CAPACITY: 150
+  BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      RESOURCE_GROUP_NAME: ${{ steps.check_create_rg.outputs.RESOURCE_GROUP_NAME }}
+      AZURE_LOCATION: ${{ steps.set_region.outputs.AZURE_LOCATION }}
+      ENV_NAME: ${{ steps.generate_env_name.outputs.ENV_NAME }}
+      WEBAPP_URL: ${{ steps.extract_env_values.outputs.WEBAPP_URL }}
+      SOLUTION_NAME: ${{ steps.extract_env_values.outputs.SOLUTION_NAME }}
+      BACKEND_RUNTIME_STACK: ${{ steps.extract_env_values.outputs.BACKEND_RUNTIME_STACK }}
+      API_PID: ${{ steps.extract_env_values.outputs.API_PID }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Quota Check
+        id: quota-check
+        run: |
+          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
+          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
+          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
+          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          export GPT_MIN_CAPACITY="${{ env.GPT_MIN_CAPACITY }}"
+          export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
+
+          chmod +x infra/scripts/checkquota_agentic_application.sh
+          if ! infra/scripts/checkquota_agentic_application.sh; then
+            # If quota check fails due to insufficient quota, set the flag
+            if grep -q "No region with sufficient quota found" infra/scripts/checkquota_agentic_application.sh; then
+              echo "QUOTA_FAILED=true" >> $GITHUB_ENV
+            fi
+            exit 1  # Fail the pipeline if any other failure occurs
+          fi
+
+      - name: Send Notification on Quota Failure
+        if: env.QUOTA_FAILED == 'true'
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>The quota check has failed, and the MACAE pipeline cannot proceed.</p><p><strong>Build URL:</strong> ${RUN_URL}</p><p>Please take necessary action.</p><p>Best regards,<br>Your Automation Team</p>"
+          }
+          EOF
+          )
+
+          curl -X POST "${{ secrets.LOGIC_APP_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send notification"
+
+      - name: Fail Pipeline if Quota Check Fails
+        if: env.QUOTA_FAILED == 'true'
+        run: exit 1
+
+      - name: Set Deployment Region
+        id: set_region
+        run: |
+          echo "Selected Region: $VALID_REGION"
+          echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
+          echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
+
+      - name: Setup Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az --version  # Verify installation
+
+      - name: Setup Azure Developer CLI
+        run: |
+          curl -fsSL https://aka.ms/install-azd.sh | sudo bash
+          azd version           
+
+      - name: Login to Azure
+        id: login_azure
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Install Bicep CLI
+        run: az bicep install
+
+      - name: Generate Resource Group Name
+        id: generate_rg_name
+        run: |
+          ACCL_NAME="fabsql"
+          SHORT_UUID=$(uuidgen | cut -d'-' -f1)
+          UNIQUE_RG_NAME="arg-${ACCL_NAME}-${SHORT_UUID}"
+          echo "RESOURCE_GROUP_NAME=${UNIQUE_RG_NAME}" >> $GITHUB_ENV
+          echo "Generated Resource_GROUP_PREFIX: ${UNIQUE_RG_NAME}"
+
+      - name: Check and Create Resource Group
+        id: check_create_rg
+        run: |
+          set -e
+          rg_exists=$(az group exists --name ${{ env.RESOURCE_GROUP_NAME }})
+          if [ "$rg_exists" = "false" ]; then
+            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.AZURE_LOCATION }}
+          fi
+          echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
+
+      - name: Generate Unique Environment Name
+        id: generate_env_name
+        run: |
+          COMMON_PART="fabsql"
+          TIMESTAMP=$(date +%s)
+          UPDATED_TIMESTAMP=$(echo $TIMESTAMP | tail -c 6)
+          UNIQUE_ENV_NAME="${COMMON_PART}${UPDATED_TIMESTAMP}"
+          echo "ENV_NAME=${UNIQUE_ENV_NAME}" >> $GITHUB_ENV
+          echo "Generated Environment Name: ${UNIQUE_ENV_NAME}"
+          echo "ENV_NAME=${UNIQUE_ENV_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Create Environment and set Variables
+        id: create_env
+        run: |
+          set -e
+
+          echo "Creating environment..."
+          azd env new ${{ env.ENV_NAME }} --no-prompt
+          echo "Environment created: ${{ env.ENV_NAME }}"
+
+          # set image tag based on branch
+          if [[ "${{ env.BRANCH_NAME }}" == "main" ]]; then
+            IMAGE_TAG="latest"
+          elif [[ "${{ env.BRANCH_NAME }}" == "dev" ]]; then
+            IMAGE_TAG="dev"
+          elif [[ "${{ env.BRANCH_NAME }}" == "demo" ]]; then
+            IMAGE_TAG="demo"
+          else
+            IMAGE_TAG="dev"
+          fi
+          echo "Using IMAGE_TAG: ${IMAGE_TAG}"
+
+          echo "Setting default subscription..."
+          azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+          echo "Setting environment variables..."
+          azd env set AZURE_RESOURCE_GROUP="${{ env.RESOURCE_GROUP_NAME }}"
+          azd env set AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="${{ env.AZURE_LOCATION }}"
+          azd env set AZURE_OPENAI_DEPLOYMENT_MODEL_CAPACITY="${{ env.GPT_MIN_CAPACITY }}"
+          azd env set AZURE_ENV_IMAGETAG="${IMAGE_TAG}"
+
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            BACKEND_RUNTIME_STACK="${{ github.event.inputs.BACKEND_RUNTIME_STACK }}"
+          else
+            # set runtime stack, based on workflow schedule count
+            HOUR=$(date -u +'%H')
+            if [ "$HOUR" -eq 5 ]; then
+              BACKEND_RUNTIME_STACK="python"
+            elif [ "$HOUR" -eq 17 ]; then
+              BACKEND_RUNTIME_STACK="dotnet"
+            else
+              BACKEND_RUNTIME_STACK="python"
+            fi
+          fi
+          azd env set BACKEND_RUNTIME_STACK="${BACKEND_RUNTIME_STACK}"
+          echo "BACKEND_RUNTIME_STACK set to ${BACKEND_RUNTIME_STACK}"
+
+          echo "Environment variables set successfully:"
+          azd env get-values
+
+      - name: Deploy using azd
+        id: deploy
+        run: |
+          set -e
+          azd up --no-prompt
+          echo "Deployment completed successfully."
+
+      - name: Run Post-Deployment Scripts
+        run: |
+          set -e
+
+          bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
+
+          bash infra/scripts/fabric_scripts/run_fabric_items_scripts.sh \
+            "${{ secrets.FABRIC_WORKSPACE_ID }}" \
+
+      - name: Extract Environment Values
+        id: extract_env_values
+        run: |
+          set -e
+          WEBAPP_URL=$(azd env get-value WEB_APP_URL)
+          echo "WEBAPP_URL=${WEBAPP_URL}" >> $GITHUB_ENV
+          echo "WEBAPP_URL=${WEBAPP_URL}" >> $GITHUB_OUTPUT
+          echo "Extracted WEBAPP_URL: ${WEBAPP_URL}"
+
+          SOLUTION_NAME=$(azd env get-value SOLUTION_NAME)
+          echo "SOLUTION_NAME=${SOLUTION_NAME}" >> $GITHUB_ENV
+          echo "SOLUTION_NAME=${SOLUTION_NAME}" >> $GITHUB_OUTPUT
+          echo "Extracted SOLUTION_NAME: ${SOLUTION_NAME}"
+
+          BACKEND_RUNTIME_STACK=$(azd env get-value BACKEND_RUNTIME_STACK)
+          echo "BACKEND_RUNTIME_STACK=${BACKEND_RUNTIME_STACK}" >> $GITHUB_ENV
+          echo "BACKEND_RUNTIME_STACK=${BACKEND_RUNTIME_STACK}" >> $GITHUB_OUTPUT
+          echo "Extracted BACKEND_RUNTIME_STACK: ${BACKEND_RUNTIME_STACK}"
+
+          API_PID=$(azd env get-value API_PID)
+          echo "API_PID=${API_PID}" >> $GITHUB_ENV
+          echo "API_PID=${API_PID}" >> $GITHUB_OUTPUT
+          echo "Extracted API_PID: ${API_PID}"
+
+      - name: Logout from Azure
+        if: always() && steps.login_azure.outcome == 'success'
+        run: |
+          az logout
+          azd auth logout
+
+  e2e-test:
+    needs: deploy
+    uses: ./.github/workflows/test-automation.yml
+    with:
+      WEB_URL: ${{ needs.deploy.outputs.WEBAPP_URL }}
+    secrets: inherit
+
+  cleanup-deployment:
+    if: always() && needs.deploy.outputs.RESOURCE_GROUP_NAME != ''
+    needs: [deploy, e2e-test]
+    runs-on: ubuntu-latest
+    env:
+      RESOURCE_GROUP_NAME: ${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}
+      AZURE_LOCATION: ${{ needs.deploy.outputs.AZURE_LOCATION }}
+      ENV_NAME: ${{ needs.deploy.outputs.ENV_NAME }}
+      BACKEND_RUNTIME_STACK: ${{ needs.deploy.outputs.BACKEND_RUNTIME_STACK }}
+      SOLUTION_NAME: ${{ needs.deploy.outputs.SOLUTION_NAME }}
+      API_PID: ${{ needs.deploy.outputs.API_PID }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure Developer CLI
+        run: |
+          curl -fsSL https://aka.ms/install-azd.sh | sudo bash
+          azd version
+
+      - name: Login to Azure
+        run: |
+          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+          azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Select Environment
+        run: |
+          set -e
+          # Try to select the environment if it exists, otherwise create a minimal environment for cleanup
+          azd env list
+          if azd env list | grep -q "${{ env.ENV_NAME }}"; then
+            echo "Environment ${{ env.ENV_NAME }} found, selecting it..."
+            azd env select ${{ env.ENV_NAME }}
+          else
+            echo "Environment ${{ env.ENV_NAME }} not found, creating minimal environment for cleanup..."
+            azd env new ${{ env.ENV_NAME }} --no-prompt
+            azd env set AZURE_RESOURCE_GROUP "${{ env.RESOURCE_GROUP_NAME }}"
+            azd env set AZURE_SUBSCRIPTION_ID "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+            azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="${{ env.AZURE_LOCATION }}"
+            azd env set BACKEND_RUNTIME_STACK="${{ env.BACKEND_RUNTIME_STACK }}"
+            azd env set SOLUTION_NAME="${{ env.SOLUTION_NAME }}"
+            azd env set API_PID="${{ env.API_PID }}"
+          fi
+
+      - name: Cleanup Fabric Items
+        run: |
+          set -e
+          bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh \
+            "${{ secrets.FABRIC_WORKSPACE_ID }}"
+
+      - name: Delete deployment using azd
+        run: |
+          set -e
+          echo "Deleting deployment..."
+          azd down --purge --force --no-prompt
+          echo "Deployment deleted successfully."
+
+      - name: Send Notification on Failure
+        if: always() && (failure() || needs.deploy.result == 'failure')
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Construct the email body
+          EMAIL_BODY=$(cat <<EOF
+          {
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the Fabric SQL Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}<br> ${OUTPUT}</p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>"
+          }
+          EOF
+          )
+
+          # Send the notification
+          curl -X POST "${{ secrets.LOGIC_APP_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "$EMAIL_BODY" || echo "Failed to send notification"
+
+      - name: Logout from Azure
+        if: always()
+        run: |
+          azd auth logout
+          echo "Logged out from Azure."
