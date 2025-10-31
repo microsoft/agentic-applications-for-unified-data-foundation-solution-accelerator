@@ -25,6 +25,7 @@ import { ChatAdd24Regular } from "@fluentui/react-icons";
 import { generateUUIDv4 } from "../../configs/Utils";
 import ChatChart from "../ChatChart/ChatChart";
 import Citations from "../Citations/Citations";
+import { getChatLandingText } from "../../config";
 
 type ChatProps = {
   onHandlePanelStates: (name: string) => void;
@@ -33,6 +34,8 @@ type ChatProps = {
 };
 
 const [ASSISTANT, TOOL, ERROR, USER] = ["assistant", "tool", "error", "user"];
+
+const chatLandingText = getChatLandingText();
 
 const Chat: React.FC<ChatProps> = ({
   onHandlePanelStates,
@@ -115,18 +118,21 @@ const Chat: React.FC<ChatProps> = ({
   };
 
 
-  const parseCitationFromMessage = (message : any) => {
+  const parseCitationFromMessage = (message: any) => {
+  try {
+    message = '{' + message;
+    const toolMessage = JSON.parse(message as string) as ToolMessageContent;
 
-      try {
-        message = '{'+ message 
-        const toolMessage = JSON.parse(message as string) as ToolMessageContent;
-        
-        return toolMessage.citations;
-      } catch {
+    if (toolMessage?.citations?.length) {
+      return toolMessage.citations.filter(
+        (c) => c.url?.trim() || c.title?.trim()
+      );
+    }
+  } catch {
         // console.log("ERROR WHIEL PARSING TOOL CONTENT");
-      }
-    return [];
-  };
+  }
+  return [];
+};
   const isChartQuery = (query: string) => {
     const chartKeywords = ["chart", "graph", "visualize", "plot"];
     
@@ -551,9 +557,18 @@ const Chat: React.FC<ChatProps> = ({
             parsedChartResponse= JSON.parse("{" + splitRunningText[splitRunningText.length - 1]);
             let chartResponse : any = {};
             try {
-              chartResponse = JSON.parse(parsedChartResponse?.choices[0]?.messages[0]?.content)
+              let rawChartContent = parsedChartResponse?.choices[0]?.messages[0]?.content;
+              if (typeof rawChartContent === "string") {
+                  rawChartContent = rawChartContent
+                              .replace(/\([^)]*\)\s*=>\s*{[^}]*}/g, '"[Function]"')
+                              .replace(/function\s*\([^)]*\)\s*{[^}]*}/g, '"[Function]"');
+                  rawChartContent = rawChartContent.replace(/,(\s*[}\]])/g, '$1');
+                }
+              chartResponse = JSON.parse(rawChartContent)
             } catch (e) {
-              chartResponse = parsedChartResponse?.choices[0]?.messages[0]?.content;
+              console.log("Error parsing chart content:", e);
+              // chartResponse = parsedChartResponse?.choices[0]?.messages[0]?.content;
+              chartResponse = "Chart can't be generated, please try again.";
             }
           
             if (typeof chartResponse === 'object' && 'answer' in chartResponse) {
@@ -797,7 +812,7 @@ const Chat: React.FC<ChatProps> = ({
               <h2>✨</h2>
               <Subtitle2>Start Chatting</Subtitle2>
               <Body1 style={{ textAlign: "center" }}>
-                You can ask questions around sales, products and orders.
+                {chatLandingText}
               </Body1>
             </div>
           )}
@@ -818,6 +833,7 @@ const Chat: React.FC<ChatProps> = ({
                 }
                 msg.content = msg.content as ChartDataResponse;
                 if (typeof msg.content === "object" && msg.content !== null) {
+                  // const chartData = (msg.content.answer || "answer" in msg.content) ? msg.content.answer : msg.content;
                   if ("type" in msg.content && "data" in msg.content) {
                     try {
                       return (
@@ -850,6 +866,7 @@ const Chat: React.FC<ChatProps> = ({
                   }
 
                   if (parsedContent && typeof parsedContent === "object") {
+                    parsedContent = (parsedContent.answer || "answer" in parsedContent) ? parsedContent.answer : parsedContent;
                     if ("type" in parsedContent && "data" in parsedContent) {
                       try {
                         return (
