@@ -13,8 +13,8 @@ Stores uploaded customer information, product details and order history tables. 
 ### Azure OpenAI Service  
 Provides large language model (LLM) capabilities to support natural language querying.
 
-### Semantic Kernel  
-Handles orchestration and intelligent function calling for contextualized responses and multi-step reasoning over retrieved data.
+### Agent Framework  
+Handles orchestration and intelligent function/tool calling for contextualized responses and multi-step reasoning over retrieved data.
 
 ### App Service  
 Hosts the web application and API layer that interfaces with the AI services and storage layers. Manages user sessions and handles REST calls.

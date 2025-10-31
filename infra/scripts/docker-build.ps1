@@ -74,8 +74,8 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 # STEP 6: Resolve full paths to Dockerfiles and build contexts
 $WebAppDockerfilePath = Join-Path $ScriptDir "..\..\src\App\WebApp.Dockerfile" | Resolve-Path
 $WebAppContextPath = Join-Path $ScriptDir "..\..\src\App" | Resolve-Path
-$ApiAppDockerfilePath = Join-Path $ScriptDir "..\..\src\api\ApiApp.Dockerfile" | Resolve-Path
-$ApiAppContextPath = Join-Path $ScriptDir "..\..\src\api" | Resolve-Path
+$ApiAppDockerfilePath = Join-Path $ScriptDir "..\..\src\api\python\ApiApp.Dockerfile" | Resolve-Path
+$ApiAppContextPath = Join-Path $ScriptDir "..\..\src\api\python" | Resolve-Path
 
 # STEP 7: Define function to build and push Docker images
 function Build-And-Push-Image {
