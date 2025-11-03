@@ -44,7 +44,7 @@ python -m pip install -r infra/scripts/fabric_scripts/requirements.txt --quiet
 echo ""
 echo "Deleting Fabric items for solution: $solutionName"
 echo "Workspace ID: $fabricWorkspaceId"
-echo "=" * 60
+echo "============================================================"
 echo ""
 
 python -u infra/scripts/fabric_scripts/delete_fabric_items.py \

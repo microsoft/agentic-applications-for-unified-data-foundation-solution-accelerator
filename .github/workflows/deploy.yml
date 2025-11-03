@@ -1,9 +1,6 @@
 name: Deploy-Test-Cleanup
 
 on:
-  push:
-    branches:
-      - psl-hb-e2e-wf
   pull_request:
     branches:
       - main
@@ -176,7 +173,7 @@ jobs:
           elif [[ "${{ env.BRANCH_NAME }}" == "demo" ]]; then
             IMAGE_TAG="demo"
           else
-            IMAGE_TAG="dev"
+            IMAGE_TAG="latest"
           fi
           echo "Using IMAGE_TAG: ${IMAGE_TAG}"
 
@@ -200,7 +197,7 @@ jobs:
             elif [ "$HOUR" -eq 17 ]; then
               BACKEND_RUNTIME_STACK="dotnet"
             else
-              BACKEND_RUNTIME_STACK="dotnet"
+              BACKEND_RUNTIME_STACK="python"
             fi
           fi
           azd env set BACKEND_RUNTIME_STACK="${BACKEND_RUNTIME_STACK}"
