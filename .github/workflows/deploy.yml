@@ -99,7 +99,15 @@ jobs:
       - name: Setup Azure Developer CLI
         run: |
           curl -fsSL https://aka.ms/install-azd.sh | sudo bash
-          azd version           
+          azd version
+
+      - name: Install ODBC Driver 18 for SQL Server
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+          sudo add-apt-repository "$(curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list)"
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
+          sudo apt-get install -y unixodbc-dev
 
       - name: Login to Azure
         id: login_azure
@@ -260,6 +268,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Setup Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az --version  # Verify installation
+
       - name: Setup Azure Developer CLI
         run: |
           curl -fsSL https://aka.ms/install-azd.sh | sudo bash
@@ -267,6 +280,7 @@ jobs:
 
       - name: Login to Azure
         run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
           azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
           azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
@@ -323,5 +337,6 @@ jobs:
       - name: Logout from Azure
         if: always()
         run: |
+          az logout
           azd auth logout
           echo "Logged out from Azure."
