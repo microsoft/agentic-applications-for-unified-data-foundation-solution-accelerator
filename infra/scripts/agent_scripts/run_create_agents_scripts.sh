@@ -53,7 +53,7 @@ else
 fi
 
 echo "Getting signed in user id"
-signed_user_id=$(az ad signed-in-user show --query id -o tsv)
+signed_user_id=$(az ad signed-in-user show --query id -o tsv) || signed_user_id=${AZURE_CLIENT_ID}
 
 echo "Checking if the user has Azure AI User role on the AI Foundry"
 role_assignment=$(MSYS_NO_PATHCONV=1 az role assignment list \
