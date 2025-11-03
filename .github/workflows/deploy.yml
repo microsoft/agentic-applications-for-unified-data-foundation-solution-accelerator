@@ -200,7 +200,7 @@ jobs:
             elif [ "$HOUR" -eq 17 ]; then
               BACKEND_RUNTIME_STACK="dotnet"
             else
-              BACKEND_RUNTIME_STACK="python"
+              BACKEND_RUNTIME_STACK="dotnet"
             fi
           fi
           azd env set BACKEND_RUNTIME_STACK="${BACKEND_RUNTIME_STACK}"
