@@ -265,6 +265,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (backendRuntimeStack ==
       APP_ENV: 'Prod'
 
       AGENT_ID_ORCHESTRATOR: ''
+      AGENT_ID_TITLE: ''
 
       FABRIC_SQL_DATABASE: ''
       FABRIC_SQL_SERVER: ''
@@ -318,6 +319,7 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendRun
       APP_ENV: 'Prod'
 
       AGENT_ID_ORCHESTRATOR: ''
+      AGENT_ID_TITLE: ''
 
       FABRIC_SQL_DATABASE: ''
       FABRIC_SQL_SERVER: ''
@@ -391,6 +393,7 @@ output API_APP_URL string = backendRuntimeStack == 'python' ? backend_docker!.ou
 output WEB_APP_URL string = frontend_docker.outputs.appUrl
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = aifoundry.outputs.applicationInsightsConnectionString
 output AGENT_ID_ORCHESTRATOR string = ''
+output AGENT_ID_TITLE string = ''
 output FABRIC_SQL_DATABASE string = ''
 output FABRIC_SQL_SERVER string = ''
 output FABRIC_SQL_CONNECTION_STRING string = ''
