@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, date
 from typing import Tuple, Any
 from decimal import Decimal
-from openai import AsyncAzureOpenAI
+from azure.ai.projects.aio import AIProjectClient
 from pydantic import BaseModel, ConfigDict
 import pyodbc
 from azure.identity.aio import AzureCliCredential, get_bearer_token_provider
@@ -17,6 +17,8 @@ from fastapi.responses import JSONResponse
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
+from agent_framework import ChatAgent
+from agent_framework.azure import AzureAIAgentClient
 from auth.auth_utils import get_authenticated_user_details
 from auth.azure_credential_utils import get_azure_credential_async
 
@@ -51,10 +53,12 @@ logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
 )
 
 # Configuration variables
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_DEPLOYMENT_MODEL = os.getenv("AZURE_OPENAI_DEPLOYMENT_MODEL")
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
-AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE")
+# AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+# AZURE_OPENAI_DEPLOYMENT_MODEL = os.getenv("AZURE_OPENAI_DEPLOYMENT_MODEL")
+# AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+# AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE")
+AZURE_AI_AGENT_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
+AGENT_ID_TITLE = os.getenv("AGENT_ID_TITLE")
 
 
 def track_event_if_configured(event_name: str, event_data: dict):
@@ -568,45 +572,44 @@ async def rename_conversation(user_id: str, conversation_id, title) -> bool:
         return False
 
 
-async def init_openai_client():
-    """
-    Initialize and return an Azure OpenAI client.
+# async def init_openai_client():
+#     """
+#     Initialize and return an Azure OpenAI client.
 
-    Returns:
-        AsyncAzureOpenAI: Configured Azure OpenAI client instance.
-    """
-    user_agent = "GitHubSampleWebApp/AsyncAzureOpenAI/1.0.0"
+#     Returns:
+#         AsyncAzureOpenAI: Configured Azure OpenAI client instance.
+#     """
+#     user_agent = "GitHubSampleWebApp/AsyncAzureOpenAI/1.0.0"
 
-    try:
-        if not AZURE_OPENAI_ENDPOINT and not AZURE_OPENAI_RESOURCE:
-            raise ValueError(
-                "AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE is required")
+#     try:
+#         if not AZURE_OPENAI_ENDPOINT and not AZURE_OPENAI_RESOURCE:
+#             raise ValueError(
+#                 "AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE is required")
 
-        endpoint = AZURE_OPENAI_ENDPOINT or f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
-        ad_token_provider = None
+#         endpoint = AZURE_OPENAI_ENDPOINT or f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
+#         ad_token_provider = None
 
-        logger.debug("Using Azure AD authentication for OpenAI")
-        credential = await get_azure_credential_async()
-        ad_token_provider = get_bearer_token_provider(
-            credential, "https://cognitiveservices.azure.com/.default")
+#         logger.debug("Using Azure AD authentication for OpenAI")
+#         credential = await get_azure_credential_async()
+#         ad_token_provider = get_bearer_token_provider(
+#             credential, "https://cognitiveservices.azure.com/.default")
 
-        if not AZURE_OPENAI_DEPLOYMENT_MODEL:
-            raise ValueError("AZURE_OPENAI_MODEL is required")
+#         if not AZURE_OPENAI_DEPLOYMENT_MODEL:
+#             raise ValueError("AZURE_OPENAI_MODEL is required")
 
-        return AsyncAzureOpenAI(
-            api_version=AZURE_OPENAI_API_VERSION,
-            azure_ad_token_provider=ad_token_provider,
-            default_headers={"x-ms-useragent": user_agent},
-            azure_endpoint=endpoint,
-        )
-    except Exception:
-        logger.exception("Failed to initialize Azure OpenAI client")
-        raise
-
+#         return AsyncAzureOpenAI(
+#             api_version=AZURE_OPENAI_API_VERSION,
+#             azure_ad_token_provider=ad_token_provider,
+#             default_headers={"x-ms-useragent": user_agent},
+#             azure_endpoint=endpoint,
+#         )
+#     except Exception:
+#         logger.exception("Failed to initialize Azure OpenAI client")
+#         raise
 
 async def generate_title(conversation_messages):
     """
-    Generate a concise title for a conversation using Azure OpenAI service.
+    Generate a concise title for a conversation using Azure AI Foundry agent.
 
     Args:
         conversation_messages (list): List of messages in the conversation.
@@ -614,28 +617,59 @@ async def generate_title(conversation_messages):
     Returns:
         str: A 4-word or less title summarizing the conversation.
     """
-    title_prompt = (
-        "Summarize the conversation so far into a 4-word or less title. "
-        "Do not use any quotation marks or punctuation. "
-        "Do not include any other commentary or description."
-    )
+    if not AZURE_AI_AGENT_ENDPOINT:
+        raise ValueError("AZURE_AI_AGENT_ENDPOINT is required")
+    
+    if not AGENT_ID_TITLE:
+        raise ValueError("AGENT_ID_TITLE is required")
 
-    messages = [{"role": msg["role"], "content": msg["content"]}
-                for msg in conversation_messages if msg["role"] == "user"]
-    messages.append({"role": "user", "content": title_prompt})
+    # title_prompt = (
+    #     "Summarize the conversation so far into a 4-word or less title. "
+    #     "Do not use any quotation marks or punctuation. "
+    #     "Do not include any other commentary or description."
+    # )
 
+    # Build conversation context for the title agent
+    title_request = "\n".join([
+        f"{msg['role']}: {msg['content']}" 
+        for msg in conversation_messages if msg['role'] in ['user', 'assistant']
+    ])
+    
     try:
-        azure_openai_client = await init_openai_client()
-        response = await azure_openai_client.chat.completions.create(
-            model=AZURE_OPENAI_DEPLOYMENT_MODEL,
-            messages=messages,
-            temperature=1,
-            max_tokens=64,
-        )
-        return response.choices[0].message.content
+        # Use Azure AI Foundry client with existing title agent
+        async with AIProjectClient(
+            endpoint=AZURE_AI_AGENT_ENDPOINT,
+            credential=await get_azure_credential_async()
+        ) as client:
+            title_agent = await client.agents.get_agent(AGENT_ID_TITLE)
+            
+            async with ChatAgent(
+                chat_client=AzureAIAgentClient(project_client=client, agent_id=title_agent.id)
+            ) as agent:
+                
+                # Send the title generation request
+                response = await agent.run(title_request)
+                
+                # Extract the title from the response
+                if response and hasattr(response, 'content'):
+                    title = response.content.strip()
+                    return title if title else "Conversation Title"
+                elif response:
+                    title = str(response).strip()
+                    return title if title else "Conversation Title"
+                else:
+                    return "Conversation Title"
+                
     except Exception as e:
-        logger.error("Error generating title: %s", e)
-        return messages[-2]["content"]
+        logger.warning("Error generating title with Foundry: %s", e)
+        # Fallback to a default title based on the first user message
+        user_messages = [msg for msg in conversation_messages if msg["role"] == "user"]
+        if user_messages:
+            first_message = user_messages[0]["content"]
+            # Create a simple title from first few words
+            words = first_message.split()[:4]
+            return " ".join(words) if words else "Conversation Title"
+        return "Conversation Title"
 
 
 async def create_conversation(user_id, title="", conversation_id=None):
