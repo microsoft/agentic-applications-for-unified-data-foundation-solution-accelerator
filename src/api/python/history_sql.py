@@ -9,7 +9,7 @@ from decimal import Decimal
 from azure.ai.projects.aio import AIProjectClient
 from pydantic import BaseModel, ConfigDict
 import pyodbc
-from azure.identity.aio import AzureCliCredential, get_bearer_token_provider
+from azure.identity.aio import AzureCliCredential
 from azure.monitor.events.extension import track_event
 from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import APIRouter, HTTPException, Query, Request, status
@@ -52,13 +52,11 @@ logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
     logging.WARNING
 )
 
-# Configuration variables
-# AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-# AZURE_OPENAI_DEPLOYMENT_MODEL = os.getenv("AZURE_OPENAI_DEPLOYMENT_MODEL")
-# AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
-# AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE")
+# Azure AI Foundry configuration
 AZURE_AI_AGENT_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
 AGENT_ID_TITLE = os.getenv("AGENT_ID_TITLE")
+
+# Database configuration
 
 
 def track_event_if_configured(event_name: str, event_data: dict):
@@ -138,81 +136,6 @@ async def get_fabric_db_connection():
         return None
 
 
-# async def run_query_and_return_json(sql_query: str):
-#     """
-#     Execute SQL query and return results as JSON string.
-
-#     Args:
-#         sql_query (str): The SQL query to execute.
-
-#     Returns:
-#         str: JSON string containing query results, or None if an error occurs.
-#     """
-#     # Connect to the database
-#     conn = await get_fabric_db_connection()
-#     cursor = None
-#     try:
-#         cursor = conn.cursor()
-#         cursor.execute(sql_query)
-#         columns = [desc[0] for desc in cursor.description]
-#         result = []
-#         for row in cursor.fetchall():
-#             row_dict = {}
-#             for col_name, value in zip(columns, row):
-#                 if isinstance(value, (datetime, date)):
-#                     row_dict[col_name] = value.isoformat()
-#                 else:
-#                     row_dict[col_name] = value
-#             result.append(row_dict)
-
-#         return json.dumps(result, indent=2)
-#     except Exception as e:
-#         logging.error("Error executing SQL query: %s", e)
-#         return None
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         conn.close()
-
-
-# async def run_query_and_return_json_params(sql_query, params: Tuple[Any, ...] = ()):
-#     """
-#     Execute parameterized SQL query and return results as JSON string.
-
-#     Args:
-#         sql_query (str): The SQL query to execute with parameter placeholders.
-#         params (Tuple[Any, ...]): Parameters to bind to the query.
-
-#     Returns:
-#         str: JSON string containing query results, or None if an error occurs.
-#     """
-#     # Connect to the database
-#     conn = await get_fabric_db_connection()
-#     cursor = None
-#     try:
-#         cursor = conn.cursor()
-#         cursor.execute(sql_query, params)
-#         columns = [desc[0] for desc in cursor.description]
-#         result = []
-#         for row in cursor.fetchall():
-#             row_dict = {}
-#             for col_name, value in zip(columns, row):
-#                 if isinstance(value, (datetime, date)):
-#                     row_dict[col_name] = value.isoformat()
-#                 else:
-#                     row_dict[col_name] = value
-#             result.append(row_dict)
-
-#         return json.dumps(result, indent=2)
-#     except Exception as e:
-#         logging.error("Error executing SQL query: %s", e)
-#         return None
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         conn.close()
-
-
 async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     """
     Execute a SQL non-query operation like DELETE, INSERT, or UPDATE.
@@ -278,27 +201,6 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
         if cursor:
             cursor.close()
         conn.close()
-
-
-# async def execute_sql_query(sql_query):
-#     """
-#     Executes a given SQL query and returns the result as a concatenated string.
-#     """
-#     conn = await get_fabric_db_connection()
-#     cursor = None
-#     try:
-#         cursor = conn.cursor()
-#         cursor.execute(sql_query)
-#         result = ''.join(str(row) for row in cursor.fetchall())
-
-#         return result
-#     except Exception as e:
-#         logging.error("Error executing SQL query: %s", e)
-#         return None
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         conn.close()
 
 
 class SqlQueryTool(BaseModel):
@@ -572,41 +474,6 @@ async def rename_conversation(user_id: str, conversation_id, title) -> bool:
         return False
 
 
-# async def init_openai_client():
-#     """
-#     Initialize and return an Azure OpenAI client.
-
-#     Returns:
-#         AsyncAzureOpenAI: Configured Azure OpenAI client instance.
-#     """
-#     user_agent = "GitHubSampleWebApp/AsyncAzureOpenAI/1.0.0"
-
-#     try:
-#         if not AZURE_OPENAI_ENDPOINT and not AZURE_OPENAI_RESOURCE:
-#             raise ValueError(
-#                 "AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE is required")
-
-#         endpoint = AZURE_OPENAI_ENDPOINT or f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
-#         ad_token_provider = None
-
-#         logger.debug("Using Azure AD authentication for OpenAI")
-#         credential = await get_azure_credential_async()
-#         ad_token_provider = get_bearer_token_provider(
-#             credential, "https://cognitiveservices.azure.com/.default")
-
-#         if not AZURE_OPENAI_DEPLOYMENT_MODEL:
-#             raise ValueError("AZURE_OPENAI_MODEL is required")
-
-#         return AsyncAzureOpenAI(
-#             api_version=AZURE_OPENAI_API_VERSION,
-#             azure_ad_token_provider=ad_token_provider,
-#             default_headers={"x-ms-useragent": user_agent},
-#             azure_endpoint=endpoint,
-#         )
-#     except Exception:
-#         logger.exception("Failed to initialize Azure OpenAI client")
-#         raise
-
 async def generate_title(conversation_messages):
     """
     Generate a concise title for a conversation using Azure AI Foundry agent.
@@ -622,12 +489,6 @@ async def generate_title(conversation_messages):
     
     if not AGENT_ID_TITLE:
         raise ValueError("AGENT_ID_TITLE is required")
-
-    # title_prompt = (
-    #     "Summarize the conversation so far into a 4-word or less title. "
-    #     "Do not use any quotation marks or punctuation. "
-    #     "Do not include any other commentary or description."
-    # )
 
     # Build conversation context for the title agent
     title_request = "\n".join([
@@ -851,8 +712,6 @@ async def update_conversation(user_id: str, request_json: dict):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User message not found")
 
-        # Format the incoming message object in the "chat/completions" messages format
-        # then write it to the conversation history
         messages = request_json["messages"]
         if len(messages) > 0 and messages[-1]["role"] == "assistant":
             if len(messages) > 1 and messages[-2].get("role", None) == "tool":

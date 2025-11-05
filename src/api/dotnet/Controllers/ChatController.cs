@@ -5,9 +5,7 @@ using CsApi.Services;
 using CsApi.Repositories;
 using CsApi.Utils;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Concurrent;
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 
 namespace CsApi.Controllers;
 

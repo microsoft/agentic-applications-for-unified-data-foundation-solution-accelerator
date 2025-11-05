@@ -3,7 +3,6 @@ using Microsoft.Data.SqlClient;
 using CsApi.Models;
 using Azure.Identity;
 using Azure.Core;
-using System.Threading.Tasks;
 using System.Text.Json;
 
 namespace CsApi.Repositories;
