@@ -137,29 +137,4 @@ public class ChatController : ControllerBase
         return BadRequest(new { error = "DISPLAY_CHART_DEFAULT flag not found in environment variables" });
     }
 
-    [HttpPost("fetch-azure-search-content")]
-    public async Task<IActionResult> FetchAzureSearchContent([FromBody] FetchAzureSearchContentRequest req)
-    {
-        if (string.IsNullOrWhiteSpace(req?.Url))
-            return BadRequest(new { error = "URL is required" });
-        try
-        {
-            using var httpClient = new HttpClient();
-            var requestMsg = new HttpRequestMessage(HttpMethod.Get, req.Url);
-            requestMsg.Headers.Add("Content-Type", "application/json");
-            var response = await httpClient.SendAsync(requestMsg);
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return Ok(new { content = json });
-            }
-            return StatusCode((int)response.StatusCode, new { error = $"Error: HTTP {response.StatusCode}" });
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Internal server error" });
-        }
-    }
-
-    public class FetchAzureSearchContentRequest { public string? Url { get; set; } }
 }
