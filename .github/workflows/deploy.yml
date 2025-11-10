@@ -1,6 +1,9 @@
 name: Deploy-Test-Cleanup
 
 on:
+  push:
+    branches:
+      - psl-hb-e2e-wf
   pull_request:
     branches:
       - main
@@ -261,90 +264,90 @@ jobs:
       WEB_URL: ${{ needs.deploy.outputs.WEBAPP_URL }}
     secrets: inherit
 
-  cleanup-deployment:
-    if: always() && needs.deploy.outputs.RESOURCE_GROUP_NAME != ''
-    needs: [deploy, e2e-test]
-    runs-on: ubuntu-latest
-    env:
-      RESOURCE_GROUP_NAME: ${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}
-      AZURE_LOCATION: ${{ needs.deploy.outputs.AZURE_LOCATION }}
-      ENV_NAME: ${{ needs.deploy.outputs.ENV_NAME }}
-      BACKEND_RUNTIME_STACK: ${{ needs.deploy.outputs.BACKEND_RUNTIME_STACK }}
-      SOLUTION_NAME: ${{ needs.deploy.outputs.SOLUTION_NAME }}
-      API_PID: ${{ needs.deploy.outputs.API_PID }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+  # cleanup-deployment:
+  #   if: always() && needs.deploy.outputs.RESOURCE_GROUP_NAME != ''
+  #   needs: [deploy, e2e-test]
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     RESOURCE_GROUP_NAME: ${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}
+  #     AZURE_LOCATION: ${{ needs.deploy.outputs.AZURE_LOCATION }}
+  #     ENV_NAME: ${{ needs.deploy.outputs.ENV_NAME }}
+  #     BACKEND_RUNTIME_STACK: ${{ needs.deploy.outputs.BACKEND_RUNTIME_STACK }}
+  #     SOLUTION_NAME: ${{ needs.deploy.outputs.SOLUTION_NAME }}
+  #     API_PID: ${{ needs.deploy.outputs.API_PID }}
+  #   steps:
+  #     - name: Checkout Code
+  #       uses: actions/checkout@v4
 
-      - name: Setup Azure CLI
-        run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          az --version  # Verify installation
+  #     - name: Setup Azure CLI
+  #       run: |
+  #         curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+  #         az --version  # Verify installation
 
-      - name: Setup Azure Developer CLI
-        run: |
-          curl -fsSL https://aka.ms/install-azd.sh | sudo bash
-          azd version
+  #     - name: Setup Azure Developer CLI
+  #       run: |
+  #         curl -fsSL https://aka.ms/install-azd.sh | sudo bash
+  #         azd version
 
-      - name: Login to Azure
-        run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
-          azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  #     - name: Login to Azure
+  #       run: |
+  #         az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+  #         azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+  #         azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Select Environment
-        run: |
-          set -e
-          # Try to select the environment if it exists, otherwise create a minimal environment for cleanup
-          azd env list
-          if azd env list | grep -q "${{ env.ENV_NAME }}"; then
-            echo "Environment ${{ env.ENV_NAME }} found, selecting it..."
-            azd env select ${{ env.ENV_NAME }}
-          else
-            echo "Environment ${{ env.ENV_NAME }} not found, creating minimal environment for cleanup..."
-            azd env new ${{ env.ENV_NAME }} --no-prompt
-            azd env set AZURE_RESOURCE_GROUP "${{ env.RESOURCE_GROUP_NAME }}"
-            azd env set AZURE_SUBSCRIPTION_ID "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-            azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="${{ env.AZURE_LOCATION }}"
-            azd env set BACKEND_RUNTIME_STACK="${{ env.BACKEND_RUNTIME_STACK }}"
-            azd env set SOLUTION_NAME="${{ env.SOLUTION_NAME }}"
-            azd env set API_PID="${{ env.API_PID }}"
-          fi
+  #     - name: Select Environment
+  #       run: |
+  #         set -e
+  #         # Try to select the environment if it exists, otherwise create a minimal environment for cleanup
+  #         azd env list
+  #         if azd env list | grep -q "${{ env.ENV_NAME }}"; then
+  #           echo "Environment ${{ env.ENV_NAME }} found, selecting it..."
+  #           azd env select ${{ env.ENV_NAME }}
+  #         else
+  #           echo "Environment ${{ env.ENV_NAME }} not found, creating minimal environment for cleanup..."
+  #           azd env new ${{ env.ENV_NAME }} --no-prompt
+  #           azd env set AZURE_RESOURCE_GROUP "${{ env.RESOURCE_GROUP_NAME }}"
+  #           azd env set AZURE_SUBSCRIPTION_ID "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+  #           azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="${{ env.AZURE_LOCATION }}"
+  #           azd env set BACKEND_RUNTIME_STACK="${{ env.BACKEND_RUNTIME_STACK }}"
+  #           azd env set SOLUTION_NAME="${{ env.SOLUTION_NAME }}"
+  #           azd env set API_PID="${{ env.API_PID }}"
+  #         fi
 
-      - name: Cleanup Fabric Items
-        run: |
-          bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh \
-            "${{ secrets.FABRIC_WORKSPACE_ID }}"
-        continue-on-error: true
+  #     - name: Cleanup Fabric Items
+  #       run: |
+  #         bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh \
+  #           "${{ secrets.FABRIC_WORKSPACE_ID }}"
+  #       continue-on-error: true
 
-      - name: Delete deployment using azd
-        run: |
-          set -e
-          echo "Deleting deployment..."
-          azd down --purge --force --no-prompt
-          echo "Deployment deleted successfully."
+  #     - name: Delete deployment using azd
+  #       run: |
+  #         set -e
+  #         echo "Deleting deployment..."
+  #         azd down --purge --force --no-prompt
+  #         echo "Deployment deleted successfully."
 
-      - name: Send Notification on Failure
-        if: always() && (failure() || needs.deploy.result == 'failure')
-        run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+  #     - name: Send Notification on Failure
+  #       if: always() && (failure() || needs.deploy.result == 'failure')
+  #       run: |
+  #         RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          # Construct the email body
-          EMAIL_BODY=$(cat <<EOF
-          {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that the Fabric SQL Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}<br> ${OUTPUT}</p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>"
-          }
-          EOF
-          )
+  #         # Construct the email body
+  #         EMAIL_BODY=$(cat <<EOF
+  #         {
+  #           "body": "<p>Dear Team,</p><p>We would like to inform you that the Fabric SQL Automation process has encountered an issue and has failed to complete successfully.</p><p><strong>Build URL:</strong> ${RUN_URL}<br> ${OUTPUT}</p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>"
+  #         }
+  #         EOF
+  #         )
 
-          # Send the notification
-          curl -X POST "${{ secrets.LOGIC_APP_URL }}" \
-            -H "Content-Type: application/json" \
-            -d "$EMAIL_BODY" || echo "Failed to send notification"
+  #         # Send the notification
+  #         curl -X POST "${{ secrets.LOGIC_APP_URL }}" \
+  #           -H "Content-Type: application/json" \
+  #           -d "$EMAIL_BODY" || echo "Failed to send notification"
 
-      - name: Logout from Azure
-        if: always()
-        run: |
-          az logout
-          azd auth logout
-          echo "Logged out from Azure."
+  #     - name: Logout from Azure
+  #       if: always()
+  #       run: |
+  #         az logout
+  #         azd auth logout
+  #         echo "Logged out from Azure."
