@@ -475,7 +475,7 @@ async def rename_conversation(user_id: str, conversation_id, title) -> bool:
 async def generate_title(conversation_messages):
     """
     Generate a concise title for a conversation using Azure AI Foundry agent.
-        
+
     Args:
         conversation_messages (list): List of messages in the conversation.
 
@@ -483,37 +483,37 @@ async def generate_title(conversation_messages):
         str: A 4-word or less title summarizing the conversation.
     """
     temp_agent_id = None
-    
+
     try:
         # Get the last user message for title generation
         user_messages = [msg for msg in conversation_messages if msg["role"] == "user"]
-        
+
         if not user_messages:
             logger.debug("No user messages found, returning default title")
             return "New Conversation"
-        
+
         if not AZURE_AI_AGENT_ENDPOINT:
             logger.warning("Azure AI Agent endpoint not configured, using fallback title generation")
             return generate_fallback_title(conversation_messages)
-        
+
         async with AIProjectClient(
             endpoint=AZURE_AI_AGENT_ENDPOINT,
             credential=await get_azure_credential_async()
         ) as project_client:
-            
+
             if not AGENT_ID_TITLE:
-                logger.info("No AGENT_ID_TITLE configured, creating temporary title generation agent")                
+                logger.info("No AGENT_ID_TITLE configured, creating temporary title generation agent")
                 temp_agent_id = await create_temporary_title_agent(project_client)
                 logger.info("Created temporary agent with ID: %s", temp_agent_id)
                 title = await generate_title_with_agent(project_client, temp_agent_id, user_messages)
                 await cleanup_temporary_agent(project_client, temp_agent_id)
                 logger.info("Successfully cleaned up temporary agent: %s", temp_agent_id)
-                
+
                 return title
             else:
                 logger.info("Using configured title agent: %s", AGENT_ID_TITLE)
                 return await generate_title_with_agent(project_client, AGENT_ID_TITLE, user_messages)
-                
+
     except Exception as e:
         if temp_agent_id:
             try:
@@ -524,9 +524,9 @@ async def generate_title(conversation_messages):
                     await cleanup_temporary_agent(project_client, temp_agent_id)
                     logger.info("Cleaned up temporary agent %s after exception", temp_agent_id)
             except Exception as cleanup_ex:
-                logger.warning("Failed to cleanup temporary agent %s during exception handling: %s", 
+                logger.warning("Failed to cleanup temporary agent %s during exception handling: %s",
                     temp_agent_id, cleanup_ex)
-        
+
         logger.warning("Error generating title with Azure AI Foundry agent: %s", e)
         return generate_fallback_title(conversation_messages)
 
@@ -544,11 +544,11 @@ async def create_temporary_title_agent(project_client: AIProjectClient):
     """
     if not AZURE_AI_AGENT_ENDPOINT:
         raise ValueError("Azure AI Agent endpoint is not configured")
-    
+
     model_deployment_name = os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4o-mini")
     guid_part = str(uuid.uuid4())[:8]
     agent_name = f"TempTitleAgent-{guid_part}"
-    
+
     try:
         instructions = (
             "You are a specialized temporary agent for generating concise conversation titles. "
@@ -563,10 +563,10 @@ async def create_temporary_title_agent(project_client: AIProjectClient):
             name=agent_name,
             description="Temporary agent for generating conversation titles",
             instructions=instructions
-        )        
+        )
         logger.info("Successfully created temporary title generation agent: %s with name: %s", agent.id, agent_name)
         return agent.id
-        
+
     except Exception as e:
         logger.error("Failed to create temporary title generation agent: %s", e)
         raise
@@ -586,63 +586,63 @@ async def generate_title_with_agent(project_client: AIProjectClient, agent_id: s
     """
     if not AZURE_AI_AGENT_ENDPOINT:
         raise ValueError("Azure AI Agent endpoint is not configured")
-    
+
     if not agent_id:
         raise ValueError("Agent ID is required for title generation")
-    
+
     try:
         # Extract the last user message for title generation
         user_messages = [msg for msg in messages if msg["role"] == "user"]
         if not user_messages:
             logger.warning("No user messages found for title generation with agent %s", agent_id)
             return generate_fallback_title(messages)
-        
+
         last_user_message = user_messages[-1]
-        content = last_user_message["content"]        
+        content = last_user_message["content"]
         if not content:
             logger.warning("Last user message is empty for title generation with agent %s", agent_id)
             return generate_fallback_title(messages)
-        
+
         thread = await project_client.agents.threads.create()
-        
+
         try:
             # Create prompt for title generation using the last user message
             title_prompt = f"Generate a 4-word or less title for this request: {content}"
-            
-            logger.debug("Requesting title generation from agent %s for content: %s", 
+
+            logger.debug("Requesting title generation from agent %s for content: %s",
                 agent_id, content[:100] + "..." if len(str(content)) > 100 else content)
-            
+
             await project_client.agents.messages.create(
                 thread_id=thread.id,
                 role="user",
                 content=title_prompt
-            )            
+            )
             run = await project_client.agents.runs.create_and_process(
                 thread_id=thread.id,
                 agent_id=agent_id
-            )            
+            )
             if run.status == "failed":
                 logger.warning("Agent run failed for title generation: %s", run.last_error)
                 return generate_fallback_title(messages)
-            
+
             thread_messages = project_client.agents.messages.list(thread_id=thread.id)
-            
+
             async for message in thread_messages:
                 if message.role == "assistant" and message.text_messages:
                     generated_title = message.text_messages[-1].text.value.strip()
                     if generated_title:
                         logger.debug("Successfully generated title with agent %s: %s", agent_id, generated_title)
                         return generated_title
-            
+
             logger.warning("Agent %s returned empty or null title, using fallback", agent_id)
             return generate_fallback_title(messages)
-            
+
         finally:
             try:
                 await project_client.agents.threads.delete(thread.id)
             except Exception as cleanup_ex:
                 logger.warning("Failed to delete thread %s: %s", thread.id, cleanup_ex)
-                
+
     except Exception as e:
         logger.error("Error generating title with agent %s: %s", agent_id, e)
         return generate_fallback_title(messages)
@@ -661,12 +661,12 @@ async def cleanup_temporary_agent(project_client: AIProjectClient, agent_id: str
     if not AZURE_AI_AGENT_ENDPOINT or not agent_id:
         logger.warning("Cannot cleanup agent - endpoint or agent_id is null/empty")
         return
-    
+
     try:
         await project_client.agents.delete_agent(agent_id)
-        
+
         logger.info("Successfully deleted temporary title generation agent: %s", agent_id)
-        
+
     except Exception as e:
         logger.error("Failed to delete temporary agent %s: %s", agent_id, e)
         raise
@@ -702,7 +702,7 @@ def _generate_fallback_title_from_message(message_content):
     if isinstance(message_content, dict):
         # If content is a dictionary, try to extract text
         message_content = str(message_content)
-    
+
     if message_content:
         # Create a simple title from first 4 words
         words = str(message_content).split()[:4]
