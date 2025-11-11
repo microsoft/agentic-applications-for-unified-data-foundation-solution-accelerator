@@ -238,6 +238,22 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
      - Follow steps in [Delete Resource Group](./DeleteResourceGroup.md) if your deployment fails and/or you need to clean up the resources.
 
+3. **Cleaning Up Fabric Resources**
+
+     If you are done trying out the accelerator and want to clean up the Fabric resources (lakehouse, SQL database, and role assignments), run the following script:
+
+     ```shell
+     bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId>
+     ```
+
+     If you don't have azd env then you need to pass parameters along with the command:
+     
+     ```shell
+     bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-principal-id>
+     ```
+
+     **Note**: This script will remove the lakehouse, SQL database, and service principal role assignments from the Fabric workspace. To completely remove all Azure resources, use `azd down`.
+
 ## Sample Questions
 
 To help you get started, here are some **Sample Questions** you can ask in the app:

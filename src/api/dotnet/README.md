@@ -6,7 +6,6 @@ ASP.NET Core Web API parity layer for the original FastAPI backend. Updated to u
 `/api/chat` (POST, streaming JSON lines)
 `/api/layout-config` (GET placeholder)
 `/api/display-chart-default` (GET placeholder)
-`/api/fetch-azure-search-content` (POST placeholder)
 `/historyfab/list|read|delete|delete_all|rename|update` (SQL backed)
 
 ## Persistence (`historyfab` SQL)

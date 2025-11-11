@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using Microsoft.Data.SqlClient;
 using CsApi.Models;
+using CsApi.Auth;
 using Azure.Identity;
 using Azure.Core;
 using System.Text.Json;
@@ -24,9 +25,14 @@ public class SqlConversationRepository : ISqlConversationRepository
 {
     private readonly IConfiguration _config;
     private readonly ILogger<SqlConversationRepository> _logger;
+    private readonly IAzureCredentialFactory _credentialFactory;
 
-    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger)
-    { _config = config; _logger = logger; }
+    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger, IAzureCredentialFactory credentialFactory)
+    { 
+        _config = config; 
+        _logger = logger; 
+        _credentialFactory = credentialFactory;
+    }
 
     private async Task<IDbConnection> CreateConnectionAsync()
     {
@@ -63,9 +69,9 @@ public class SqlConversationRepository : ISqlConversationRepository
             "Encrypt=True;" +
             "TrustServerCertificate=False;";
 
-        var credential = new DefaultAzureCredential();
+        var credential = _credentialFactory.Create();
         var token = await credential.GetTokenAsync(
-            new TokenRequestContext(new[] { "https://database.windows.net/.default" }));
+            new TokenRequestContext(new[] { "https://database.windows.net/.default" }), CancellationToken.None);
 
         var sqlConnWithToken = new SqlConnection(connectionString)
         {
