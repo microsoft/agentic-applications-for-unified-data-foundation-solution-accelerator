@@ -4,7 +4,6 @@ using CsApi.Models;
 using CsApi.Auth;
 using Azure.Identity;
 using Azure.Core;
-using System.Threading.Tasks;
 using System.Text.Json;
 
 namespace CsApi.Repositories;

@@ -1,7 +1,5 @@
 using Azure.Core;
 using Azure.Identity;
-using CsApi.Interfaces;
-using Microsoft.Extensions.Configuration;
 
 namespace CsApi.Auth;
 
