@@ -1,0 +1,60 @@
+{
+    "tables": [
+        {
+            "tablename": "customer",
+            "columns": [
+                "CustomerId",
+                "CustomerTypeId",
+                "CustomerRelationshipTypeId",
+                "DateOfBirth",
+                "CustomerEstablishedDate",
+                "IsActive",
+                "FirstName",
+                "LastName",
+                "Gender",
+                "PrimaryPhone",
+                "SecondaryPhone",
+                "PrimaryEmail",
+                "SecondaryEmail",
+                "CreatedBy",
+                "GoldLoadTimestamp"
+            ]
+        },
+        {
+            "tablename": "policy",
+            "columns": [
+                "PolicyId",
+                "CustomerId",
+                "PolicyType",
+                "Premium",
+                "PaymentType",
+                "StartDate",
+                "Duration",
+                "PaymentAmount",
+                "AdditionalNotes"
+            ]
+        },
+        {
+            "tablename": "claim",
+            "columns": [
+                "ClaimId",
+                "CustomerId",
+                "PolicyId",
+                "ClaimType",
+                "ClaimDate",
+                "Details"
+            ]
+        },
+        {
+            "tablename": "communicationshistory",
+            "columns": [
+                "CommunicationId",
+                "CustomerId",
+                "PolicyId",
+                "CcommunicationType",
+                "CommunicationDate",
+                "Summary"
+            ]
+        }
+    ]
+}

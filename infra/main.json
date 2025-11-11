@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.38.33.27573",
-      "templateHash": "4829509862343601861"
+      "templateHash": "9090168192341295272"
     }
   },
   "parameters": {
@@ -46,6 +46,17 @@
       ],
       "metadata": {
         "description": "Choose the programming language:"
+      }
+    },
+    "usecase": {
+      "type": "string",
+      "allowedValues": [
+        "Retail",
+        "Insurance"
+      ],
+      "minLength": 1,
+      "metadata": {
+        "description": "Industry use case for deployment:"
       }
     },
     "secondaryLocation": {
@@ -3214,6 +3225,10 @@
     "BACKEND_RUNTIME_STACK": {
       "type": "string",
       "value": "[parameters('backendRuntimeStack')]"
+    },
+    "USE_CASE": {
+      "type": "string",
+      "value": "[parameters('usecase')]"
     }
   }
 }

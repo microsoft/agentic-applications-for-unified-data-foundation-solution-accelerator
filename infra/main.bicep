@@ -22,6 +22,14 @@ param createdBy string = contains(deployer(), 'userPrincipalName')? split(deploy
 ])
 param backendRuntimeStack string
 
+@minLength(1)
+@description('Industry use case for deployment:')
+@allowed([
+  'Retail'
+  'Insurance'
+])
+param usecase string 
+
 // @minLength(1)
 // @description('Location for the Content Understanding service deployment:')
 // @allowed(['swedencentral', 'australiaeast'])
@@ -398,3 +406,4 @@ output FABRIC_SQL_CONNECTION_STRING string = ''
 output MANAGED_IDENTITY_CLIENT_ID string = managedIdentityModule.outputs.managedIdentityOutput.clientId
 output AI_FOUNDRY_RESOURCE_ID string = aifoundry.outputs.aiFoundryResourceId
 output BACKEND_RUNTIME_STACK string = backendRuntimeStack
+output USE_CASE string = usecase

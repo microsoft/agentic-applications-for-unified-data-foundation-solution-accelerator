@@ -10,11 +10,13 @@ p = argparse.ArgumentParser()
 p.add_argument("--ai_project_endpoint", required=True)
 p.add_argument("--solution_name", required=True)
 p.add_argument("--gpt_model_name", required=True)
+p.add_argument("--usecase", required=True)
 args = p.parse_args()
 
 ai_project_endpoint = args.ai_project_endpoint
 solutionName = args.solution_name
 gptModelName = args.gpt_model_name
+usecase = args.usecase.lower()
 
 project_client = AIProjectClient(
     endpoint= ai_project_endpoint,
@@ -23,9 +25,17 @@ project_client = AIProjectClient(
 
 import json
 # Use the location of tables.json in infra/scripts/fabric_scripts/sql_files/tables.json
-file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'sql_files', 'tables.json'))
+file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'data', 'tables.json'))
 if not os.path.isfile(file_path):
     raise FileNotFoundError(f"Could not find tables.json at {file_path}")
+
+table_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'data', f'{usecase}_tables.json'))
+
+with open(table_file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+with open(file_path, 'w') as dest_file:
+    json.dump(data, dest_file, indent=4)
 
 with open(file_path, "r", encoding="utf-8") as f:
     data = json.load(f)
@@ -41,7 +51,7 @@ for table in data['tables']:
 
 agent_instructions = '''You are a helpful assistant.
 
-Generate a valid T-SQL query for SQL database in Fabric for the user's request using these tables:''' + tables_str + '''Use accurate and semantically appropriate T-SQL expressions, data types, functions, aliases, and conversions based strictly on the column definitions and the explicit or implicit intent of the user query.
+Generate a valid T-SQL query for SQL database in Fabric for the user's request using these tables:''' + tables_str + ''' Use accurate and semantically appropriate T-SQL expressions, data types, functions, aliases, and conversions based strictly on the column definitions and the explicit or implicit intent of the user query.
 Avoid assumptions or defaults not grounded in schema or context.
 Ensure all aggregations, filters, grouping logic, and time-based calculations are precise, logically consistent, and reflect the user's intent without ambiguity.
 Be SQL Server compatible: 
