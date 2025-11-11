@@ -325,7 +325,8 @@ async def get_conversation_messages(user_id: str, conversation_id: str, sort_ord
         return processed_result
     except Exception:
         logger.exception(
-            "Error retrieving conversation %s for user %s", conversation_id, user_id)
+            "Error retrieving conversation %s for user %s", conversation_id, user_id
+        )
         return None
 
 
@@ -354,7 +355,8 @@ async def delete_conversation(user_id: str, conversation_id: str) -> bool:
         # If the userId in the conversation does not match the user_id, deny access
         if user_id and conversation and conversation[0]["userId"] != user_id:
             logger.warning(
-                "User %s does not have permission to delete %s.", user_id, conversation_id)
+                "User %s does not have permission to delete %s.", user_id, conversation_id
+            )
             return False
 
         if user_id:
@@ -455,7 +457,8 @@ async def rename_conversation(user_id: str, conversation_id, title) -> bool:
         # Check if the user has permission to rename it
         if user_id and conversation and conversation[0]["userId"] != user_id:
             logger.warning(
-                "User %s does not have permission to rename %s.", user_id, conversation_id)
+                "User %s does not have permission to rename %s.", user_id, conversation_id
+            )
             return False
 
         # Update the title of the conversation
@@ -524,8 +527,10 @@ async def generate_title(conversation_messages):
                     await cleanup_temporary_agent(project_client, temp_agent_id)
                     logger.info("Cleaned up temporary agent %s after exception", temp_agent_id)
             except Exception as cleanup_ex:
-                logger.warning("Failed to cleanup temporary agent %s during exception handling: %s",
-                    temp_agent_id, cleanup_ex)
+                logger.warning(
+                    "Failed to cleanup temporary agent %s during exception handling: %s",
+                    temp_agent_id, cleanup_ex
+                )
 
         logger.warning("Error generating title with Azure AI Foundry agent: %s", e)
         return generate_fallback_title(conversation_messages)
@@ -609,8 +614,11 @@ async def generate_title_with_agent(project_client: AIProjectClient, agent_id: s
             # Create prompt for title generation using the last user message
             title_prompt = f"Generate a 4-word or less title for this request: {content}"
 
-            logger.debug("Requesting title generation from agent %s for content: %s",
-                agent_id, content[:100] + "..." if len(str(content)) > 100 else content)
+            logger.debug(
+                "Requesting title generation from agent %s for content: %s",
+                agent_id,
+                content[:100] + "..." if len(str(content)) > 100 else content
+            )
 
             await project_client.agents.messages.create(
                 thread_id=thread.id,
@@ -883,12 +891,14 @@ async def update_conversation(user_id: str, request_json: dict):
                 logger.warning("Conversation not found for ID: %s", conversation_id)
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Conversation not found")
+                    detail="Conversation not found"
+                )
         else:
             logger.warning("No user message found in request")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User message not found")
+                detail="User message not found"
+            )
 
         messages = request_json["messages"]
         if len(messages) > 0 and messages[-1]["role"] == "assistant":
@@ -911,7 +921,8 @@ async def update_conversation(user_id: str, request_json: dict):
             logger.warning("No assistant message found in request")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Assistant message not found")
+                detail="Assistant message not found"
+            )
 
         queryReturn = "SELECT * FROM hst_conversations where conversation_id = ?"
         conversationUpdated = await run_query_params(queryReturn, (conversation_id,))
@@ -954,7 +965,8 @@ async def list_conversations(
         # await adjust_processed_data_dates()
 
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers)
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         logger.info("Historyfab list-API: user_id: %s, offset: %s, limit: %s", user_id, offset, limit)
@@ -998,7 +1010,8 @@ async def get_conversation_messages_endpoint(request: Request, id: str = Query(.
     """
     try:
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers)
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         conversation_id = id
@@ -1064,7 +1077,8 @@ async def delete_conversation_endpoint(request: Request, id: str = Query(...)):
     try:
         # Get the user ID from request headers
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers)
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         conversation_id = id
