@@ -199,7 +199,7 @@ cursor.commit()
 
 if usecase == "retail":
     file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'sql_files', f'{usecase}_data_sql.sql'))
-    with open(sql_filename, 'r', encoding='utf-8') as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         sql_script = f.read()
         cursor.execute(sql_script)
     cursor.commit()
@@ -212,69 +212,69 @@ else:
         'datetime64[ns]': 'DATETIME2(6)',  
         'timedelta[ns]': 'TIME'    
     }
-file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'data'))
-output_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'sql_files', f'{usecase}_data_sql.sql'))
-sql_commands = []
-for file in os.listdir(file_path):  
-    
-    if file.endswith('.csv'): 
-        table_file_path = os.path.join(file_path, file)  
-        df = pd.read_csv(table_file_path)
-        table_name = file.replace('.csv', '')          
-        if table_name == 'customer': 
-                df = df.fillna('').replace({None: ''})
-        create_table_statement = f'DROP TABLE IF EXISTS [dbo].[{table_name}]; \nCREATE TABLE [dbo].[{table_name}] (\n'  
-        create_table_columns = []  
+    file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'data'))
+    output_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'sql_files', f'{usecase}_data_sql.sql'))
+    sql_commands = []
+    for file in os.listdir(file_path):  
         
-        for column in df.columns:
-            if 'id' in column.lower():    
-                sql_type = sql_data_types[str(df.dtypes[column])] + ' NOT NULL '
-            elif 'Date' in column:
-                sql_type = ' DATETIME2(6) NULL '
-            else: 
-                sql_type = sql_data_types[str(df.dtypes[column])] + ' NULL ' 
+        if file.endswith('.csv'): 
+            table_file_path = os.path.join(file_path, file)  
+            df = pd.read_csv(table_file_path)
+            table_name = file.replace('.csv', '')          
+            if table_name == 'customer': 
+                    df = df.fillna('').replace({None: ''})
+            create_table_statement = f'DROP TABLE IF EXISTS [dbo].[{table_name}]; \nCREATE TABLE [dbo].[{table_name}] (\n'  
+            create_table_columns = []  
             
-            create_table_columns.append(f'    [{column}] {sql_type}')  
+            for column in df.columns:
+                if 'id' in column.lower():    
+                    sql_type = sql_data_types[str(df.dtypes[column])] + ' NOT NULL '
+                elif 'Date' in column:
+                    sql_type = ' DATETIME2(6) NULL '
+                else: 
+                    sql_type = sql_data_types[str(df.dtypes[column])] + ' NULL ' 
+                
+                create_table_columns.append(f'    [{column}] {sql_type}')  
 
-        create_table_statement += ',\n'.join(create_table_columns) + '\n);'
-        sql_commands.append(create_table_statement)
-        insert_sql = f"INSERT INTO {table_name} ([{'] , ['.join(df.columns) }]) VALUES "
-        values_list = []
-        count = 0
+            create_table_statement += ',\n'.join(create_table_columns) + '\n);'
+            sql_commands.append(create_table_statement)
+            insert_sql = f"INSERT INTO {table_name} ([{'] , ['.join(df.columns) }]) VALUES "
+            values_list = []
+            count = 0
 
-        for index, row in df.iterrows():    
-            values = []  
-            for value in row:    
-                if isinstance(value, str):  
-                    str_value = value.replace("'", "''")
-                    str_value = f"'{str_value}'"
-                    values.append(str_value)  
-                elif isinstance(value, bool): 
-                    values.append("1" if value else "0")
-                else:  
-                    values.append(str(value))  
-            
-            count += 1
-            values_list.append(f"({', '.join(values)})") 
+            for index, row in df.iterrows():    
+                values = []  
+                for value in row:    
+                    if isinstance(value, str):  
+                        str_value = value.replace("'", "''")
+                        str_value = f"'{str_value}'"
+                        values.append(str_value)  
+                    elif isinstance(value, bool): 
+                        values.append("1" if value else "0")
+                    else:  
+                        values.append(str(value))  
+                
+                count += 1
+                values_list.append(f"({', '.join(values)})") 
 
-            if count == 1000:  
+                if count == 1000:  
+                    insert_sql += ",\n".join(values_list) + ";\n"  
+                    sql_commands.append(insert_sql)  
+                    # Reset for the next batch  
+                    insert_sql = f"INSERT INTO {table_name} ([{'] , ['.join(df.columns)}]) VALUES "  
+                    values_list = []  
+                    count = 0 
+            if values_list:
                 insert_sql += ",\n".join(values_list) + ";\n"  
-                sql_commands.append(insert_sql)  
-                # Reset for the next batch  
-                insert_sql = f"INSERT INTO {table_name} ([{'] , ['.join(df.columns)}]) VALUES "  
-                values_list = []  
-                count = 0 
-        if values_list:
-            insert_sql += ",\n".join(values_list) + ";\n"  
-            sql_commands.append(insert_sql)
-    
-    with open(output_file_path, 'w', encoding='utf-8') as f:  
-        f.write("\n".join(sql_commands))
+                sql_commands.append(insert_sql)
+        
+        with open(output_file_path, 'w', encoding='utf-8') as f:  
+            f.write("\n".join(sql_commands))
 
-with open(output_file_path, 'r', encoding='utf-8') as f:
-    sql_script = f.read()
-    cursor.execute(sql_script)  
-cursor.commit()
+    with open(output_file_path, 'r', encoding='utf-8') as f:
+        sql_script = f.read()
+        cursor.execute(sql_script)  
+    cursor.commit()
 
 import json
 

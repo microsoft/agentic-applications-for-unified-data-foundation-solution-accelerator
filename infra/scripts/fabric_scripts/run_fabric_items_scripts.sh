@@ -9,7 +9,7 @@ backend_app_pid="$4"
 backend_app_uid="$5"
 app_service="$6"
 resource_group="$7"
-usecase = "$8"
+usecase="$8"
 
 # get parameters from azd env, if not provided
 if [ -z "$solutionName" ]; then
