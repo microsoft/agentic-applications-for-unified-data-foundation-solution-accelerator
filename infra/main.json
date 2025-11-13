@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.38.33.27573",
-      "templateHash": "9090168192341295272"
+      "templateHash": "14366354459703576224"
     }
   },
   "parameters": {
@@ -377,7 +377,8 @@
     "solutionPrefix": "[format('da{0}', padLeft(take(variables('uniqueId'), 12), 12, '0'))]",
     "acrName": "dataagentscontainerreg",
     "deployerInfo": "[deployer()]",
-    "deployingUserPrincipalId": "[variables('deployerInfo').objectId]"
+    "deployingUserPrincipalId": "[variables('deployerInfo').objectId]",
+    "landingText": "[if(equals(parameters('usecase'), 'Retail'), 'You can ask questions around sales, products and orders.', 'You can ask questions around customer policies, claims and communications.')]"
   },
   "resources": [
     {
@@ -2810,7 +2811,7 @@
           "appSettings": {
             "value": {
               "APP_API_BASE_URL": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]",
-              "CHAT_LANDING_TEXT": "You can ask questions around sales, products and orders."
+              "CHAT_LANDING_TEXT": "[variables('landingText')]"
             }
           }
         },

@@ -109,6 +109,7 @@ When you start the deployment, most parameters will have **default values**, but
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
 | **Environment Name**                        | A **3–20 character alphanumeric value** used to generate a unique ID to prefix the resources.             | env\_name              |
 | **Backend Programming Language**                   | Programming language for the backend API: **python** or **dotnet**.                           | *(empty)*              |
+| **Use Case**                   | Use case for the sample data load: **Retail** or **Insurance**.                           | *(empty)*              |
 | **Deployment Type**                         | Select from a drop-down list (allowed: `Standard`, `GlobalStandard`).                                     | GlobalStandard         |
 | **GPT Model**                               | Choose from **gpt-4, gpt-4o, gpt-4o-mini**.                                                               | gpt-4o-mini            |
 | **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2024-07-18             |
@@ -177,18 +178,21 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 5. Choose the programming language for the backend API:
    - **Python**
    - **.NET (dotnet)**
+6. Choose the use case for the sample data load: 
+  - **Retail**
+  - **Insurance** 
 
    This deployment will take *7-10 minutes* to provision the resources in your account and set up the solution with sample data.
    
    If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
-6. Once the deployment has completed successfully, copy the 2 bash commands from the terminal (ex. 
+7. Once the deployment has completed successfully, copy the 2 bash commands from the terminal (ex. 
 `bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh` and
 `bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
 
-> **Note**: if you are running this deployment in GitHub Codespaces or VS Code Dev Container skip to step 7. 
+> **Note**: if you are running this deployment in GitHub Codespaces or VS Code Dev Container skip to step 9. 
 
-7. Create and activate a virtual environment 
+8. Create and activate a virtual environment 
   
   ```shell
   python -m venv .venv
@@ -198,12 +202,12 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
   .venv\Scripts\activate
   ```
 
-8. Login to Azure
+9. Login to Azure
   ```shell
   az login
   ```
-
-9. Run the bash script from the output of the azd deployment. The script will look like the following:
+> **Note**: you will need to open a Git Bash terminal to complete steps 10 and 11.  
+10. Run the bash script from the output of the azd deployment. The script will look like the following:
   ```Shell
   bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
   ```
@@ -213,7 +217,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
   bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group>
   ```
 
-10. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
+11. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
   ```Shell
   bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>
   ```
@@ -223,9 +227,9 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
   bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup>
   ```
 
-11. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
+12. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
-12. If you are done trying out the application, you can delete the resources by running `azd down`.
+13. If you are done trying out the application, you can delete the resources by running `azd down`.
 
 
 ## Post Deployment Steps

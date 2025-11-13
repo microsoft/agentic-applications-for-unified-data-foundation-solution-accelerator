@@ -315,8 +315,19 @@ if usecase == "retail":
     cursor.execute("UPDATE [dbo].[customer] SET CustomerEstablishedDate = FORMAT(DATEADD(DAY, ?, CustomerEstablishedDate), 'yyyy-MM-dd')", (days_difference))
     cursor.execute("UPDATE [dbo].[account] SET CreatedDate = FORMAT(DATEADD(DAY, ?, CreatedDate), 'yyyy-MM-dd')", (days_difference))
     conn.commit()
+else: 
+    today = datetime.today()
+    cursor.execute("SELECT MAX(CAST(StartDate AS DATETIME)) FROM dbo.policy")
+    max_start_time = cursor.fetchone()[0]
+    days_difference = (today - max_start_time).days - 1 if max_start_time else 0
+    print('days_difference: ', days_difference)
+    cursor.execute("UPDATE [dbo].[policy] SET StartDate = FORMAT(DATEADD(DAY, ?, StartDate), 'yyyy-MM-dd')", (days_difference))
+    cursor.execute("UPDATE [dbo].[claim] SET ClaimDate = FORMAT(DATEADD(DAY, ?, ClaimDate), 'yyyy-MM-dd')", (days_difference))
+    cursor.execute("UPDATE [dbo].[communicationshistory] SET CommunicationDate = FORMAT(DATEADD(DAY, ?, CommunicationDate), 'yyyy-MM-dd')", (days_difference))
+    cursor.execute("UPDATE [dbo].[customer] SET CustomerEstablishedDate = FORMAT(DATEADD(DAY, ?, CustomerEstablishedDate), 'yyyy-MM-dd')", (days_difference))
+    conn.commit()
+print("Dates adjusted to current date.")
 
-    print("Dates adjusted to current date.")
 
 cursor.close()
 conn.close()

@@ -335,6 +335,8 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendRun
   scope: resourceGroup(resourceGroup().name)
 }
 
+var landingText = usecase == 'Retail' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
+
 module frontend_docker 'deploy_frontend_docker.bicep' = {
   name: 'deploy_frontend_docker'
   params: {
@@ -346,7 +348,7 @@ module frontend_docker 'deploy_frontend_docker.bicep' = {
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     appSettings:{
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
-      CHAT_LANDING_TEXT:'You can ask questions around sales, products and orders.'
+      CHAT_LANDING_TEXT: landingText
     }
   }
   scope: resourceGroup(resourceGroup().name)
