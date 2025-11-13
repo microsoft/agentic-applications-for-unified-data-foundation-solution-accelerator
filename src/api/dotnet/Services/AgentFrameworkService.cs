@@ -1,16 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.AI;
 using Microsoft.Agents.AI;
-using Azure.AI.OpenAI;
-using Azure.Identity;
 using Azure.AI.Agents.Persistent;
-using OpenAI;
-using CsApi.Interfaces;
 using CsApi.Repositories;
 using CsApi.Auth;
 

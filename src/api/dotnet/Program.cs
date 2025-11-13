@@ -1,12 +1,9 @@
-using Azure.Identity;
 using CsApi.Auth;
 using CsApi.Interfaces;
 using CsApi.Middleware;
 using CsApi.Repositories;
 using CsApi.Services;
 using CsApi.Converters;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 

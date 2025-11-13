@@ -6,10 +6,10 @@ import uuid
 from datetime import datetime, date
 from typing import Tuple, Any
 from decimal import Decimal
-from openai import AsyncAzureOpenAI
+from azure.ai.projects.aio import AIProjectClient
 from pydantic import BaseModel, ConfigDict
 import pyodbc
-from azure.identity.aio import AzureCliCredential, get_bearer_token_provider
+from azure.identity.aio import AzureCliCredential
 from azure.monitor.events.extension import track_event
 from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import APIRouter, HTTPException, Query, Request, status
@@ -50,11 +50,11 @@ logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
     logging.WARNING
 )
 
-# Configuration variables
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_DEPLOYMENT_MODEL = os.getenv("AZURE_OPENAI_DEPLOYMENT_MODEL")
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
-AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE")
+# Azure AI Foundry configuration
+AZURE_AI_AGENT_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
+AGENT_ID_TITLE = os.getenv("AGENT_ID_TITLE")
+
+# Database configuration
 
 
 def track_event_if_configured(event_name: str, event_data: dict):
@@ -134,81 +134,6 @@ async def get_fabric_db_connection():
         return None
 
 
-# async def run_query_and_return_json(sql_query: str):
-#     """
-#     Execute SQL query and return results as JSON string.
-
-#     Args:
-#         sql_query (str): The SQL query to execute.
-
-#     Returns:
-#         str: JSON string containing query results, or None if an error occurs.
-#     """
-#     # Connect to the database
-#     conn = await get_fabric_db_connection()
-#     cursor = None
-#     try:
-#         cursor = conn.cursor()
-#         cursor.execute(sql_query)
-#         columns = [desc[0] for desc in cursor.description]
-#         result = []
-#         for row in cursor.fetchall():
-#             row_dict = {}
-#             for col_name, value in zip(columns, row):
-#                 if isinstance(value, (datetime, date)):
-#                     row_dict[col_name] = value.isoformat()
-#                 else:
-#                     row_dict[col_name] = value
-#             result.append(row_dict)
-
-#         return json.dumps(result, indent=2)
-#     except Exception as e:
-#         logging.error("Error executing SQL query: %s", e)
-#         return None
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         conn.close()
-
-
-# async def run_query_and_return_json_params(sql_query, params: Tuple[Any, ...] = ()):
-#     """
-#     Execute parameterized SQL query and return results as JSON string.
-
-#     Args:
-#         sql_query (str): The SQL query to execute with parameter placeholders.
-#         params (Tuple[Any, ...]): Parameters to bind to the query.
-
-#     Returns:
-#         str: JSON string containing query results, or None if an error occurs.
-#     """
-#     # Connect to the database
-#     conn = await get_fabric_db_connection()
-#     cursor = None
-#     try:
-#         cursor = conn.cursor()
-#         cursor.execute(sql_query, params)
-#         columns = [desc[0] for desc in cursor.description]
-#         result = []
-#         for row in cursor.fetchall():
-#             row_dict = {}
-#             for col_name, value in zip(columns, row):
-#                 if isinstance(value, (datetime, date)):
-#                     row_dict[col_name] = value.isoformat()
-#                 else:
-#                     row_dict[col_name] = value
-#             result.append(row_dict)
-
-#         return json.dumps(result, indent=2)
-#     except Exception as e:
-#         logging.error("Error executing SQL query: %s", e)
-#         return None
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         conn.close()
-
-
 async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     """
     Execute a SQL non-query operation like DELETE, INSERT, or UPDATE.
@@ -274,27 +199,6 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
         if cursor:
             cursor.close()
         conn.close()
-
-
-# async def execute_sql_query(sql_query):
-#     """
-#     Executes a given SQL query and returns the result as a concatenated string.
-#     """
-#     conn = await get_fabric_db_connection()
-#     cursor = None
-#     try:
-#         cursor = conn.cursor()
-#         cursor.execute(sql_query)
-#         result = ''.join(str(row) for row in cursor.fetchall())
-
-#         return result
-#     except Exception as e:
-#         logging.error("Error executing SQL query: %s", e)
-#         return None
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         conn.close()
 
 
 class SqlQueryTool(BaseModel):
@@ -421,7 +325,8 @@ async def get_conversation_messages(user_id: str, conversation_id: str, sort_ord
         return processed_result
     except Exception:
         logger.exception(
-            "Error retrieving conversation %s for user %s", conversation_id, user_id)
+            "Error retrieving conversation %s for user %s", conversation_id, user_id
+        )
         return None
 
 
@@ -450,7 +355,8 @@ async def delete_conversation(user_id: str, conversation_id: str) -> bool:
         # If the userId in the conversation does not match the user_id, deny access
         if user_id and conversation and conversation[0]["userId"] != user_id:
             logger.warning(
-                "User %s does not have permission to delete %s.", user_id, conversation_id)
+                "User %s does not have permission to delete %s.", user_id, conversation_id
+            )
             return False
 
         if user_id:
@@ -551,7 +457,8 @@ async def rename_conversation(user_id: str, conversation_id, title) -> bool:
         # Check if the user has permission to rename it
         if user_id and conversation and conversation[0]["userId"] != user_id:
             logger.warning(
-                "User %s does not have permission to rename %s.", user_id, conversation_id)
+                "User %s does not have permission to rename %s.", user_id, conversation_id
+            )
             return False
 
         # Update the title of the conversation
@@ -568,45 +475,9 @@ async def rename_conversation(user_id: str, conversation_id, title) -> bool:
         return False
 
 
-async def init_openai_client():
-    """
-    Initialize and return an Azure OpenAI client.
-
-    Returns:
-        AsyncAzureOpenAI: Configured Azure OpenAI client instance.
-    """
-    user_agent = "GitHubSampleWebApp/AsyncAzureOpenAI/1.0.0"
-
-    try:
-        if not AZURE_OPENAI_ENDPOINT and not AZURE_OPENAI_RESOURCE:
-            raise ValueError(
-                "AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE is required")
-
-        endpoint = AZURE_OPENAI_ENDPOINT or f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
-        ad_token_provider = None
-
-        logger.debug("Using Azure AD authentication for OpenAI")
-        credential = await get_azure_credential_async()
-        ad_token_provider = get_bearer_token_provider(
-            credential, "https://cognitiveservices.azure.com/.default")
-
-        if not AZURE_OPENAI_DEPLOYMENT_MODEL:
-            raise ValueError("AZURE_OPENAI_MODEL is required")
-
-        return AsyncAzureOpenAI(
-            api_version=AZURE_OPENAI_API_VERSION,
-            azure_ad_token_provider=ad_token_provider,
-            default_headers={"x-ms-useragent": user_agent},
-            azure_endpoint=endpoint,
-        )
-    except Exception:
-        logger.exception("Failed to initialize Azure OpenAI client")
-        raise
-
-
 async def generate_title(conversation_messages):
     """
-    Generate a concise title for a conversation using Azure OpenAI service.
+    Generate a concise title for a conversation using Azure AI Foundry agent.
 
     Args:
         conversation_messages (list): List of messages in the conversation.
@@ -614,28 +485,238 @@ async def generate_title(conversation_messages):
     Returns:
         str: A 4-word or less title summarizing the conversation.
     """
-    title_prompt = (
-        "Summarize the conversation so far into a 4-word or less title. "
-        "Do not use any quotation marks or punctuation. "
-        "Do not include any other commentary or description."
-    )
-
-    messages = [{"role": msg["role"], "content": msg["content"]}
-                for msg in conversation_messages if msg["role"] == "user"]
-    messages.append({"role": "user", "content": title_prompt})
+    temp_agent_id = None
 
     try:
-        azure_openai_client = await init_openai_client()
-        response = await azure_openai_client.chat.completions.create(
-            model=AZURE_OPENAI_DEPLOYMENT_MODEL,
-            messages=messages,
-            temperature=1,
-            max_tokens=64,
-        )
-        return response.choices[0].message.content
+        # Get the last user message for title generation
+        user_messages = [msg for msg in conversation_messages if msg["role"] == "user"]
+
+        if not user_messages:
+            logger.debug("No user messages found, returning default title")
+            return "New Conversation"
+
+        if not AZURE_AI_AGENT_ENDPOINT:
+            logger.warning("Azure AI Agent endpoint not configured, using fallback title generation")
+            return generate_fallback_title(conversation_messages)
+
+        async with AIProjectClient(
+            endpoint=AZURE_AI_AGENT_ENDPOINT,
+            credential=await get_azure_credential_async()
+        ) as project_client:
+
+            if not AGENT_ID_TITLE:
+                logger.info("No AGENT_ID_TITLE configured, creating temporary title generation agent")
+                temp_agent_id = await create_temporary_title_agent(project_client)
+                logger.info("Created temporary agent with ID: %s", temp_agent_id)
+                title = await generate_title_with_agent(project_client, temp_agent_id, user_messages)
+                await cleanup_temporary_agent(project_client, temp_agent_id)
+                logger.info("Successfully cleaned up temporary agent: %s", temp_agent_id)
+
+                return title
+            else:
+                logger.info("Using configured title agent: %s", AGENT_ID_TITLE)
+                return await generate_title_with_agent(project_client, AGENT_ID_TITLE, user_messages)
+
     except Exception as e:
-        logger.error("Error generating title: %s", e)
-        return messages[-2]["content"]
+        if temp_agent_id:
+            try:
+                async with AIProjectClient(
+                    endpoint=AZURE_AI_AGENT_ENDPOINT,
+                    credential=await get_azure_credential_async()
+                ) as project_client:
+                    await cleanup_temporary_agent(project_client, temp_agent_id)
+                    logger.info("Cleaned up temporary agent %s after exception", temp_agent_id)
+            except Exception as cleanup_ex:
+                logger.warning(
+                    "Failed to cleanup temporary agent %s during exception handling: %s",
+                    temp_agent_id, cleanup_ex
+                )
+
+        logger.warning("Error generating title with Azure AI Foundry agent: %s", e)
+        return generate_fallback_title(conversation_messages)
+
+
+async def create_temporary_title_agent(project_client: AIProjectClient):
+    """
+    Create a temporary Azure AI Foundry agent specifically for title generation.
+    Uses the Azure AI project client and agent framework for proper agent lifecycle management.
+
+    Args:
+        project_client (AIProjectClient): The Azure AI project client.
+
+    Returns:
+        str: The temporary agent ID.
+    """
+    if not AZURE_AI_AGENT_ENDPOINT:
+        raise ValueError("Azure AI Agent endpoint is not configured")
+
+    model_deployment_name = os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4o-mini")
+    guid_part = str(uuid.uuid4())[:8]
+    agent_name = f"TempTitleAgent-{guid_part}"
+
+    try:
+        instructions = (
+            "You are a specialized temporary agent for generating concise conversation titles. "
+            "Your sole purpose is to create 4-word or less titles that capture the main action or data request from the user's message. "
+            "Focus on key nouns and actions (e.g., 'Revenue Line Chart', 'Sales Report', 'Customer Data Analysis'). "
+            "Never use quotation marks, punctuation, or extra commentary. "
+            "Be descriptive but concise. Extract the core intent from the user's message. "
+            "Respond only with the title, nothing else."
+        )
+        agent = await project_client.agents.create_agent(
+            model=model_deployment_name,
+            name=agent_name,
+            description="Temporary agent for generating conversation titles",
+            instructions=instructions
+        )
+        logger.info("Successfully created temporary title generation agent: %s with name: %s", agent.id, agent_name)
+        return agent.id
+
+    except Exception as e:
+        logger.error("Failed to create temporary title generation agent: %s", e)
+        raise
+
+
+async def generate_title_with_agent(project_client: AIProjectClient, agent_id: str, messages: list):
+    """
+    Generate a title using the specified Azure AI Foundry agent and the last user message from the conversation.
+
+    Args:
+        project_client (AIProjectClient): The Azure AI project client.
+        agent_id (str): The agent ID to use for title generation.
+        messages (list): The conversation messages.
+
+    Returns:
+        str: Generated title or fallback title if generation fails.
+    """
+    if not AZURE_AI_AGENT_ENDPOINT:
+        raise ValueError("Azure AI Agent endpoint is not configured")
+
+    if not agent_id:
+        raise ValueError("Agent ID is required for title generation")
+
+    try:
+        # Extract the last user message for title generation
+        user_messages = [msg for msg in messages if msg["role"] == "user"]
+        if not user_messages:
+            logger.warning("No user messages found for title generation with agent %s", agent_id)
+            return generate_fallback_title(messages)
+
+        last_user_message = user_messages[-1]
+        content = last_user_message["content"]
+        if not content:
+            logger.warning("Last user message is empty for title generation with agent %s", agent_id)
+            return generate_fallback_title(messages)
+
+        thread = await project_client.agents.threads.create()
+
+        try:
+            # Create prompt for title generation using the last user message
+            title_prompt = f"Generate a 4-word or less title for this request: {content}"
+
+            logger.debug(
+                "Requesting title generation from agent %s for content: %s",
+                agent_id,
+                content[:100] + "..." if len(str(content)) > 100 else content
+            )
+
+            await project_client.agents.messages.create(
+                thread_id=thread.id,
+                role="user",
+                content=title_prompt
+            )
+            run = await project_client.agents.runs.create_and_process(
+                thread_id=thread.id,
+                agent_id=agent_id
+            )
+            if run.status == "failed":
+                logger.warning("Agent run failed for title generation: %s", run.last_error)
+                return generate_fallback_title(messages)
+
+            thread_messages = project_client.agents.messages.list(thread_id=thread.id)
+
+            async for message in thread_messages:
+                if message.role == "assistant" and message.text_messages:
+                    generated_title = message.text_messages[-1].text.value.strip()
+                    if generated_title:
+                        logger.debug("Successfully generated title with agent %s: %s", agent_id, generated_title)
+                        return generated_title
+
+            logger.warning("Agent %s returned empty or null title, using fallback", agent_id)
+            return generate_fallback_title(messages)
+
+        finally:
+            try:
+                await project_client.agents.threads.delete(thread.id)
+            except Exception as cleanup_ex:
+                logger.warning("Failed to delete thread %s: %s", thread.id, cleanup_ex)
+
+    except Exception as e:
+        logger.error("Error generating title with agent %s: %s", agent_id, e)
+        return generate_fallback_title(messages)
+
+
+async def cleanup_temporary_agent(project_client: AIProjectClient, agent_id: str):
+    """
+    Properly cleans up and deletes a temporary Azure AI Foundry agent.
+    This ensures proper resource management and prevents agent accumulation.
+    Uses the Azure AI project client for proper agent deletion.
+
+    Args:
+        project_client (AIProjectClient): The Azure AI project client.
+        agent_id (str): The temporary agent ID to cleanup.
+    """
+    if not AZURE_AI_AGENT_ENDPOINT or not agent_id:
+        logger.warning("Cannot cleanup agent - endpoint or agent_id is null/empty")
+        return
+
+    try:
+        await project_client.agents.delete_agent(agent_id)
+
+        logger.info("Successfully deleted temporary title generation agent: %s", agent_id)
+
+    except Exception as e:
+        logger.error("Failed to delete temporary agent %s: %s", agent_id, e)
+        raise
+
+
+def generate_fallback_title(conversation_messages):
+    """
+    Generate a fallback title from conversation messages when AI generation fails.
+
+    Args:
+        conversation_messages (list): List of messages in the conversation.
+
+    Returns:
+        str: A fallback title based on the first user message.
+    """
+    user_messages = [msg for msg in conversation_messages if msg["role"] == "user"]
+    if user_messages:
+        first_message = user_messages[0]["content"]
+        return _generate_fallback_title_from_message(first_message)
+    return "New Conversation"
+
+
+def _generate_fallback_title_from_message(message_content):
+    """
+    Generate a fallback title from a single message when AI generation fails.
+
+    Args:
+        message_content (str): The message content to generate title from.
+
+    Returns:
+        str: A fallback title based on the first few words of the message.
+    """
+    if isinstance(message_content, dict):
+        # If content is a dictionary, try to extract text
+        message_content = str(message_content)
+
+    if message_content:
+        # Create a simple title from first 4 words
+        words = str(message_content).split()[:4]
+        title = " ".join(words) if words else "New Conversation"
+        return title if title.strip() else "New Conversation"
+    return "New Conversation"
 
 
 async def create_conversation(user_id, title="", conversation_id=None):
@@ -810,15 +891,15 @@ async def update_conversation(user_id: str, request_json: dict):
                 logger.warning("Conversation not found for ID: %s", conversation_id)
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Conversation not found")
+                    detail="Conversation not found"
+                )
         else:
             logger.warning("No user message found in request")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User message not found")
+                detail="User message not found"
+            )
 
-        # Format the incoming message object in the "chat/completions" messages format
-        # then write it to the conversation history
         messages = request_json["messages"]
         if len(messages) > 0 and messages[-1]["role"] == "assistant":
             if len(messages) > 1 and messages[-2].get("role", None) == "tool":
@@ -840,7 +921,8 @@ async def update_conversation(user_id: str, request_json: dict):
             logger.warning("No assistant message found in request")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Assistant message not found")
+                detail="Assistant message not found"
+            )
 
         queryReturn = "SELECT * FROM hst_conversations where conversation_id = ?"
         conversationUpdated = await run_query_params(queryReturn, (conversation_id,))
@@ -883,7 +965,8 @@ async def list_conversations(
         # await adjust_processed_data_dates()
 
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers)
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         logger.info("Historyfab list-API: user_id: %s, offset: %s, limit: %s", user_id, offset, limit)
@@ -927,7 +1010,8 @@ async def get_conversation_messages_endpoint(request: Request, id: str = Query(.
     """
     try:
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers)
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         conversation_id = id
@@ -993,7 +1077,8 @@ async def delete_conversation_endpoint(request: Request, id: str = Query(...)):
     try:
         # Get the user ID from request headers
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers)
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         conversation_id = id

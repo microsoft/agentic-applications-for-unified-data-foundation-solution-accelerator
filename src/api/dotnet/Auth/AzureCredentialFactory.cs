@@ -1,7 +1,5 @@
 using Azure.Core;
 using Azure.Identity;
-using CsApi.Interfaces;
-using Microsoft.Extensions.Configuration;
 
 namespace CsApi.Auth;
 
@@ -24,7 +22,7 @@ public class AzureCredentialFactory : IAzureCredentialFactory
         var appEnv = _configuration["APP_ENV"]?.ToLowerInvariant() ?? "prod";
         if (appEnv == "dev")
         {
-            return new DefaultAzureCredential();
+            return new DefaultAzureCredential(); // CodeQL [SM05137] Okay use of DefaultAzureCredential as it is only used in development
         }
         return string.IsNullOrWhiteSpace(clientId)
             ? new ManagedIdentityCredential()
