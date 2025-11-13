@@ -223,21 +223,13 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 7. Create and activate a virtual environment 
   
-    Create a virtual environment:
     ```shell
     python -m venv .venv
     ```
-
-    Activate the virtual environment (On Powershell/Windows):
     ```shell
     .venv\Scripts\activate
     ```
 
-    Activate the virtual environment (On Bash/macOS/Linux):
-    ```shell
-    source .venv/bin/activate
-    ```
-    
 8. Login to Azure:
 
     ```shell
