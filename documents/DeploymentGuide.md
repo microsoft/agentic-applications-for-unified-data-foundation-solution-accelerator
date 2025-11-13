@@ -109,7 +109,7 @@ When you start the deployment, most parameters will have **default values**, but
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
 | **Environment Name**                        | A **3–20 character alphanumeric value** used to generate a unique ID to prefix the resources.             | env\_name              |
 | **Backend Programming Language**                   | Programming language for the backend API: **python** or **dotnet**.                           | *(empty)*              |
-| **Use Case**                   | Use case for the sample data load: **Retail** or **Insurance**.                           | *(empty)*              |
+| **Use Case**                   | Use case: **Retail** or **Insurance**.                           | *(empty)*              |
 | **Deployment Type**                         | Select from a drop-down list (allowed: `Standard`, `GlobalStandard`).                                     | GlobalStandard         |
 | **GPT Model**                               | Choose from **gpt-4, gpt-4o, gpt-4o-mini**.                                                               | gpt-4o-mini            |
 | **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2024-07-18             |
@@ -178,7 +178,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 5. Choose the programming language for the backend API:
    - **Python**
    - **.NET (dotnet)**
-6. Choose the use case for the sample data load: 
+6. Choose the use case: 
   - **Retail**
   - **Insurance** 
 
