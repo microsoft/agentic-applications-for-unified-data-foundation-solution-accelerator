@@ -221,14 +221,14 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 > **Note**: If you are running this deployment in GitHub Codespaces or VS Code Dev Container or Visual Studio Code (WEB) skip to step 8. 
 
-7. Create and activate a virtual environment 
+7. Create and activate a virtual environment in bash terminal:
   
     ```shell
     python -m venv .venv
     ```
-    
+
     ```shell
-    .venv\Scripts\activate
+    source .venv/Scripts/activate
     ```
 
 8. Login to Azure:
