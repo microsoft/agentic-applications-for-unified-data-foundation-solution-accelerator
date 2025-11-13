@@ -226,6 +226,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     ```shell
     python -m venv .venv
     ```
+    
     ```shell
     .venv\Scripts\activate
     ```
