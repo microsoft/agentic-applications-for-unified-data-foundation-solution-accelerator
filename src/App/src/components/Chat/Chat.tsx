@@ -302,7 +302,6 @@ const Chat: React.FC<ChatProps> = ({
       
       if (abortController.signal.aborted) {
         updatedMessages = [...state.chat.messages, newMessage];
-        console.log("Abort detected - saving partial messages");
         saveToDB(updatedMessages, conversationId, 'graph');
       } else if (e instanceof Error) {
         alert(e.message);
@@ -730,11 +729,9 @@ const sanitizeJSONString = (jsonString: string): string => {
             
             // Handle chart content parsing with sanitization
             if (typeof rawChartContent === "string") {
-              console.log("Raw chart content (first 200 chars):", rawChartContent);
               
               const sanitizedContent = sanitizeJSONString(rawChartContent);
-              console.log("Sanitized content (first 200 chars):", sanitizedContent);
-              
+          
               try {
                 chartResponse = JSON.parse(sanitizedContent);
               } catch (parseError) {
@@ -794,7 +791,6 @@ const sanitizeJSONString = (jsonString: string): string => {
           ? [...state.chat.messages, newMessage, streamMessage]
           : [...state.chat.messages, newMessage];
         
-        console.log("Abort detected - saving partial messages");
         saveToDB(updatedMessages, conversationId, 'error');
       } else if (e instanceof Error) {
         alert(e.message);
