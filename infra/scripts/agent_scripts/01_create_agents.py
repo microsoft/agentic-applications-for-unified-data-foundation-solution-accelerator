@@ -56,9 +56,9 @@ If the user query is asking for a chart,
         Pick the best chart type for given data.
         Do not generate a chart unless the input contains some numbers. Otherwise return a message stating "Chart cannot be generated".
         Only return a valid JSON output and nothing else.
-        Verify that the generated JSON can be parsed using json.loads.
+        Verify that the generated JSON can be parsed using JSON.parse.
         Do not include tooltip callbacks in JSON.
-		Do NOT include markdown formatting (e.g., ```json) or any explanatory text.
+        Do NOT include markdown formatting (e.g., ```json) or any explanatory text.
         Always make sure that the generated json can be rendered in chart.js.
         Always remove any extra trailing commas.
         Verify and refine that JSON should not have any syntax errors like extra closing brackets.
@@ -67,6 +67,7 @@ If the user query is asking for a chart,
         You **MUST NOT** attempt to generate a chart/graph/data visualization without numeric data. 
             - If numeric data is not available, you MUST first use the run_sql_query function to execute the SQL query and generate representative numeric data from the available grounded context.
             - Only after numeric data is available you should proceed to generate the visualization.
+
 If the question is unrelated to data but is conversational (e.g., greetings or follow-ups), respond appropriately using context.
 
 When the output needs to display data in structured form (e.g., bullet points, table, list), use appropriate HTML formatting.
