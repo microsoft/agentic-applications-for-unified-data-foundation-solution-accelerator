@@ -363,18 +363,20 @@ const sanitizeJSONString = (jsonString: string): string => {
 
   try {
     // **STEP 0: Handle escaped JSON strings (e.g., "{\"type\":\"bar\"...}")**
-    // Check if the entire string is a JSON-escaped string
+    // Check if the entire string is a JSON-escaped string wrapped in quotes
     if (sanitized.startsWith('"{') && sanitized.endsWith('}"')) {
+      console.log('🔧 Detected escaped JSON string with outer quotes, removing...');
       // Remove outer quotes
       sanitized = sanitized.slice(1, -1);
-      // Unescape all backslashes before quotes
-      sanitized = sanitized.replace(/\\"/g, '"');
-      // Unescape other common escape sequences
-      sanitized = sanitized.replace(/\\\\/g, '\\');
-      sanitized = sanitized.replace(/\\n/g, '\n');
-      sanitized = sanitized.replace(/\\r/g, '\r');
-      sanitized = sanitized.replace(/\\t/g, '\t');
     }
+    
+    // **ALWAYS unescape backslashes** (regardless of outer quotes)
+    console.log('🧹 Unescaping backslashes...');
+    sanitized = sanitized.replace(/\\"/g, '"');      // \" → "
+    sanitized = sanitized.replace(/\\\\/g, '\\');    // \\ → \
+    sanitized = sanitized.replace(/\\n/g, '\n');     // \n → newline
+    sanitized = sanitized.replace(/\\r/g, '\r');     // \r → carriage return
+    sanitized = sanitized.replace(/\\t/g, '\t');     // \t → tab
 
     // Helper function to find the matching closing bracket
     const findMatchingBracket = (str: string, startIndex: number): number => {
