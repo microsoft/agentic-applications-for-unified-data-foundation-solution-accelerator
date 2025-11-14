@@ -363,6 +363,20 @@ const sanitizeJSONString = (jsonString: string): string => {
   let sanitized = jsonString;
 
   try {
+    // **STEP 0: Handle escaped JSON strings (e.g., "{\"type\":\"bar\"...}")**
+    // Check if the entire string is a JSON-escaped string
+    if (sanitized.startsWith('"{') && sanitized.endsWith('}"')) {
+      // Remove outer quotes
+      sanitized = sanitized.slice(1, -1);
+      // Unescape all backslashes before quotes
+      sanitized = sanitized.replace(/\\"/g, '"');
+      // Unescape other common escape sequences
+      sanitized = sanitized.replace(/\\\\/g, '\\');
+      sanitized = sanitized.replace(/\\n/g, '\n');
+      sanitized = sanitized.replace(/\\r/g, '\r');
+      sanitized = sanitized.replace(/\\t/g, '\t');
+    }
+
     // Helper function to find the matching closing bracket
     const findMatchingBracket = (str: string, startIndex: number): number => {
       let depth = 0;
@@ -526,6 +540,15 @@ const sanitizeJSONString = (jsonString: string): string => {
       /=>\s*\{[^}]*\}/g,
       '"[Function]"'
     );
+
+    // **11. Ensure all JSON keys are enclosed in double quotes**
+    // Match unquoted keys: {key: value} or ,key: value
+    // Regex: ([\{\,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:
+    sanitized = sanitized.replace(
+      /([\{\,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g,
+      '$1"$2":'
+    );
+    
 
   } catch (error) {
     console.error('Error during JSON sanitization:', error);
@@ -870,13 +893,7 @@ const sanitizeJSONString = (jsonString: string): string => {
           )}
         {!Boolean(state.chatHistory?.isFetchingConvMessages) &&
           messages.map((msg, index) => {
-            // Debug: Log each message
-            console.log(`Message ${index}:`, {
-              role: msg.role,
-              type: typeof msg.content,
-              preview: typeof msg.content === 'string' ? msg.content.substring(0, 50) + '...' : JSON.stringify(msg.content).substring(0, 50)
-            });
-            
+           
             return (
             <div key={index} className={`chat-message ${msg.role}`}>
               {(() => {
@@ -933,16 +950,13 @@ const sanitizeJSONString = (jsonString: string): string => {
 
                 // Handle assistant messages - string content (text, lists, tables, or stringified charts)
                 if (msg.role === "assistant" && typeof msg.content === "string") {
-                  console.log(`Processing assistant text message ${index}, length: ${msg.content.length}`);
                   // Try parsing as JSON to detect charts
                   let parsedContent = null;
                   try {
                     parsedContent = JSON.parse(msg.content);
-                    console.log(`✅ Parsed JSON for message ${index}`);
                   } catch {
                     // Not JSON - treat as plain text
                     parsedContent = null;
-                    console.log(`❌ Not JSON, treating as plain text for message ${index}`);
                   }
 
                   // If parsed successfully and it's a chart object
@@ -951,12 +965,10 @@ const sanitizeJSONString = (jsonString: string): string => {
                     
                     // SCENARIO 1: Direct chart object {type, data, options}
                     if ("type" in parsedContent && "data" in parsedContent) {
-                      console.log(`📊 SCENARIO 1: Direct chart object detected for message ${index}`);
                       chartData = parsedContent;
                     }
                     // SCENARIO 2: Wrapped chart {"answer": {type, data, options}}
                     else if ("answer" in parsedContent) {
-                      console.log(`📦 SCENARIO 2: Wrapped chart detected for message ${index}`);
                       const answer = parsedContent.answer;
                       if (answer && typeof answer === "object" && "type" in answer && "data" in answer) {
                         chartData = answer;
@@ -968,7 +980,6 @@ const sanitizeJSONString = (jsonString: string): string => {
                     // Render chart if valid chartData was found
                     if (chartData && "type" in chartData && "data" in chartData) {
                       try {
-                        console.log(`🎨 Rendering chart with type: ${chartData.type}`);
                         return (
                           <div className="assistant-message chart-message">
                             <ChatChart chartContent={chartData} />
@@ -991,7 +1002,6 @@ const sanitizeJSONString = (jsonString: string): string => {
                   }
 
                   // Plain text message (most common case)
-                  console.log(`📄 Rendering plain text/markdown for message ${index}`);
                   const containsHTML = /<\/?[a-z][\s\S]*>/i.test(msg.content);
                   
                   return (
