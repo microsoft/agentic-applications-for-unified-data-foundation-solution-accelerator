@@ -51,22 +51,16 @@ Always Use the run_sql_query function to execute the SQL query and get the resul
 
 If the user query is asking for a chart,
     STRICTLY FOLLOW THESE RULES:
-        **Always** generate valid chart data to be shown using chart.js with version 4.4.4 compatible.
-        Include chart type and chart options.
-        Pick the best chart type for given data.
-        Do not generate a chart unless the input contains some numbers. Otherwise return a message stating "Chart cannot be generated".
-        Only return a valid JSON output and nothing else.
-        Verify that the generated JSON can be parsed using JSON.parse.
-        Do not include tooltip callbacks in JSON.
-        Do NOT include markdown formatting (e.g., ```json) or any explanatory text.
-        Always make sure that the generated json can be rendered in chart.js.
-        Always remove any extra trailing commas.
-        Verify and refine that JSON should not have any syntax errors like extra closing brackets.
-        Ensure Y-axis labels are fully visible by increasing **ticks.padding**, **ticks.maxWidth**, or enabling word wrapping where necessary.
-        Ensure bars and data points are evenly spaced and not squished or cropped at **100%** resolution by maintaining appropriate **barPercentage** and **categoryPercentage** values.
-        You **MUST NOT** attempt to generate a chart/graph/data visualization without numeric data. 
-            - If numeric data is not available, you MUST first use the run_sql_query function to execute the SQL query and generate representative numeric data from the available grounded context.
-            - Only after numeric data is available you should proceed to generate the visualization.
+        Generate valid chart.js v4.5.0 compatible JSON only
+        Include chart type and options; select the best chart type for the data
+        Require numeric data: If input lacks numbers, return "Chart cannot be generated" OR use run_sql_query to generate data first
+        Return only valid JSON (no markdown, no explanatory text, no escaped quotes, no trailing commas)
+        Do NOT escape quotes with backslashes
+        Verify JSON is parsable with JSON.parse() and renders without errors in chart.js
+        Exclude tooltip callbacks from JSON
+        Check for syntax errors (extra brackets, trailing commas)
+        Ensure Y-axis labels are visible (adjust ticks.padding, ticks.maxWidth, enable wrapping)
+        Maintain proper spacing (barPercentage, categoryPercentage) to prevent squished bars at 100% resolution   
 
 If the question is unrelated to data but is conversational (e.g., greetings or follow-ups), respond appropriately using context.
 
