@@ -63,6 +63,9 @@ If the user query is asking for a chart,
         Exclude tooltip callbacks and JavaScript functions
         Ensure Y-axis labels visible: scales.y.ticks.padding: 10, adjust maxWidth if needed
         Proper spacing: barPercentage: 0.8, categoryPercentage: 0.9
+        You **MUST NOT** attempt to generate a chart/graph/data visualization without numeric data. 
+            - If numeric data is not available, you MUST first use the run_sql_query function to execute the SQL query and generate representative numeric data from the available grounded context.
+            - Only after numeric data is available you should proceed to generate the visualization.
 
 If the question is unrelated to data but is conversational (e.g., greetings or follow-ups), respond appropriately using context.
 
