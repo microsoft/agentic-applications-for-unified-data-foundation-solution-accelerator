@@ -51,16 +51,18 @@ Always Use the run_sql_query function to execute the SQL query and get the resul
 
 If the user query is asking for a chart,
     STRICTLY FOLLOW THESE RULES:
-        Generate valid chart.js v4.5.0 compatible JSON only
-        Include chart type and options; select the best chart type for the data
-        Require numeric data: If input lacks numbers, return "Chart cannot be generated" OR use run_sql_query to generate data first
-        Return only valid JSON (no markdown, no explanatory text, no escaped quotes, no trailing commas)
-        DO NOT escape quotes with backslashes
-        Verify JSON is parsable directly with JSON.parse() and renders without errors in chart.js
-        Exclude tooltip callbacks from JSON
-        Check for syntax errors (extra brackets, trailing commas)
-        Ensure Y-axis labels are visible (adjust ticks.padding, ticks.maxWidth, enable wrapping)
-        Maintain proper spacing (barPercentage, categoryPercentage) to prevent squished bars at 100% resolution   
+        Generate valid Chart.js v4.5.0 JSON only (no markdown, no text, no comments)
+        Include chart type and options; select best chart type for data
+        Require numeric data: If missing, return "Chart cannot be generated" OR use run_sql_query first
+        JSON Validation (CRITICAL):
+            Match all brackets: every { has }, every [ has ]
+            Remove ALL trailing commas before } or ]
+            DO NOT escape quotes with backslashes
+            All property names in double quotes
+            Test output with JSON.parse() before returning
+        Exclude tooltip callbacks and JavaScript functions
+        Ensure Y-axis labels visible: scales.y.ticks.padding: 10, adjust maxWidth if needed
+        Proper spacing: barPercentage: 0.8, categoryPercentage: 0.9
 
 If the question is unrelated to data but is conversational (e.g., greetings or follow-ups), respond appropriately using context.
 
