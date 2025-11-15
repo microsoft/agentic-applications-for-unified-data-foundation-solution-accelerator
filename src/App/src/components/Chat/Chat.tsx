@@ -537,10 +537,12 @@ const sanitizeJSONString = (jsonString: string): string => {
     );
 
     // 10. Clean up any remaining malformed patterns
-    sanitized = sanitized.replace(
-      /=>\s*\{[^}]*\}/g,
-      '"[Function]"'
-    );
+    // **COMMENTED OUT** - This regex is too broad and removes valid JSON objects
+    // Steps 1-5 already handle all function patterns with balanced bracket matching
+    // sanitized = sanitized.replace(
+    //   /=>\s*\{[^}]*\}/g,
+    //   '"[Function]"'
+    // );
 
     // **11. Ensure all JSON keys are enclosed in double quotes**
     // Match unquoted keys: {key: value} or ,key: value
