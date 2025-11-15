@@ -55,8 +55,8 @@ If the user query is asking for a chart,
         Include chart type and options; select the best chart type for the data
         Require numeric data: If input lacks numbers, return "Chart cannot be generated" OR use run_sql_query to generate data first
         Return only valid JSON (no markdown, no explanatory text, no escaped quotes, no trailing commas)
-        Do NOT escape quotes with backslashes
-        Verify JSON is parsable with JSON.parse() and renders without errors in chart.js
+        DO NOT escape quotes with backslashes
+        Verify JSON is parsable directly with JSON.parse() and renders without errors in chart.js
         Exclude tooltip callbacks from JSON
         Check for syntax errors (extra brackets, trailing commas)
         Ensure Y-axis labels are visible (adjust ticks.padding, ticks.maxWidth, enable wrapping)
