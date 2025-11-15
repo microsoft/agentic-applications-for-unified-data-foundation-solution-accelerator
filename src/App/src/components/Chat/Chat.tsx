@@ -362,7 +362,7 @@ const sanitizeJSONString = (jsonString: string): string => {
   let sanitized = jsonString;
 
   try {
-    // **NEW: Try parsing first - if it works, no sanitization needed!**
+    // **STEP 1: Try parsing first - if it works, no sanitization needed!**
     try {
       JSON.parse(sanitized);
       console.log("✅ JSON is already valid, skipping sanitization");
@@ -371,23 +371,21 @@ const sanitizeJSONString = (jsonString: string): string => {
       console.log("🔧 JSON invalid, proceeding with sanitization...");
     }
 
-    // **STEP 0: Handle escaped JSON strings (e.g., "{\"type\":\"bar\"...}")**
-    // Check if the entire string is a JSON-escaped string wrapped in quotes
+    // **STEP 2: Handle escaped JSON strings (e.g., "{\"type\":\"bar\"...}")**
     if (sanitized.startsWith('"{') && sanitized.endsWith('}"')) {
       console.log('🔧 Detected escaped JSON string with outer quotes, removing...');
-      // Remove outer quotes
       sanitized = sanitized.slice(1, -1);
     }
     
-    // **ALWAYS unescape backslashes** (regardless of outer quotes)
+    // **STEP 3: ALWAYS unescape backslashes**
     console.log('🧹 Unescaping backslashes...');
-    sanitized = sanitized.replace(/\\"/g, '"');      // \" → "
-    sanitized = sanitized.replace(/\\\\/g, '\\');    // \\ → \
-    sanitized = sanitized.replace(/\\n/g, '\n');     // \n → newline
-    sanitized = sanitized.replace(/\\r/g, '\r');     // \r → carriage return
-    sanitized = sanitized.replace(/\\t/g, '\t');     // \t → tab
+    sanitized = sanitized.replace(/\\"/g, '"');
+    sanitized = sanitized.replace(/\\\\/g, '\\');
+    sanitized = sanitized.replace(/\\n/g, '\n');
+    sanitized = sanitized.replace(/\\r/g, '\r');
+    sanitized = sanitized.replace(/\\t/g, '\t');
 
-    // **NEW: Validate after basic unescaping**
+    // **STEP 4: Validate after basic unescaping**
     try {
       JSON.parse(sanitized);
       console.log("✅ JSON valid after basic unescaping, skipping complex sanitization");
@@ -412,62 +410,52 @@ const sanitizeJSONString = (jsonString: string): string => {
           }
         }
       }
-      return -1; // No matching bracket found
+      return -1;
     };
 
-    // 1. Remove function declarations with balanced brackets: function name(...) { ... }
+    // **STEP 5: Remove function declarations with balanced brackets**
     let pos = 0;
     while (pos < sanitized.length) {
-      // Look for "function" keyword
       const functionMatch = sanitized.substring(pos).match(/:\s*function\s*\w*\s*\(/);
       if (!functionMatch) break;
       
       const functionStart = pos + functionMatch.index!;
       const parenStart = sanitized.indexOf('(', functionStart);
-      
       if (parenStart === -1) break;
       
-      // Find matching closing parenthesis
       const parenEnd = findMatchingBracket(sanitized, parenStart);
       if (parenEnd === -1) break;
       
-      // Find opening brace after parameters
       const braceStart = sanitized.indexOf('{', parenEnd);
       if (braceStart === -1 || braceStart > parenEnd + 10) {
         pos = parenEnd + 1;
         continue;
       }
       
-      // Find matching closing brace
       const braceEnd = findMatchingBracket(sanitized, braceStart);
       if (braceEnd === -1) break;
       
-      // Replace the entire function with "[Function]"
       sanitized = 
         sanitized.substring(0, functionStart) + 
         ': "[Function]"' + 
         sanitized.substring(braceEnd + 1);
       
-      pos = functionStart + 13; // Length of ': "[Function]"'
+      pos = functionStart + 13;
     }
 
-    // 2. Remove arrow functions with balanced brackets: (...) => { ... }
+    // **STEP 6: Remove arrow functions with balanced brackets**
     pos = 0;
     while (pos < sanitized.length) {
-      // Look for arrow function pattern
       const arrowMatch = sanitized.substring(pos).match(/:\s*\([^)]*\)\s*=>\s*\{/);
       if (!arrowMatch) break;
       
       const arrowStart = pos + arrowMatch.index!;
       const braceStart = sanitized.indexOf('{', arrowStart);
-      
       if (braceStart === -1) break;
       
-      // Find matching closing brace with balanced brackets
       const braceEnd = findMatchingBracket(sanitized, braceStart);
       if (braceEnd === -1) break;
       
-      // Replace the entire arrow function
       sanitized = 
         sanitized.substring(0, arrowStart) + 
         ': "[Function]"' + 
@@ -476,15 +464,13 @@ const sanitizeJSONString = (jsonString: string): string => {
       pos = arrowStart + 13;
     }
 
-    // 3. Remove standalone function patterns (not preceded by colon)
+    // **STEP 7: Remove standalone function patterns**
     pos = 0;
     while (pos < sanitized.length) {
       const funcMatch = sanitized.substring(pos).match(/\bfunction\s*\w*\s*\(/);
       if (!funcMatch) break;
       
       const funcStart = pos + funcMatch.index!;
-      
-      // Check if it's NOT preceded by a colon (already handled above)
       if (funcStart > 0 && sanitized.substring(Math.max(0, funcStart - 10), funcStart).includes(':')) {
         pos = funcStart + 1;
         continue;
@@ -513,72 +499,108 @@ const sanitizeJSONString = (jsonString: string): string => {
       pos = funcStart + 12;
     }
 
-    // 4. Remove arrow functions with simple expressions (no braces)
-    sanitized = sanitized.replace(
-      /:\s*\([^)]*\)\s*=>\s*`[^`]*`/g,
-      ': "[Function]"'
-    );
+    // **STEP 8-11: Other sanitization patterns**
+    sanitized = sanitized.replace(/:\s*\([^)]*\)\s*=>\s*`[^`]*`/g, ': "[Function]"');
+    sanitized = sanitized.replace(/:\s*\([^)]*\)\s*=>\s*[^,}\]]+/g, ': "[Function]"');
+    sanitized = sanitized.replace(/\([^)]*\)\s*=>/g, '"[Function]"');
+    sanitized = sanitized.replace(/\$\{[^}]*\}/g, '[Expression]');
+    sanitized = sanitized.replace(/`[^`]*`/g, '"[Template]"');
+    sanitized = sanitized.replace(/:\s*'([^']*)'/g, ': "$1"');
+    sanitized = sanitized.replace(/,(\s*[}\]])/g, '$1');
+    sanitized = sanitized.replace(/([\{\,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
 
-    sanitized = sanitized.replace(
-      /:\s*\([^)]*\)\s*=>\s*[^,}\]]+/g,
-      ': "[Function]"'
-    );
-
-    // 5. Remove any remaining arrow function patterns without balanced bracket handling
-    sanitized = sanitized.replace(
-      /\([^)]*\)\s*=>/g,
-      '"[Function]"'
-    );
-
-    // 6. Remove template literal expressions: ${...}
-    sanitized = sanitized.replace(
-      /\$\{[^}]*\}/g,
-      '[Expression]'
-    );
-
-    // 7. Remove template literals: `...`
-    sanitized = sanitized.replace(
-      /`[^`]*`/g,
-      '"[Template]"'
-    );
-
-    // 8. Convert single quotes to double quotes for property values
-    sanitized = sanitized.replace(
-      /:\s*'([^']*)'/g,
-      ': "$1"'
-    );
-
-    // 9. Remove trailing commas before closing braces/brackets
-    sanitized = sanitized.replace(
-      /,(\s*[}\]])/g,
-      '$1'
-    );
-
-    // 10. Clean up any remaining malformed patterns
-    // **COMMENTED OUT** - This regex is too broad and removes valid JSON objects
-    // Steps 1-5 already handle all function patterns with balanced bracket matching
-    // sanitized = sanitized.replace(
-    //   /=>\s*\{[^}]*\}/g,
-    //   '"[Function]"'
-    // );
-
-    // **11. Ensure all JSON keys are enclosed in double quotes**
-    // Match unquoted keys: {key: value} or ,key: value
-    // Regex: ([\{\,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:
-    sanitized = sanitized.replace(
-      /([\{\,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g,
-      '$1"$2":'
-    );
+    // **🔥 NEW: FINAL VALIDATION AND AUTO-REPAIR 🔥**
+    console.log("🔍 Performing final validation and repair...");
     
+    // Count all brackets
+    const openBraces = (sanitized.match(/\{/g) || []).length;
+    const closeBraces = (sanitized.match(/\}/g) || []).length;
+    const openBrackets = (sanitized.match(/\[/g) || []).length;
+    const closeBrackets = (sanitized.match(/\]/g) || []).length;
+    
+    console.log(`📊 Bracket count - Braces: ${openBraces}/${closeBraces}, Brackets: ${openBrackets}/${closeBrackets}`);
+    
+    // **AUTO-REPAIR: Add missing closing brackets**
+    if (openBraces > closeBraces) {
+      const missing = openBraces - closeBraces;
+      console.log(`🔧 Adding ${missing} missing closing brace(s)`);
+      sanitized += '}'.repeat(missing);
+    }
+    
+    if (openBrackets > closeBrackets) {
+      const missing = openBrackets - closeBrackets;
+      console.log(`🔧 Adding ${missing} missing closing bracket(s)`);
+      sanitized += ']'.repeat(missing);
+    }
+    
+    // **AUTO-REPAIR: Remove excess closing brackets**
+    if (closeBraces > openBraces) {
+      console.log(`⚠️ More closing braces than opening (${closeBraces} > ${openBraces}), trimming...`);
+      let excess = closeBraces - openBraces;
+      while (excess > 0 && sanitized.endsWith('}')) {
+        sanitized = sanitized.slice(0, -1);
+        excess--;
+      }
+    }
+    
+    if (closeBrackets > openBrackets) {
+      console.log(`⚠️ More closing brackets than opening (${closeBrackets} > ${openBrackets}), trimming...`);
+      let excess = closeBrackets - openBrackets;
+      while (excess > 0 && sanitized.endsWith(']')) {
+        sanitized = sanitized.slice(0, -1);
+        excess--;
+      }
+    }
+    
+    // **FINAL PARSE TEST - Guaranteed to be parseable or fallback**
+    try {
+      JSON.parse(sanitized);
+      console.log("✅ Sanitization successful - JSON is valid!");
+      return sanitized;
+    } catch (finalError) {
+      console.error("❌ Sanitization failed - JSON still invalid after auto-repair");
+      console.error("Parse error:", finalError instanceof Error ? finalError.message : String(finalError));
+      
+      // **LAST RESORT: Try to extract the first complete JSON object**
+      console.log("🔧 Attempting aggressive extraction...");
+      try {
+        const firstBraceIndex = sanitized.indexOf('{');
+        if (firstBraceIndex !== -1) {
+          let depth = 0;
+          let endIndex = -1;
+          
+          for (let i = firstBraceIndex; i < sanitized.length; i++) {
+            if (sanitized[i] === '{') depth++;
+            else if (sanitized[i] === '}') {
+              depth--;
+              if (depth === 0) {
+                endIndex = i;
+                break;
+              }
+            }
+          }
+          
+          if (endIndex !== -1) {
+            const extracted = sanitized.substring(firstBraceIndex, endIndex + 1);
+            JSON.parse(extracted); // Test if valid
+            console.log("✅ Successfully extracted valid JSON object");
+            return extracted;
+          }
+        }
+      } catch (extractError) {
+        console.error("❌ Extraction attempt also failed");
+      }
+      
+      // **ABSOLUTE LAST RESORT: Return original string**
+      console.warn("⚠️ Returning original string - all repair attempts failed");
+      return jsonString;
+    }
 
   } catch (error) {
-    console.error('Error during JSON sanitization:', error);
+    console.error('💥 Fatal error during JSON sanitization:', error);
     return jsonString;
   }
-
-  return sanitized;
 };
-
   // Helper function to extract chart data from response
   const extractChartData = (chartResponse: any): any => {
     if (typeof chartResponse === 'object' && 'answer' in chartResponse) {
