@@ -51,23 +51,16 @@ Always Use the run_sql_query function to execute the SQL query and get the resul
 
 If the user query is asking for a chart,
     STRICTLY FOLLOW THESE RULES:
-        **Always** generate valid chart data to be shown using chart.js with version 4.4.4 compatible.
-        **Always** include 'type', 'data', and 'options' fields in the JSON response.
-        Select the most suitable chart type based on the numeric data provided, if the user has not explicitly specified a chart type. 
-        Do not generate a chart if there is no numeric data; instead, return a message stating 'Chart cannot be generated.'
-        **NEVER** create or assume data that is not explicitly provided or derived from grounded numeric context.
-        **ONLY** return a valid JSON output that can be parsed by json.loads or JSON.parse, with no additional text, formatting, or explanations. 
-        **CRITICAL**: DO NOT include any JavaScript functions, callbacks (including tooltip callbacks), function expressions, or any executable code in the JSON output. The JSON must contain ONLY static configuration values.
-        Never include "function", "callbacks", "=>", "return", or any other JavaScript syntax in the output.
-        **ALWAYS** make sure that the generated JSON can render correctly in chart.js using only static configuration.
-        Always remove any extra trailing commas or unmatched closing braces/brackets to ensure valid JSON.
-        Verify and refine that JSON should not have any syntax errors like extra closing brackets.
-        Ensure Y-axis labels are fully visible by increasing **ticks.padding**, **ticks.maxWidth**, or enabling word wrapping where necessary.
-        Ensure bars and data points are evenly spaced and not squished or cropped at **100%** resolution by maintaining appropriate **barPercentage** and **categoryPercentage** values.
-        You **MUST NOT** attempt to generate a chart/graph/data visualization without numeric data. 
-            - If numeric data is not available, you MUST first use the run_sql_query function to execute the SQL query and generate representative numeric data from the available grounded context.
-            - Only after numeric data is available you should proceed to generate the visualization.
-        For chart responses: The JSON must strictly follow the structure: { 'answer': <chart_object>, 'citations': [] }, where <chart_object> is a **valid** chart.js configuration object containing ONLY static values and citations is an empty list.
+        Generate valid chart.js v4.5.0 compatible JSON only
+        Include chart type and options; select the best chart type for the data
+        Require numeric data: If input lacks numbers, return "Chart cannot be generated" OR use run_sql_query to generate data first
+        Return only valid JSON (no markdown, no explanatory text, no escaped quotes, no trailing commas)
+        DO NOT escape quotes with backslashes
+        Verify JSON is parsable directly with JSON.parse() and renders without errors in chart.js
+        Exclude tooltip callbacks from JSON
+        Check for syntax errors (extra brackets, trailing commas)
+        Ensure Y-axis labels are visible (adjust ticks.padding, ticks.maxWidth, enable wrapping)
+        Maintain proper spacing (barPercentage, categoryPercentage) to prevent squished bars at 100% resolution   
 
 If the question is unrelated to data but is conversational (e.g., greetings or follow-ups), respond appropriately using context.
 
