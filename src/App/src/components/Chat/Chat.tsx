@@ -731,15 +731,56 @@ const sanitizeJSONString = (jsonString: string): string => {
             
             // Handle chart content parsing with sanitization
             if (typeof rawChartContent === "string") {
+              console.log("📥 Raw chart content before JSON parse:", rawChartContent);
               
-              const sanitizedContent = sanitizeJSONString(rawChartContent);
-          
               try {
-                chartResponse = JSON.parse(sanitizedContent);
+                // First, try to parse the raw content directly
+                chartResponse = JSON.parse(rawChartContent);
+                console.log("✅ Successfully parsed raw content directly");
+                
+                // **Handle nested escaped JSON in "answer" field**
+                if (chartResponse && typeof chartResponse === "object" && "answer" in chartResponse) {
+                  const answerValue = chartResponse.answer;
+                  
+                  // If answer is a STRING, it might be escaped JSON - parse it
+                  if (typeof answerValue === "string") {
+                    console.log("🔍 Answer string (first 200 chars):", answerValue);
+                    
+                    try {
+                      // Sanitize the nested JSON string
+                      const sanitizedAnswer = sanitizeJSONString(answerValue);
+                      console.log("🧹 Sanitized answer (first 200 chars):", sanitizedAnswer);
+                      
+                      // Parse the sanitized string
+                      const parsedAnswer = JSON.parse(sanitizedAnswer);
+                      
+                      // Replace the string answer with the parsed object
+                      chartResponse.answer = parsedAnswer;
+                      console.log("✅ Successfully parsed nested JSON from answer field");
+                    } catch (nestedError) {
+                      console.error("❌ Failed to parse nested JSON:", nestedError);
+                      console.warn("⚠️ Answer string is not valid JSON, keeping as-is");
+                      // Keep the original string value
+                    }
+                  }
+                }
+                
               } catch (parseError) {
-                console.error("JSON parse failed after sanitization:", parseError instanceof Error ? parseError.message : parseError);
-                chartResponse = "Chart can't be generated, please try again.";
+                console.error("❌ Failed to parse raw content, trying sanitization...");
+                
+                // If direct parsing fails, try sanitizing first
+                const sanitizedContent = sanitizeJSONString(rawChartContent);
+                console.log("🧹 Sanitized content (first 200 chars):", sanitizedContent.substring(0, 200));
+                
+                try {
+                  chartResponse = JSON.parse(sanitizedContent);
+                  console.log("✅ Successfully parsed after sanitization");
+                } catch (sanitizeError) {
+                  console.error("❌ JSON parse failed even after sanitization:", sanitizeError instanceof Error ? sanitizeError.message : sanitizeError);
+                  chartResponse = "Chart can't be generated, please try again.";
+                }
               }
+              
             } else {
               chartResponse = rawChartContent || "Chart can't be generated, please try again.";
             }
@@ -907,23 +948,9 @@ const sanitizeJSONString = (jsonString: string): string => {
                   );
                 }
 
-                // Handle error messages
-                if (msg.role === "error" && typeof msg.content === "string") {
-                  return (
-                    <div className="assistant-message error-message">
-                      <p>{msg.content}</p>
-                      <div className="answerDisclaimerContainer">
-                        <span className="answerDisclaimer">
-                          AI-generated content may be incorrect
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-
-                // Handle assistant messages - object content (charts)
                 if (msg.role === "assistant" && typeof msg.content === "object" && msg.content !== null) {
                   if ("type" in msg.content && "data" in msg.content) {
+                    
                     try {
                       return (
                         <div className="assistant-message chart-message">
@@ -944,6 +971,20 @@ const sanitizeJSONString = (jsonString: string): string => {
                       );
                     }
                   }
+                }
+
+                                // Handle error messages
+                if (msg.role === "error" && typeof msg.content === "string") {
+                  return (
+                    <div className="assistant-message error-message">
+                      <p>{msg.content}</p>
+                      <div className="answerDisclaimerContainer">
+                        <span className="answerDisclaimer">
+                          AI-generated content may be incorrect
+                        </span>
+                      </div>
+                    </div>
+                  );
                 }
 
                 // Handle assistant messages - string content (text, lists, tables, or stringified charts)
