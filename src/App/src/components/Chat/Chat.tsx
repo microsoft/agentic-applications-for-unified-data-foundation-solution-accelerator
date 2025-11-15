@@ -786,9 +786,7 @@ const sanitizeJSONString = (jsonString: string): string => {
                   
                   // If answer is a STRING, it might be escaped JSON - parse it
                   if (typeof answerValue === "string") {
-                    console.log("🔍 Answer is a string, length:", answerValue.length);
-                    console.log("🔍 First 200 chars:", answerValue.substring(0, 200));
-                    console.log("🔍 Last 200 chars:", answerValue.substring(Math.max(0, answerValue.length - 200)));
+                    console.log("🔍 First 200 chars:", answerValue);
                     
                     try {
                       // **ENHANCED FIX**: Try direct parse first (for properly escaped JSON)
@@ -803,8 +801,7 @@ const sanitizeJSONString = (jsonString: string): string => {
                         
                         // Attempt 2: Sanitize then parse
                         const sanitizedAnswer = sanitizeJSONString(answerValue);
-                        console.log("🧹 Sanitized length:", sanitizedAnswer.length);
-                        console.log("🧹 Sanitized first 200:", sanitizedAnswer.substring(0, 200));
+                        console.log("🧹 Sanitized first 200:", sanitizedAnswer);
                         
                         // Validate the sanitized string before parsing
                         const openBraces = (sanitizedAnswer.match(/\{/g) || []).length;
@@ -839,7 +836,7 @@ const sanitizeJSONString = (jsonString: string): string => {
                 
                 // If direct parsing fails, try sanitizing first
                 const sanitizedContent = sanitizeJSONString(rawChartContent);
-                console.log("🧹 Sanitized content (first 200 chars):", sanitizedContent.substring(0, 200));
+                console.log("🧹 Sanitized content (first 200 chars):", sanitizedContent);
                 
                 try {
                   chartResponse = JSON.parse(sanitizedContent);
