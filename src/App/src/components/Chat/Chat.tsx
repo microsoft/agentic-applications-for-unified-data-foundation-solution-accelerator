@@ -362,6 +362,15 @@ const sanitizeJSONString = (jsonString: string): string => {
   let sanitized = jsonString;
 
   try {
+    // **NEW: Try parsing first - if it works, no sanitization needed!**
+    try {
+      JSON.parse(sanitized);
+      console.log("✅ JSON is already valid, skipping sanitization");
+      return sanitized;
+    } catch {
+      console.log("🔧 JSON invalid, proceeding with sanitization...");
+    }
+
     // **STEP 0: Handle escaped JSON strings (e.g., "{\"type\":\"bar\"...}")**
     // Check if the entire string is a JSON-escaped string wrapped in quotes
     if (sanitized.startsWith('"{') && sanitized.endsWith('}"')) {
@@ -377,6 +386,15 @@ const sanitizeJSONString = (jsonString: string): string => {
     sanitized = sanitized.replace(/\\n/g, '\n');     // \n → newline
     sanitized = sanitized.replace(/\\r/g, '\r');     // \r → carriage return
     sanitized = sanitized.replace(/\\t/g, '\t');     // \t → tab
+
+    // **NEW: Validate after basic unescaping**
+    try {
+      JSON.parse(sanitized);
+      console.log("✅ JSON valid after basic unescaping, skipping complex sanitization");
+      return sanitized;
+    } catch {
+      console.log("🔧 Still invalid, continuing with complex sanitization...");
+    }
 
     // Helper function to find the matching closing bracket
     const findMatchingBracket = (str: string, startIndex: number): number => {
@@ -746,23 +764,50 @@ const sanitizeJSONString = (jsonString: string): string => {
                   
                   // If answer is a STRING, it might be escaped JSON - parse it
                   if (typeof answerValue === "string") {
-                    console.log("🔍 Answer string (first 200 chars):", answerValue);
+                    console.log("🔍 Answer is a string, length:", answerValue.length);
+                    console.log("🔍 First 200 chars:", answerValue.substring(0, 200));
+                    console.log("🔍 Last 200 chars:", answerValue.substring(Math.max(0, answerValue.length - 200)));
                     
                     try {
-                      // Sanitize the nested JSON string
-                      const sanitizedAnswer = sanitizeJSONString(answerValue);
-                      console.log("🧹 Sanitized answer (first 200 chars):", sanitizedAnswer);
+                      // **ENHANCED FIX**: Try direct parse first (for properly escaped JSON)
+                      let parsedAnswer;
                       
-                      // Parse the sanitized string
-                      const parsedAnswer = JSON.parse(sanitizedAnswer);
+                      try {
+                        // Attempt 1: Direct parse (handles \" properly)
+                        parsedAnswer = JSON.parse(answerValue);
+                        console.log("✅ Direct parse succeeded");
+                      } catch (directParseError) {
+                        console.log("⚠️ Direct parse failed, trying sanitization...");
+                        
+                        // Attempt 2: Sanitize then parse
+                        const sanitizedAnswer = sanitizeJSONString(answerValue);
+                        console.log("🧹 Sanitized length:", sanitizedAnswer.length);
+                        console.log("🧹 Sanitized first 200:", sanitizedAnswer.substring(0, 200));
+                        
+                        // Validate the sanitized string before parsing
+                        const openBraces = (sanitizedAnswer.match(/\{/g) || []).length;
+                        const closeBraces = (sanitizedAnswer.match(/\}/g) || []).length;
+                        console.log(`📊 Brace count - Open: ${openBraces}, Close: ${closeBraces}`);
+                        
+                        if (openBraces !== closeBraces) {
+                          console.error("❌ Unbalanced braces after sanitization!");
+                          throw new Error("Sanitization produced unbalanced braces");
+                        }
+                        
+                        parsedAnswer = JSON.parse(sanitizedAnswer);
+                        console.log("✅ Parse succeeded after sanitization");
+                      }
                       
                       // Replace the string answer with the parsed object
                       chartResponse.answer = parsedAnswer;
-                      console.log("✅ Successfully parsed nested JSON from answer field");
+                      console.log("✅ Successfully processed nested JSON from answer field");
+                      
                     } catch (nestedError) {
                       console.error("❌ Failed to parse nested JSON:", nestedError);
-                      console.warn("⚠️ Answer string is not valid JSON, keeping as-is");
-                      // Keep the original string value
+                      console.error("❌ Error details:", nestedError instanceof Error ? nestedError.message : String(nestedError));
+                      
+                      // Keep the original string and let the error handling below catch it
+                      console.warn("⚠️ Keeping answer as string, will be caught by error handling");
                     }
                   }
                 }
