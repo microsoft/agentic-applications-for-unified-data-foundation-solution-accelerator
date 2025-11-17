@@ -277,7 +277,7 @@ const Chat: React.FC<ChatProps> = ({
           try {
             const parsedResponse = JSON.parse(runningText);
             
-            if (parsedResponse?.object?.type && parsedResponse?.object?.data) {
+            if ((parsedResponse?.object?.type || parsedResponse?.object?.chartType) && parsedResponse?.object?.data) {
               const chartMessage = createAndDispatchMessage(
                 ASSISTANT, 
                 parsedResponse.object as unknown as ChartDataResponse
@@ -853,7 +853,7 @@ const sanitizeJSONString = (jsonString: string): string => {
           
             chartResponse = extractChartData(chartResponse);
 
-            if (chartResponse?.type && chartResponse?.data) {
+            if ((chartResponse?.type || chartResponse?.chartType) && chartResponse?.data) {
               // Valid chart data
               const chartMessage = createAndDispatchMessage(
                 ASSISTANT, 
@@ -1015,7 +1015,7 @@ const sanitizeJSONString = (jsonString: string): string => {
                 }
 
                 if (msg.role === "assistant" && typeof msg.content === "object" && msg.content !== null) {
-                  if ("type" in msg.content && "data" in msg.content) {
+                  if (("type" in msg.content || "chartType" in msg.content) && "data" in msg.content) {
                     
                     try {
                       return (
@@ -1069,13 +1069,13 @@ const sanitizeJSONString = (jsonString: string): string => {
                     let chartData = null;
                     
                     // SCENARIO 1: Direct chart object {type, data, options}
-                    if ("type" in parsedContent && "data" in parsedContent) {
+                    if (("type" in parsedContent || "chartType" in parsedContent) && "data" in parsedContent) {
                       chartData = parsedContent;
                     }
                     // SCENARIO 2: Wrapped chart {"answer": {type, data, options}}
                     else if ("answer" in parsedContent) {
                       const answer = parsedContent.answer;
-                      if (answer && typeof answer === "object" && "type" in answer && "data" in answer) {
+                      if (answer && typeof answer === "object" && ("type" in answer || "chartType" in answer) && "data" in answer) {
                         chartData = answer;
                       } else {
                         console.warn(`⚠️ Answer exists but is not a valid chart:`, answer);
@@ -1083,7 +1083,7 @@ const sanitizeJSONString = (jsonString: string): string => {
                     }
                     
                     // Render chart if valid chartData was found
-                    if (chartData && "type" in chartData && "data" in chartData) {
+                    if (chartData && ("type" in chartData || "chartType" in chartData) && "data" in chartData) {
                       try {
                         return (
                           <div className="assistant-message chart-message">
