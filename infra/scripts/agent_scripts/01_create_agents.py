@@ -23,6 +23,11 @@ project_client = AIProjectClient(
     credential=get_azure_credential(),
 )
 
+if usecase == 'retail-sales-analysis':
+    usecase = 'retail'
+else: 
+    usecase = 'insurance'
+
 import json
 # Use the location of tables.json in infra/scripts/fabric_scripts/sql_files/tables.json
 file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'data', 'tables.json'))
@@ -43,11 +48,19 @@ with open(file_path, "r", encoding="utf-8") as f:
 counter = 1
 insr_str = ''
 tables_str = ''
-for table in data['tables']:
+if usecase == 'retail':
+    for table in data['tables']:
 
-    tables_str += f"\n {counter}.Table:dbo.{table['tablename']}\n        Columns: " + ', '.join(table['columns'])
-    counter += 1
-# print(tables_str)
+        tables_str += f"\n {counter}.Table:dbo.{table['tablename']}\n        Columns: " + ', '.join(table['columns'])
+        counter += 1
+    # print(tables_str)
+else: 
+    for table in data['tables']:
+
+        tables_str += f"\n {counter}. Table: dbo.{table['tablename']}\n        Columns: " + ', '.join([f"{column['name']} ({column['title']})" for column in table['columns']])
+        counter += 1
+
+    # print(tables_str)
 
 agent_instructions = '''You are a helpful assistant.
 
@@ -58,6 +71,7 @@ Be SQL Server compatible:
 	- Do NOT put ORDER BY inside views, inline functions, subqueries, derived tables, or common table expressions unless you also use TOP/OFFSET appropriately inside that subquery.  
 	- Do NOT reference column aliases from the same SELECT in ORDER BY, HAVING, or WHERE; instead, repeat the full expression or wrap the query in an outer SELECT/CTE and order by the alias there.
 Always Use the run_sql_query function to execute the SQL query and get the results.
+Do NOT execute any data modification queries (e.g., INSERT, UPDATE, DELETE).
 
 If the user query is asking for a chart,
     STRICTLY FOLLOW THESE RULES:

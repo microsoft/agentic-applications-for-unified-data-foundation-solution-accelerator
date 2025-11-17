@@ -22,6 +22,12 @@ backend_app_pid = args.backend_app_pid
 backend_app_uid = args.backend_app_uid
 usecase = args.usecase.lower()
 
+
+if usecase == 'retail-sales-analysis':
+    usecase = 'retail'
+else: 
+    usecase = 'insurance'
+
 def get_fabric_headers():
     credential = AzureCliCredential()
     cred = credential.get_token('https://api.fabric.microsoft.com/.default')
@@ -320,7 +326,7 @@ else:
     cursor.execute("SELECT MAX(CAST(StartDate AS DATETIME)) FROM dbo.policy")
     max_start_time = cursor.fetchone()[0]
     days_difference = (today - max_start_time).days - 1 if max_start_time else 0
-    print('days_difference: ', days_difference)
+
     cursor.execute("UPDATE [dbo].[policy] SET StartDate = FORMAT(DATEADD(DAY, ?, StartDate), 'yyyy-MM-dd')", (days_difference))
     cursor.execute("UPDATE [dbo].[claim] SET ClaimDate = FORMAT(DATEADD(DAY, ?, ClaimDate), 'yyyy-MM-dd')", (days_difference))
     cursor.execute("UPDATE [dbo].[communicationshistory] SET CommunicationDate = FORMAT(DATEADD(DAY, ?, CommunicationDate), 'yyyy-MM-dd')", (days_difference))
