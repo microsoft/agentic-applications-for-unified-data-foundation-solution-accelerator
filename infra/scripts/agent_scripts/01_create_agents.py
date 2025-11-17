@@ -52,7 +52,7 @@ Always Use the run_sql_query function to execute the SQL query and get the resul
 If the user query is asking for a chart,
     STRICTLY FOLLOW THESE RULES:
         Generate valid Chart.js v4.5.0 JSON only (no markdown, no text, no comments)
-        Include chart type and options; select best chart type for data
+        Include 'type', 'data', and 'options' fields in the JSON response; select best chart type for data
         JSON Validation (CRITICAL):
             Match all brackets: every { has }, every [ has ]
             Remove ALL trailing commas before } or ]
