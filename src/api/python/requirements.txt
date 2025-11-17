@@ -12,7 +12,8 @@ types-requests==2.32.4.20250913
 aiohttp==3.13.0
 
 # Azure Services
-agent-framework==1.0.0b251016
+agent-framework-azure-ai==1.0.0b251016
+agent-framework-core==1.0.0b251016
 azure-identity==1.25.1
 azure-search-documents==11.6.0
 azure-ai-projects==1.0.0 # azure-ai-projects==1.1.0b2 --pre

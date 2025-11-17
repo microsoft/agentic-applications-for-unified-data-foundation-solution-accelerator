@@ -102,17 +102,23 @@ class ExpCache(TTLCache):
 
     async def _delete_thread_async(self, thread_id: str):
         """Asynchronously delete a thread using a properly managed Azure AI Project Client."""
+        credential = None
         try:
             if thread_id:
-                # Use async context manager to ensure proper cleanup
+                # Get credential and use async context managers to ensure proper cleanup
+                credential = await get_azure_credential_async()
                 async with AIProjectClient(
                     endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
-                    credential=await get_azure_credential_async()
+                    credential=credential
                 ) as client:
                     await client.agents.threads.delete(thread_id=thread_id)
                     logger.info("Thread deleted successfully: %s", thread_id)
         except Exception as e:
             logger.error("Failed to delete thread %s: %s", thread_id, e)
+        finally:
+            # Close credential to prevent unclosed client session warnings
+            if credential is not None:
+                await credential.close()
 
 
 def track_event_if_configured(event_name: str, event_data: dict):
@@ -180,52 +186,62 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
     """
     thread = None
     complete_response = ""
+    credential = None
+    db_connection = None
+
     try:
         if not query:
             query = "Please provide a query."
 
-        async with AIProjectClient(
-            endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
-            credential=await get_azure_credential_async()
-        ) as client:
-            foundry_agent = await client.agents.get_agent(os.getenv("AGENT_ID_ORCHESTRATOR"))
+        credential = await get_azure_credential_async()
 
-            cache = get_thread_cache()
-            thread_id = cache.get(conversation_id, None)
+        try:
+            async with AIProjectClient(
+                endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
+                credential=credential
+            ) as client:
+                foundry_agent = await client.agents.get_agent(os.getenv("AGENT_ID_ORCHESTRATOR"))
 
-            truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
+                cache = get_thread_cache()
+                thread_id = cache.get(conversation_id, None)
 
-            from history_sql import SqlQueryTool, get_fabric_db_connection
-            db_connection = await get_fabric_db_connection()
-            if not db_connection:
-                logger.error("Failed to establish database connection")
-                raise Exception("Database connection failed")
+                truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
 
-            custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
+                from history_sql import SqlQueryTool, get_fabric_db_connection
+                db_connection = await get_fabric_db_connection()
+                if not db_connection:
+                    logger.error("Failed to establish database connection")
+                    raise Exception("Database connection failed")
 
-            try:
-                async with ChatAgent(
-                    chat_client=AzureAIAgentClient(project_client=client, agent_id=foundry_agent.id),
-                    tools=[custom_tool.run_sql_query],
-                    tool_choice="auto",
-                    store=True
-                ) as chat_agent:
-                    if thread_id:
-                        thread = chat_agent.get_new_thread(service_thread_id=thread_id)
-                        assert thread.is_initialized
-                    else:
-                        service_thread = await client.agents.threads.create()
-                        thread = chat_agent.get_new_thread(service_thread_id=service_thread.id)
-                        assert thread.is_initialized
-                        cache[conversation_id] = service_thread.id
+                custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
 
-                    async for response in chat_agent.run_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
-                        if response.text:
-                            complete_response += response.text
-                            yield response.text
-            finally:
-                if db_connection:
-                    db_connection.close()
+                try:
+                    async with ChatAgent(
+                        chat_client=AzureAIAgentClient(project_client=client, agent_id=foundry_agent.id),
+                        tools=[custom_tool.run_sql_query],
+                        tool_choice="auto",
+                        store=True
+                    ) as chat_agent:
+                        if thread_id:
+                            thread = chat_agent.get_new_thread(service_thread_id=thread_id)
+                            assert thread.is_initialized
+                        else:
+                            service_thread = await client.agents.threads.create()
+                            thread = chat_agent.get_new_thread(service_thread_id=service_thread.id)
+                            assert thread.is_initialized
+                            cache[conversation_id] = service_thread.id
+
+                        async for response in chat_agent.run_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
+                            if response.text:
+                                complete_response += response.text
+                                yield response.text
+                finally:
+                    if db_connection:
+                        db_connection.close()
+        finally:
+            # Close credential to prevent unclosed client session warnings
+            if credential is not None:
+                await credential.close()
 
     except RuntimeError as e:
         complete_response = str(e)
