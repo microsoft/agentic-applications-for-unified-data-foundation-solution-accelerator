@@ -365,20 +365,17 @@ const sanitizeJSONString = (jsonString: string): string => {
     // **STEP 1: Try parsing first - if it works, no sanitization needed!**
     try {
       JSON.parse(sanitized);
-      console.log("✅ JSON is already valid, skipping sanitization");
       return sanitized;
     } catch {
-      console.log("🔧 JSON invalid, proceeding with sanitization...");
+      //console.log("🔧 JSON invalid, proceeding with sanitization...");
     }
 
     // **STEP 2: Handle escaped JSON strings (e.g., "{\"type\":\"bar\"...}")**
     if (sanitized.startsWith('"{') && sanitized.endsWith('}"')) {
-      console.log('🔧 Detected escaped JSON string with outer quotes, removing...');
       sanitized = sanitized.slice(1, -1);
     }
     
     // **STEP 3: ALWAYS unescape backslashes**
-    console.log('🧹 Unescaping backslashes...');
     sanitized = sanitized.replace(/\\"/g, '"');
     sanitized = sanitized.replace(/\\\\/g, '\\');
     sanitized = sanitized.replace(/\\n/g, '\n');
@@ -388,10 +385,9 @@ const sanitizeJSONString = (jsonString: string): string => {
     // **STEP 4: Validate after basic unescaping**
     try {
       JSON.parse(sanitized);
-      console.log("✅ JSON valid after basic unescaping, skipping complex sanitization");
       return sanitized;
     } catch {
-      console.log("🔧 Still invalid, continuing with complex sanitization...");
+      //console.log("🔧 Still invalid, continuing with complex sanitization...");
     }
 
     // Helper function to find the matching closing bracket
@@ -508,9 +504,6 @@ const sanitizeJSONString = (jsonString: string): string => {
     sanitized = sanitized.replace(/:\s*'([^']*)'/g, ': "$1"');
     sanitized = sanitized.replace(/,(\s*[}\]])/g, '$1');
     sanitized = sanitized.replace(/([\{\,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
-
-    // **🔥 NEW: FINAL VALIDATION AND AUTO-REPAIR 🔥**
-    console.log("🔍 Performing final validation and repair...");
     
     // Count all brackets
     const openBraces = (sanitized.match(/\{/g) || []).length;
@@ -518,24 +511,19 @@ const sanitizeJSONString = (jsonString: string): string => {
     const openBrackets = (sanitized.match(/\[/g) || []).length;
     const closeBrackets = (sanitized.match(/\]/g) || []).length;
     
-    console.log(`📊 Bracket count - Braces: ${openBraces}/${closeBraces}, Brackets: ${openBrackets}/${closeBrackets}`);
-    
     // **AUTO-REPAIR: Add missing closing brackets**
     if (openBraces > closeBraces) {
       const missing = openBraces - closeBraces;
-      console.log(`🔧 Adding ${missing} missing closing brace(s)`);
       sanitized += '}'.repeat(missing);
     }
     
     if (openBrackets > closeBrackets) {
       const missing = openBrackets - closeBrackets;
-      console.log(`🔧 Adding ${missing} missing closing bracket(s)`);
       sanitized += ']'.repeat(missing);
     }
     
     // **AUTO-REPAIR: Remove excess closing brackets**
     if (closeBraces > openBraces) {
-      console.log(`⚠️ More closing braces than opening (${closeBraces} > ${openBraces}), trimming...`);
       let excess = closeBraces - openBraces;
       while (excess > 0 && sanitized.endsWith('}')) {
         sanitized = sanitized.slice(0, -1);
@@ -544,7 +532,6 @@ const sanitizeJSONString = (jsonString: string): string => {
     }
     
     if (closeBrackets > openBrackets) {
-      console.log(`⚠️ More closing brackets than opening (${closeBrackets} > ${openBrackets}), trimming...`);
       let excess = closeBrackets - openBrackets;
       while (excess > 0 && sanitized.endsWith(']')) {
         sanitized = sanitized.slice(0, -1);
@@ -555,14 +542,10 @@ const sanitizeJSONString = (jsonString: string): string => {
     // **FINAL PARSE TEST - Guaranteed to be parseable or fallback**
     try {
       JSON.parse(sanitized);
-      console.log("✅ Sanitization successful - JSON is valid!");
       return sanitized;
     } catch (finalError) {
-      console.error("❌ Sanitization failed - JSON still invalid after auto-repair");
       console.error("Parse error:", finalError instanceof Error ? finalError.message : String(finalError));
-      
-      // **LAST RESORT: Try to extract the first complete JSON object**
-      console.log("🔧 Attempting aggressive extraction...");
+
       try {
         const firstBraceIndex = sanitized.indexOf('{');
         if (firstBraceIndex !== -1) {
@@ -583,7 +566,6 @@ const sanitizeJSONString = (jsonString: string): string => {
           if (endIndex !== -1) {
             const extracted = sanitized.substring(firstBraceIndex, endIndex + 1);
             JSON.parse(extracted); // Test if valid
-            console.log("✅ Successfully extracted valid JSON object");
             return extracted;
           }
         }
@@ -773,12 +755,10 @@ const sanitizeJSONString = (jsonString: string): string => {
             
             // Handle chart content parsing with sanitization
             if (typeof rawChartContent === "string") {
-              console.log("📥 Raw chart content before JSON parse:", rawChartContent);
               
               try {
                 // First, try to parse the raw content directly
                 chartResponse = JSON.parse(rawChartContent);
-                console.log("✅ Successfully parsed raw content directly");
                 
                 // **Handle nested escaped JSON in "answer" field**
                 if (chartResponse && typeof chartResponse === "object" && "answer" in chartResponse) {
@@ -786,7 +766,6 @@ const sanitizeJSONString = (jsonString: string): string => {
                   
                   // If answer is a STRING, it might be escaped JSON - parse it
                   if (typeof answerValue === "string") {
-                    console.log("🔍 First 200 chars:", answerValue);
                     
                     try {
                       // **ENHANCED FIX**: Try direct parse first (for properly escaped JSON)
@@ -795,38 +774,25 @@ const sanitizeJSONString = (jsonString: string): string => {
                       try {
                         // Attempt 1: Direct parse (handles \" properly)
                         parsedAnswer = JSON.parse(answerValue);
-                        console.log("✅ Direct parse succeeded");
                       } catch (directParseError) {
-                        console.log("⚠️ Direct parse failed, trying sanitization...");
-                        
                         // Attempt 2: Sanitize then parse
                         const sanitizedAnswer = sanitizeJSONString(answerValue);
-                        console.log("🧹 Sanitized first 200:", sanitizedAnswer);
-                        
                         // Validate the sanitized string before parsing
                         const openBraces = (sanitizedAnswer.match(/\{/g) || []).length;
                         const closeBraces = (sanitizedAnswer.match(/\}/g) || []).length;
-                        console.log(`📊 Brace count - Open: ${openBraces}, Close: ${closeBraces}`);
                         
                         if (openBraces !== closeBraces) {
-                          console.error("❌ Unbalanced braces after sanitization!");
                           throw new Error("Sanitization produced unbalanced braces");
                         }
                         
                         parsedAnswer = JSON.parse(sanitizedAnswer);
-                        console.log("✅ Parse succeeded after sanitization");
                       }
                       
                       // Replace the string answer with the parsed object
                       chartResponse.answer = parsedAnswer;
-                      console.log("✅ Successfully processed nested JSON from answer field");
                       
                     } catch (nestedError) {
-                      console.error("❌ Failed to parse nested JSON:", nestedError);
                       console.error("❌ Error details:", nestedError instanceof Error ? nestedError.message : String(nestedError));
-                      
-                      // Keep the original string and let the error handling below catch it
-                      console.warn("⚠️ Keeping answer as string, will be caught by error handling");
                     }
                   }
                 }
@@ -835,12 +801,9 @@ const sanitizeJSONString = (jsonString: string): string => {
                 console.error("❌ Failed to parse raw content, trying sanitization...");
                 
                 // If direct parsing fails, try sanitizing first
-                const sanitizedContent = sanitizeJSONString(rawChartContent);
-                console.log("🧹 Sanitized content (first 200 chars):", sanitizedContent);
-                
+                const sanitizedContent = sanitizeJSONString(rawChartContent);                
                 try {
                   chartResponse = JSON.parse(sanitizedContent);
-                  console.log("✅ Successfully parsed after sanitization");
                 } catch (sanitizeError) {
                   console.error("❌ JSON parse failed even after sanitization:", sanitizeError instanceof Error ? sanitizeError.message : sanitizeError);
                   chartResponse = "Chart can't be generated, please try again.";
@@ -878,7 +841,7 @@ const sanitizeJSONString = (jsonString: string): string => {
               updatedMessages = [...state.chat.messages, newMessage, errorMessage];
             }
           } catch (e) {
-            console.log("Error while parsing charts response", e);
+            //console.log("Error while parsing charts response", e);
           }
         } else if (!isChartResponseReceived) {
           dispatch({
