@@ -188,13 +188,13 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
     complete_response = ""
     credential = None
     db_connection = None
-    
+
     try:
         if not query:
             query = "Please provide a query."
 
         credential = await get_azure_credential_async()
-        
+
         try:
             async with AIProjectClient(
                 endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
