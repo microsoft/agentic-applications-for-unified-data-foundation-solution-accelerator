@@ -25,8 +25,8 @@ param backendRuntimeStack string
 @minLength(1)
 @description('Industry use case for deployment:')
 @allowed([
-  'Retail'
-  'Insurance'
+  'Retail-sales-analysis'
+  'Insurance-improve-customer-meetings'
 ])
 param usecase string 
 
