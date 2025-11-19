@@ -63,7 +63,7 @@ const Chat: React.FC<ChatProps> = ({
     if (((reqType !== 'graph' && reqType !== 'error') &&  messages[messages.length - 1].role !== ERROR) && isCharthDisplayDefault ){
       setIsChartLoading(true);
       setTimeout(()=>{
-        makeApiRequestForChart('show in a graph by default', convId, messages[messages.length - 1].content as string)
+        makeApiRequestForChart('show in a graph by default', convId)
       },5000)
       
     }
@@ -181,8 +181,7 @@ const Chat: React.FC<ChatProps> = ({
 
   const makeApiRequestForChart = async (
     question: string,
-    conversationId: string,
-    lrg: string
+    conversationId: string
   ) => {
     if (generatingResponse || !question.trim()) {
       return;
@@ -212,10 +211,7 @@ const Chat: React.FC<ChatProps> = ({
 
     const request: ConversationRequest = {
       id: conversationId,
-      messages: [...state.chat.messages, newMessage].filter(
-        (messageObj) => messageObj.role !== ERROR
-      ),
-      last_rag_response: lrg
+      query: question
     };
 
     const streamMessage: ChatMessage = {
@@ -423,13 +419,7 @@ const Chat: React.FC<ChatProps> = ({
 
     const request: ConversationRequest = {
       id: conversationId,
-      messages: [...state.chat.messages, newMessage].filter(
-        (messageObj) => messageObj.role !== ERROR
-      ),
-      last_rag_response:
-        isChartQuery(userMessage) && state.chat.lastRagResponse
-          ? JSON.stringify(state.chat.lastRagResponse)
-          : null,
+      query: userMessage
     };
 
     const streamMessage: ChatMessage = {

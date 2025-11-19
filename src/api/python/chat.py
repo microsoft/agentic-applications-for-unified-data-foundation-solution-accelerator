@@ -331,13 +331,23 @@ async def stream_chat_request(request_body, conversation_id, query):
 async def conversation(request: Request):
     """Handle chat requests - streaming text or chart generation based on query keywords."""
     try:
-        # Get the request JSON and last RAG response from the client
+        # Get the request JSON with optimized payload (only conversation_id and query)
         request_json = await request.json()
-        # last_rag_response = request_json.get("last_rag_response")
         conversation_id = request_json.get("conversation_id")
-        # logger.info("Received last_rag_response: %s", last_rag_response)
-
-        query = request_json.get("messages")[-1].get("content")
+        query = request_json.get("query")
+        
+        # Validate required parameters
+        if not query:
+            return JSONResponse(
+                content={"error": "Query is required"}, 
+                status_code=400
+            )
+        
+        if not conversation_id:
+            return JSONResponse(
+                content={"error": "Conversation ID is required"}, 
+                status_code=400
+            )
 
         result = await stream_chat_request(request_json, conversation_id, query)
         track_event_if_configured(

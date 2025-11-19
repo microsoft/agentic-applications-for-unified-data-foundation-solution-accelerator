@@ -230,9 +230,8 @@ export async function callConversationApi(
         "X-Ms-Client-Principal-Id": userId || "",
       },
       body: JSON.stringify({
-        messages: options.messages,
         conversation_id: options.id,
-        last_rag_response: options.last_rag_response
+        query: options.query
       }),
       signal: abortSignal,
     });
