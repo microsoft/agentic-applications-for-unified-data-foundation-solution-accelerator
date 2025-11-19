@@ -197,15 +197,7 @@ const Dashboard: React.FC = () => {
 
   const [ASSISTANT, TOOL, ERROR, USER] = ["assistant", "tool", "error", "user"];
 
-  const getLastRagResponse = (messages: ChatMessage[]) => {
-    const lastAssistantObj = [...messages]
-      .reverse()
-      .find((obj) => obj.role === ASSISTANT && typeof obj.content === "string");
-    if (typeof lastAssistantObj?.content === "string") {
-      return lastAssistantObj.content.trim();
-    }
-    return null;
-  };
+
 
   const onSelectConversation = async (id: string) => {
     if (!id) {
@@ -220,10 +212,7 @@ const Dashboard: React.FC = () => {
       type: actionConstants.UPDATE_SELECTED_CONV_ID,
       payload: id,
     });
-    dispatch({
-      type: actionConstants.SET_LAST_RAG_RESPONSE,
-      payload: null,
-    });
+
     try {
       const responseMessages = await historyRead(id);
 
@@ -236,11 +225,7 @@ const Dashboard: React.FC = () => {
           },
         });
       }
-      const lastRagResponse = getLastRagResponse(responseMessages);
-      dispatch({
-        type: actionConstants.SET_LAST_RAG_RESPONSE,
-        payload: lastRagResponse,
-      });
+
     } catch (error) {
       console.error("Error fetching conversation messages:", error);
     } finally {

@@ -673,10 +673,7 @@ const Chat: React.FC<ChatProps> = ({
             console.log("Error while parsing charts response", e);
           }
         } else if (!isChartResponseReceived) {
-          dispatch({
-            type: actionConstants.SET_LAST_RAG_RESPONSE,
-            payload: streamMessage?.content as string,
-          });
+
           updatedMessages = [
             ...state.chat.messages,
             newMessage,
