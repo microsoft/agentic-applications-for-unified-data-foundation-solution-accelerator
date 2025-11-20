@@ -25,7 +25,7 @@ from azure.ai.projects.aio import AIProjectClient
 
 from agent_framework import ChatAgent
 from agent_framework.azure import AzureAIAgentClient
-from agent_framework.exceptions import AgentException
+from agent_framework.exceptions import ServiceResponseException
 
 # Azure Auth
 from auth.azure_credential_utils import get_azure_credential_async
@@ -186,14 +186,18 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
                 if db_connection:
                     db_connection.close()
 
-    except RuntimeError as e:
+    except ServiceResponseException as e:
         complete_response = str(e)
         if "Rate limit is exceeded" in str(e):
             logger.error("Rate limit error: %s", e)
-            raise AgentException(f"Rate limit is exceeded. {str(e)}") from e
+            retry_time = 60
+            match = re.search(r"Try again in (\d+) seconds", str(e))
+            if match:
+                retry_time = int(match.group(1))
+            raise ServiceResponseException(f"Rate limit is exceeded. Try again in {retry_time} seconds.") from e
         else:
             logger.error("RuntimeError: %s", e)
-            raise AgentException(f"An unexpected runtime error occurred: {str(e)}") from e
+            raise ServiceResponseException(f"An unexpected runtime error occurred: {str(e)}") from e
 
     except Exception as e:
         complete_response = str(e)
@@ -212,7 +216,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-async def stream_chat_request(request_body, conversation_id, query):
+async def stream_chat_request(conversation_id, query):
     """
     Handles streaming chat requests.
     """
@@ -232,22 +236,18 @@ async def stream_chat_request(request_body, conversation_id, query):
                     }
                     yield json.dumps(response, ensure_ascii=False) + "\n\n"
 
-        except AgentException as e:
+        except ServiceResponseException as e:
             error_message = str(e)
             retry_after = "sometime"
             if "Rate limit is exceeded" in error_message:
-                match = re.search(r"Try again in (\d+) seconds", error_message)
+                match = re.search(r"Try again in (\d+) seconds.", error_message)
                 if match:
                     retry_after = f"{match.group(1)} seconds"
                 logger.error("Rate limit error: %s", error_message)
-                error_response = {
-                    "error": f"Rate limit exceeded. Please try again after {retry_after}."
-                }
-                yield json.dumps(error_response) + "\n\n"
+                yield json.dumps({"error": f"Rate limit is exceeded. Try again in {retry_after}."}) + "\n\n"
             else:
-                logger.error("Agent exception: %s", error_message)
-                error_response = {"error": "An error occurred. Please try again later."}
-                yield json.dumps(error_response) + "\n\n"
+                logger.error("ServiceResponseException: %s", error_message)
+                yield json.dumps({"error": "An error occurred. Please try again later."}) + "\n\n"
 
         except Exception as e:
             logger.error("Unexpected error: %s", e)
@@ -279,7 +279,7 @@ async def conversation(request: Request):
                 status_code=400
             )
 
-        result = await stream_chat_request(request_json, conversation_id, query)
+        result = await stream_chat_request(conversation_id, query)
         track_event_if_configured(
             "ChatStreamSuccess",
             {"conversation_id": conversation_id, "query": query}
