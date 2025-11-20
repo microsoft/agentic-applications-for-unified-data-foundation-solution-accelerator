@@ -175,7 +175,7 @@ export const historyList = async (
 };
 
 export const historyUpdate = async (
-  messages: ChatMessage[],
+  newMessages: ChatMessage[],
   convId: string
 ): Promise<Response> => {
   const userId = getUserIdFromLocalStorage();
@@ -186,7 +186,7 @@ export const historyUpdate = async (
       method: "POST",
       body: JSON.stringify({
         conversation_id: convId,
-        messages: messages,
+        messages: newMessages,
       }),
       headers: {
         "Content-Type": "application/json",
