@@ -121,7 +121,6 @@ def track_event_if_configured(event_name: str, event_data: dict):
         logging.warning("Skipping track_event for %s as Application Insights is not configured", event_name)
 
 
-
 # Global thread cache
 thread_cache = None
 
