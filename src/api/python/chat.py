@@ -8,9 +8,6 @@ import logging
 import os
 import random
 import re
-import time
-import uuid
-from types import SimpleNamespace
 from typing import AsyncGenerator
 
 from cachetools import TTLCache
@@ -124,43 +121,6 @@ def track_event_if_configured(event_name: str, event_data: dict):
         logging.warning("Skipping track_event for %s as Application Insights is not configured", event_name)
 
 
-def format_stream_response(chat_completion_chunk, history_metadata, apim_request_id):
-    """Format chat completion chunk into standardized response object."""
-    response_obj = {
-        "id": chat_completion_chunk.id,
-        "model": chat_completion_chunk.model,
-        "created": chat_completion_chunk.created,
-        "object": chat_completion_chunk.object,
-        "choices": [{"messages": []}],
-        "history_metadata": history_metadata,
-        "apim-request-id": apim_request_id,
-    }
-
-    if len(chat_completion_chunk.choices) > 0:
-        delta = chat_completion_chunk.choices[0].delta
-        if delta:
-            if hasattr(delta, "context"):
-                message_obj = {"role": "tool", "content": json.dumps(delta.context)}
-                response_obj["choices"][0]["messages"].append(message_obj)
-                return response_obj
-            if delta.role == "assistant" and hasattr(delta, "context"):
-                message_obj = {
-                    "role": "assistant",
-                    "context": delta.context,
-                }
-                response_obj["choices"][0]["messages"].append(message_obj)
-                return response_obj
-            else:
-                if delta.content:
-                    message_obj = {
-                        "role": "assistant",
-                        "content": delta.content,
-                    }
-                    response_obj["choices"][0]["messages"].append(message_obj)
-                    return response_obj
-
-    return {}
-
 
 # Global thread cache
 thread_cache = None
@@ -257,8 +217,6 @@ async def stream_chat_request(request_body, conversation_id, query):
     """
     Handles streaming chat requests.
     """
-    history_metadata = request_body.get("history_metadata", {})
-
     async def generate():
         try:
             assistant_content = ""
@@ -268,39 +226,12 @@ async def stream_chat_request(request_body, conversation_id, query):
                 assistant_content += str(chunk)
 
                 if assistant_content:
-                    chat_completion_chunk = {
-                        "id": "",
-                        "model": "",
-                        "created": 0,
-                        "object": "",
-                        "choices": [
-                            {
-                                "messages": [],
-                                "delta": {},
-                            }
-                        ],
-                        "history_metadata": history_metadata,
-                        "apim-request-id": "",
+                    response = {
+                        "choices": [{
+                            "messages": [{"role": "assistant", "content": assistant_content}]
+                        }]
                     }
-
-                    chat_completion_chunk["id"] = str(uuid.uuid4())
-                    chat_completion_chunk["model"] = "rag-model"
-                    chat_completion_chunk["created"] = int(time.time())
-                    chat_completion_chunk["object"] = "extensions.chat.completion.chunk"
-                    chat_completion_chunk["choices"][0]["messages"].append(
-                        {"role": "assistant", "content": assistant_content}
-                    )
-                    chat_completion_chunk["choices"][0]["delta"] = {
-                        "role": "assistant",
-                        "content": assistant_content,
-                    }
-
-                    completion_chunk_obj = json.loads(
-                        json.dumps(chat_completion_chunk),
-                        object_hook=lambda d: SimpleNamespace(**d),
-                    )
-                    formatted = format_stream_response(completion_chunk_obj, history_metadata, "")
-                    yield json.dumps(formatted, ensure_ascii=False) + "\n\n"
+                    yield json.dumps(response, ensure_ascii=False) + "\n\n"
 
         except AgentException as e:
             error_message = str(e)
