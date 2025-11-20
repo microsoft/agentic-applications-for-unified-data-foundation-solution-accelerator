@@ -41,8 +41,8 @@ public class ChatController : ControllerBase
     public async Task Chat([FromBody] ChatRequest request, [FromServices] IAgentFrameworkService agentService, CancellationToken ct)
     {
         Response.ContentType = "application/json-lines";
-        var query = request.Messages?.LastOrDefault()?.GetContentAsString();
-        if (string.IsNullOrWhiteSpace(query))
+        
+        if (string.IsNullOrWhiteSpace(request.Query))
         {
             await Response.WriteAsync(JsonSerializer.Serialize(new { error = "query is required" }) + "\n\n", ct);
             return;
@@ -68,7 +68,7 @@ public class ChatController : ControllerBase
         }
         try
         {
-            var messageContent = query;
+            var messageContent = request.Query;
             var acc = "";
             
             // Stream response from Agent Framework with thread context
@@ -82,10 +82,6 @@ public class ChatController : ControllerBase
                 {
                     var envelope = new
                     {
-                        id = convId,
-                        model = "rag-model",
-                        created = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                        @object = "extensions.chat.completion.chunk",
                         choices = new[] { new { messages = new[] { new { role = "assistant", content = acc } } } }
                     };
                     await Response.WriteAsync(JsonSerializer.Serialize(envelope) + "\n\n", ct);
