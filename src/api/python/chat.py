@@ -190,11 +190,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
         complete_response = str(e)
         if "Rate limit is exceeded" in str(e):
             logger.error("Rate limit error: %s", e)
-            retry_time = 60
-            match = re.search(r"Try again in (\d+) seconds", str(e))
-            if match:
-                retry_time = int(match.group(1))
-            raise ServiceResponseException(f"Rate limit is exceeded. Try again in {retry_time} seconds.") from e
+            raise ServiceResponseException(f"Rate limit is exceeded. {str(e)}") from e
         else:
             logger.error("RuntimeError: %s", e)
             raise ServiceResponseException(f"An unexpected runtime error occurred: {str(e)}") from e
