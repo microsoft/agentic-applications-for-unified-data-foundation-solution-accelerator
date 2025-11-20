@@ -68,9 +68,6 @@ const Chat: React.FC<ChatProps> = ({
       
     }
     
-    // The newMessages array already contains only the new messages from this conversation turn
-    // No need to filter as the caller is responsible for sending only new messages
-    
     await historyUpdate(newMessages, convId)
       .then(async (res) => {
         if (!res.ok) {
@@ -288,7 +285,7 @@ const Chat: React.FC<ChatProps> = ({
                     parsedChartResponse.object as unknown as ChartDataResponse,
                   date: new Date().toISOString(),
                 };
-                updatedMessages = [newMessage, chartMessage]; // Only new messages for this turn
+                updatedMessages = [newMessage, chartMessage];
                 // Update messages with the response content
                 dispatch({
                   type: actionConstants.UPDATE_MESSAGES,
@@ -326,7 +323,7 @@ const Chat: React.FC<ChatProps> = ({
                 content: errorMsg,
                 date: new Date().toISOString(),
               };
-              updatedMessages = [newMessage, errorMessage]; // Only new messages for this turn
+              updatedMessages = [newMessage, errorMessage];
               dispatch({
                 type: actionConstants.UPDATE_MESSAGES,
                 payload: [errorMessage],
@@ -599,7 +596,7 @@ const Chat: React.FC<ChatProps> = ({
                     chartResponse as unknown as ChartDataResponse,
                   date: new Date().toISOString(),
                 };
-                updatedMessages = [newMessage, chartMessage]; // Only new messages for this turn
+                updatedMessages = [newMessage, chartMessage];
                 // Update messages with the response content
                 dispatch({
                   type: actionConstants.UPDATE_MESSAGES,
@@ -614,7 +611,7 @@ const Chat: React.FC<ChatProps> = ({
                   content: "Error while generating Chart.",
                   date: new Date().toISOString(),
                 };
-                updatedMessages = [newMessage, chartMessage]; // Only new messages for this turn
+                updatedMessages = [newMessage, chartMessage];
                 dispatch({
                   type: actionConstants.UPDATE_MESSAGES,
                   payload: [chartMessage],
@@ -642,7 +639,7 @@ const Chat: React.FC<ChatProps> = ({
                 content: errorMsg,
                 date: new Date().toISOString(),
               };
-              updatedMessages = [newMessage, errorMessage]; // Only new messages for this turn
+              updatedMessages = [newMessage, errorMessage];
               dispatch({
                 type: actionConstants.UPDATE_MESSAGES,
                 payload: [errorMessage],
@@ -654,7 +651,7 @@ const Chat: React.FC<ChatProps> = ({
           }
         } else if (!isChartResponseReceived) {
 
-          updatedMessages = [newMessage, streamMessage]; // Only new messages for this turn
+          updatedMessages = [newMessage, streamMessage];
         }
       }
       if (updatedMessages[updatedMessages.length-1]?.role !== "error") {
