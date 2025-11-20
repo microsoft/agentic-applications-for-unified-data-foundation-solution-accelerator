@@ -335,17 +335,17 @@ async def conversation(request: Request):
         request_json = await request.json()
         conversation_id = request_json.get("conversation_id")
         query = request_json.get("query")
-        
+
         # Validate required parameters
         if not query:
             return JSONResponse(
-                content={"error": "Query is required"}, 
+                content={"error": "Query is required"},
                 status_code=400
             )
-        
+
         if not conversation_id:
             return JSONResponse(
-                content={"error": "Conversation ID is required"}, 
+                content={"error": "Conversation ID is required"},
                 status_code=400
             )
 
