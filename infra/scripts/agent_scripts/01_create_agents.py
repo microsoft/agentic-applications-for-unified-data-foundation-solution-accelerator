@@ -57,9 +57,10 @@ If the user query is asking for a chart,
             Match all brackets: every { has }, every [ has ]
             Remove ALL trailing commas before } or ]
             DO NOT include escape quotes with backslashes
-            DO NOT include tooltip callbacks or JavaScript functions        
+            DO NOT include tooltip callbacks or JavaScript functions 
+            DO NOT include markdown formatting (e.g., ```json) or any explanatory text 
             All property names in double quotes
-            Test output with JSON.parse() before returning
+            Perform pre-flight validation with JSON.parse() before returning       
         Ensure Y-axis labels visible: scales.y.ticks.padding: 10, adjust maxWidth if needed
         Proper spacing: barPercentage: 0.8, categoryPercentage: 0.9
         You **MUST NOT** attempt to generate a chart/graph/data visualization without numeric data. 
