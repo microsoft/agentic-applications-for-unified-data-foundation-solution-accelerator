@@ -25,11 +25,11 @@ Leverages the Unified Data Foundation in Fabric accelerator, SQL Database in Fab
 
 ### Solution architecture
 
-Microsoft Fabric and Microsoft Copilot Studio
+Microsoft Fabric and Microsoft Copilot Studio:
 |![image](./documents/Images/ReadMe/solution-architecture-cps.png)
 |---|
 
-Microsoft Fabric and Microsoft Foundry
+Microsoft Fabric and Microsoft Foundry: 
 |![image](./documents/Images/ReadMe/solution-architecture.png)
 |---|
 
