@@ -53,7 +53,7 @@ else
 fi
 
 echo "Getting signed in user id"
-signed_user_id=$(az ad signed-in-user show --query id -o tsv)
+signed_user_id=$(az ad signed-in-user show --query id -o tsv) || signed_user_id=${AZURE_CLIENT_ID}
 
 echo "Checking if the user has Azure AI User role on the AI Foundry"
 role_assignment=$(MSYS_NO_PATHCONV=1 az role assignment list \
@@ -97,7 +97,7 @@ echo "Agents creation completed."
 az webapp config appsettings set \
   --resource-group "$resourceGroup" \
   --name "$apiAppName" \
-  --settings AGENT_ID_ORCHESTRATOR="$orchestratorAgentId" \
+  --settings AGENT_ID_ORCHESTRATOR="$orchestratorAgentId" AGENT_ID_TITLE="$titleAgentId" \
   -o none
 
 echo "Environment variables updated for App Service: $apiAppName"

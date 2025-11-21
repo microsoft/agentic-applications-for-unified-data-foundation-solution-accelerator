@@ -175,7 +175,7 @@ export const historyList = async (
 };
 
 export const historyUpdate = async (
-  messages: ChatMessage[],
+  newMessages: ChatMessage[],
   convId: string
 ): Promise<Response> => {
   const userId = getUserIdFromLocalStorage();
@@ -186,7 +186,7 @@ export const historyUpdate = async (
       method: "POST",
       body: JSON.stringify({
         conversation_id: convId,
-        messages: messages,
+        messages: newMessages,
       }),
       headers: {
         "Content-Type": "application/json",
@@ -230,9 +230,8 @@ export async function callConversationApi(
         "X-Ms-Client-Principal-Id": userId || "",
       },
       body: JSON.stringify({
-        messages: options.messages,
         conversation_id: options.id,
-        last_rag_response: options.last_rag_response
+        query: options.query
       }),
       signal: abortSignal,
     });

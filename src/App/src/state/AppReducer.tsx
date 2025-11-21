@@ -57,7 +57,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
     case actionConstants.NEW_CONVERSATION_START:
       return {
         ...state,
-        chat: { ...state.chat, messages: [], lastRagResponse: null },
+        chat: { ...state.chat, messages: [] },
         selectedConversationId: "",
         generatedConversationId: generateUUIDv4(),
       };
@@ -168,14 +168,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
           isHistoryUpdateAPIPending: action.payload,
         },
       };
-    case actionConstants.SET_LAST_RAG_RESPONSE:
-      return {
-        ...state,
-        chat: {
-          ...state.chat,
-          lastRagResponse: action.payload,
-        },
-      };
+
     case actionConstants.UPDATE_MESSAGE_BY_ID:
       const messageID = action.payload.id;
       // console.log("aaction::",action.payload)

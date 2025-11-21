@@ -6,7 +6,7 @@ namespace CsApi.Models;
 public class ChatRequest
 {
     [JsonPropertyName("conversation_id")] public string? ConversationId { get; set; }
-    [JsonPropertyName("messages")] public List<ChatMessage>? Messages { get; set; }
+    [JsonPropertyName("query")] public string? Query { get; set; }
 }
 
 public class ChatMessage

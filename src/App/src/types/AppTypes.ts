@@ -39,8 +39,7 @@ export type ChatMessage = {
 
 export type ConversationRequest = {
   id?: string;
-  messages: ChatMessage[];
-  last_rag_response: string | null;
+  query: string;
 };
 
 export type AskResponse = {

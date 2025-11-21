@@ -5,9 +5,7 @@ using CsApi.Services;
 using CsApi.Repositories;
 using CsApi.Utils;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Concurrent;
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
 
 namespace CsApi.Controllers;
 
@@ -43,8 +41,8 @@ public class ChatController : ControllerBase
     public async Task Chat([FromBody] ChatRequest request, [FromServices] IAgentFrameworkService agentService, CancellationToken ct)
     {
         Response.ContentType = "application/json-lines";
-        var query = request.Messages?.LastOrDefault()?.GetContentAsString();
-        if (string.IsNullOrWhiteSpace(query))
+        
+        if (string.IsNullOrWhiteSpace(request.Query))
         {
             await Response.WriteAsync(JsonSerializer.Serialize(new { error = "query is required" }) + "\n\n", ct);
             return;
@@ -70,7 +68,7 @@ public class ChatController : ControllerBase
         }
         try
         {
-            var messageContent = query;
+            var messageContent = request.Query;
             var acc = "";
             
             // Stream response from Agent Framework with thread context
@@ -84,10 +82,6 @@ public class ChatController : ControllerBase
                 {
                     var envelope = new
                     {
-                        id = convId,
-                        model = "rag-model",
-                        created = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                        @object = "extensions.chat.completion.chunk",
                         choices = new[] { new { messages = new[] { new { role = "assistant", content = acc } } } }
                     };
                     await Response.WriteAsync(JsonSerializer.Serialize(envelope) + "\n\n", ct);
@@ -137,29 +131,4 @@ public class ChatController : ControllerBase
         return BadRequest(new { error = "DISPLAY_CHART_DEFAULT flag not found in environment variables" });
     }
 
-    [HttpPost("fetch-azure-search-content")]
-    public async Task<IActionResult> FetchAzureSearchContent([FromBody] FetchAzureSearchContentRequest req)
-    {
-        if (string.IsNullOrWhiteSpace(req?.Url))
-            return BadRequest(new { error = "URL is required" });
-        try
-        {
-            using var httpClient = new HttpClient();
-            var requestMsg = new HttpRequestMessage(HttpMethod.Get, req.Url);
-            requestMsg.Headers.Add("Content-Type", "application/json");
-            var response = await httpClient.SendAsync(requestMsg);
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return Ok(new { content = json });
-            }
-            return StatusCode((int)response.StatusCode, new { error = $"Error: HTTP {response.StatusCode}" });
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Internal server error" });
-        }
-    }
-
-    public class FetchAzureSearchContentRequest { public string? Url { get; set; } }
 }
