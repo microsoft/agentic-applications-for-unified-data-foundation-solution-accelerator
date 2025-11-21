@@ -8,9 +8,6 @@ import logging
 import os
 import random
 import re
-import time
-import uuid
-from types import SimpleNamespace
 from typing import AsyncGenerator
 
 from cachetools import TTLCache
@@ -28,7 +25,7 @@ from azure.ai.projects.aio import AIProjectClient
 
 from agent_framework import ChatAgent
 from agent_framework.azure import AzureAIAgentClient
-from agent_framework.exceptions import AgentException
+from agent_framework.exceptions import ServiceResponseException
 
 # Azure Auth
 from auth.azure_credential_utils import get_azure_credential_async
@@ -124,44 +121,6 @@ def track_event_if_configured(event_name: str, event_data: dict):
         logging.warning("Skipping track_event for %s as Application Insights is not configured", event_name)
 
 
-def format_stream_response(chat_completion_chunk, history_metadata, apim_request_id):
-    """Format chat completion chunk into standardized response object."""
-    response_obj = {
-        "id": chat_completion_chunk.id,
-        "model": chat_completion_chunk.model,
-        "created": chat_completion_chunk.created,
-        "object": chat_completion_chunk.object,
-        "choices": [{"messages": []}],
-        "history_metadata": history_metadata,
-        "apim-request-id": apim_request_id,
-    }
-
-    if len(chat_completion_chunk.choices) > 0:
-        delta = chat_completion_chunk.choices[0].delta
-        if delta:
-            if hasattr(delta, "context"):
-                message_obj = {"role": "tool", "content": json.dumps(delta.context)}
-                response_obj["choices"][0]["messages"].append(message_obj)
-                return response_obj
-            if delta.role == "assistant" and hasattr(delta, "context"):
-                message_obj = {
-                    "role": "assistant",
-                    "context": delta.context,
-                }
-                response_obj["choices"][0]["messages"].append(message_obj)
-                return response_obj
-            else:
-                if delta.content:
-                    message_obj = {
-                        "role": "assistant",
-                        "content": delta.content,
-                    }
-                    response_obj["choices"][0]["messages"].append(message_obj)
-                    return response_obj
-
-    return {}
-
-
 # Global thread cache
 thread_cache = None
 
@@ -227,14 +186,14 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
                 if db_connection:
                     db_connection.close()
 
-    except RuntimeError as e:
+    except ServiceResponseException as e:
         complete_response = str(e)
         if "Rate limit is exceeded" in str(e):
             logger.error("Rate limit error: %s", e)
-            raise AgentException(f"Rate limit is exceeded. {str(e)}") from e
+            raise ServiceResponseException(f"Rate limit is exceeded. {str(e)}") from e
         else:
             logger.error("RuntimeError: %s", e)
-            raise AgentException(f"An unexpected runtime error occurred: {str(e)}") from e
+            raise ServiceResponseException(f"An unexpected runtime error occurred: {str(e)}") from e
 
     except Exception as e:
         complete_response = str(e)
@@ -253,12 +212,10 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-async def stream_chat_request(request_body, conversation_id, query):
+async def stream_chat_request(conversation_id, query):
     """
     Handles streaming chat requests.
     """
-    history_metadata = request_body.get("history_metadata", {})
-
     async def generate():
         try:
             assistant_content = ""
@@ -268,56 +225,25 @@ async def stream_chat_request(request_body, conversation_id, query):
                 assistant_content += str(chunk)
 
                 if assistant_content:
-                    chat_completion_chunk = {
-                        "id": "",
-                        "model": "",
-                        "created": 0,
-                        "object": "",
-                        "choices": [
-                            {
-                                "messages": [],
-                                "delta": {},
-                            }
-                        ],
-                        "history_metadata": history_metadata,
-                        "apim-request-id": "",
+                    response = {
+                        "choices": [{
+                            "messages": [{"role": "assistant", "content": assistant_content}]
+                        }]
                     }
+                    yield json.dumps(response, ensure_ascii=False) + "\n\n"
 
-                    chat_completion_chunk["id"] = str(uuid.uuid4())
-                    chat_completion_chunk["model"] = "rag-model"
-                    chat_completion_chunk["created"] = int(time.time())
-                    chat_completion_chunk["object"] = "extensions.chat.completion.chunk"
-                    chat_completion_chunk["choices"][0]["messages"].append(
-                        {"role": "assistant", "content": assistant_content}
-                    )
-                    chat_completion_chunk["choices"][0]["delta"] = {
-                        "role": "assistant",
-                        "content": assistant_content,
-                    }
-
-                    completion_chunk_obj = json.loads(
-                        json.dumps(chat_completion_chunk),
-                        object_hook=lambda d: SimpleNamespace(**d),
-                    )
-                    formatted = format_stream_response(completion_chunk_obj, history_metadata, "")
-                    yield json.dumps(formatted, ensure_ascii=False) + "\n\n"
-
-        except AgentException as e:
+        except ServiceResponseException as e:
             error_message = str(e)
             retry_after = "sometime"
             if "Rate limit is exceeded" in error_message:
-                match = re.search(r"Try again in (\d+) seconds", error_message)
+                match = re.search(r"Try again in (\d+) seconds.", error_message)
                 if match:
                     retry_after = f"{match.group(1)} seconds"
                 logger.error("Rate limit error: %s", error_message)
-                error_response = {
-                    "error": f"Rate limit exceeded. Please try again after {retry_after}."
-                }
-                yield json.dumps(error_response) + "\n\n"
+                yield json.dumps({"error": f"Rate limit is exceeded. Try again in {retry_after}."}) + "\n\n"
             else:
-                logger.error("Agent exception: %s", error_message)
-                error_response = {"error": "An error occurred. Please try again later."}
-                yield json.dumps(error_response) + "\n\n"
+                logger.error("ServiceResponseException: %s", error_message)
+                yield json.dumps({"error": "An error occurred. Please try again later."}) + "\n\n"
 
         except Exception as e:
             logger.error("Unexpected error: %s", e)
@@ -331,15 +257,25 @@ async def stream_chat_request(request_body, conversation_id, query):
 async def conversation(request: Request):
     """Handle chat requests - streaming text or chart generation based on query keywords."""
     try:
-        # Get the request JSON and last RAG response from the client
+        # Get the request JSON with optimized payload (only conversation_id and query)
         request_json = await request.json()
-        # last_rag_response = request_json.get("last_rag_response")
         conversation_id = request_json.get("conversation_id")
-        # logger.info("Received last_rag_response: %s", last_rag_response)
+        query = request_json.get("query")
 
-        query = request_json.get("messages")[-1].get("content")
+        # Validate required parameters
+        if not query:
+            return JSONResponse(
+                content={"error": "Query is required"},
+                status_code=400
+            )
 
-        result = await stream_chat_request(request_json, conversation_id, query)
+        if not conversation_id:
+            return JSONResponse(
+                content={"error": "Conversation ID is required"},
+                status_code=400
+            )
+
+        result = await stream_chat_request(conversation_id, query)
         track_event_if_configured(
             "ChatStreamSuccess",
             {"conversation_id": conversation_id, "query": query}
