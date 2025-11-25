@@ -26,18 +26,18 @@ router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Ensure the logger level is set
+logger.setLevel(logging.INFO)
+
 # Check if the Application Insights Instrumentation Key is set in the environment variables
 instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
 if instrumentation_key:
     # Configure Application Insights if the Instrumentation Key is found
     configure_azure_monitor(connection_string=instrumentation_key)
-    logging.info("Historyfab API: Application Insights configured with the provided Instrumentation Key")
+    logger.info("Historyfab API: Application Insights configured with the provided Instrumentation Key")
 else:
     # Log a warning if the Instrumentation Key is not found
-    logging.warning("Historyfab API: No Application Insights Instrumentation Key found. Skipping configuration")
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+    logger.warning("Historyfab API: No Application Insights Instrumentation Key found. Skipping configuration")
 
 # Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
 logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
@@ -209,6 +209,7 @@ class SqlQueryTool(BaseModel):
     async def run_sql_query(self, sql_query):
         """Execute parameterized SQL query and return results as list of dictionaries."""
         # Connect to the database
+        # logger.info("AVJ Executing SQL Query: %s", sql_query)
         try:
             cursor = self.pyodbc_conn.cursor()
             cursor.execute(sql_query)

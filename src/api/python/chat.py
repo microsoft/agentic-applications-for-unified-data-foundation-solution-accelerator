@@ -42,18 +42,32 @@ router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Ensure the logger level is set
+logger.setLevel(logging.INFO)
+
+# Enable logging for agent_framework package (internal agent framework logs)
+logging.getLogger("agent_framework").setLevel(logging.DEBUG)
+logging.getLogger("agent_framework.azure").setLevel(logging.DEBUG)  # Azure AI specific logs
+logging.getLogger("agent_framework._agents").setLevel(logging.DEBUG)  # ChatAgent specific logs
+logging.getLogger("agent_framework._clients").setLevel(logging.DEBUG)  # Chat client logs
+logging.getLogger("agent_framework.azure._chat_client").setLevel(logging.DEBUG)  # AzureAIAgentClient internal logs
+
+# Enable logging for Azure AI Projects SDK to see agent reasoning and tool calls
+logging.getLogger("azure.ai.projects").setLevel(logging.DEBUG)  # Azure AI Foundry agent operations
+logging.getLogger("azure.ai.agents").setLevel(logging.DEBUG)  # Agent SDK operations
+logging.getLogger("azure.ai").setLevel(logging.DEBUG)  # All Azure AI logs
+
+logger.info("Enabled DEBUG logging for agent_framework, ChatAgent, AzureAIAgentClient, and Azure AI Projects SDK")
+
 # Check if the Application Insights Instrumentation Key is set in the environment variables
 instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
 if instrumentation_key:
     # Configure Application Insights if the Instrumentation Key is found
     configure_azure_monitor(connection_string=instrumentation_key)
-    logging.info("Application Insights configured with the provided Instrumentation Key")
+    logger.info("Application Insights configured with the provided Instrumentation Key")
 else:
     # Log a warning if the Instrumentation Key is not found
-    logging.warning("No Application Insights Instrumentation Key found. Skipping configuration")
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+    logger.warning("No Application Insights Instrumentation Key found. Skipping configuration")
 
 # Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
 logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
@@ -195,9 +209,11 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
                                 complete_response += response.text
                                 yield response.text
                 finally:
+                    logger.info("AVJ finally block: ChatAgent - Closing DB connection 1")
                     if db_connection:
                         db_connection.close()
         finally:
+            logger.info("AVJ finally block: AIProjectClient - Closing credential 2")
             # Close credential to prevent unclosed client session warnings
             if credential is not None:
                 await credential.close()
@@ -218,6 +234,8 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
 
     finally:
         # Provide a fallback response when no data is received from OpenAI.
+        logger.info("AVJ AVJ finally block: get_azure_credential_async - complete response 3")
+        logger.info("AVJ Finalizing stream_openai_text for complete_response=%s", complete_response)
         if complete_response == "":
             logger.info("No response received from OpenAI.")
             cache = get_thread_cache()
@@ -290,7 +308,7 @@ async def conversation(request: Request):
                 content={"error": "Conversation ID is required"},
                 status_code=400
             )
-
+        logger.info("AVJ Received chat request: conversation_id=%s, query=%s", conversation_id, query)
         result = await stream_chat_request(conversation_id, query)
         track_event_if_configured(
             "ChatStreamSuccess",
