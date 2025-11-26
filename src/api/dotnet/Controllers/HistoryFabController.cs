@@ -3,7 +3,6 @@ using CsApi.Repositories;
 using CsApi.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
-using System.Text.Json;
 
 namespace CsApi.Controllers;
 

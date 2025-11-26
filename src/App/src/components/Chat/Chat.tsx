@@ -50,8 +50,8 @@ const Chat: React.FC<ChatProps> = ({
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   const [isCharthDisplayDefault , setIsCharthDisplayDefault] = useState(false);
   
-  const saveToDB = async (messages: ChatMessage[], convId: string, reqType: string = 'Text') => {
-    if (!convId || !messages.length) {
+  const saveToDB = async (newMessages: ChatMessage[], convId: string, reqType: string = 'Text') => {
+    if (!convId || !newMessages.length) {
       return;
     }
     const isNewConversation = reqType !== 'graph' ? !state.selectedConversationId : false;
@@ -60,14 +60,15 @@ const Chat: React.FC<ChatProps> = ({
       payload: true,
     });
 
-    if (((reqType !== 'graph' && reqType !== 'error') &&  messages[messages.length - 1].role !== ERROR) && isCharthDisplayDefault ){
+    if (((reqType !== 'graph' && reqType !== 'error') &&  newMessages[newMessages.length - 1].role !== ERROR) && isCharthDisplayDefault ){
       setIsChartLoading(true);
       setTimeout(()=>{
-        makeApiRequestForChart('show in a graph by default', convId, messages[messages.length - 1].content as string)
+        makeApiRequestForChart('show in a graph by default', convId)
       },5000)
       
     }
-    await historyUpdate(messages, convId)
+    
+    await historyUpdate(newMessages, convId)
       .then(async (res) => {
         if (!res.ok) {
           if (!messages) {
@@ -200,8 +201,7 @@ const Chat: React.FC<ChatProps> = ({
 
   const makeApiRequestForChart = async (
     question: string,
-    conversationId: string,
-    lrg: string
+    conversationId: string
   ) => {
     if (generatingResponse || !question.trim()) return;
 
@@ -234,8 +234,7 @@ const Chat: React.FC<ChatProps> = ({
 
     const request: ConversationRequest = {
       id: conversationId,
-      messages: [...state.chat.messages, newMessage].filter(msg => msg.role !== ERROR),
-      last_rag_response: lrg
+      query: question
     };
 
     let updatedMessages: ChatMessage[] = [];
@@ -272,7 +271,7 @@ const Chat: React.FC<ChatProps> = ({
         if (hasError) {
           const errorMsg = JSON.parse(runningText).error;
           const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
-          updatedMessages = [...state.chat.messages, newMessage, errorMessage];
+          updatedMessages = [newMessage, errorMessage];
         } else if (isChartQuery(question)) {
           try {
             const parsedResponse = JSON.parse(runningText);
@@ -282,11 +281,11 @@ const Chat: React.FC<ChatProps> = ({
                 ASSISTANT, 
                 parsedResponse.object as unknown as ChartDataResponse
               );
-              updatedMessages = [...state.chat.messages, newMessage, chartMessage];
+              updatedMessages = [newMessage, chartMessage];
             } else if (parsedResponse.error || parsedResponse?.object?.message) {
               const errorMsg = parsedResponse.error || parsedResponse.object.message;
               const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
-              updatedMessages = [...state.chat.messages, newMessage, errorMessage];
+              updatedMessages = [newMessage, errorMessage];
             }
           } catch (e) {
             console.error("Error parsing chart response:", e);
@@ -301,7 +300,7 @@ const Chat: React.FC<ChatProps> = ({
       console.error("Error in makeApiRequestForChart:", e);
       
       if (abortController.signal.aborted) {
-        updatedMessages = [...state.chat.messages, newMessage];
+        updatedMessages = [newMessage];
         saveToDB(updatedMessages, conversationId, 'graph');
       } else if (e instanceof Error) {
         alert(e.message);
@@ -737,11 +736,7 @@ const sanitizeJSONString = (jsonString: string): string => {
 
     const request: ConversationRequest = {
       id: conversationId,
-      messages: [...state.chat.messages, newMessage].filter(msg => msg.role !== ERROR),
-      last_rag_response:
-        isChartQuery(userMessage) && state.chat.lastRagResponse
-          ? JSON.stringify(state.chat.lastRagResponse)
-          : null,
+      query: userMessage
     };
 
     const streamMessage: ChatMessage = {
@@ -835,7 +830,7 @@ const sanitizeJSONString = (jsonString: string): string => {
             : parsedError.error;
           
           const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
-          updatedMessages = [...state.chat.messages, newMessage, errorMessage];
+          updatedMessages = [newMessage, errorMessage];
         } else if (isChartQuery(userMessage)) {
           try {
             const splitRunningText = runningText.split("}{");
@@ -857,7 +852,7 @@ const sanitizeJSONString = (jsonString: string): string => {
                 ASSISTANT, 
                 chartResponse as unknown as ChartDataResponse
               );
-              updatedMessages = [...state.chat.messages, newMessage, chartMessage];
+              updatedMessages = [newMessage, chartMessage];
             } else if (parsedChartResponse?.error || parsedChartResponse?.choices[0]?.messages[0]?.content) {
               let content = parsedChartResponse?.choices[0]?.messages[0]?.content;
               let displayContent = content;
@@ -879,17 +874,13 @@ const sanitizeJSONString = (jsonString: string): string => {
               }
               
               const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
-              updatedMessages = [...state.chat.messages, newMessage, errorMessage];
+              updatedMessages = [newMessage, errorMessage];
             }
           } catch (e) {
             console.error("Error parsing chart response:", e);
           }
         } else if (!isChartResponseReceived) {
-          dispatch({
-            type: actionConstants.SET_LAST_RAG_RESPONSE,
-            payload: streamMessage?.content as string,
-          });
-          updatedMessages = [...state.chat.messages, newMessage, streamMessage];
+          updatedMessages = [newMessage, streamMessage];
         }
       }
       
@@ -901,8 +892,8 @@ const sanitizeJSONString = (jsonString: string): string => {
       
       if (abortController.signal.aborted) {
         updatedMessages = streamMessage.content
-          ? [...state.chat.messages, newMessage, streamMessage]
-          : [...state.chat.messages, newMessage];
+          ? [newMessage, streamMessage]
+          : [newMessage];
         
         saveToDB(updatedMessages, conversationId, 'error');
       } else if (e instanceof Error) {
