@@ -84,7 +84,7 @@ You can run this solution in VS Code Web. The button will open a web-based VS Co
     
     Select the appropriate subscription to continue.
 
-4. Once the solution opens, the **AI Foundry terminal** will automatically start running the following command to install the required dependencies:
+3. Once the solution opens, the **AI Foundry terminal** will automatically start running the following command to install the required dependencies:
 
     ```shell
     sh install.sh
@@ -95,9 +95,9 @@ You can run this solution in VS Code Web. The button will open a web-based VS Co
     - Overwrite with versions from template
     - Keep my existing files unchanged
     ```
-    Choose “**Keep my existing files unchanged**” and provide a unique environment name when prompted.
+    Choose “**Overwrite with versions from template**” and provide a unique environment name when prompted.
  
-6. Continue with the [deploying steps](#deploying-with-azd).
+4. Continue with the [deploying steps](#deploying-with-azd).
 
 
 </details>
@@ -185,7 +185,7 @@ Depending on your subscription quota and capacity, you can [adjust quota setting
 
 ### Deploying with AZD
 
-Once you've opened the project in [Codespaces](#github-codespaces), [Dev Containers](#vs-code-dev-containers), or [locally](#local-environment), you can deploy it to Azure by following these steps:
+Once you've opened the project in [Codespaces](#github-codespaces), [Dev Containers](#vs-code-dev-containers), [Visual Studio Code (WEB)](#visual-studio-code-web), or [locally](#local-environment), you can deploy it to Azure by following these steps:
 
 1. Login to Azure:
 
