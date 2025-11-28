@@ -12,7 +12,7 @@ import {
 import styles from "./ChatHistoryListItemGroups.module.css";
 import { ChatHistoryListItemCell } from "../ChatHistoryListItemCell/ChatHistoryListItemCell";
 import { Conversation } from "../../types/AppTypes";
-import { useAppContext } from "../../state/useAppContext";
+import { useAppSelector } from "../../store/hooks";
 import { segregateItems } from "../../configs/Utils";
 
 export interface GroupedChatHistory {
@@ -32,8 +32,7 @@ export const ChatHistoryListItemGroups: React.FC<
 }) => {
   const observerTarget = useRef(null);
   const initialCall = useRef(true);
-  const { state } = useAppContext();
-  const { chatHistory } = state;
+  const chatHistory = useAppSelector((state) => state.chatHistory);
 
   const groupedChatHistory = segregateItems(chatHistory.list);
 

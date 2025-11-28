@@ -13,8 +13,22 @@ import {
 } from "../types/AppTypes";
 import { ApiErrorHandler } from "../utils/errorHandler";
 import { getApiBaseUrl } from "../config";
+import { httpClient } from "../utils/httpClient";
+import { getUserId, setUserId, getUserHeaders, createErrorResponse } from "../utils/apiUtils";
 
 const baseURL = getApiBaseUrl(); // base API URL
+
+// Initialize HTTP client with base URL
+httpClient.setBaseURL(baseURL);
+
+// Add user ID to all requests via interceptor
+httpClient.addRequestInterceptor((config) => {
+  const userId = getUserId();
+  if (userId && config.headers) {
+    (config.headers as any)['X-Ms-Client-Principal-Id'] = userId;
+  }
+  return config;
+});
 
 export type UserInfo = {
   access_token: string;
@@ -41,32 +55,20 @@ export async function getUserInfo(): Promise<UserInfo[]> {
   );
   const userId = objectIdClaim?.val;
   if (userId) {
-    localStorage.setItem("userId", userId);
+    setUserId(userId);
   }
   return payload;
 }
 
-function getUserIdFromLocalStorage(): string | null {
-  return localStorage.getItem("userId");
-}
-
 export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
-  const userId = getUserIdFromLocalStorage();
-  const endpoint = `/historyfab/read?id=${encodeURIComponent(convId)}`;
+  const endpoint = `/historyfab/read`;
   
   try {
-    const response = await fetch(`${baseURL}${endpoint}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Ms-Client-Principal-Id": userId || "",
-      },
+    const response = await httpClient.get(endpoint, {
+      params: { id: convId }
     });
     
     if (!response.ok) {
-      // Use new error handling system
-      await ApiErrorHandler.handleApiError(response, endpoint);
-      
       // Return fallback data (maintaining current behavior)
       return historyReadResponse.messages.map((msg: any) => ({
         id: msg.id,
@@ -100,8 +102,6 @@ export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
     return messages;
     
   } catch (error) {
-    // Use new error handling system
-    ApiErrorHandler.handleNetworkError(error, endpoint);
     return [];
   }
 };
@@ -110,21 +110,14 @@ export const historyList = async (
   offset = 0,
   limit = 25
 ): Promise<Conversation[] | null> => {
-  const userId = getUserIdFromLocalStorage();
-  const endpoint = `/historyfab/list?offset=${offset}&limit=${limit}`;
+  const endpoint = `/historyfab/list`;
   
   try {
-    const response = await fetch(`${baseURL}${endpoint}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Ms-Client-Principal-Id": userId || "",
-      },
+    const response = await httpClient.get(endpoint, {
+      params: { offset, limit }
     });
 
     if (!response.ok) {
-      // Use new error handling system
-      await ApiErrorHandler.handleApiError(response, endpoint);
       return null;
     }
 
@@ -178,40 +171,19 @@ export const historyUpdate = async (
   newMessages: ChatMessage[],
   convId: string
 ): Promise<Response> => {
-  const userId = getUserIdFromLocalStorage();
   const endpoint = `/historyfab/update`;
   
   try {
-    const response = await fetch(`${baseURL}${endpoint}`, {
-      method: "POST",
-      body: JSON.stringify({
-        conversation_id: convId,
-        messages: newMessages,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-        "X-Ms-Client-Principal-Id": userId || "",
-      },
+    const response = await httpClient.post(endpoint, {
+      conversation_id: convId,
+      messages: newMessages,
     });
-
-    // Log errors but still return the response (maintaining current behavior)
-    if (!response.ok) {
-      await ApiErrorHandler.handleApiError(response, endpoint);
-    }
     
     return response;
     
   } catch (error) {
-    // Use new error handling system
-    ApiErrorHandler.handleNetworkError(error, endpoint);
-    
     // Return error response (maintaining current behavior)
-    const errRes: Response = {
-      ...new Response(),
-      ok: false,
-      status: 500,
-    };
-    return errRes;
+    return createErrorResponse(500, 'Failed to update history');
   }
 };
 
@@ -219,21 +191,14 @@ export async function callConversationApi(
   options: ConversationRequest,
   abortSignal: AbortSignal
 ): Promise<Response> {
-  const userId = getUserIdFromLocalStorage();
   const endpoint = `/api/chat`;
   
   try {
-    const response = await fetch(`${baseURL}${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Ms-Client-Principal-Id": userId || "",
-      },
-      body: JSON.stringify({
-        conversation_id: options.id,
-        query: options.query
-      }),
-      signal: abortSignal,
+    const response = await httpClient.post(endpoint, {
+      conversation_id: options.id,
+      query: options.query
+    }, {
+      signal: abortSignal
     });
 
     if (!response.ok) {
@@ -263,110 +228,51 @@ export const historyRename = async (
   convId: string,
   title: string
 ): Promise<Response> => {
-  const userId = getUserIdFromLocalStorage();
   const endpoint = `/historyfab/rename`;
   
   try {
-    const response = await fetch(`${baseURL}${endpoint}`, {
-      method: "POST",
-      body: JSON.stringify({
-        conversation_id: convId,
-        title: title,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-        "X-Ms-Client-Principal-Id": userId || "",
-      },
+    const response = await httpClient.post(endpoint, {
+      conversation_id: convId,
+      title: title,
     });
-
-    // Log errors but still return the response (maintaining current behavior)
-    if (!response.ok) {
-      await ApiErrorHandler.handleApiError(response, endpoint);
-    }
     
     return response;
     
   } catch (error) {
-    console.error("Error renaming conversation:", error);
-    // Use new error handling system
-    ApiErrorHandler.handleNetworkError(error, endpoint);
-    
     // Return error response (maintaining current behavior)
-    const errRes: Response = {
-      ...new Response(),
-      ok: false,
-      status: 500,
-    };
-    return errRes;
+    return createErrorResponse(500, 'Failed to rename conversation');
   }
 };
 
 export const historyDelete = async (convId: string): Promise<Response> => {
-  const userId = getUserIdFromLocalStorage();  
-  const endpoint = `/historyfab/delete?id=${encodeURIComponent(convId)}`;
+  const endpoint = `/historyfab/delete`;
   
   try {
-    const response = await fetch(`${baseURL}${endpoint}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Ms-Client-Principal-Id": userId || "",
-      },
+    const response = await httpClient.delete(endpoint, {
+      params: { id: convId }
     });
-
-    // Log errors but still return the response (maintaining current behavior)
-    if (!response.ok) {
-      await ApiErrorHandler.handleApiError(response, endpoint);
-    }
     
     return response;
     
   } catch (error) {
-    // Use new error handling system
-    ApiErrorHandler.handleNetworkError(error, endpoint);
-    
     // Return error response (maintaining current behavior)
-    const errRes: Response = {
-      ...new Response(),
-      ok: false,
-      status: 500,
-    };
-    return errRes;
+    return createErrorResponse(500, 'Failed to delete conversation');
   }
 };
 
 export const historyDeleteAll = async (): Promise<Response> => {
-  const userId = getUserIdFromLocalStorage();
   const endpoint = `/historyfab/delete_all`;
   
   try {
-    const response = await fetch(`${baseURL}${endpoint}`, {
-      method: "DELETE",
-      body: JSON.stringify({}),
-      headers: {
-        "Content-Type": "application/json",
-        "X-Ms-Client-Principal-Id": userId || "",
-      },
+    const response = await httpClient.delete(endpoint, {
+      body: JSON.stringify({})
     });
-
-    // Log errors but still return the response (maintaining current behavior)
-    if (!response.ok) {
-      await ApiErrorHandler.handleApiError(response, endpoint);
-    }
     
     return response;
     
   } catch (error) {
-    // Use new error handling system
-    ApiErrorHandler.handleNetworkError(error, endpoint);
-    
     // Return error response (maintaining current behavior)
-    const errRes: Response = {
-      ...new Response(),
-      ok: false,
-      status: 500,
-    };
-    return errRes;
+    return createErrorResponse(500, 'Failed to delete all conversations');
   }
 };
 
@@ -374,13 +280,7 @@ export const fetchCitationContent = async (body: any) => {
   const endpoint = `/api/fetch-azure-search-content`;
   
   try {
-    const response = await fetch(`${baseURL}${endpoint}`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+    const response = await httpClient.post(endpoint, body);
     
     if (!response.ok) {
       // Handle error with new system and throw (maintaining current behavior)

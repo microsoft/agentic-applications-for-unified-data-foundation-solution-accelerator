@@ -17,8 +17,19 @@ import {
   historyRead,
 } from "./api/api";
 
-import { useAppContext } from "./state/useAppContext";
-import { actionConstants } from "./state/ActionConstants";
+import { useAppDispatch, useAppSelector } from "./store/hooks";
+import {
+  fetchChatHistory,
+  fetchConversationMessages,
+  setFetchingConversations,
+  addConversations,
+  clearAll,
+  setFetchingConvMessages,
+  showConversationMessages,
+} from "./store/chatHistorySlice";
+import { setSelectedConversationId, setAppSpinner, startNewConversation } from "./store/appSlice";
+import { setCitation, clearCitation } from "./store/citationSlice";
+import { setMessages, clearChat } from "./store/chatSlice";
 import { ChatMessage } from "./types/AppTypes";
 import { AppLogo } from "./components/Svg/Svg";
 import CustomSpinner from "./components/CustomSpinner/CustomSpinner";
@@ -39,8 +50,12 @@ const defaultPanelShowStates = {
 };
 
 const Dashboard: React.FC = () => {
-  const { state, dispatch } = useAppContext();
-  const { appConfig } = state.config;
+  const dispatch = useAppDispatch();
+  const { appConfig } = useAppSelector((state) => state.app.config);
+  const showAppSpinner = useAppSelector((state) => state.app.showAppSpinner);
+  const citation = useAppSelector((state) => state.citation);
+  const chatHistory = useAppSelector((state) => state.chatHistory);
+  
   const [panelShowStates, setPanelShowStates] = useState<
     Record<string, boolean>
   >({ ...defaultPanelShowStates });
@@ -122,10 +137,10 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     updateLayoutWidths(panelShowStates);
-  }, [state.config.appConfig]);
+  }, [appConfig]);
 
   const onHandlePanelStates = (panelName: string) => {
-    dispatch({  type: actionConstants.UPDATE_CITATION,payload: { activeCitation: null, showCitation: false }})
+    dispatch(clearCitation());
     setLayoutWidthUpdated((prevFlag) => !prevFlag);
     const newState = {
       ...panelShowStates,
@@ -139,10 +154,7 @@ const Dashboard: React.FC = () => {
     if (!hasMoreRecords) {
       return;
     }
-    dispatch({
-      type: actionConstants.UPDATE_CONVERSATIONS_FETCHING_FLAG,
-      payload: true,
-    });
+    dispatch(setFetchingConversations(true));
     const convs = await historyList(offset);
     if (convs !== null) {
       if (convs.length === OFFSET_INCREMENT) {
@@ -151,36 +163,26 @@ const Dashboard: React.FC = () => {
       } else if (convs.length < OFFSET_INCREMENT) {
         setHasMoreRecords(false);
       }
-      dispatch({
-        type: actionConstants.ADD_CONVERSATIONS_TO_LIST,
-        payload: convs,
-      });
+      dispatch(addConversations(convs));
     }
-    dispatch({
-      type: actionConstants.UPDATE_CONVERSATIONS_FETCHING_FLAG,
-      payload: false,
-    });
+    dispatch(setFetchingConversations(false));
   };
 
   const onClearAllChatHistory = async () => {
-    dispatch({
-      type: actionConstants.UPDATE_APP_SPINNER_STATUS,
-      payload: true,
-    });
-    dispatch({  type: actionConstants.UPDATE_CITATION,payload: { activeCitation: null, showCitation: false }})
+    dispatch(setAppSpinner(true));
+    dispatch(clearCitation());
     setClearing(true);
     const response = await historyDeleteAll();
     if (!response.ok) {
       setClearingError(true);
     } else {
       setChowClearAllConfirmationDialog(false);
-      dispatch({ type: actionConstants.UPDATE_ON_CLEAR_ALL_CONVERSATIONS });
+      dispatch(startNewConversation());
+      dispatch(clearChat());
+      dispatch(clearAll());
     }
     setClearing(false);
-    dispatch({
-      type: actionConstants.UPDATE_APP_SPINNER_STATUS,
-      payload: false,
-    });
+    dispatch(setAppSpinner(false));
   };
 
   useEffect(() => {
@@ -204,35 +206,24 @@ const Dashboard: React.FC = () => {
       console.error("No conversation ID found");
       return;
     }
-    dispatch({
-      type: actionConstants.UPDATE_CHATHISTORY_CONVERSATION_FLAG,
-      payload: true,
-    });
-    dispatch({
-      type: actionConstants.UPDATE_SELECTED_CONV_ID,
-      payload: id,
-    });
+    dispatch(setFetchingConvMessages(true));
+    dispatch(setSelectedConversationId(id));
 
     try {
       const responseMessages = await historyRead(id);
 
       if (responseMessages) {
-        dispatch({
-          type: actionConstants.SHOW_CHATHISTORY_CONVERSATION,
-          payload: {
-            id,
-            messages: responseMessages,
-          },
-        });
+        dispatch(showConversationMessages({
+          id,
+          messages: responseMessages,
+        }));
+        dispatch(setMessages(responseMessages));
       }
 
     } catch (error) {
       console.error("Error fetching conversation messages:", error);
     } finally {
-      dispatch({
-        type: actionConstants.UPDATE_CHATHISTORY_CONVERSATION_FLAG,
-        payload: false,
-      });
+      dispatch(setFetchingConvMessages(false));
     }
   };
 
@@ -252,7 +243,7 @@ const Dashboard: React.FC = () => {
       theme={webLightTheme}
       style={{ height: "100%", backgroundColor: "#F5F5F5" }}
     >
-      <CustomSpinner loading={state.showAppSpinner} label="Please wait.....!" />
+      <CustomSpinner loading={showAppSpinner} label="Please wait.....!" />
       <div className="header">
         <div className="header-left-section">
           <AppLogo />
@@ -281,7 +272,7 @@ const Dashboard: React.FC = () => {
             />
           </div>
         )}
-        {state.citation.showCitation && state.citation.currentConversationIdForCitation !== "" && (
+        {citation.showCitation && citation.currentConversationIdForCitation !== "" && (
           <div
             style={{
               // width: `${panelWidths[panels.DASHBOARD]}%`,
@@ -289,7 +280,7 @@ const Dashboard: React.FC = () => {
               // minWidth: '30%'
             }}
           >
-            <CitationPanel activeCitation={state.citation.activeCitation}  />
+            <CitationPanel activeCitation={citation.activeCitation}  />
 
           </div>
         )}

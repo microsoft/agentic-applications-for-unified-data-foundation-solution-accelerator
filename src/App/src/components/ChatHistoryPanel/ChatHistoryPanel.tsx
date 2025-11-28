@@ -17,7 +17,7 @@ import {
 import styles from "./ChatHistoryPanel.module.css";
 import { type Conversation } from "../../types/AppTypes";
 import { ChatHistoryListItemGroups } from "../ChatHistoryListItemGroups/ChatHistoryListItemGroups";
-import { useAppContext } from "../../state/useAppContext";
+import { useAppSelector } from "../../store/hooks";
 
 const commandBarStyle: ICommandBarStyles = {
   root: {
@@ -57,12 +57,10 @@ export const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = (props) => {
     showClearAllConfirmationDialog,
     onClickClearAllOption,
   } = props;
-  const { state, dispatch } = useAppContext();
-  const { chatHistory } = state;
+  const chatHistory = useAppSelector((state) => state.chatHistory);
+  const generatingResponse = useAppSelector((state) => state.chat.generatingResponse);
   const [showClearAllContextMenu, setShowClearAllContextMenu] =
     useState<boolean>(false);
-
-  const { generatingResponse } = state?.chat;
   const clearAllDialogContentProps = {
     type: DialogType.close,
     title: !clearingError
@@ -77,7 +75,7 @@ export const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = (props) => {
   const disableClearAllChatHistory =
     !chatHistory.list.length ||
     generatingResponse ||
-    state.chatHistory.fetchingConversations;
+    chatHistory.fetchingConversations;
   const menuItems: IContextualMenuItem[] = [
     {
       key: "clearAll",
