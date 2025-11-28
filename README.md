@@ -24,7 +24,13 @@ Solution overview
 Leverages the Unified Data Foundation in Fabric accelerator, SQL Database in Fabric, Agent Framework, and AI Foundry to query structured data. Structured data sets are analyzed through intelligent and orchestrated responses powered by an interactive web front-end for exploring semantic models and data assets. Insights are generated using natural language.
 
 ### Solution architecture
-|![image](./documents/Images/ReadMe/solution-architecture.png)|
+
+Microsoft Fabric and Microsoft Copilot Studio:
+|![image](./documents/Images/ReadMe/solution-architecture-cps.png)
+|---|
+
+Microsoft Fabric and Microsoft Foundry: 
+|![image](./documents/Images/ReadMe/solution-architecture.png)
 |---|
 
 ### Additional resources
