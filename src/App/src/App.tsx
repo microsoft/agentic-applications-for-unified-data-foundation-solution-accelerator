@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Chat from "./components/Chat/Chat";
 import {
   FluentProvider,
@@ -10,22 +10,13 @@ import {
 import "./App.css";
 import { ChatHistoryPanel } from "./components/ChatHistoryPanel/ChatHistoryPanel";
 
-import {
-  getUserInfo,
-  historyDeleteAll,
-  historyList,
-  historyRead,
-} from "./api/api";
+import { getUserInfo } from "./api/api";
 
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import {
-  fetchChatHistory,
-  fetchConversationMessages,
-  setFetchingConversations,
-  addConversations,
-  clearAll,
-  setFetchingConvMessages,
-  showConversationMessages,
+  fetchChatHistory, // eslint-disable-line @typescript-eslint/no-unused-vars
+  fetchConversationMessages, // eslint-disable-line @typescript-eslint/no-unused-vars
+  deleteAllConversations,
 } from "./store/chatHistorySlice";
 import { setSelectedConversationId, setAppSpinner, startNewConversation } from "./store/appSlice";
 import { clearCitation } from "./store/citationSlice";
@@ -53,6 +44,7 @@ const Dashboard: React.FC = () => {
   const { appConfig } = useAppSelector((state) => state.app.config);
   const showAppSpinner = useAppSelector((state) => state.app.showAppSpinner);
   const citation = useAppSelector((state) => state.citation);
+  const fetchingConversations = useAppSelector((state) => state.chatHistory.fetchingConversations);
 
   const [panelShowStates, setPanelShowStates] = useState<
     Record<string, boolean>
@@ -71,6 +63,7 @@ const Dashboard: React.FC = () => {
   const OFFSET_INCREMENT = 25;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
   const [name, setName] = useState<string>("");
+  const isInitialFetchStarted = useRef(false);
 
 
   const getUserInfoList = async () => {
@@ -152,32 +145,33 @@ const Dashboard: React.FC = () => {
     if (!hasMoreRecords) {
       return;
     }
-    dispatch(setFetchingConversations(true));
-    const convs = await historyList(offset);
-    if (convs !== null) {
-      if (convs.length === OFFSET_INCREMENT) {
+    isInitialFetchStarted.current = true;
+    const result = await dispatch(fetchChatHistory(offset));
+    if (result.payload) {
+      const payload = result.payload as { conversations: any[] | null; offset: number };
+      const conversations = payload.conversations;
+      if (conversations && conversations.length === OFFSET_INCREMENT) {
         setOffset((offset) => (offset += OFFSET_INCREMENT));
         // Stopping offset increment if there were no records
-      } else if (convs.length < OFFSET_INCREMENT) {
+      } else if (conversations && conversations.length < OFFSET_INCREMENT) {
         setHasMoreRecords(false);
       }
-      dispatch(addConversations(convs));
     }
-    dispatch(setFetchingConversations(false));
   };
 
   const onClearAllChatHistory = async () => {
     dispatch(setAppSpinner(true));
     dispatch(clearCitation());
     setClearing(true);
-    const response = await historyDeleteAll();
-    if (!response.ok) {
-      setClearingError(true);
-    } else {
+    try {
+      await dispatch(deleteAllConversations()).unwrap();
       setChowClearAllConfirmationDialog(false);
       dispatch(startNewConversation());
       dispatch(clearChat());
-      dispatch(clearAll());
+      setOffset(0);
+      setHasMoreRecords(true);
+    } catch {
+      setClearingError(true);
     }
     setClearing(false);
     dispatch(setAppSpinner(false));
@@ -188,7 +182,7 @@ const Dashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isInitialAPItriggered) {
+    if (isInitialAPItriggered && !isInitialFetchStarted.current) {
       (async () => {
         getHistoryListData();
       })();
@@ -197,24 +191,15 @@ const Dashboard: React.FC = () => {
 
   const onSelectConversation = async (id: string) => {
     if (!id) return;
-    dispatch(setFetchingConvMessages(true));
     dispatch(setSelectedConversationId(id));
 
     try {
-      const responseMessages = await historyRead(id);
-
-      if (responseMessages) {
-        dispatch(showConversationMessages({
-          id,
-          messages: responseMessages,
-        }));
-        dispatch(setMessages(responseMessages));
+      const result = await dispatch(fetchConversationMessages(id)).unwrap();
+      if (result && result.messages) {
+        dispatch(setMessages(result.messages));
       }
-
     } catch {
       // Error fetching conversation messages
-    } finally {
-      dispatch(setFetchingConvMessages(false));
     }
   };
 

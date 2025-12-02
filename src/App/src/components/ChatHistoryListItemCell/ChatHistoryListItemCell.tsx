@@ -14,12 +14,12 @@ import {
 } from "@fluentui/react";
 import { useBoolean } from "@fluentui/react-hooks";
 
-import { historyRename, historyDelete } from "../../api/api";
+import { historyDelete } from "../../api/api";
 
 import styles from "./ChatHistoryListItemCell.module.css";
 import { Conversation } from "../../types/AppTypes";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { deleteConversation, updateConversationTitle } from "../../store/chatHistorySlice";
+import { deleteConversation, renameConversation } from "../../store/chatHistorySlice";
 import { setAppSpinner, setSelectedConversationId } from "../../store/appSlice";
 import { setCitation } from "../../store/citationSlice";
 import { clearChat } from "../../store/chatSlice";
@@ -136,8 +136,12 @@ export const ChatHistoryListItemCell: React.FC<
       return;
     }
     setRenameLoading(true);
-    const response = await historyRename(item.id, editTitle);
-    if (!response.ok) {
+    try {
+      await dispatch(renameConversation({ conversationId: item.id, newTitle: editTitle })).unwrap();
+      setRenameLoading(false);
+      setEdit(false);
+      setEditTitle("");
+    } catch {
       setErrorRename("Error: could not rename item");
       setTimeout(() => {
         setTextFieldFocused(true);
@@ -147,11 +151,6 @@ export const ChatHistoryListItemCell: React.FC<
         }
       }, 5000);
       setRenameLoading(false);
-    } else {
-      setRenameLoading(false);
-      setEdit(false);
-      setEditTitle("");
-      dispatch(updateConversationTitle({ id: item?.id, newTitle: editTitle }));
     }
   };
 

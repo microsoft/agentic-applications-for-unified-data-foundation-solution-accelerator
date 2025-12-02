@@ -22,7 +22,7 @@ import {
 } from "../../store/appSlice";
 import {
   addNewConversation,
-  setHistoryUpdateAPIPending,
+  updateConversation, // eslint-disable-line @typescript-eslint/no-unused-vars
 } from "../../store/chatHistorySlice";
 import { clearCitation } from "../../store/citationSlice";
 import {
@@ -33,7 +33,7 @@ import {
   type ChatMessage,
   ToolMessageContent,
 } from "../../types/AppTypes";
-import { callConversationApi, historyUpdate } from "../../api/api";
+import { callConversationApi } from "../../api/api";
 import { ChatAdd24Regular } from "@fluentui/react-icons";
 import { generateUUIDv4 } from "../../configs/Utils";
 import ChatMessageComponent from "../ChatMessage/ChatMessage";
@@ -92,52 +92,35 @@ const Chat: React.FC<ChatProps> = ({
       return;
     }
     const isNewConversation = reqType !== 'graph' ? !selectedConversationId : false;
-    dispatch(setHistoryUpdateAPIPending(true));
 
     if (false) {  // Disabled: chart display default
       setIsChartLoading(true);
       setTimeout(()=>{
         makeApiRequestForChart('show in a graph by default', convId)
       },5000)
-      
+
     }
-    
-    await historyUpdate(newMessages, convId)
-      .then(async (res) => {
-        if (!res.ok) {
-          if (!messages) {
-            let err: Error = {
-              ...new Error(),
-              message: "Failure fetching current chat state.",
-            };
-            throw err;
-          }
-        }     
-        let responseJson = await res.json();
-        if (isNewConversation && responseJson?.success) {
-          const newConversation: Conversation = {
-            id: responseJson?.data?.conversation_id,
-            title: responseJson?.data?.title,
-            messages: messages,
-            date: responseJson?.data?.date,
-            updatedAt: responseJson?.data?.date,
-          };
-          dispatch(addNewConversation(newConversation));
-          dispatch(setSelectedConversationId(responseJson?.data?.conversation_id));
-        }
-        dispatch(setHistoryUpdateAPIPending(false));
-        return res as Response;
-      })
-      .catch(() => {
-        // Error saving data to database
-      })
-      .finally(() => {
-        dispatch(setGeneratingResponse(false));
-        dispatch(setHistoryUpdateAPIPending(false));  
-      });
+
+    try {
+      const result = await dispatch(updateConversation({ conversationId: convId, messages: newMessages })).unwrap();
+      
+      if (isNewConversation && result?.success) {
+        const newConversation: Conversation = {
+          id: result?.data?.conversation_id,
+          title: result?.data?.title,
+          messages: messages,
+          date: result?.data?.date,
+          updatedAt: result?.data?.date,
+        };
+        dispatch(addNewConversation(newConversation));
+        dispatch(setSelectedConversationId(result?.data?.conversation_id));
+      }
+    } catch {
+      // Error saving data to database
+    } finally {
+      dispatch(setGeneratingResponse(false));
+    }
   }, [selectedConversationId, messages, dispatch]);
-
-
   const parseCitationFromMessage = useCallback((message: string) => {
   try {
     message = '{' + message;

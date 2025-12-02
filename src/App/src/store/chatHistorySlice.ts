@@ -19,9 +19,19 @@ const initialState: ChatHistoryState = {
 // Async Thunks
 export const fetchChatHistory = createAsyncThunk(
   "chatHistory/fetchList",
-  async () => {
-    const response = await historyList();
-    return response;
+  async (offset: number = 0) => {
+    const response = await historyList(offset);
+    return { conversations: response, offset };
+  },
+  {
+    condition: (offset, { getState }) => {
+      const { chatHistory } = getState() as { chatHistory: ChatHistoryState };
+      // Don't fetch if already fetching
+      if (chatHistory.fetchingConversations) {
+        return false;
+      }
+      return true;
+    },
   }
 );
 
@@ -52,8 +62,9 @@ export const deleteConversation = createAsyncThunk(
 export const updateConversation = createAsyncThunk(
   "chatHistory/update",
   async ({ conversationId, messages }: { conversationId: string; messages: ChatMessage[] }) => {
-    await historyUpdate(messages, conversationId);
-    return { conversationId, messages };
+    const response = await historyUpdate(messages, conversationId);
+    const responseJson = await response.json();
+    return responseJson;
   }
 );
 
@@ -99,6 +110,9 @@ const chatHistorySlice = createSlice({
     clearAll: (state) => {
       state.list = [];
     },
+    clearConversationList: (state) => {
+      state.list = [];
+    },
   },
   extraReducers: (builder) => {
     // Fetch Chat History
@@ -106,7 +120,18 @@ const chatHistorySlice = createSlice({
       state.fetchingConversations = true;
     });
     builder.addCase(fetchChatHistory.fulfilled, (state, action) => {
-      state.list = action.payload || [];
+      if (action.payload) {
+        const { conversations, offset } = action.payload;
+        if (offset === 0) {
+          // Replace list for initial fetch
+          state.list = conversations || [];
+        } else {
+          // Append for pagination
+          if (conversations) {
+            state.list.push(...conversations);
+          }
+        }
+      }
       state.fetchingConversations = false;
     });
     builder.addCase(fetchChatHistory.rejected, (state) => {
@@ -170,6 +195,7 @@ export const {
   setFetchingConvMessages,
   setHistoryUpdateAPIPending,
   clearAll,
+  clearConversationList,
 } = chatHistorySlice.actions;
 
 export default chatHistorySlice.reducer;
