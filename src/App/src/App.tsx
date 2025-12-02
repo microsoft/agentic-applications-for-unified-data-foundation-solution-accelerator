@@ -28,9 +28,8 @@ import {
   showConversationMessages,
 } from "./store/chatHistorySlice";
 import { setSelectedConversationId, setAppSpinner, startNewConversation } from "./store/appSlice";
-import { setCitation, clearCitation } from "./store/citationSlice";
+import { clearCitation } from "./store/citationSlice";
 import { setMessages, clearChat } from "./store/chatSlice";
-import { ChatMessage } from "./types/AppTypes";
 import { AppLogo } from "./components/Svg/Svg";
 import CustomSpinner from "./components/CustomSpinner/CustomSpinner";
 import CitationPanel from "./components/CitationPanel/CitationPanel";
@@ -54,8 +53,7 @@ const Dashboard: React.FC = () => {
   const { appConfig } = useAppSelector((state) => state.app.config);
   const showAppSpinner = useAppSelector((state) => state.app.showAppSpinner);
   const citation = useAppSelector((state) => state.citation);
-  const chatHistory = useAppSelector((state) => state.chatHistory);
-  
+
   const [panelShowStates, setPanelShowStates] = useState<
     Record<string, boolean>
   >({ ...defaultPanelShowStates });
@@ -196,10 +194,6 @@ const Dashboard: React.FC = () => {
       })();
     }
   }, [isInitialAPItriggered]);
-
-  const [ASSISTANT, TOOL, ERROR, USER] = ["assistant", "tool", "error", "user"];
-
-
 
   const onSelectConversation = async (id: string) => {
     if (!id) return;

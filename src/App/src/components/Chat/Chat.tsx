@@ -138,7 +138,7 @@ const Chat: React.FC<ChatProps> = ({
   }, [selectedConversationId, messages, dispatch]);
 
 
-  const parseCitationFromMessage = useCallback((message: any) => {
+  const parseCitationFromMessage = useCallback((message: string) => {
   try {
     message = '{' + message;
     const toolMessage = JSON.parse(message as string) as ToolMessageContent;
@@ -217,7 +217,7 @@ const Chat: React.FC<ChatProps> = ({
   }, [dispatch, scrollChatToBottom]);
 
   // Helper function to extract chart data from response
-  const extractChartData = useCallback((chartResponse: any): any => {
+  const extractChartData = useCallback((chartResponse: ChartDataResponse | string): ChartDataResponse | string => {
     if (typeof chartResponse === 'object' && 'answer' in chartResponse) {
       return !chartResponse.answer || 
              (typeof chartResponse.answer === "object" && Object.keys(chartResponse.answer).length === 0)
