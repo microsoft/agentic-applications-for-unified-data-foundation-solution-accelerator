@@ -5,8 +5,9 @@
 
 /**
  * Remove a specific key from JSON object recursively
+ * Internal helper function for parseChartContent
  */
-export function removeKeyFromJSON(jsonString: string, keyToRemove: string): string {
+function removeKeyFromJSON(jsonString: string, keyToRemove: string): string {
   try {
     const obj = JSON.parse(jsonString);
     
@@ -56,8 +57,9 @@ function findMatchingBracket(str: string, startIndex: number): number {
 
 /**
  * Sanitize malformed JSON string to make it parseable
+ * Internal helper function for parseChartContent
  */
-export function sanitizeJSONString(jsonString: string): string {
+function sanitizeJSONString(jsonString: string): string {
   if (!jsonString || typeof jsonString !== 'string') {
     return jsonString;
   }
@@ -270,8 +272,9 @@ export function sanitizeJSONString(jsonString: string): string {
 
 /**
  * Parse nested answer string (handles double-escaped JSON)
+ * Internal helper function for parseChartContent
  */
-export function parseNestedAnswer(answerValue: string): any {
+function parseNestedAnswer(answerValue: string): any {
   const updatedJsonstring = removeKeyFromJSON(answerValue, 'tooltip');
   try {
     // Attempt 1: Direct parse
@@ -335,16 +338,4 @@ export function isMalformedChartJSON(errorMsg: string, hasBackendError: boolean)
     (errorMsg.includes('"type"') || errorMsg.includes('"chartType"')) &&
     errorMsg.includes('"data"') &&
     (errorMsg.includes('{') || errorMsg.includes('}'));
-}
-
-/**
- * Safe JSON parse with fallback
- */
-export function safeJSONParse<T = any>(jsonString: string, fallback: T | null = null): T | null {
-  try {
-    return JSON.parse(jsonString);
-  } catch (error) {
-    console.error('Failed to parse JSON:', error);
-    return fallback;
-  }
 }

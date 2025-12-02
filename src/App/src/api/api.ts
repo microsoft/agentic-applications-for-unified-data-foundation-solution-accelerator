@@ -14,7 +14,7 @@ import {
 import { ApiErrorHandler } from "../utils/errorHandler";
 import { getApiBaseUrl } from "../config";
 import { httpClient } from "../utils/httpClient";
-import { getUserId, setUserId, getUserHeaders, createErrorResponse } from "../utils/apiUtils";
+import { getUserId, setUserId, createErrorResponse } from "../utils/apiUtils";
 
 const baseURL = getApiBaseUrl(); // base API URL
 
