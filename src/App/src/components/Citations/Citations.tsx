@@ -1,10 +1,9 @@
 import React, { useMemo, useCallback, memo } from 'react';
 import { parseAnswer } from './AnswerParser';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { setCitation } from '../../store/citationSlice';
+import { fetchCitationContent } from '../../store/citationSlice';
 import "./Citations.css";
 import { AskResponse, Citation } from '../../types/AppTypes';
-import { fetchCitationContent } from '../../api/api';
 
 interface Props {
     answer: AskResponse;
@@ -32,12 +31,7 @@ const Citations = memo(({ answer, index }: Props) => {
     const onCitationClicked = useCallback(async (
         citation: Citation
     ) => {
-        const citationContent = await fetchCitationContent(citation);
-        dispatch(setCitation({
-            showCitation: true,
-            activeCitation: { ...citation, content: citationContent.content },
-            currentConversationIdForCitation: selectedConversationId
-        }));
+        dispatch(fetchCitationContent({ citation, conversationId: selectedConversationId }));
     }, [dispatch, selectedConversationId]);
 
 

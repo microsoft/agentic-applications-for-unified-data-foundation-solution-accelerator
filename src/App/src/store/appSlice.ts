@@ -1,6 +1,7 @@
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import type { AppConfig, ChartConfigItem, CosmosDBHealth } from "../types/AppTypes";
 import { generateUUIDv4 } from "../configs/Utils";
+import { getUserInfo as getUserInfoApi, type UserInfo } from "../api/api";
 
 export interface AppState {
   selectedConversationId: string;
@@ -11,6 +12,8 @@ export interface AppState {
   };
   cosmosInfo: CosmosDBHealth;
   showAppSpinner: boolean;
+  userInfo: UserInfo[];
+  loadingUserInfo: boolean;
 }
 
 const initialState: AppState = {
@@ -22,7 +25,18 @@ const initialState: AppState = {
   },
   cosmosInfo: { cosmosDB: false, status: "" },
   showAppSpinner: false,
+  userInfo: [],
+  loadingUserInfo: false,
 };
+
+// Async thunks
+export const fetchUserInfo = createAsyncThunk(
+  'app/fetchUserInfo',
+  async () => {
+    const userInfoList = await getUserInfoApi();
+    return userInfoList;
+  }
+);
 
 const appSlice = createSlice({
   name: "app",
@@ -47,6 +61,19 @@ const appSlice = createSlice({
     setAppSpinner: (state, action: PayloadAction<boolean>) => {
       state.showAppSpinner = action.payload;
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchUserInfo.pending, (state) => {
+        state.loadingUserInfo = true;
+      })
+      .addCase(fetchUserInfo.fulfilled, (state, action) => {
+        state.userInfo = action.payload;
+        state.loadingUserInfo = false;
+      })
+      .addCase(fetchUserInfo.rejected, (state) => {
+        state.loadingUserInfo = false;
+      });
   },
 });
 
