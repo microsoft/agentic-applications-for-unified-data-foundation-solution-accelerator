@@ -68,7 +68,6 @@ const Chat: React.FC<ChatProps> = ({
   const [isChartLoading, setIsChartLoading] = useState(false)
   const abortFuncs = useRef([] as AbortController[]);
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
-  const [isCharthDisplayDefault] = useState(false);
   
   // Memoized computed values
   const currentConversationId = useMemo(() => 
@@ -95,7 +94,7 @@ const Chat: React.FC<ChatProps> = ({
     const isNewConversation = reqType !== 'graph' ? !selectedConversationId : false;
     dispatch(setHistoryUpdateAPIPending(true));
 
-    if (((reqType !== 'graph' && reqType !== 'error') &&  newMessages[newMessages.length - 1].role !== ERROR) && isCharthDisplayDefault ){
+    if (false) {  // Disabled: chart display default
       setIsChartLoading(true);
       setTimeout(()=>{
         makeApiRequestForChart('show in a graph by default', convId)
@@ -129,14 +128,14 @@ const Chat: React.FC<ChatProps> = ({
         dispatch(setHistoryUpdateAPIPending(false));
         return res as Response;
       })
-      .catch((err) => {
-        console.error("Error: while saving data", err);
+      .catch(() => {
+        // Error saving data to database
       })
       .finally(() => {
         dispatch(setGeneratingResponse(false));
         dispatch(setHistoryUpdateAPIPending(false));  
       });
-  }, [selectedConversationId, isCharthDisplayDefault, messages, dispatch]);
+  }, [selectedConversationId, messages, dispatch]);
 
 
   const parseCitationFromMessage = useCallback((message: any) => {
@@ -150,7 +149,7 @@ const Chat: React.FC<ChatProps> = ({
       );
     }
   } catch {
-        // console.log("ERROR WHIEL PARSING TOOL CONTENT");
+    // Error parsing tool content
   }
   return [];
 }, []);
@@ -323,8 +322,8 @@ const Chat: React.FC<ChatProps> = ({
               const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
               updatedMessages = [newMessage, errorMessage];
             }
-          } catch (e) {
-            console.error("Error parsing chart response:", e);
+          } catch {
+            // Error parsing chart response
           }
         }
       }
@@ -333,8 +332,8 @@ const Chat: React.FC<ChatProps> = ({
         saveToDB(updatedMessages, conversationId, 'graph');
       }
     } catch (e) {
-      console.error("Error in makeApiRequestForChart:", e);
-      
+      // Error in chart API request
+
       if (abortController.signal.aborted) {
         updatedMessages = [newMessage];
         saveToDB(updatedMessages, conversationId, 'graph');
@@ -457,10 +456,7 @@ const Chat: React.FC<ChatProps> = ({
               }
             });
             
-            if (hasError) {
-              console.log("STOPPED DUE TO ERROR FROM API RESPONSE");
-              break;
-            }
+            if (hasError) break;
           }
         }
         
@@ -518,8 +514,8 @@ const Chat: React.FC<ChatProps> = ({
               const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
               updatedMessages = [newMessage, errorMessage];
             }
-          } catch (e) {
-            console.error("Error parsing chart response:", e);
+          } catch {
+            // Error parsing chart response
           }
         } else if (!isChartResponseReceived) {
           updatedMessages = [newMessage, streamMessage];
@@ -530,8 +526,8 @@ const Chat: React.FC<ChatProps> = ({
         saveToDB(updatedMessages, conversationId, isChatReq);
       }
     } catch (e) {
-      console.error("Error in makeApiRequestWithCosmosDB:", e);
-      
+      // Error in API request
+
       if (abortController.signal.aborted) {
         updatedMessages = streamMessage.content
           ? [newMessage, streamMessage]

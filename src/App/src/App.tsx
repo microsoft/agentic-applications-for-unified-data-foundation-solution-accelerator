@@ -96,8 +96,8 @@ const Dashboard: React.FC = () => {
     getUserInfo().then((res) => {
       const name: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'name')?.val ?? ''
       setName(name)
-    }).catch((err) => {
-      // console.error('Error fetching user info: ', err)
+    }).catch(() => {
+      // Error fetching user info - silent fail
     })
   }, [])
 
@@ -202,10 +202,7 @@ const Dashboard: React.FC = () => {
 
 
   const onSelectConversation = async (id: string) => {
-    if (!id) {
-      console.error("No conversation ID found");
-      return;
-    }
+    if (!id) return;
     dispatch(setFetchingConvMessages(true));
     dispatch(setSelectedConversationId(id));
 
@@ -220,8 +217,8 @@ const Dashboard: React.FC = () => {
         dispatch(setMessages(responseMessages));
       }
 
-    } catch (error) {
-      console.error("Error fetching conversation messages:", error);
+    } catch {
+      // Error fetching conversation messages
     } finally {
       dispatch(setFetchingConvMessages(false));
     }

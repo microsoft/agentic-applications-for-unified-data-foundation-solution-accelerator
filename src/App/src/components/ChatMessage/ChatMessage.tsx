@@ -45,8 +45,7 @@ const ChatMessage: React.FC<ChatMessageProps> = memo(({
             </div>
           </div>
         );
-      } catch (e) {
-        console.error("Chart rendering error:", e);
+      } catch {
         return (
           <div className="assistant-message error-message">
             ⚠️ Sorry, we couldn't display the chart for this response.
@@ -94,11 +93,9 @@ const ChatMessage: React.FC<ChatMessageProps> = memo(({
         const answer = parsedContent.answer;
         if (answer && typeof answer === "object" && ("type" in answer || "chartType" in answer) && "data" in answer) {
           chartData = answer;
-        } else {
-          console.warn(`⚠️ Answer exists but is not a valid chart:`, answer);
         }
       }
-      
+
       // Render chart if valid chartData was found
       if (chartData && ("type" in chartData || "chartType" in chartData) && "data" in chartData) {
         try {
@@ -112,8 +109,7 @@ const ChatMessage: React.FC<ChatMessageProps> = memo(({
               </div>
             </div>
           );
-        } catch (e) {
-          console.error("❌ Chart rendering error:", e);
+        } catch {
           return (
             <div className="assistant-message error-message">
               ⚠️ Sorry, we couldn't display the chart for this response.
@@ -170,7 +166,6 @@ const ChatMessage: React.FC<ChatMessageProps> = memo(({
   }
 
   // Fallback for unexpected content types
-  console.warn(`Unhandled message at index ${index}:`, { role: message.role, contentType: typeof message.content });
   return null;
 });
 
