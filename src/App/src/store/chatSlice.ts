@@ -1,5 +1,6 @@
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { ChatMessage } from "../types/AppTypes";
+import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
+import type { ChatMessage, ConversationRequest } from "../types/AppTypes";
+import { callConversationApi } from "../api/api";
 
 export interface ChatState {
   generatingResponse: boolean;
@@ -16,6 +17,15 @@ const initialState: ChatState = {
   citations: "",
   isStreamingInProgress: false,
 };
+
+// Async thunks
+export const sendMessage = createAsyncThunk(
+  'chat/sendMessage',
+  async ({ request, abortSignal }: { request: ConversationRequest; abortSignal: AbortSignal }) => {
+    const response = await callConversationApi(request, abortSignal);
+    return response;
+  }
+);
 
 const chatSlice = createSlice({
   name: "chat",

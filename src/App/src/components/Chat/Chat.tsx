@@ -15,6 +15,7 @@ import {
   updateMessageById,
   setStreamingFlag,
   clearChat,
+  sendMessage,
 } from "../../store/chatSlice";
 import {
   setSelectedConversationId,
@@ -33,7 +34,6 @@ import {
   type ChatMessage,
   ToolMessageContent,
 } from "../../types/AppTypes";
-import { callConversationApi } from "../../api/api";
 import { ChatAdd24Regular } from "@fluentui/react-icons";
 import { generateUUIDv4 } from "../../configs/Utils";
 import ChatMessageComponent from "../ChatMessage/ChatMessage";
@@ -258,7 +258,11 @@ const Chat: React.FC<ChatProps> = ({
     let updatedMessages: ChatMessage[] = [];
     
     try {
-      const response = await callConversationApi(request, abortController.signal);
+      const result = await dispatch(sendMessage({ request, abortSignal: abortController.signal }));
+      if (!sendMessage.fulfilled.match(result)) {
+        throw new Error('Failed to send message');
+      }
+      const response = result.payload;
 
       if (response?.body) {
         const reader = response.body.getReader();
@@ -374,7 +378,11 @@ const Chat: React.FC<ChatProps> = ({
     let updatedMessages: ChatMessage[] = [];
     
     try {
-      const response = await callConversationApi(request, abortController.signal);
+      const result = await dispatch(sendMessage({ request, abortSignal: abortController.signal }));
+      if (!sendMessage.fulfilled.match(result)) {
+        throw new Error('Failed to send message');
+      }
+      const response = result.payload;
 
       if (response?.body) {
         let isChartResponseReceived = false;

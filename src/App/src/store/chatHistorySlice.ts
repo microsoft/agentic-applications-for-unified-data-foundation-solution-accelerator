@@ -193,7 +193,6 @@ export const {
   showConversationMessages,
   setFetchingConversations,
   setFetchingConvMessages,
-  setHistoryUpdateAPIPending,
   clearAll,
   clearConversationList,
 } = chatHistorySlice.actions;

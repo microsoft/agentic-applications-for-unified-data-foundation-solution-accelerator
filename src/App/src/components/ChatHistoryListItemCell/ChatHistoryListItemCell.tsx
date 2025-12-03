@@ -14,8 +14,6 @@ import {
 } from "@fluentui/react";
 import { useBoolean } from "@fluentui/react-hooks";
 
-import { historyDelete } from "../../api/api";
-
 import styles from "./ChatHistoryListItemCell.module.css";
 import { Conversation } from "../../types/AppTypes";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
@@ -81,18 +79,17 @@ export const ChatHistoryListItemCell: React.FC<
     } else {
       dispatch(setCitation({ showCitation: true }));
     }
-    const response = await historyDelete(item.id);
-    if (!response.ok) {
-      setErrorDelete(true);
-      setTimeout(() => {
-        setErrorDelete(false);
-      }, 5000);
-    } else {
-      dispatch(deleteConversation(item.id));
+    try {
+      await dispatch(deleteConversation(item.id)).unwrap();
       if (isSelected) {
         dispatch(setSelectedConversationId(""));
         dispatch(clearChat());
       }
+    } catch (error) {
+      setErrorDelete(true);
+      setTimeout(() => {
+        setErrorDelete(false);
+      }, 5000);
     }
     toggleDeleteDialog();
     dispatch(setAppSpinner(false));
