@@ -35,6 +35,7 @@ load_dotenv()
 # Constants
 HOST_NAME = "Agentic Applications for Unified Data Foundation"
 HOST_INSTRUCTIONS = "Answer questions about Sales, Products and Orders data."
+INCOMPLETE_RUN_STATUS = "incomplete"
 
 router = APIRouter()
 
@@ -164,6 +165,25 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
                 cache = get_thread_cache()
                 thread_id = cache.get(conversation_id, None)
 
+                if thread_id:
+                    should_discard = False
+                    try:
+                        runs_paged = client.agents.runs.list(thread_id=thread_id, limit=1)
+                        most_recent_run = None
+                        async for run in runs_paged:
+                            most_recent_run = run
+                            break
+                        
+                        if most_recent_run and most_recent_run.status == INCOMPLETE_RUN_STATUS:
+                            should_discard = True
+
+                    except Exception as check_err:
+                        should_discard = True
+                    
+                    if should_discard:
+                        cache.pop(conversation_id, None)
+                        thread_id = None
+
                 truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
 
                 from history_sql import SqlQueryTool, get_fabric_db_connection
@@ -219,12 +239,8 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
     finally:
         # Provide a fallback response when no data is received from OpenAI.
         if complete_response == "":
-            logger.info("No response received from OpenAI.")
             cache = get_thread_cache()
-            thread_id = cache.pop(conversation_id, None)
-            if thread_id is not None:
-                corrupt_key = f"{conversation_id}_corrupt_{random.randint(1000, 9999)}"
-                cache[corrupt_key] = thread_id
+            cache.pop(conversation_id, None)
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
