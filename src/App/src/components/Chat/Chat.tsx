@@ -590,9 +590,15 @@ const Chat: React.FC<ChatProps> = ({
       </div>
       <div className="chat-messages">
         {Boolean(isFetchingConvMessages) && (
-          <div>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            height: '100%',
+            minHeight: '300px'
+          }}>
             <Spinner
-              size={SpinnerSize.small}
+              size={SpinnerSize.medium}
               aria-label="Fetching Chat messages"
             />
           </div>

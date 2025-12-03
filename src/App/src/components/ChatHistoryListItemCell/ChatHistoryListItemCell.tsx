@@ -293,18 +293,15 @@ export const ChatHistoryListItemCell: React.FC<
             className={styles.chatHistoryItem}
             title={item?.title}
           >
-            <Stack horizontal verticalAlign={"center"} style={{ flex: 1 }}>
-              <div
-                className={styles.chatTitle}
-                style={{ width: isHovered || isSelected ? "68%" : "100%" }}
-              >
+            <Stack horizontal verticalAlign={"center"} style={{ flex: 1, minWidth: 0 }}>
+              <div className={styles.chatTitle}>
                 {truncatedTitle}
               </div>
               {deleteLoading && (
                 <Spinner
                   size={SpinnerSize.small}
                   aria-label="Deleting conversation"
-                  styles={{ root: { marginRight: "200px" } }}
+                  styles={{ root: { marginLeft: "8px" } }}
                 />
               )}
             </Stack>
@@ -312,6 +309,7 @@ export const ChatHistoryListItemCell: React.FC<
               <Stack
                 horizontal
                 horizontalAlign="end"
+                className={styles.chatHistoryItemsButtonsContainer}
               >
                 <IconButton
                   className={styles.itemButton}

@@ -85,6 +85,25 @@ export const ChatHistoryListItemGroups: React.FC<
     0
   );
 
+  // Show centered spinner during initial load
+  if (chatHistory.fetchingConversations && allConversationsLength === 0) {
+    return (
+      <Stack
+        horizontal
+        horizontalAlign="center"
+        verticalAlign="center"
+        style={{ width: "100%", height: "100%", minHeight: "200px" }}
+      >
+        <StackItem>
+          <Spinner
+            size={SpinnerSize.medium}
+            aria-label="Loading chat history"
+          />
+        </StackItem>
+      </Stack>
+    );
+  }
+
   if (!chatHistory.fetchingConversations && allConversationsLength === 0) {
     return (
       <Stack
