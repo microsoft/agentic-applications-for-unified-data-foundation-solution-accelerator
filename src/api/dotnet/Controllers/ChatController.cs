@@ -201,8 +201,6 @@ public class ChatController : ControllerBase
 
             await foreach (var run in runs)
             {
-                var logger = HttpContext.RequestServices.GetRequiredService<ILogger<ChatController>>();
-
                 if (run.Status == s_incompleteRunStatus)
                 {
                     return true;
