@@ -12,6 +12,8 @@ import {
   Stack,
   StackItem,
   Text,
+  Spinner,
+  SpinnerSize,
 } from "@fluentui/react";
 
 import styles from "./ChatHistoryPanel.module.css";
@@ -141,8 +143,32 @@ export const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = (props) => {
         style={{
           display: "flex",
           height: "calc(100% - 3rem)",
+          position: "relative",
         }}
       >
+        {clearing && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: "rgba(255, 255, 255, 0.8)",
+              zIndex: 1000,
+            }}
+          >
+            <Spinner
+              size={SpinnerSize.large}
+              label="Clearing chat history..."
+              ariaLive="assertive"
+              labelPosition="bottom"
+            />
+          </div>
+        )}
         <Stack className={styles.chatHistoryListContainer}>
           <ChatHistoryListItemGroups
             handleFetchHistory={handleFetchHistory}

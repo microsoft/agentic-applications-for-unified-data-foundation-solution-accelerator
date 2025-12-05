@@ -162,12 +162,12 @@ const Dashboard: React.FC = () => {
   };
 
   const onClearAllChatHistory = async () => {
-    dispatch(setAppSpinner(true));
+    setChowClearAllConfirmationDialog(false);
     dispatch(clearCitation());
     setClearing(true);
     try {
       await dispatch(deleteAllConversations()).unwrap();
-      setChowClearAllConfirmationDialog(false);
+      
       dispatch(startNewConversation());
       dispatch(clearChat());
       setOffset(0);
@@ -176,7 +176,6 @@ const Dashboard: React.FC = () => {
       setClearingError(true);
     }
     setClearing(false);
-    dispatch(setAppSpinner(false));
   };
 
   useEffect(() => {
