@@ -1,16 +1,38 @@
 ## Technical Architecture
 
-This section outlines the components and interactions that powers the unified data analysis platform. The architecture ingests customer information, product details and order history and surfaces insights via an interactive web experience.
+This section outlines the components and interactions that powers the unified data analysis platform. The architecture ingests customer information, product details and transaction history and surfaces insights via an interactive web experience.
+
+#### Option 1: Architecture with Microsoft Fabric and Microsoft Copilot Studio:
+
+![image](./Images/ReadMe/solution-architecture-cps.png)
+
+### Customer / product / transaction details
+SQL scripts for the customer, product and transaction details are the primary input into the system. These tables are uploaded and stored for downstream insight generation.
+
+### SQL Database in Fabric  
+Stores uploaded customer information, product details and transaction history tables. Serves as the primary knowledge source to surface insights in the Fabric Data Agent.
+
+### Fabric Data Agent 
+Provides large language model (LLM) capabilities to support naltural language querying. 
+
+### Microsoft Copilot Studio
+Fabric Data Agent is connected to an agent in Microsoft Copilot Studio and surfaced as a channel in Microsoft Teams. 
+
+### Microsoft Teams
+Users can explore call insights, visualize trends, ask questions in natural language, directly inside Microsoft Teams. 
+
+
+#### Option 2: Architecture with Microsoft Fabric and Microsoft Foundry:
 
 ![image](./Images/ReadMe/solution-architecture.png)
 
-### Customer / product / order details
-SQL scripts for the customer, product and order details are the primary input into the system. These tables are uploaded and stored for downstream insight generation.
+### Customer / product / transaction details
+SQL scripts for the customer, product and transaction details are the primary input into the system. These tables are uploaded and stored for downstream insight generation.
 
 ### SQL Database in Fabric  
-Stores uploaded customer information, product details and order history tables. Serves as the primary knowledge source to surface insights in the web application. And persists chat history and session context for the web interface. Enables retrieval of past interactions.
+Stores uploaded customer information, product details and transaction history tables. Serves as the primary knowledge source to surface insights in the web application. And persists chat history and session context for the web interface. Enables retrieval of past interactions.
 
-### Azure OpenAI Service  
+### Microsoft Foundry
 Provides large language model (LLM) capabilities to support natural language querying.
 
 ### Agent Framework  
