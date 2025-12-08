@@ -91,13 +91,25 @@ python -m pip install --quiet -r "$requirementFile"
 echo "Running Python agents creation script..."
 eval $(python infra/scripts/agent_scripts/01_create_agents.py --ai_project_endpoint="$projectEndpoint" --solution_name="$solutionName" --gpt_model_name="$gptModelName")
 
-echo "Agents creation completed."
+if [ $? -ne 0 ]; then
+    echo "❌ Agents creation script failed."
+    exit 1
+fi
+
+echo "✓ Agents creation completed."
 
 # Update environment variables of API App
-az webapp config appsettings set \
-  --resource-group "$resourceGroup" \
-  --name "$apiAppName" \
-  --settings AGENT_ID_ORCHESTRATOR="$orchestratorAgentId" AGENT_ID_TITLE="$titleAgentId" \
-  -o none
+if [ -n "$orchestratorAgentId" ] && [ -n "$titleAgentId" ]; then
+    echo "Updating environment variables for App Service: $apiAppName"
+  
+    az webapp config appsettings set \
+    --resource-group "$resourceGroup" \
+    --name "$apiAppName" \
+    --settings AGENT_ID_ORCHESTRATOR="$orchestratorAgentId" AGENT_ID_TITLE="$titleAgentId" \
+    -o none
 
-echo "Environment variables updated for App Service: $apiAppName"
+    echo "Environment variables updated for App Service: $apiAppName"
+else
+    echo "Error: One or more agent IDs are empty. Cannot update environment variables."
+    exit 1
+fi
