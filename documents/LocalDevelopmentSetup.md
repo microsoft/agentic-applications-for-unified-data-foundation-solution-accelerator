@@ -285,7 +285,7 @@ Edit the `.env` file with your Azure configuration values from api resource.
 python -m venv .venv
 
 # Activate virtual environment
-source .venv/Scripts/activate  # Linux/WSL2
+source .venv/bin/activate  # Linux
 # or
 .venv\Scripts\activate  # Windows PowerShell
 
