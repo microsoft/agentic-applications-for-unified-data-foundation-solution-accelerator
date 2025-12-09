@@ -187,7 +187,7 @@ Create `.vscode/settings.json` and copy the following JSON:
 }
 ```
 
-## Step 3: Azure Authentication Setup
+## Step 3: Authentication Setup
 
 Before configuring services, authenticate with Azure:
 
