@@ -411,22 +411,20 @@ curl http://localhost:8000/health
 - Open browser to http://localhost:3000
 - Should see the application UI
 
+## Troubleshooting
+
 ### Common Issues
 
-**Service not starting?**
+#### Service not starting?
 - Ensure you're in the correct directory
 - Verify virtual environment is activated (Python backend)
 - Check that port is not already in use (8000 for backend, 3000 for frontend)
 - Review error messages in the terminal
 
-**Can't access services?**
+#### Can't access services?
 - Verify firewall isn't blocking the required ports
 - Try `http://localhost:port` instead of `http://127.0.0.1:port`
 - Ensure services show "startup complete" messages
-
-## Troubleshooting
-
-### Common Issues
 
 #### Python Version Issues
 
