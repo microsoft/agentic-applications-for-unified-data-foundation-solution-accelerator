@@ -4,6 +4,7 @@ import sys
 import os
 import argparse
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from azure.ai.projects.models import PromptAgentDefinition, FunctionTool
 from azure_credential_utils import get_azure_credential
 
 p = argparse.ArgumentParser()
@@ -95,19 +96,39 @@ Be descriptive but concise.
 Respond only with the title, no additional commentary.'''
 
 with project_client:
-    agents_client = project_client.agents
-
-    orchestrator_agent = agents_client.create_agent(
-        model=gptModelName,
-        name=f"ChatAgent-{solutionName}",
-        instructions=agent_instructions
+    chat_agent = project_client.agents.create_version(
+        agent_name=f"ChatAgent-{solutionName}",
+        definition=PromptAgentDefinition(
+            model=gptModelName,
+            instructions=agent_instructions,
+            tools=[
+                # SQL Tool - function tool (requires client-side implementation)
+                FunctionTool(
+                    name="run_sql_query",
+                    description="Execute parameterized SQL query and return results as list of dictionaries.",
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "sql_query": {
+                                "type": "string",
+                                "description": "Valid T-SQL query to execute against the SQL database in Fabric."
+                            }
+                        },
+                        "required": ["sql_query"]
+                    }
+                )
+            ]
+        ),
     )
-
-    title_agent = agents_client.create_agent(
-        model=gptModelName,
-        name=f"TitleAgent-{solutionName}",
-        instructions=agent_instructions_title
+    
+    title_agent = project_client.agents.create_version(
+        agent_name=f"TitleAgent-{solutionName}",
+        definition=PromptAgentDefinition(
+            model=gptModelName,
+            instructions=agent_instructions_title,
+            tools=[]
+        )
     )
-
-    print(f"orchestratorAgentId={orchestrator_agent.id}")
-    print(f"titleAgentId={title_agent.id}")
+    
+    print(f"chatAgentName={chat_agent.name}")
+    print(f"titleAgentName={title_agent.name}")

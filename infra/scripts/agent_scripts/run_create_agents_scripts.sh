@@ -99,17 +99,22 @@ fi
 echo "✓ Agents creation completed."
 
 # Update environment variables of API App
-if [ -n "$orchestratorAgentId" ] && [ -n "$titleAgentId" ]; then
+if [ -n "$chatAgentName" ] && [ -n "$titleAgentName" ]; then
     echo "Updating environment variables for App Service: $apiAppName"
   
     az webapp config appsettings set \
     --resource-group "$resourceGroup" \
     --name "$apiAppName" \
-    --settings AGENT_ID_ORCHESTRATOR="$orchestratorAgentId" AGENT_ID_TITLE="$titleAgentId" \
+    --settings AGENT_NAME_CHAT="$chatAgentName" AGENT_NAME_TITLE="$titleAgentName" \
     -o none
 
     echo "Environment variables updated for App Service: $apiAppName"
+
+    #Update local azd environment variables
+    azd env set AGENT_NAME_CHAT "$chatAgentName"
+    azd env set AGENT_NAME_TITLE "$titleAgentName"
+
 else
-    echo "Error: One or more agent IDs are empty. Cannot update environment variables."
+    echo "Error: One or more agent names are empty. Cannot update environment variables."
     exit 1
 fi
