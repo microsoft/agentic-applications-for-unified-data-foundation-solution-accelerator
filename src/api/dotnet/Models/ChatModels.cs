@@ -17,8 +17,6 @@ public class ChatMessage
     // Content can be either string or structured JSON (like chart data) - matches Python flexibility
     [JsonPropertyName("content")] public JsonElement Content { get; set; } = JsonSerializer.SerializeToElement(string.Empty);
     
-    [JsonPropertyName("created_at")] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    
     // Citations can be any JSON structure (array, object, etc.) - matches Python flexibility
     [JsonPropertyName("citations")] public JsonElement? Citations { get; set; }
     
