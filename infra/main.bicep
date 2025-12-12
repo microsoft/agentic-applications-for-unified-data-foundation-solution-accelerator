@@ -96,7 +96,8 @@ param aiDeploymentsLocation string
 
 var solutionPrefix = 'da${padLeft(take(uniqueId, 12), 12, '0')}'
 
-var acrName = 'dataagentscontainerreg'
+@description('Name of the Azure Container Registry')
+param acrName string = 'dataagentscontainerreg'
 
 //Get the current deployer's information
 var deployerInfo = deployer()
