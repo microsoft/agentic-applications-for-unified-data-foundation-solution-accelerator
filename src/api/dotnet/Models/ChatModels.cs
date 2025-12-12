@@ -132,8 +132,8 @@ public class ConversationSummary
     [JsonPropertyName("conversation_id")] public string ConversationId { get; set; } = string.Empty;
     [JsonPropertyName("user_id")] public string UserId { get; set; } = string.Empty;
     [JsonPropertyName("title")] public string Title { get; set; } = string.Empty;
-    [JsonPropertyName("created_at")] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    [JsonPropertyName("updated_at")] public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class ConversationListResponse
