@@ -14,9 +14,17 @@ name: "CodeQL"
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'src/**'
+      - 'infra/scripts/**'
+      - '.github/workflows/codeql.yml'
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ "main" ]
+    paths:
+      - 'src/**'
+      - 'infra/scripts/**'
+      - '.github/workflows/codeql.yml'
   schedule:
     - cron: '17 11 * * 0'
 
@@ -38,12 +46,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'python' ]
+        language: [ 'python', 'csharp' ]
         # CodeQL supports [ 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift' ]
         # Use only 'java-kotlin' to analyze code written in Java, Kotlin or both
         # Use only 'javascript-typescript' to analyze code written in JavaScript, TypeScript or both
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
-        dot-version: ['3.1.x']
+        dotnet-version: ['8.x']
 
     steps:
     - name: Checkout repository

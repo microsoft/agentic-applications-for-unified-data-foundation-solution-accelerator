@@ -1,6 +1,11 @@
 name: Azure Template Validation
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'infra/**'
+      - 'azure.yaml'
+      - '.github/workflows/azure-dev.yml' 
 
 permissions:
   contents: read
