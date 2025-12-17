@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "15252133123963522175"
+      "templateHash": "12645396819975389987"
     }
   },
   "parameters": {
@@ -378,7 +378,7 @@
     "acrName": "dataagentscontainerreg",
     "deployerInfo": "[deployer()]",
     "deployingUserPrincipalId": "[variables('deployerInfo').objectId]",
-    "landingText": "[if(equals(parameters('usecase'), 'Retail'), 'You can ask questions around sales, products and orders.', 'You can ask questions around customer policies, claims and communications.')]"
+    "landingText": "[if(equals(parameters('usecase'), 'Retail-sales-analysis'), 'You can ask questions around sales, products and orders.', 'You can ask questions around customer policies, claims and communications.')]"
   },
   "resources": [
     {

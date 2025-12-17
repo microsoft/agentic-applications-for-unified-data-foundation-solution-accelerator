@@ -337,7 +337,7 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendRun
   scope: resourceGroup(resourceGroup().name)
 }
 
-var landingText = usecase == 'Retail' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
+var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
 
 module frontend_docker 'deploy_frontend_docker.bicep' = {
   name: 'deploy_frontend_docker'
