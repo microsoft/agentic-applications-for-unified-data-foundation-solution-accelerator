@@ -142,7 +142,7 @@ When you start the deployment, most parameters will have **default values**, but
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
 | **Environment Name**                        | A **3–20 character alphanumeric value** used to generate a unique ID to prefix the resources.             | env\_name              |
 | **Backend Programming Language**                   | Programming language for the backend API: **python** or **dotnet**.                           | *(empty)*              |
-| **Use Case**                   | Use case: **Retail** or **Insurance**.                           | *(empty)*              |
+| **Use Case**                   | Use case: **Retail-sales-analysis** or **Insurance-improve-customer-meetings**.                           | *(empty)*              |
 | **Deployment Type**                         | Select from a drop-down list (allowed: `Standard`, `GlobalStandard`).                                     | GlobalStandard         |
 | **GPT Model**                               | Choose from **gpt-4, gpt-4o, gpt-4o-mini**.                                                               | gpt-4o-mini            |
 | **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2024-07-18             |
@@ -212,8 +212,8 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
    - **Python**
    - **.NET (dotnet)**
 6. Choose the use case: 
-  - **Retail**
-  - **Insurance** 
+   - **Retail-sales-analysis**
+   - **Insurance-improve-customer-meetings** 
 
    This deployment will take *7-10 minutes* to provision the resources in your account and set up the solution with sample data.
    
@@ -291,13 +291,19 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
      **Note**: This script will remove the lakehouse, SQL database, and service principal role assignments from the Fabric workspace. To completely remove all Azure resources, use `azd down`.
 
-## Sample Questions
+## Sample Questions 
 
 To help you get started, here are some **Sample Questions** you can ask in the app:
 
+For Retail sales analysis use case: 
 - Show total revenue by year for last 5 years as a line chart.
 - Show top 10 products by Revenue in the last year in a table.
 - Show as a donut chart.
+
+For Insurance improve customer meetings use case: 
+- I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?
+- Can you provide details of her communications?
+- Based on Ida's policy data has she ever missed a payment?
 
 These questions serve as a great starting point to explore insights from the data.
 
