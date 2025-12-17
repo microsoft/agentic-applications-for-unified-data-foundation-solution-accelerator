@@ -236,24 +236,24 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     ```
 
 9. Login to Azure
-  ```shell
-  az login
-  ```
+    ```shell
+    az login
+    ```
 > **Note**: you will need to open a Git Bash terminal to complete steps 10 and 11.  
 10. Run the bash script from the output of the azd deployment. The script will look like the following:
-  ```Shell
-  bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
-  ```
-
+    
+    ```Shell
+    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
+    ```
     If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
     ```Shell
     bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group>
     ```
 
 11. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
-  ```Shell
-  bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>
-  ```
+    ```Shell
+    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>
+    ```
 
     If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
     ```Shell
