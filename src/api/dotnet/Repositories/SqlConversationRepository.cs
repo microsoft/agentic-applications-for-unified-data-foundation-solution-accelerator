@@ -1,9 +1,9 @@
 ﻿using System.Data;
 using Microsoft.Data.SqlClient;
 using CsApi.Models;
+using CsApi.Auth;
 using Azure.Identity;
 using Azure.Core;
-using System.Threading.Tasks;
 using System.Text.Json;
 
 namespace CsApi.Repositories;
@@ -25,9 +25,14 @@ public class SqlConversationRepository : ISqlConversationRepository
 {
     private readonly IConfiguration _config;
     private readonly ILogger<SqlConversationRepository> _logger;
+    private readonly IAzureCredentialFactory _credentialFactory;
 
-    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger)
-    { _config = config; _logger = logger; }
+    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger, IAzureCredentialFactory credentialFactory)
+    { 
+        _config = config; 
+        _logger = logger; 
+        _credentialFactory = credentialFactory;
+    }
 
     private async Task<IDbConnection> CreateConnectionAsync()
     {
@@ -64,9 +69,9 @@ public class SqlConversationRepository : ISqlConversationRepository
             "Encrypt=True;" +
             "TrustServerCertificate=False;";
 
-        var credential = new DefaultAzureCredential();
+        var credential = _credentialFactory.Create();
         var token = await credential.GetTokenAsync(
-            new TokenRequestContext(new[] { "https://database.windows.net/.default" }));
+            new TokenRequestContext(new[] { "https://database.windows.net/.default" }), CancellationToken.None);
 
         var sqlConnWithToken = new SqlConnection(connectionString)
         {
@@ -210,11 +215,11 @@ public class SqlConversationRepository : ISqlConversationRepository
             // Console.WriteLine($"Listing conversations for user '{userId}' (filterByUser={filterByUser})");
             if (filterByUser)
             {
-                sql = "SELECT conversation_id, userId, title, createdAt, updatedAt FROM hst_conversations WHERE userId=@userId ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
+                sql = "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations WHERE userId=@userId ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
             }
             else
             {
-                sql = "SELECT conversation_id, userId, title, createdAt, updatedAt FROM hst_conversations ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
+                sql = "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
             }
             using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
             {
@@ -225,9 +230,9 @@ public class SqlConversationRepository : ISqlConversationRepository
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-                    var createdAt = reader.IsDBNull(3) ? DateTime.UtcNow : reader.GetDateTime(3);
-                    var updatedAt = reader.IsDBNull(4) ? DateTime.UtcNow : reader.GetDateTime(4);
-                    var title = reader.IsDBNull(2) ? "New Conversation" : reader.GetString(2);
+                    var title = reader.IsDBNull(reader.GetOrdinal("title")) ? "New Conversation" : reader.GetString("title");
+                    var createdAt = reader.IsDBNull(reader.GetOrdinal("createdAt")) ? DateTime.UtcNow : reader.GetDateTime("createdAt");
+                    var updatedAt = reader.IsDBNull(reader.GetOrdinal("updatedAt")) ? DateTime.UtcNow : reader.GetDateTime("updatedAt");
                     
                     // Ensure title is not empty
                     if (string.IsNullOrWhiteSpace(title))
@@ -237,8 +242,7 @@ public class SqlConversationRepository : ISqlConversationRepository
                     
                     list.Add(new ConversationSummary
                     {
-                        ConversationId = reader.GetString(0),
-                        UserId = reader.GetString(1),
+                        ConversationId = reader.GetString("conversation_id"),
                         Title = title,
                         CreatedAt = createdAt,
                         UpdatedAt = updatedAt
@@ -288,10 +292,10 @@ public class SqlConversationRepository : ISqlConversationRepository
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                var role = reader.IsDBNull(0) ? null : reader.GetString(0);
-                var contentRaw = reader.IsDBNull(1) ? null : reader.GetString(1);
-                var citationsStr = reader.IsDBNull(2) ? null : reader.GetString(2);
-                var feedback = reader.IsDBNull(3) ? null : reader.GetString(3);
+                var role = reader.IsDBNull(reader.GetOrdinal("role")) ? null : reader.GetString("role");
+                var contentRaw = reader.IsDBNull(reader.GetOrdinal("content")) ? null : reader.GetString("content");
+                var citationsStr = reader.IsDBNull(reader.GetOrdinal("citations")) ? null : reader.GetString("citations");
+                var feedback = reader.IsDBNull(reader.GetOrdinal("feedback")) ? null : reader.GetString("feedback");
                 
                 // Parse content from JSON string back to JsonElement (matches Python behavior)
                 // This is crucial for chart data to be properly structured instead of string

@@ -115,6 +115,15 @@ trap cleanup EXIT
 
 python -u infra/scripts/fabric_scripts/create_fabric_items.py --workspaceId "$fabricWorkspaceId" --solutionname "$solutionName" --backend_app_pid "$backend_app_pid" --backend_app_uid "$backend_app_uid" --usecase "$usecase" --exports-file "$tmp"
 
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "✓ Fabric items creation completed successfully!"
+else
+    echo ""
+    echo "⚠ Fabric items creation encountered errors. Please check the output above."
+    exit 1
+fi
+
 source "$tmp"
 
 FABRIC_SQL_SERVER="$FABRIC_SQL_SERVER1"
@@ -122,10 +131,14 @@ FABRIC_SQL_DATABASE="$FABRIC_SQL_DATABASE1"
 FABRIC_SQL_CONNECTION_STRING="$FABRIC_SQL_CONNECTION_STRING1"
 
 # Update environment variables of API App
-az webapp config appsettings set \
-  --resource-group "$resource_group" \
-  --name "$app_service" \
-  --settings FABRIC_SQL_SERVER="$FABRIC_SQL_SERVER" FABRIC_SQL_DATABASE="$FABRIC_SQL_DATABASE" FABRIC_SQL_CONNECTION_STRING="$FABRIC_SQL_CONNECTION_STRING" \
-  -o none
-
-echo "Environment variables updated for App Service: $app_service"
+if [ -n "$FABRIC_SQL_SERVER" ] && [ -n "$FABRIC_SQL_DATABASE" ] && [ -n "$FABRIC_SQL_CONNECTION_STRING" ]; then
+    az webapp config appsettings set \
+      --resource-group "$resource_group" \
+      --name "$app_service" \
+      --settings FABRIC_SQL_SERVER="$FABRIC_SQL_SERVER" FABRIC_SQL_DATABASE="$FABRIC_SQL_DATABASE" FABRIC_SQL_CONNECTION_STRING="$FABRIC_SQL_CONNECTION_STRING" \
+      -o none
+    echo "Environment variables updated for App Service: $app_service"
+else
+    echo "Error: One or more required environment variables are empty. Skipping updating environment variables for App Service."
+    exit 1
+fi

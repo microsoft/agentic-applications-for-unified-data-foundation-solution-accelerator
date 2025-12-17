@@ -50,8 +50,8 @@ const Chat: React.FC<ChatProps> = ({
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   const [isCharthDisplayDefault , setIsCharthDisplayDefault] = useState(false);
   
-  const saveToDB = async (messages: ChatMessage[], convId: string, reqType: string = 'Text') => {
-    if (!convId || !messages.length) {
+  const saveToDB = async (newMessages: ChatMessage[], convId: string, reqType: string = 'Text') => {
+    if (!convId || !newMessages.length) {
       return;
     }
     const isNewConversation = reqType !== 'graph' ? !state.selectedConversationId : false;
@@ -60,14 +60,15 @@ const Chat: React.FC<ChatProps> = ({
       payload: true,
     });
 
-    if (((reqType !== 'graph' && reqType !== 'error') &&  messages[messages.length - 1].role !== ERROR) && isCharthDisplayDefault ){
+    if (((reqType !== 'graph' && reqType !== 'error') &&  newMessages[newMessages.length - 1].role !== ERROR) && isCharthDisplayDefault ){
       setIsChartLoading(true);
       setTimeout(()=>{
-        makeApiRequestForChart('show in a graph by default', convId, messages[messages.length - 1].content as string)
+        makeApiRequestForChart('show in a graph by default', convId)
       },5000)
       
     }
-    await historyUpdate(messages, convId)
+    
+    await historyUpdate(newMessages, convId)
       .then(async (res) => {
         if (!res.ok) {
           if (!messages) {
@@ -200,8 +201,7 @@ const Chat: React.FC<ChatProps> = ({
 
   const makeApiRequestForChart = async (
     question: string,
-    conversationId: string,
-    lrg: string
+    conversationId: string
   ) => {
     if (generatingResponse || !question.trim()) return;
 
@@ -234,8 +234,7 @@ const Chat: React.FC<ChatProps> = ({
 
     const request: ConversationRequest = {
       id: conversationId,
-      messages: [...state.chat.messages, newMessage].filter(msg => msg.role !== ERROR),
-      last_rag_response: lrg
+      query: question
     };
 
     let updatedMessages: ChatMessage[] = [];
@@ -272,7 +271,7 @@ const Chat: React.FC<ChatProps> = ({
         if (hasError) {
           const errorMsg = JSON.parse(runningText).error;
           const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
-          updatedMessages = [...state.chat.messages, newMessage, errorMessage];
+          updatedMessages = [newMessage, errorMessage];
         } else if (isChartQuery(question)) {
           try {
             const parsedResponse = JSON.parse(runningText);
@@ -282,11 +281,11 @@ const Chat: React.FC<ChatProps> = ({
                 ASSISTANT, 
                 parsedResponse.object as unknown as ChartDataResponse
               );
-              updatedMessages = [...state.chat.messages, newMessage, chartMessage];
+              updatedMessages = [newMessage, chartMessage];
             } else if (parsedResponse.error || parsedResponse?.object?.message) {
               const errorMsg = parsedResponse.error || parsedResponse.object.message;
               const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
-              updatedMessages = [...state.chat.messages, newMessage, errorMessage];
+              updatedMessages = [newMessage, errorMessage];
             }
           } catch (e) {
             console.error("Error parsing chart response:", e);
@@ -301,7 +300,7 @@ const Chat: React.FC<ChatProps> = ({
       console.error("Error in makeApiRequestForChart:", e);
       
       if (abortController.signal.aborted) {
-        updatedMessages = [...state.chat.messages, newMessage];
+        updatedMessages = [newMessage];
         saveToDB(updatedMessages, conversationId, 'graph');
       } else if (e instanceof Error) {
         alert(e.message);
@@ -353,6 +352,97 @@ const Chat: React.FC<ChatProps> = ({
     
     return { answerText, citationString };
   };
+
+  // **Helper function to parse nested answer string**
+  const parseNestedAnswer = (answerValue: string): any => {
+    const updatedJsonstring = removeKeyFromJSON(answerValue, 'tooltip');
+    try {
+      // Attempt 1: Direct parse
+      
+      return JSON.parse(updatedJsonstring);
+    } catch {
+      // Attempt 2: Sanitize then parse
+      const sanitized = sanitizeJSONString(updatedJsonstring);
+      
+      const openBraces = (sanitized.match(/\{/g) || []).length;
+      const closeBraces = (sanitized.match(/\}/g) || []).length;
+      
+      if (openBraces !== closeBraces) {
+        throw new Error("Sanitization produced unbalanced braces");
+      }
+      
+      return JSON.parse(sanitized);
+    }
+  };
+
+  // **Helper function to parse chart content**
+  const parseChartContent = (rawContent: string): any => {
+    const updatedJsonstring = removeKeyFromJSON(rawContent, 'tooltip');
+    try {
+      const chartResponse = JSON.parse(updatedJsonstring);
+      
+      // Handle nested escaped JSON in "answer" field
+      if (chartResponse && typeof chartResponse === "object" && "answer" in chartResponse) {
+        const answerValue = chartResponse.answer;
+        
+        if (typeof answerValue === "string") {
+          try {
+            chartResponse.answer = parseNestedAnswer(answerValue);
+          } catch (nestedError) {
+            console.error("❌ Nested parse error:", nestedError instanceof Error ? nestedError.message : String(nestedError));
+          }
+        }
+      }
+      
+      return chartResponse;
+    } catch {
+      console.error("❌ Failed to parse raw content, trying sanitization...");
+      
+      const sanitized = removeKeyFromJSON(sanitizeJSONString(updatedJsonstring), 'tooltip');
+      try {
+        return JSON.parse(sanitized);
+      } catch (sanitizeError) {
+        console.error("❌ JSON parse failed after sanitization:", sanitizeError instanceof Error ? sanitizeError.message : String(sanitizeError));
+        return "Chart can't be generated, please try again.";
+      }
+    }
+  };
+
+  // **Helper to check if error message is malformed chart JSON**
+  const isMalformedChartJSON = (errorMsg: string, hasBackendError: boolean): boolean => {
+    return typeof errorMsg === "string" &&
+      !hasBackendError &&
+      (errorMsg.includes('"type"') || errorMsg.includes('"chartType"')) &&
+      errorMsg.includes('"data"') &&
+      (errorMsg.includes('{') || errorMsg.includes('}'));
+  };
+
+const removeKeyFromJSON = (jsonString: string, keyToRemove: string): string => {
+  try {
+    const obj = JSON.parse(jsonString);
+    
+    const removeKeyRecursive = (obj: any): any => {
+      if (Array.isArray(obj)) {
+        return obj.map((item: any) => removeKeyRecursive(item));
+      } else if (obj !== null && typeof obj === 'object') {
+        const newObj: Record<string, any> = {};
+        for (const key in obj) {
+          if (obj.hasOwnProperty(key) && key !== keyToRemove) {
+            newObj[key] = removeKeyRecursive(obj[key]);
+          }
+        }
+        return newObj;
+      }
+      return obj;
+    };
+    
+    const result = removeKeyRecursive(obj);
+    return JSON.stringify(result);
+  } catch (error) {
+    console.error('Error parsing JSON:', error);
+    return jsonString;
+  }
+};
 
 const sanitizeJSONString = (jsonString: string): string => {
   if (!jsonString || typeof jsonString !== 'string') {
@@ -646,11 +736,7 @@ const sanitizeJSONString = (jsonString: string): string => {
 
     const request: ConversationRequest = {
       id: conversationId,
-      messages: [...state.chat.messages, newMessage].filter(msg => msg.role !== ERROR),
-      last_rag_response:
-        isChartQuery(userMessage) && state.chat.lastRagResponse
-          ? JSON.stringify(state.chat.lastRagResponse)
-          : null,
+      query: userMessage
     };
 
     const streamMessage: ChatMessage = {
@@ -744,85 +830,29 @@ const sanitizeJSONString = (jsonString: string): string => {
             : parsedError.error;
           
           const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
-          updatedMessages = [...state.chat.messages, newMessage, errorMessage];
+          updatedMessages = [newMessage, errorMessage];
         } else if (isChartQuery(userMessage)) {
           try {
             const splitRunningText = runningText.split("}{");
             const parsedChartResponse = JSON.parse("{" + splitRunningText[splitRunningText.length - 1]);
             
             const rawChartContent = parsedChartResponse?.choices[0]?.messages[0]?.content;
-            let chartResponse: any = {};
             
-            // Handle chart content parsing with sanitization
-            if (typeof rawChartContent === "string") {
-              
-              try {
-                // First, try to parse the raw content directly
-                chartResponse = JSON.parse(rawChartContent);
-                
-                // **Handle nested escaped JSON in "answer" field**
-                if (chartResponse && typeof chartResponse === "object" && "answer" in chartResponse) {
-                  const answerValue = chartResponse.answer;
-                  
-                  // If answer is a STRING, it might be escaped JSON - parse it
-                  if (typeof answerValue === "string") {
-                    
-                    try {
-                      // **ENHANCED FIX**: Try direct parse first (for properly escaped JSON)
-                      let parsedAnswer;
-                      
-                      try {
-                        // Attempt 1: Direct parse (handles \" properly)
-                        parsedAnswer = JSON.parse(answerValue);
-                      } catch (directParseError) {
-                        // Attempt 2: Sanitize then parse
-                        const sanitizedAnswer = sanitizeJSONString(answerValue);
-                        // Validate the sanitized string before parsing
-                        const openBraces = (sanitizedAnswer.match(/\{/g) || []).length;
-                        const closeBraces = (sanitizedAnswer.match(/\}/g) || []).length;
-                        
-                        if (openBraces !== closeBraces) {
-                          throw new Error("Sanitization produced unbalanced braces");
-                        }
-                        
-                        parsedAnswer = JSON.parse(sanitizedAnswer);
-                      }
-                      
-                      // Replace the string answer with the parsed object
-                      chartResponse.answer = parsedAnswer;
-                      
-                    } catch (nestedError) {
-                      console.error("❌ Error details:", nestedError instanceof Error ? nestedError.message : String(nestedError));
-                    }
-                  }
-                }
-                
-              } catch (parseError) {
-                console.error("❌ Failed to parse raw content, trying sanitization...");
-                
-                // If direct parsing fails, try sanitizing first
-                const sanitizedContent = sanitizeJSONString(rawChartContent);                
-                try {
-                  chartResponse = JSON.parse(sanitizedContent);
-                } catch (sanitizeError) {
-                  console.error("❌ JSON parse failed even after sanitization:", sanitizeError instanceof Error ? sanitizeError.message : sanitizeError);
-                  chartResponse = "Chart can't be generated, please try again.";
-                }
-              }
-              
-            } else {
-              chartResponse = rawChartContent || "Chart can't be generated, please try again.";
-            }
-          
+            // **OPTIMIZED: Use helper function for parsing**
+            let chartResponse = typeof rawChartContent === "string" 
+              ? parseChartContent(rawChartContent) 
+              : rawChartContent || "Chart can't be generated, please try again.";
+
             chartResponse = extractChartData(chartResponse);
 
+            // Validate and create chart message
             if ((chartResponse?.type || chartResponse?.chartType) && chartResponse?.data) {
               // Valid chart data
               const chartMessage = createAndDispatchMessage(
                 ASSISTANT, 
                 chartResponse as unknown as ChartDataResponse
               );
-              updatedMessages = [...state.chat.messages, newMessage, chartMessage];
+              updatedMessages = [newMessage, chartMessage];
             } else if (parsedChartResponse?.error || parsedChartResponse?.choices[0]?.messages[0]?.content) {
               let content = parsedChartResponse?.choices[0]?.messages[0]?.content;
               let displayContent = content;
@@ -836,19 +866,21 @@ const sanitizeJSONString = (jsonString: string): string => {
                 displayContent = content;
               }
               
-              const errorMsg = parsedChartResponse?.error || displayContent;
+              let errorMsg = parsedChartResponse?.error || displayContent;
+              
+              // **OPTIMIZED: Use helper function for validation**
+              if (isMalformedChartJSON(errorMsg, !!parsedChartResponse?.error)) {
+                errorMsg = "Chart can not be generated, please try again later";
+              }
+              
               const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
-              updatedMessages = [...state.chat.messages, newMessage, errorMessage];
+              updatedMessages = [newMessage, errorMessage];
             }
           } catch (e) {
-            //console.log("Error while parsing charts response", e);
+            console.error("Error parsing chart response:", e);
           }
         } else if (!isChartResponseReceived) {
-          dispatch({
-            type: actionConstants.SET_LAST_RAG_RESPONSE,
-            payload: streamMessage?.content as string,
-          });
-          updatedMessages = [...state.chat.messages, newMessage, streamMessage];
+          updatedMessages = [newMessage, streamMessage];
         }
       }
       
@@ -860,8 +892,8 @@ const sanitizeJSONString = (jsonString: string): string => {
       
       if (abortController.signal.aborted) {
         updatedMessages = streamMessage.content
-          ? [...state.chat.messages, newMessage, streamMessage]
-          : [...state.chat.messages, newMessage];
+          ? [newMessage, streamMessage]
+          : [newMessage];
         
         saveToDB(updatedMessages, conversationId, 'error');
       } else if (e instanceof Error) {

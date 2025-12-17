@@ -1,12 +1,7 @@
-using System;
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Agents.AI;
-using Azure.Identity;
 using Azure.AI.Agents.Persistent;
 using CsApi.Auth;
-using Microsoft.Extensions.Configuration;
 
 namespace CsApi.Utils
 {
