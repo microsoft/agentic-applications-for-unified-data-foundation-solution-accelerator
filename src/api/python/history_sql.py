@@ -489,7 +489,6 @@ async def generate_title(conversation_messages):
     Returns:
         str: A 4-word or less title summarizing the conversation.
     """
-    temp_agent_id = None
 
     try:
         # Get the last user message for title generation
@@ -498,7 +497,7 @@ async def generate_title(conversation_messages):
         if not user_messages:
             logger.debug("No user messages found, returning default title")
             return generate_fallback_title(conversation_messages)
-        
+
         # Combine all user messages with the title prompt
         combined_content = "\n".join([msg["content"] for msg in user_messages])
         final_prompt = f"Generate a 4-word or less title for this request:\n{combined_content}"
@@ -515,7 +514,7 @@ async def generate_title(conversation_messages):
                 agent_name=AGENT_NAME_TITLE,
                 use_latest_version=True,
             )
-            
+
             async with ChatAgent(
                 chat_client=chat_client,
                 tool_choice="none",
@@ -527,34 +526,10 @@ async def generate_title(conversation_messages):
     except ServiceResponseException as sre:
         logger.warning("ServiceResponseException generating title with Azure AI Foundry agent: %s", sre)
         return generate_fallback_title(conversation_messages)
-    
+
     except Exception as e:
         logger.warning("Error generating title with Azure AI Foundry agent: %s", e)
         return generate_fallback_title(conversation_messages)
-
-
-async def cleanup_temporary_agent(project_client: AIProjectClient, agent_id: str):
-    """
-    Properly cleans up and deletes a temporary Azure AI Foundry agent.
-    This ensures proper resource management and prevents agent accumulation.
-    Uses the Azure AI project client for proper agent deletion.
-
-    Args:
-        project_client (AIProjectClient): The Azure AI project client.
-        agent_id (str): The temporary agent ID to cleanup.
-    """
-    if not AZURE_AI_AGENT_ENDPOINT or not agent_id:
-        logger.warning("Cannot cleanup agent - endpoint or agent_id is null/empty")
-        return
-
-    try:
-        await project_client.agents.delete_agent(agent_id)
-
-        logger.info("Successfully deleted temporary title generation agent: %s", agent_id)
-
-    except Exception as e:
-        logger.error("Failed to delete temporary agent %s: %s", agent_id, e)
-        raise
 
 
 def generate_fallback_title(conversation_messages):

@@ -8,7 +8,6 @@ import logging
 import os
 import random
 import re
-from typing import AsyncGenerator
 
 from cachetools import TTLCache
 from dotenv import load_dotenv
@@ -172,7 +171,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
 
             custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
             my_tools = [custom_tool.run_sql_query]
-            
+
             # Create chat client with existing agent
             chat_client = AzureAIClient(
                 project_client=project_client,
@@ -186,7 +185,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
                 tool_choice="auto",
                 store=True,
             ) as chat_agent:
-               
+
                 if thread_conversation_id:
                     thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
                     assert thread.is_initialized
