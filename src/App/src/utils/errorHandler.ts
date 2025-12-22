@@ -141,18 +141,6 @@ export class ApiErrorHandler {
       console.warn('Failed to read error response:', readError);
       errorMessage = ApiErrorHandler.getDefaultErrorMessage(response.status);
     }
-    
-    const apiError: ApiError = {
-      status: response.status,
-      statusText: response.statusText,
-      message: errorMessage,
-      error: errorData,
-      endpoint,
-      timestamp: new Date().toISOString()
-    };
-
-    // Log the error
-    // ApiErrorHandler.logError(apiError);
 
     return {
       hasError: true,

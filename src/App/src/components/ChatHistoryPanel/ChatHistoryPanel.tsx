@@ -12,12 +12,14 @@ import {
   Stack,
   StackItem,
   Text,
+  Spinner,
+  SpinnerSize,
 } from "@fluentui/react";
 
 import styles from "./ChatHistoryPanel.module.css";
 import { type Conversation } from "../../types/AppTypes";
 import { ChatHistoryListItemGroups } from "../ChatHistoryListItemGroups/ChatHistoryListItemGroups";
-import { useAppContext } from "../../state/useAppContext";
+import { useAppSelector } from "../../store/hooks";
 
 const commandBarStyle: ICommandBarStyles = {
   root: {
@@ -57,12 +59,10 @@ export const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = (props) => {
     showClearAllConfirmationDialog,
     onClickClearAllOption,
   } = props;
-  const { state, dispatch } = useAppContext();
-  const { chatHistory } = state;
+  const chatHistory = useAppSelector((state) => state.chatHistory);
+  const generatingResponse = useAppSelector((state) => state.chat.generatingResponse);
   const [showClearAllContextMenu, setShowClearAllContextMenu] =
     useState<boolean>(false);
-
-  const { generatingResponse } = state?.chat;
   const clearAllDialogContentProps = {
     type: DialogType.close,
     title: !clearingError
@@ -77,7 +77,7 @@ export const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = (props) => {
   const disableClearAllChatHistory =
     !chatHistory.list.length ||
     generatingResponse ||
-    state.chatHistory.fetchingConversations;
+    chatHistory.fetchingConversations;
   const menuItems: IContextualMenuItem[] = [
     {
       key: "clearAll",
@@ -143,8 +143,32 @@ export const ChatHistoryPanel: React.FC<ChatHistoryPanelProps> = (props) => {
         style={{
           display: "flex",
           height: "calc(100% - 3rem)",
+          position: "relative",
         }}
       >
+        {clearing && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: "rgba(255, 255, 255, 0.8)",
+              zIndex: 1000,
+            }}
+          >
+            <Spinner
+              size={SpinnerSize.large}
+              label="Clearing chat history..."
+              ariaLive="assertive"
+              labelPosition="bottom"
+            />
+          </div>
+        )}
         <Stack className={styles.chatHistoryListContainer}>
           <ChatHistoryListItemGroups
             handleFetchHistory={handleFetchHistory}

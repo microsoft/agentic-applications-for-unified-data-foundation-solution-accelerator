@@ -1,21 +1,21 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Stack } from '@fluentui/react';
 import { DismissRegular } from '@fluentui/react-icons';
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import { useAppContext } from '../../state/useAppContext';
-import { actionConstants } from '../../state/ActionConstants';
+import { useAppDispatch } from '../../store/hooks';
+import { clearCitation } from '../../store/citationSlice';
 import "./CitationPanel.css";
 interface Props {
     activeCitation: any
 }
 
-const CitationPanel = ({ activeCitation }: Props) => {
-    const { dispatch } = useAppContext()
+const CitationPanel = memo(({ activeCitation }: Props) => {
+    const dispatch = useAppDispatch();
   
     const onCloseCitation = () => {
-        dispatch({  type: actionConstants.UPDATE_CITATION,payload: { activeCitation: null, showCitation: false }})
+        dispatch(clearCitation());
     }
     return (
         <div className='citationPanel'>
@@ -63,7 +63,8 @@ const CitationPanel = ({ activeCitation }: Props) => {
               />
             </Stack.Item>
         </div>)
-};
+});
 
+CitationPanel.displayName = 'CitationPanel';
 
 export default CitationPanel;
