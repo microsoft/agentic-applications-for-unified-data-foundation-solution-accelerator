@@ -1,5 +1,5 @@
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview-alpine AS runtime
 
 # Install essential dependencies and ODBC driver
 RUN apk add --no-cache curl unixodbc libgcc libstdc++ icu-libs krb5-libs && \
@@ -10,7 +10,7 @@ RUN apk add --no-cache curl unixodbc libgcc libstdc++ icu-libs krb5-libs && \
 WORKDIR /app
 
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-preview-alpine AS build
 WORKDIR /src
 COPY CsApi.csproj ./
 RUN dotnet restore "CsApi.csproj"
