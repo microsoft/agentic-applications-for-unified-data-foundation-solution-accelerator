@@ -9,6 +9,7 @@ backend_app_pid="$4"
 backend_app_uid="$5"
 app_service="$6"
 resource_group="$7"
+usecase="$8"
 
 # get parameters from azd env, if not provided
 if [ -z "$solutionName" ]; then
@@ -35,10 +36,13 @@ if [ -z "$resource_group" ]; then
     resource_group=$(azd env get-value RESOURCE_GROUP_NAME)
 fi
 
+if [ -z "$usecase" ]; then
+    usecase=$(azd env get-value USE_CASE)
+fi
 
 # Check if all required arguments are present
-if [ -z "$fabricWorkspaceId" ] || [ -z "$solutionName" ] || [ -z "$aiFoundryName" ] || [ -z "$backend_app_pid" ] || [ -z "$backend_app_uid" ] || [ -z "$app_service" ] || [ -z "$resource_group" ]; then
-    echo "Usage: $0 <fabricWorkspaceId> <solutionName> <aiFoundryName> <backend_app_pid> <backend_app_uid> <app_service> <resource_group>"
+if [ -z "$fabricWorkspaceId" ] || [ -z "$solutionName" ] || [ -z "$aiFoundryName" ] || [ -z "$backend_app_pid" ] || [ -z "$backend_app_uid" ] || [ -z "$app_service" ] || [ -z "$resource_group" ] || [ -z "$usecase" ]; then
+    echo "Usage: $0 <fabricWorkspaceId> <solutionName> <aiFoundryName> <backend_app_pid> <backend_app_uid> <app_service> <resource_group> <usecase>"
     exit 1
 fi
 
@@ -109,7 +113,7 @@ tmp="$(mktemp)"
 cleanup() { rm -f "$tmp"; }
 trap cleanup EXIT
 
-python -u infra/scripts/fabric_scripts/create_fabric_items.py --workspaceId "$fabricWorkspaceId" --solutionname "$solutionName" --backend_app_pid "$backend_app_pid" --backend_app_uid "$backend_app_uid" --exports-file "$tmp"
+python -u infra/scripts/fabric_scripts/create_fabric_items.py --workspaceId "$fabricWorkspaceId" --solutionname "$solutionName" --backend_app_pid "$backend_app_pid" --backend_app_uid "$backend_app_uid" --usecase "$usecase" --exports-file "$tmp"
 
 if [ $? -eq 0 ]; then
     echo ""

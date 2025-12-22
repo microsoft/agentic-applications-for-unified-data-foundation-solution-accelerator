@@ -150,6 +150,18 @@ Deliver actionable insights through robust governance and metadata. Improve deci
      
 </details>
 
+### Use Case
+<details>
+  <summary>Click to learn more about what use cases this solution provides</summary>
+<br/>
+
+  | **Use case** | **Persona** | **Challenges** | **Summary/approach** |
+  |---|---|---|---|
+  | Sales analysis & product performance | Sales Analyst | Significant amount of time spent searching through disconnected data silos, making it difficult to access complete sales, product and customer information quickly and accurately.| Providing a comprehensive view of customer, product, and sales data interacting through natural language. Faster time to insights without navigating complex reports and dashboards.| 
+  Improve customer meetings, client meeting preparation | Account Manager | Manual processes and fragmented systems slow down routine tasks, make insights hard to find, and limit personalized customer interactions, leading to higher churn and lower satisfaction | Providing customer data in the flow of work and uncovering actionable insights through natural language queries, and personalizing interactions to reduce churn and boost customer satisfaction. |
+
+</details>
+
 <br /><br />
 
 <h2><img src="./documents/Images/ReadMe/supporting-documentation.png" width="48" />
