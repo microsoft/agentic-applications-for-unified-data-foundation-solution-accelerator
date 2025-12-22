@@ -11,7 +11,6 @@
     <PackageReference Include="Azure.AI.Projects.OpenAI" Version="1.0.0-beta.4" />
     <PackageReference Include="Azure.AI.Projects" Version="1.2.0-beta.3" />
     <PackageReference Include="Azure.Identity" Version="1.17.1" />
-    <PackageReference Include="OpenAI" Version="2.7.0" />
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.1.0" />
     <PackageReference Include="Microsoft.Agents.AI.AzureAI" Version="1.0.0-preview.251204.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
