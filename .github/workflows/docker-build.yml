@@ -67,9 +67,7 @@ jobs:
          else
           echo "tagname=default" >> $GITHUB_OUTPUT
        
-         fi
-
-      
+         fi      
       - name: Build and Push Docker Image for WebApp
         uses: docker/build-push-action@v6
         with:
