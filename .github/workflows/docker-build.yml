@@ -6,6 +6,10 @@ on:
       - main
       - dev
       - demo
+    paths:
+      - 'src/App/**'
+      - 'src/api/**'
+      - '.github/workflows/docker-build.yml'
   pull_request:
     types:
       - opened
@@ -16,6 +20,10 @@ on:
       - main
       - dev
       - demo
+    paths:
+      - 'src/App/**'
+      - 'src/api/**'
+      - '.github/workflows/docker-build.yml'
   workflow_dispatch:
 
 jobs:
@@ -59,7 +67,7 @@ jobs:
          else
           echo "tagname=default" >> $GITHUB_OUTPUT
        
-         fi
+         fi      
       - name: Build and Push Docker Image for WebApp
         uses: docker/build-push-action@v6
         with:
