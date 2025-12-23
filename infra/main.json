@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "14501340318587458460"
+      "templateHash": "7509417007214881155"
     }
   },
   "parameters": {
@@ -121,7 +121,7 @@
     },
     "imageTag": {
       "type": "string",
-      "defaultValue": "latest"
+      "defaultValue": "latest_v2"
     },
     "AZURE_LOCATION": {
       "type": "string",
