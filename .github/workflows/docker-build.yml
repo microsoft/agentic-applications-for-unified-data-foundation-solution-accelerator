@@ -69,22 +69,8 @@ jobs:
        
          fi
 
-      - name: Detect Changed Files
-        id: changes
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            frontend:
-              - 'src/App/**'
-            python-api:
-              - 'src/api/python/**'
-            dotnet-api:
-              - 'src/api/dotnet/**'
-            workflow:
-              - '.github/workflows/docker-build.yml'
-
+      
       - name: Build and Push Docker Image for WebApp
-        if: ${{ steps.changes.outputs.frontend == 'true' || steps.changes.outputs.workflow == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: docker/build-push-action@v6
         with:
           context: ./src/App
@@ -94,8 +80,7 @@ jobs:
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-app:${{ steps.determine_tag.outputs.tagname }}
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-app:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
 
-      - name: Build and Push Docker Image for Python API
-        if: ${{ steps.changes.outputs.python-api == 'true' || steps.changes.outputs.workflow == 'true' || github.event_name == 'workflow_dispatch' }}
+      - name: Build and Push Docker Image for api
         uses: docker/build-push-action@v6
         with:
           context: ./src/api/python
@@ -105,8 +90,7 @@ jobs:
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api:${{ steps.determine_tag.outputs.tagname }}
             ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
 
-      - name: Build and Push Docker Image for .NET API
-        if: ${{ steps.changes.outputs.dotnet-api == 'true' || steps.changes.outputs.workflow == 'true' || github.event_name == 'workflow_dispatch' }}
+      - name: Build and Push Docker Image for CsApi
         uses: docker/build-push-action@v6
         with:
           context: ./src/api/dotnet
