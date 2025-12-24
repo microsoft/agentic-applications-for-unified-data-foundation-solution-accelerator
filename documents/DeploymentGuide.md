@@ -223,7 +223,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 `bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh` and
 `bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
 
-> **Note**: if you are running this deployment in GitHub Codespaces or VS Code Dev Container skip to step 9. 
+> **Note**: If you are running this deployment in GitHub Codespaces or VS Code Dev Container or Visual Studio Code (WEB) skip to step 9. 
 
 8. Create and activate a virtual environment 
   
@@ -239,6 +239,13 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     ```shell
     az login
     ```
+
+    Alternatively, login to Azure using a device code (recommended when using VS Code Web):
+
+    ```shell
+    az login --use-device-code
+    ```
+
 > **Note**: you will need to open a Git Bash terminal to complete steps 10 and 11.  
 10. Run the bash script from the output of the azd deployment. The script will look like the following:
     
