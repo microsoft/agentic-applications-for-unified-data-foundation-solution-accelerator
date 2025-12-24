@@ -8,7 +8,6 @@ import logging
 import os
 import random
 import re
-from typing import AsyncGenerator
 
 from cachetools import TTLCache
 from dotenv import load_dotenv
@@ -24,7 +23,7 @@ from azure.monitor.opentelemetry import configure_azure_monitor
 from azure.ai.projects.aio import AIProjectClient
 
 from agent_framework import ChatAgent
-from agent_framework.azure import AzureAIAgentClient
+from agent_framework.azure import AzureAIClient
 from agent_framework.exceptions import ServiceResponseException
 
 # Azure Auth
@@ -77,41 +76,42 @@ class ExpCache(TTLCache):
     def expire(self, time=None):
         """Remove expired items and delete associated Azure AI threads."""
         items = super().expire(time)
-        for key, thread_id in items:
+        for key, thread_conversation_id in items:
             try:
                 # Create task for async deletion with proper session management
-                asyncio.create_task(self._delete_thread_async(thread_id))
-                logger.info("Scheduled thread deletion: %s", thread_id)
+                asyncio.create_task(self._delete_thread_async(thread_conversation_id))
+                logger.info("Scheduled thread deletion: %s", thread_conversation_id)
             except Exception as e:
                 logger.error("Failed to schedule thread deletion for key %s: %s", key, e)
         return items
 
     def popitem(self):
         """Remove item using LRU eviction and delete associated Azure AI thread."""
-        key, thread_id = super().popitem()
+        key, thread_conversation_id = super().popitem()
         try:
             # Create task for async deletion with proper session management
-            asyncio.create_task(self._delete_thread_async(thread_id))
-            logger.info("Scheduled thread deletion (LRU evict): %s", thread_id)
+            asyncio.create_task(self._delete_thread_async(thread_conversation_id))
+            logger.info("Scheduled thread deletion (LRU evict): %s", thread_conversation_id)
         except Exception as e:
             logger.error("Failed to schedule thread deletion for key %s (LRU evict): %s", key, e)
-        return key, thread_id
+        return key, thread_conversation_id
 
-    async def _delete_thread_async(self, thread_id: str):
+    async def _delete_thread_async(self, thread_conversation_id: str):
         """Asynchronously delete a thread using a properly managed Azure AI Project Client."""
         credential = None
         try:
-            if thread_id:
+            if thread_conversation_id:
                 # Get credential and use async context managers to ensure proper cleanup
                 credential = await get_azure_credential_async()
                 async with AIProjectClient(
                     endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
                     credential=credential
-                ) as client:
-                    await client.agents.threads.delete(thread_id=thread_id)
-                    logger.info("Thread deleted successfully: %s", thread_id)
+                ) as project_client:
+                    openai_client = project_client.get_openai_client()
+                    await openai_client.conversations.delete(conversation_id=thread_conversation_id)
+                    logger.info("Thread deleted successfully: %s", thread_conversation_id)
         except Exception as e:
-            logger.error("Failed to delete thread %s: %s", thread_id, e)
+            logger.error("Failed to delete thread %s: %s", thread_conversation_id, e)
         finally:
             # Close credential to prevent unclosed client session warnings
             if credential is not None:
@@ -139,7 +139,7 @@ def get_thread_cache():
     return thread_cache
 
 
-async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator[str, None]:
+async def stream_openai_text(conversation_id: str, query: str) -> StreamingResponse:
     """
     Get a streaming text response from OpenAI.
     """
@@ -154,53 +154,53 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
 
         credential = await get_azure_credential_async()
 
-        try:
-            async with AIProjectClient(
-                endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
-                credential=credential
-            ) as client:
-                foundry_agent = await client.agents.get_agent(os.getenv("AGENT_ID_ORCHESTRATOR"))
+        async with AIProjectClient(
+            endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
+            credential=credential
+        ) as project_client:
 
-                cache = get_thread_cache()
-                thread_id = cache.get(conversation_id, None)
+            cache = get_thread_cache()
+            thread_conversation_id = cache.get(conversation_id, None)
+            truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
 
-                truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
+            from history_sql import SqlQueryTool, get_fabric_db_connection
+            db_connection = await get_fabric_db_connection()
+            if not db_connection:
+                logger.error("Failed to establish database connection")
+                raise Exception("Database connection failed")
 
-                from history_sql import SqlQueryTool, get_fabric_db_connection
-                db_connection = await get_fabric_db_connection()
-                if not db_connection:
-                    logger.error("Failed to establish database connection")
-                    raise Exception("Database connection failed")
+            custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
+            my_tools = [custom_tool.run_sql_query]
 
-                custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
+            # Create chat client with existing agent
+            chat_client = AzureAIClient(
+                project_client=project_client,
+                agent_name=os.getenv("AGENT_NAME_CHAT"),
+                use_latest_version=True,
+            )
 
-                try:
-                    async with ChatAgent(
-                        chat_client=AzureAIAgentClient(project_client=client, agent_id=foundry_agent.id),
-                        tools=[custom_tool.run_sql_query],
-                        tool_choice="auto",
-                        store=True
-                    ) as chat_agent:
-                        if thread_id:
-                            thread = chat_agent.get_new_thread(service_thread_id=thread_id)
-                            assert thread.is_initialized
-                        else:
-                            service_thread = await client.agents.threads.create()
-                            thread = chat_agent.get_new_thread(service_thread_id=service_thread.id)
-                            assert thread.is_initialized
-                            cache[conversation_id] = service_thread.id
+            async with ChatAgent(
+                chat_client=chat_client,
+                tools=my_tools,
+                tool_choice="auto",
+                store=True,
+            ) as chat_agent:
 
-                        async for response in chat_agent.run_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
-                            if response.text:
-                                complete_response += response.text
-                                yield response.text
-                finally:
-                    if db_connection:
-                        db_connection.close()
-        finally:
-            # Close credential to prevent unclosed client session warnings
-            if credential is not None:
-                await credential.close()
+                if thread_conversation_id:
+                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
+                    assert thread.is_initialized
+                else:
+                    # Create a conversation using openAI client
+                    openai_client = project_client.get_openai_client()
+                    conversation = await openai_client.conversations.create()
+                    thread_conversation_id = conversation.id
+                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
+                    cache[conversation_id] = thread_conversation_id
+
+                async for chunk in chat_agent.run_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
+                    if chunk is not None and chunk.text != "":
+                        complete_response += chunk.text
+                        yield chunk.text
 
     except ServiceResponseException as e:
         complete_response = str(e)
@@ -214,17 +214,21 @@ async def stream_openai_text(conversation_id: str, query: str) -> AsyncGenerator
     except Exception as e:
         complete_response = str(e)
         logger.error("Error in stream_openai_text: %s", e)
+        cache = get_thread_cache()
+        thread_conversation_id = cache.pop(conversation_id, None)
+        if thread_conversation_id is not None:
+            corrupt_key = f"{conversation_id}_corrupt_{random.randint(1000, 9999)}"
+            cache[corrupt_key] = thread_conversation_id
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error streaming OpenAI text") from e
 
     finally:
+        if db_connection:
+            db_connection.close()
+        if credential is not None:
+            await credential.close()
         # Provide a fallback response when no data is received from OpenAI.
         if complete_response == "":
             logger.info("No response received from OpenAI.")
-            cache = get_thread_cache()
-            thread_id = cache.pop(conversation_id, None)
-            if thread_id is not None:
-                corrupt_key = f"{conversation_id}_corrupt_{random.randint(1000, 9999)}"
-                cache[corrupt_key] = thread_id
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 

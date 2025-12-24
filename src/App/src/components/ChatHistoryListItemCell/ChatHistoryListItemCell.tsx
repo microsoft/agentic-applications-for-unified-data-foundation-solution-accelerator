@@ -9,17 +9,20 @@ import {
   ITextField,
   PrimaryButton,
   Stack,
+  Spinner,
+  SpinnerSize,
   Text,
   TextField,
 } from "@fluentui/react";
 import { useBoolean } from "@fluentui/react-hooks";
 
-import { historyRename, historyDelete } from "../../api/api";
-
 import styles from "./ChatHistoryListItemCell.module.css";
 import { Conversation } from "../../types/AppTypes";
-import { useAppContext } from "../../state/useAppContext";
-import { actionConstants } from "../../state/ActionConstants";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { deleteConversation, renameConversation } from "../../store/chatHistorySlice";
+import { setSelectedConversationId } from "../../store/appSlice";
+import { setCitation } from "../../store/citationSlice";
+import { clearChat } from "../../store/chatSlice";
 
 interface ChatHistoryListItemCellProps {
   item?: Conversation;
@@ -32,17 +35,21 @@ export const ChatHistoryListItemCell: React.FC<
   item,
   onSelect,
 }) => {
-  const { state, dispatch } = useAppContext();
+  const dispatch = useAppDispatch();
+  const selectedConversationId = useAppSelector((state) => state.app.selectedConversationId);
+  const currentCitationConvId = useAppSelector((state) => state.citation.currentConversationIdForCitation);
+  const generatingResponse = useAppSelector((state) => state.chat.generatingResponse);
   const [isHovered, setIsHovered] = React.useState(false);
   const [edit, setEdit] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [hideDeleteDialog, { toggle: toggleDeleteDialog }] = useBoolean(true);
   const [errorDelete, setErrorDelete] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [renameLoading, setRenameLoading] = useState(false);
   const [errorRename, setErrorRename] = useState<string | undefined>(undefined);
   const [textFieldFocused, setTextFieldFocused] = useState(false);
   const textFieldRef = useRef<ITextField | null>(null);
-  const isSelected = item?.id === state.selectedConversationId;
+  const isSelected = item?.id === selectedConversationId;
   const dialogContentProps = {
     type: DialogType.close,
     title: "Are you sure you want to delete this item?",
@@ -69,32 +76,27 @@ export const ChatHistoryListItemCell: React.FC<
   }
 
   const onDelete = async () => {
-    dispatch({
-      type: actionConstants.UPDATE_APP_SPINNER_STATUS,
-      payload: true,
-    });
-    if(state.citation.currentConversationIdForCitation === item.id) {
-      dispatch({  type: actionConstants.UPDATE_CITATION,payload: { activeCitation: null, showCitation: false, currentConversationIdForCitation: "" } });
-    }else{
-      dispatch({  type: actionConstants.UPDATE_CITATION,payload: { showCitation: true } });
+    toggleDeleteDialog();
+    setDeleteLoading(true);
+    if(currentCitationConvId === item.id) {
+      dispatch(setCitation({ activeCitation: null, showCitation: false, currentConversationIdForCitation: "" }));
+    } else {
+      dispatch(setCitation({ showCitation: true }));
     }
-    const response = await historyDelete(item.id);
-    if (!response.ok) {
+    try {
+      await dispatch(deleteConversation(item.id)).unwrap();
+      if (isSelected) {
+        dispatch(setSelectedConversationId(""));
+        dispatch(clearChat());
+      }
+      setDeleteLoading(false);
+    } catch (error) {
       setErrorDelete(true);
+      setDeleteLoading(false);
       setTimeout(() => {
         setErrorDelete(false);
       }, 5000);
-    } else {
-      dispatch({
-        type: actionConstants.DELETE_CONVERSATION_FROM_LIST,
-        payload: item.id,
-      });
     }
-    toggleDeleteDialog();
-    dispatch({
-      type: actionConstants.UPDATE_APP_SPINNER_STATUS,
-      payload: false,
-    });
   };
 
   const onEdit = (e: any) => {
@@ -135,8 +137,12 @@ export const ChatHistoryListItemCell: React.FC<
       return;
     }
     setRenameLoading(true);
-    const response = await historyRename(item.id, editTitle);
-    if (!response.ok) {
+    try {
+      await dispatch(renameConversation({ conversationId: item.id, newTitle: editTitle })).unwrap();
+      setRenameLoading(false);
+      setEdit(false);
+      setEditTitle("");
+    } catch {
       setErrorRename("Error: could not rename item");
       setTimeout(() => {
         setTextFieldFocused(true);
@@ -146,14 +152,6 @@ export const ChatHistoryListItemCell: React.FC<
         }
       }, 5000);
       setRenameLoading(false);
-    } else {
-      setRenameLoading(false);
-      setEdit(false);
-      setEditTitle("");
-      dispatch({
-        type: actionConstants.UPDATE_CONVERSATION_TITLE,
-        payload: { id: item?.id, newTitle: editTitle },
-      });
     }
   };
 
@@ -192,7 +190,8 @@ export const ChatHistoryListItemCell: React.FC<
       handleSelectItem(e);
     }
   };
-  const isButtonDisabled = state.chat.generatingResponse && isSelected;
+  
+  const isButtonDisabled = generatingResponse && isSelected;
   return (
     <Stack
       key={item.id}
@@ -228,7 +227,7 @@ export const ChatHistoryListItemCell: React.FC<
                     onChange={chatHistoryTitleOnChange}
                     onKeyDown={handleKeyPressEdit}
                     errorMessage={errorRename}
-                    disabled={errorRename ? true : false}
+                    disabled={errorRename !== undefined || renameLoading}
                     title={editTitle}
                     onClick={(e) => {
                       e.preventDefault();
@@ -243,32 +242,42 @@ export const ChatHistoryListItemCell: React.FC<
                       horizontal
                       verticalAlign={"center"}
                     >
-                      <IconButton
-                        role="button"
-                        disabled={errorRename !== undefined || editTitle.trim() === ""}
-                        onKeyDown={(e) =>
-                          e.key === " " || e.key === "Enter"
-                            ? handleSaveEdit(e)
-                            : null
-                        }
-                        onClick={(e) => handleSaveEdit(e)}
-                        aria-label="confirm new title"
-                        iconProps={{ iconName: "CheckMark" }}
-                        styles={{ root: { color: "green", marginLeft: "5px" } }}
-                      />
-                      <IconButton
-                        role="button"
-                        disabled={errorRename !== undefined}
-                        onKeyDown={(e) =>
-                          e.key === " " || e.key === "Enter"
-                            ? cancelEditTitle(e)
-                            : null
-                        }
-                        onClick={(e) => cancelEditTitle(e)}
-                        aria-label="cancel edit title"
-                        iconProps={{ iconName: "Cancel" }}
-                        styles={{ root: { color: "red", marginLeft: "5px" } }}
-                      />
+                      {renameLoading ? (
+                        <Spinner
+                          size={SpinnerSize.small}
+                          aria-label="Renaming conversation"
+                          styles={{ root: { marginLeft: "5px",position:"relative",top:"8px" } }}
+                        />
+                      ) : (
+                        <>
+                          <IconButton
+                            role="button"
+                            disabled={errorRename !== undefined || editTitle.trim() === ""}
+                            onKeyDown={(e) =>
+                              e.key === " " || e.key === "Enter"
+                                ? handleSaveEdit(e)
+                                : null
+                            }
+                            onClick={(e) => handleSaveEdit(e)}
+                            aria-label="confirm new title"
+                            iconProps={{ iconName: "CheckMark" }}
+                            styles={{ root: { color: "green", marginLeft: "5px" } }}
+                          />
+                          <IconButton
+                            role="button"
+                            disabled={errorRename !== undefined}
+                            onKeyDown={(e) =>
+                              e.key === " " || e.key === "Enter"
+                                ? cancelEditTitle(e)
+                                : null
+                            }
+                            onClick={(e) => cancelEditTitle(e)}
+                            aria-label="cancel edit title"
+                            iconProps={{ iconName: "Cancel" }}
+                            styles={{ root: { color: "red", marginLeft: "5px" } }}
+                          />
+                        </>
+                      )}
                     </Stack>
                   </Stack.Item>
                 )}
@@ -284,13 +293,19 @@ export const ChatHistoryListItemCell: React.FC<
             className={styles.chatHistoryItem}
             title={item?.title}
           >
-            <div
-              className={styles.chatTitle}
-              style={{ width: isHovered || isSelected ? "68%" : "100%" }}
-            >
-              {truncatedTitle}
-            </div>
-            {(isHovered || isSelected) && (
+            <Stack horizontal verticalAlign={"center"} style={{ flex: 1, minWidth: 0 }}>
+              <div className={styles.chatTitle}>
+                {truncatedTitle}
+              </div>
+              {deleteLoading && (
+                <Spinner
+                  size={SpinnerSize.small}
+                  aria-label="Deleting conversation"
+                  styles={{ root: { marginLeft: "8px" } }}
+                />
+              )}
+            </Stack>
+            {!deleteLoading && (isHovered || isSelected) && (
               <Stack
                 horizontal
                 horizontalAlign="end"

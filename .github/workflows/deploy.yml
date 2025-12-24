@@ -4,6 +4,11 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'src/**'
+      - 'infra/**'
+      - 'azure.yaml'
+      - '.github/workflows/deploy.yml'
   workflow_run:
     workflows: ["Build Docker and Optional Push - Agentic Applications for Unified Data Foundation"]
     types:
@@ -167,13 +172,13 @@ jobs:
 
           # set image tag based on branch
           if [[ "${{ env.BRANCH_NAME }}" == "main" ]]; then
-            IMAGE_TAG="latest"
+            IMAGE_TAG="latest_v2"
           elif [[ "${{ env.BRANCH_NAME }}" == "dev" ]]; then
             IMAGE_TAG="dev"
           elif [[ "${{ env.BRANCH_NAME }}" == "demo" ]]; then
             IMAGE_TAG="demo"
           else
-            IMAGE_TAG="latest"
+            IMAGE_TAG="latest_v2"
           fi
           echo "Using IMAGE_TAG: ${IMAGE_TAG}"
 
