@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   Button,
   Textarea,
@@ -6,12 +6,26 @@ import {
   Body1,
 } from "@fluentui/react-components";
 import "./Chat.css";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import supersub from "remark-supersub";
 import { DefaultButton, Spinner, SpinnerSize } from "@fluentui/react";
-import { useAppContext } from "../../state/useAppContext";
-import { actionConstants } from "../../state/ActionConstants";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import {
+  setUserMessage as setUserMessageAction,
+  setGeneratingResponse,
+  addMessages,
+  updateMessageById,
+  setStreamingFlag,
+  clearChat,
+  sendMessage,
+} from "../../store/chatSlice";
+import {
+  setSelectedConversationId,
+  startNewConversation,
+} from "../../store/appSlice";
+import {
+  addNewConversation,
+  updateConversation, // eslint-disable-line @typescript-eslint/no-unused-vars
+} from "../../store/chatHistorySlice";
+import { clearCitation } from "../../store/citationSlice";
 import {
   type ChartDataResponse,
   type Conversation,
@@ -20,12 +34,15 @@ import {
   type ChatMessage,
   ToolMessageContent,
 } from "../../types/AppTypes";
-import { callConversationApi, historyUpdate } from "../../api/api";
 import { ChatAdd24Regular } from "@fluentui/react-icons";
 import { generateUUIDv4 } from "../../configs/Utils";
-import ChatChart from "../ChatChart/ChatChart";
-import Citations from "../Citations/Citations";
+import ChatMessageComponent from "../ChatMessage/ChatMessage";
 import { getChatLandingText } from "../../config";
+import {
+  parseChartContent,
+  isMalformedChartJSON,
+} from "../../utils/jsonUtils";
+import { extractAnswerAndCitations } from "../../utils/messageUtils";
 
 type ChatProps = {
   onHandlePanelStates: (name: string) => void;
@@ -33,7 +50,7 @@ type ChatProps = {
   panelShowStates: Record<string, boolean>;
 };
 
-const [ASSISTANT, TOOL, ERROR, USER] = ["assistant", "tool", "error", "user"];
+const [ASSISTANT, ERROR, USER] = ["assistant", "error", "user"];
 
 const chatLandingText = getChatLandingText();
 
@@ -42,84 +59,69 @@ const Chat: React.FC<ChatProps> = ({
   panelShowStates,
   panels,
 }) => {
-  const { state, dispatch } = useAppContext();
-  const { userMessage, generatingResponse } = state?.chat;
+  const dispatch = useAppDispatch();
+  const { userMessage, generatingResponse, messages, isStreamingInProgress } = useAppSelector((state) => state.chat);
+  const selectedConversationId = useAppSelector((state) => state.app.selectedConversationId);
+  const generatedConversationId = useAppSelector((state) => state.app.generatedConversationId);
+  const { isFetchingConvMessages, isHistoryUpdateAPIPending } = useAppSelector((state) => state.chatHistory);
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
   const [isChartLoading, setIsChartLoading] = useState(false)
   const abortFuncs = useRef([] as AbortController[]);
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
-  const [isCharthDisplayDefault , setIsCharthDisplayDefault] = useState(false);
   
-  const saveToDB = async (newMessages: ChatMessage[], convId: string, reqType: string = 'Text') => {
+  // Memoized computed values
+  const currentConversationId = useMemo(() => 
+    selectedConversationId || generatedConversationId,
+    [selectedConversationId, generatedConversationId]
+  );
+
+  const hasMessages = useMemo(() => messages.length > 0, [messages.length]);
+  
+  const isInputDisabled = useMemo(() => 
+    generatingResponse || isHistoryUpdateAPIPending,
+    [generatingResponse, isHistoryUpdateAPIPending]
+  );
+
+  const isSendDisabled = useMemo(() => 
+    generatingResponse || !userMessage.trim() || isHistoryUpdateAPIPending,
+    [generatingResponse, userMessage, isHistoryUpdateAPIPending]
+  );
+  
+  const saveToDB = useCallback(async (newMessages: ChatMessage[], convId: string, reqType: string = 'Text') => {
     if (!convId || !newMessages.length) {
       return;
     }
-    const isNewConversation = reqType !== 'graph' ? !state.selectedConversationId : false;
-    dispatch({
-      type: actionConstants.UPDATE_HISTORY_UPDATE_API_FLAG,
-      payload: true,
-    });
+    const isNewConversation = reqType !== 'graph' ? !selectedConversationId : false;
 
-    if (((reqType !== 'graph' && reqType !== 'error') &&  newMessages[newMessages.length - 1].role !== ERROR) && isCharthDisplayDefault ){
+    if (false) {  // Disabled: chart display default
       setIsChartLoading(true);
       setTimeout(()=>{
         makeApiRequestForChart('show in a graph by default', convId)
       },5000)
-      
+
     }
-    
-    await historyUpdate(newMessages, convId)
-      .then(async (res) => {
-        if (!res.ok) {
-          if (!messages) {
-            let err: Error = {
-              ...new Error(),
-              message: "Failure fetching current chat state.",
-            };
-            throw err;
-          }
-        }     
-        let responseJson = await res.json();
-        if (isNewConversation && responseJson?.success) {
-          const newConversation: Conversation = {
-            id: responseJson?.data?.conversation_id,
-            title: responseJson?.data?.title,
-            messages: messages,
-            date: responseJson?.data?.date,
-            updatedAt: responseJson?.data?.date,
-          };
-          dispatch({
-            type: actionConstants.ADD_NEW_CONVERSATION_TO_CHAT_HISTORY,
-            payload: newConversation,
-          });
-          dispatch({
-            type: actionConstants.UPDATE_SELECTED_CONV_ID,
-            payload: responseJson?.data?.conversation_id,
-          });
-        }
-        dispatch({
-          type: actionConstants.UPDATE_HISTORY_UPDATE_API_FLAG,
-          payload: false,
-        });
-        return res as Response;
-      })
-      .catch((err) => {
-        console.error("Error: while saving data", err);
-      })
-      .finally(() => {
-        dispatch({
-          type: actionConstants.UPDATE_GENERATING_RESPONSE_FLAG,
-          payload: false,
-        });
-        dispatch({
-          type: actionConstants.UPDATE_HISTORY_UPDATE_API_FLAG,
-          payload: false,
-        });  
-      });
-  };
 
-
-  const parseCitationFromMessage = (message: any) => {
+    try {
+      const result = await dispatch(updateConversation({ conversationId: convId, messages: newMessages })).unwrap();
+      
+      if (isNewConversation && result?.success) {
+        const newConversation: Conversation = {
+          id: result?.data?.conversation_id,
+          title: result?.data?.title,
+          messages: messages,
+          date: result?.data?.date,
+          updatedAt: result?.data?.date,
+        };
+        dispatch(addNewConversation(newConversation));
+        dispatch(setSelectedConversationId(result?.data?.conversation_id));
+      }
+    } catch {
+      // Error saving data to database
+    } finally {
+      dispatch(setGeneratingResponse(false));
+    }
+  }, [selectedConversationId, messages, dispatch]);
+  const parseCitationFromMessage = useCallback((message: string) => {
   try {
     message = '{' + message;
     const toolMessage = JSON.parse(message as string) as ToolMessageContent;
@@ -130,11 +132,12 @@ const Chat: React.FC<ChatProps> = ({
       );
     }
   } catch {
-        // console.log("ERROR WHIEL PARSING TOOL CONTENT");
+    // Error parsing tool content
   }
   return [];
-};
-  const isChartQuery = (query: string) => {
+}, []);
+
+  const isChartQuery = useCallback((query: string) => {
     const chartKeywords = ["chart", "graph", "visualize", "plot"];
     
     // Convert to lowercase for case-insensitive matching
@@ -144,10 +147,10 @@ const Chat: React.FC<ChatProps> = ({
     return chartKeywords.some(keyword => 
       new RegExp(`\\b${keyword}\\b`).test(lowerCaseQuery)
     );
-  };
+  }, []);
 
   useEffect(() => {
-    if (state.chat.generatingResponse || state.chat.isStreamingInProgress) {
+    if (generatingResponse || isStreamingInProgress) {
       const chatAPISignal = abortFuncs.current.shift();
       if (chatAPISignal) {
         chatAPISignal.abort(
@@ -155,33 +158,33 @@ const Chat: React.FC<ChatProps> = ({
         );
       }
     }
-  }, [state.selectedConversationId]);
+  }, [selectedConversationId]);
 
   useEffect(() => {
     if (
-      !state.chatHistory.isFetchingConvMessages &&
+      !isFetchingConvMessages &&
       chatMessageStreamEnd.current
     ) {
       setTimeout(() => {
         chatMessageStreamEnd.current?.scrollIntoView({ behavior: "auto" });
       }, 100);
     }
-  }, [state.chatHistory.isFetchingConvMessages]);
+  }, [isFetchingConvMessages]);
 
-  const scrollChatToBottom = () => {
+  const scrollChatToBottom = useCallback(() => {
     if (chatMessageStreamEnd.current) {
       setTimeout(() => {
         chatMessageStreamEnd.current?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     }
-  };
+  }, []);
 
   useEffect(() => {
     scrollChatToBottom();
-  }, [state.chat.generatingResponse]);
+  }, [generatingResponse, scrollChatToBottom]);
 
   // Helper function to create and dispatch a message
-  const createAndDispatchMessage = (role: string, content: string | ChartDataResponse, shouldScroll: boolean = true): ChatMessage => {
+  const createAndDispatchMessage = useCallback((role: string, content: string | ChartDataResponse, shouldScroll: boolean = true): ChatMessage => {
     const message: ChatMessage = {
       id: generateUUIDv4(),
       role,
@@ -189,15 +192,39 @@ const Chat: React.FC<ChatProps> = ({
       date: new Date().toISOString(),
     };
     
-    dispatch({
-      type: actionConstants.UPDATE_MESSAGES,
-      payload: [message],
-    });
+    dispatch(addMessages([message]));
     
     if (shouldScroll) scrollChatToBottom();
     
     return message;
-  };
+  }, [dispatch, scrollChatToBottom]);
+
+  // Helper function to extract chart data from response
+  const extractChartData = useCallback((chartResponse: ChartDataResponse | string): ChartDataResponse | string => {
+    if (typeof chartResponse === 'object' && 'answer' in chartResponse) {
+      return !chartResponse.answer || 
+             (typeof chartResponse.answer === "object" && Object.keys(chartResponse.answer).length === 0)
+        ? "Chart can't be generated, please try again."
+        : chartResponse.answer;
+    } 
+    
+    if (typeof chartResponse === 'string') {
+      try {
+        const parsed = JSON.parse(chartResponse);
+        if (parsed && typeof parsed === 'object' && 'answer' in parsed) {
+          return !parsed.answer ||
+                 (typeof parsed.answer === "object" && Object.keys(parsed.answer).length === 0)
+            ? "Chart can't be generated, please try again."
+            : parsed.answer;
+        }
+      } catch {
+        // Fall through to default
+      }
+      return "Chart can't be generated, please try again.";
+    }
+    
+    return chartResponse;
+  }, []);
 
   const makeApiRequestForChart = async (
     question: string,
@@ -212,20 +239,11 @@ const Chat: React.FC<ChatProps> = ({
       date: new Date().toISOString()
     };
     
-    dispatch({
-      type: actionConstants.UPDATE_GENERATING_RESPONSE_FLAG,
-      payload: true,
-    });
+    dispatch(setGeneratingResponse(true));
     
-    dispatch({
-      type: actionConstants.UPDATE_MESSAGES,
-      payload: [newMessage],
-    });
+    dispatch(addMessages([newMessage]));
     
-    dispatch({
-      type: actionConstants.UPDATE_USER_MESSAGE,
-      payload: questionInputRef?.current?.value || "",
-    });
+    dispatch(setUserMessageAction(questionInputRef?.current?.value || ""));
     
     scrollChatToBottom();
     
@@ -240,7 +258,11 @@ const Chat: React.FC<ChatProps> = ({
     let updatedMessages: ChatMessage[] = [];
     
     try {
-      const response = await callConversationApi(request, abortController.signal);
+      const result = await dispatch(sendMessage({ request, abortSignal: abortController.signal }));
+      if (!sendMessage.fulfilled.match(result)) {
+        throw new Error('Failed to send message');
+      }
+      const response = result.payload;
 
       if (response?.body) {
         const reader = response.body.getReader();
@@ -287,8 +309,8 @@ const Chat: React.FC<ChatProps> = ({
               const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
               updatedMessages = [newMessage, errorMessage];
             }
-          } catch (e) {
-            console.error("Error parsing chart response:", e);
+          } catch {
+            // Error parsing chart response
           }
         }
       }
@@ -297,8 +319,8 @@ const Chat: React.FC<ChatProps> = ({
         saveToDB(updatedMessages, conversationId, 'graph');
       }
     } catch (e) {
-      console.error("Error in makeApiRequestForChart:", e);
-      
+      // Error in chart API request
+
       if (abortController.signal.aborted) {
         updatedMessages = [newMessage];
         saveToDB(updatedMessages, conversationId, 'graph');
@@ -308,396 +330,11 @@ const Chat: React.FC<ChatProps> = ({
         alert("An error occurred. Please try again. If the problem persists, please contact the site administrator.");
       }
     } finally {
-      dispatch({
-        type: actionConstants.UPDATE_GENERATING_RESPONSE_FLAG,
-        payload: false,
-      });
-      dispatch({
-        type: actionConstants.UPDATE_STREAMING_FLAG,
-        payload: false,
-      });
+      dispatch(setGeneratingResponse(false));
+      dispatch(setStreamingFlag(false));
       setIsChartLoading(false);
       abortController.abort();
     }
-  };
-
-  // Helper function to extract answer and citations from response content
-  const extractAnswerAndCitations = (responseContent: string): { answerText: string; citationString: string } => {
-    let answerText = '';
-    let citationString = '';
-    
-    const answerKey = `"answer":`;
-    const answerStartIndex = responseContent.indexOf(answerKey);
-    
-    // If no "answer" key found, treat the entire response as plain text
-    if (answerStartIndex === -1) {
-      return { answerText: responseContent, citationString: '' };
-    }
-    
-    const answerTextStart = answerStartIndex + 9;
-    const citationsKey = `"citations":`;
-    const citationsStartIndex = responseContent.indexOf(citationsKey);
-    
-    if (citationsStartIndex > answerTextStart) {
-      answerText = responseContent.substring(answerTextStart, citationsStartIndex).trim();
-      citationString = responseContent.substring(citationsStartIndex).trim();
-    } else {
-      answerText = responseContent.substring(answerTextStart).trim();
-    }
-    
-    answerText = answerText
-      .replace(/^"+|"+$|,$/g, '')
-      .replace(/[",]+$/, '')
-      .replace(/\\n/g, "  \n");
-    
-    return { answerText, citationString };
-  };
-
-  // **Helper function to parse nested answer string**
-  const parseNestedAnswer = (answerValue: string): any => {
-    const updatedJsonstring = removeKeyFromJSON(answerValue, 'tooltip');
-    try {
-      // Attempt 1: Direct parse
-      
-      return JSON.parse(updatedJsonstring);
-    } catch {
-      // Attempt 2: Sanitize then parse
-      const sanitized = sanitizeJSONString(updatedJsonstring);
-      
-      const openBraces = (sanitized.match(/\{/g) || []).length;
-      const closeBraces = (sanitized.match(/\}/g) || []).length;
-      
-      if (openBraces !== closeBraces) {
-        throw new Error("Sanitization produced unbalanced braces");
-      }
-      
-      return JSON.parse(sanitized);
-    }
-  };
-
-  // **Helper function to parse chart content**
-  const parseChartContent = (rawContent: string): any => {
-    const updatedJsonstring = removeKeyFromJSON(rawContent, 'tooltip');
-    try {
-      const chartResponse = JSON.parse(updatedJsonstring);
-      
-      // Handle nested escaped JSON in "answer" field
-      if (chartResponse && typeof chartResponse === "object" && "answer" in chartResponse) {
-        const answerValue = chartResponse.answer;
-        
-        if (typeof answerValue === "string") {
-          try {
-            chartResponse.answer = parseNestedAnswer(answerValue);
-          } catch (nestedError) {
-            console.error("❌ Nested parse error:", nestedError instanceof Error ? nestedError.message : String(nestedError));
-          }
-        }
-      }
-      
-      return chartResponse;
-    } catch {
-      console.error("❌ Failed to parse raw content, trying sanitization...");
-      
-      const sanitized = removeKeyFromJSON(sanitizeJSONString(updatedJsonstring), 'tooltip');
-      try {
-        return JSON.parse(sanitized);
-      } catch (sanitizeError) {
-        console.error("❌ JSON parse failed after sanitization:", sanitizeError instanceof Error ? sanitizeError.message : String(sanitizeError));
-        return "Chart can't be generated, please try again.";
-      }
-    }
-  };
-
-  // **Helper to check if error message is malformed chart JSON**
-  const isMalformedChartJSON = (errorMsg: string, hasBackendError: boolean): boolean => {
-    return typeof errorMsg === "string" &&
-      !hasBackendError &&
-      (errorMsg.includes('"type"') || errorMsg.includes('"chartType"')) &&
-      errorMsg.includes('"data"') &&
-      (errorMsg.includes('{') || errorMsg.includes('}'));
-  };
-
-const removeKeyFromJSON = (jsonString: string, keyToRemove: string): string => {
-  try {
-    const obj = JSON.parse(jsonString);
-    
-    const removeKeyRecursive = (obj: any): any => {
-      if (Array.isArray(obj)) {
-        return obj.map((item: any) => removeKeyRecursive(item));
-      } else if (obj !== null && typeof obj === 'object') {
-        const newObj: Record<string, any> = {};
-        for (const key in obj) {
-          if (obj.hasOwnProperty(key) && key !== keyToRemove) {
-            newObj[key] = removeKeyRecursive(obj[key]);
-          }
-        }
-        return newObj;
-      }
-      return obj;
-    };
-    
-    const result = removeKeyRecursive(obj);
-    return JSON.stringify(result);
-  } catch (error) {
-    console.error('Error parsing JSON:', error);
-    return jsonString;
-  }
-};
-
-const sanitizeJSONString = (jsonString: string): string => {
-  if (!jsonString || typeof jsonString !== 'string') {
-    return jsonString;
-  }
-
-  let sanitized = jsonString;
-
-  try {
-    // **STEP 1: Try parsing first - if it works, no sanitization needed!**
-    try {
-      JSON.parse(sanitized);
-      return sanitized;
-    } catch {
-      //console.log("🔧 JSON invalid, proceeding with sanitization...");
-    }
-
-    // **STEP 2: Handle escaped JSON strings (e.g., "{\"type\":\"bar\"...}")**
-    if (sanitized.startsWith('"{') && sanitized.endsWith('}"')) {
-      sanitized = sanitized.slice(1, -1);
-    }
-    
-    // **STEP 3: ALWAYS unescape backslashes**
-    sanitized = sanitized.replace(/\\"/g, '"');
-    sanitized = sanitized.replace(/\\\\/g, '\\');
-    sanitized = sanitized.replace(/\\n/g, '\n');
-    sanitized = sanitized.replace(/\\r/g, '\r');
-    sanitized = sanitized.replace(/\\t/g, '\t');
-
-    // **STEP 4: Validate after basic unescaping**
-    try {
-      JSON.parse(sanitized);
-      return sanitized;
-    } catch {
-      //console.log("🔧 Still invalid, continuing with complex sanitization...");
-    }
-
-    // Helper function to find the matching closing bracket
-    const findMatchingBracket = (str: string, startIndex: number): number => {
-      let depth = 0;
-      const openBracket = str[startIndex];
-      const closeBracket = openBracket === '{' ? '}' : ')';
-      
-      for (let i = startIndex; i < str.length; i++) {
-        if (str[i] === openBracket || (openBracket === '(' && str[i] === '{')) {
-          depth++;
-        } else if (str[i] === closeBracket || (closeBracket === ')' && str[i] === '}')) {
-          depth--;
-          if (depth === 0) {
-            return i;
-          }
-        }
-      }
-      return -1;
-    };
-
-    // **STEP 5: Remove function declarations with balanced brackets**
-    let pos = 0;
-    while (pos < sanitized.length) {
-      const functionMatch = sanitized.substring(pos).match(/:\s*function\s*\w*\s*\(/);
-      if (!functionMatch) break;
-      
-      const functionStart = pos + functionMatch.index!;
-      const parenStart = sanitized.indexOf('(', functionStart);
-      if (parenStart === -1) break;
-      
-      const parenEnd = findMatchingBracket(sanitized, parenStart);
-      if (parenEnd === -1) break;
-      
-      const braceStart = sanitized.indexOf('{', parenEnd);
-      if (braceStart === -1 || braceStart > parenEnd + 10) {
-        pos = parenEnd + 1;
-        continue;
-      }
-      
-      const braceEnd = findMatchingBracket(sanitized, braceStart);
-      if (braceEnd === -1) break;
-      
-      sanitized = 
-        sanitized.substring(0, functionStart) + 
-        ': "[Function]"' + 
-        sanitized.substring(braceEnd + 1);
-      
-      pos = functionStart + 13;
-    }
-
-    // **STEP 6: Remove arrow functions with balanced brackets**
-    pos = 0;
-    while (pos < sanitized.length) {
-      const arrowMatch = sanitized.substring(pos).match(/:\s*\([^)]*\)\s*=>\s*\{/);
-      if (!arrowMatch) break;
-      
-      const arrowStart = pos + arrowMatch.index!;
-      const braceStart = sanitized.indexOf('{', arrowStart);
-      if (braceStart === -1) break;
-      
-      const braceEnd = findMatchingBracket(sanitized, braceStart);
-      if (braceEnd === -1) break;
-      
-      sanitized = 
-        sanitized.substring(0, arrowStart) + 
-        ': "[Function]"' + 
-        sanitized.substring(braceEnd + 1);
-      
-      pos = arrowStart + 13;
-    }
-
-    // **STEP 7: Remove standalone function patterns**
-    pos = 0;
-    while (pos < sanitized.length) {
-      const funcMatch = sanitized.substring(pos).match(/\bfunction\s*\w*\s*\(/);
-      if (!funcMatch) break;
-      
-      const funcStart = pos + funcMatch.index!;
-      if (funcStart > 0 && sanitized.substring(Math.max(0, funcStart - 10), funcStart).includes(':')) {
-        pos = funcStart + 1;
-        continue;
-      }
-      
-      const parenStart = sanitized.indexOf('(', funcStart);
-      if (parenStart === -1) break;
-      
-      const parenEnd = findMatchingBracket(sanitized, parenStart);
-      if (parenEnd === -1) break;
-      
-      const braceStart = sanitized.indexOf('{', parenEnd);
-      if (braceStart === -1 || braceStart > parenEnd + 10) {
-        pos = parenEnd + 1;
-        continue;
-      }
-      
-      const braceEnd = findMatchingBracket(sanitized, braceStart);
-      if (braceEnd === -1) break;
-      
-      sanitized = 
-        sanitized.substring(0, funcStart) + 
-        '"[Function]"' + 
-        sanitized.substring(braceEnd + 1);
-      
-      pos = funcStart + 12;
-    }
-
-    // **STEP 8-11: Other sanitization patterns**
-    sanitized = sanitized.replace(/:\s*\([^)]*\)\s*=>\s*`[^`]*`/g, ': "[Function]"');
-    sanitized = sanitized.replace(/:\s*\([^)]*\)\s*=>\s*[^,}\]]+/g, ': "[Function]"');
-    sanitized = sanitized.replace(/\([^)]*\)\s*=>/g, '"[Function]"');
-    sanitized = sanitized.replace(/\$\{[^}]*\}/g, '[Expression]');
-    sanitized = sanitized.replace(/`[^`]*`/g, '"[Template]"');
-    sanitized = sanitized.replace(/:\s*'([^']*)'/g, ': "$1"');
-    sanitized = sanitized.replace(/,(\s*[}\]])/g, '$1');
-    sanitized = sanitized.replace(/([\{\,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":');
-    
-    // Count all brackets
-    const openBraces = (sanitized.match(/\{/g) || []).length;
-    const closeBraces = (sanitized.match(/\}/g) || []).length;
-    const openBrackets = (sanitized.match(/\[/g) || []).length;
-    const closeBrackets = (sanitized.match(/\]/g) || []).length;
-    
-    // **AUTO-REPAIR: Add missing closing brackets**
-    if (openBraces > closeBraces) {
-      const missing = openBraces - closeBraces;
-      sanitized += '}'.repeat(missing);
-    }
-    
-    if (openBrackets > closeBrackets) {
-      const missing = openBrackets - closeBrackets;
-      sanitized += ']'.repeat(missing);
-    }
-    
-    // **AUTO-REPAIR: Remove excess closing brackets**
-    if (closeBraces > openBraces) {
-      let excess = closeBraces - openBraces;
-      while (excess > 0 && sanitized.endsWith('}')) {
-        sanitized = sanitized.slice(0, -1);
-        excess--;
-      }
-    }
-    
-    if (closeBrackets > openBrackets) {
-      let excess = closeBrackets - openBrackets;
-      while (excess > 0 && sanitized.endsWith(']')) {
-        sanitized = sanitized.slice(0, -1);
-        excess--;
-      }
-    }
-    
-    // **FINAL PARSE TEST - Guaranteed to be parseable or fallback**
-    try {
-      JSON.parse(sanitized);
-      return sanitized;
-    } catch (finalError) {
-      console.error("Parse error:", finalError instanceof Error ? finalError.message : String(finalError));
-
-      try {
-        const firstBraceIndex = sanitized.indexOf('{');
-        if (firstBraceIndex !== -1) {
-          let depth = 0;
-          let endIndex = -1;
-          
-          for (let i = firstBraceIndex; i < sanitized.length; i++) {
-            if (sanitized[i] === '{') depth++;
-            else if (sanitized[i] === '}') {
-              depth--;
-              if (depth === 0) {
-                endIndex = i;
-                break;
-              }
-            }
-          }
-          
-          if (endIndex !== -1) {
-            const extracted = sanitized.substring(firstBraceIndex, endIndex + 1);
-            JSON.parse(extracted); // Test if valid
-            return extracted;
-          }
-        }
-      } catch (extractError) {
-        console.error("❌ Extraction attempt also failed");
-      }
-      
-      // **ABSOLUTE LAST RESORT: Return original string**
-      console.warn("⚠️ Returning original string - all repair attempts failed");
-      return jsonString;
-    }
-
-  } catch (error) {
-    console.error('💥 Fatal error during JSON sanitization:', error);
-    return jsonString;
-  }
-};
-  // Helper function to extract chart data from response
-  const extractChartData = (chartResponse: any): any => {
-    if (typeof chartResponse === 'object' && 'answer' in chartResponse) {
-      return !chartResponse.answer || 
-             (typeof chartResponse.answer === "object" && Object.keys(chartResponse.answer).length === 0)
-        ? "Chart can't be generated, please try again."
-        : chartResponse.answer;
-    } 
-    
-    if (typeof chartResponse === 'string') {
-      try {
-        const parsed = JSON.parse(chartResponse);
-        if (parsed && typeof parsed === 'object' && 'answer' in parsed) {
-          return !parsed.answer ||
-                 (typeof parsed.answer === "object" && Object.keys(parsed.answer).length === 0)
-            ? "Chart can't be generated, please try again."
-            : parsed.answer;
-        }
-      } catch {
-        // Fall through to default
-      }
-      return "Chart can't be generated, please try again.";
-    }
-    
-    return chartResponse;
   };
 
   const makeApiRequestWithCosmosDB = async (
@@ -714,20 +351,11 @@ const sanitizeJSONString = (jsonString: string): string => {
       date: new Date().toISOString(),
     };
     
-    dispatch({
-      type: actionConstants.UPDATE_GENERATING_RESPONSE_FLAG,
-      payload: true,
-    });
+    dispatch(setGeneratingResponse(true));
     
-    dispatch({
-      type: actionConstants.UPDATE_MESSAGES,
-      payload: [newMessage],
-    });
+    dispatch(addMessages([newMessage]));
     
-    dispatch({
-      type: actionConstants.UPDATE_USER_MESSAGE,
-      payload: "",
-    });
+    dispatch(setUserMessageAction(""));
     
     scrollChatToBottom();
     
@@ -750,7 +378,11 @@ const sanitizeJSONString = (jsonString: string): string => {
     let updatedMessages: ChatMessage[] = [];
     
     try {
-      const response = await callConversationApi(request, abortController.signal);
+      const result = await dispatch(sendMessage({ request, abortSignal: abortController.signal }));
+      if (!sendMessage.fulfilled.match(result)) {
+        throw new Error('Failed to send message');
+      }
+      const response = result.payload;
 
       if (response?.body) {
         let isChartResponseReceived = false;
@@ -799,14 +431,14 @@ const sanitizeJSONString = (jsonString: string): string => {
                   
                   if (responseContent) {
                     const { answerText, citationString } = extractAnswerAndCitations(responseContent);
+                    // Backend sends accumulated content, so we use it directly
+                    // Create a new object to ensure Redux detects the change
                     streamMessage.content = answerText || "";
                     streamMessage.role = parsed?.choices?.[0]?.messages?.[0]?.role || ASSISTANT;
                     streamMessage.citations = citationString;
                     
-                    dispatch({
-                      type: actionConstants.UPDATE_MESSAGE_BY_ID,
-                      payload: streamMessage,
-                    });
+                    // Dispatch with a new object reference to trigger re-render
+                    dispatch(updateMessageById({ ...streamMessage }));
                     scrollChatToBottom();
                   }
                 }
@@ -815,10 +447,7 @@ const sanitizeJSONString = (jsonString: string): string => {
               }
             });
             
-            if (hasError) {
-              console.log("STOPPED DUE TO ERROR FROM API RESPONSE");
-              break;
-            }
+            if (hasError) break;
           }
         }
         
@@ -876,8 +505,8 @@ const sanitizeJSONString = (jsonString: string): string => {
               const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
               updatedMessages = [newMessage, errorMessage];
             }
-          } catch (e) {
-            console.error("Error parsing chart response:", e);
+          } catch {
+            // Error parsing chart response
           }
         } else if (!isChartResponseReceived) {
           updatedMessages = [newMessage, streamMessage];
@@ -888,8 +517,8 @@ const sanitizeJSONString = (jsonString: string): string => {
         saveToDB(updatedMessages, conversationId, isChatReq);
       }
     } catch (e) {
-      console.error("Error in makeApiRequestWithCosmosDB:", e);
-      
+      // Error in API request
+
       if (abortController.signal.aborted) {
         updatedMessages = streamMessage.content
           ? [newMessage, streamMessage]
@@ -902,60 +531,48 @@ const sanitizeJSONString = (jsonString: string): string => {
         alert("An error occurred. Please try again. If the problem persists, please contact the site administrator.");
       }
     } finally {
-      dispatch({
-        type: actionConstants.UPDATE_GENERATING_RESPONSE_FLAG,
-        payload: false,
-      });
-      dispatch({
-        type: actionConstants.UPDATE_STREAMING_FLAG,
-        payload: false,
-      });
+      dispatch(setGeneratingResponse(false));
+      dispatch(setStreamingFlag(false));
       abortController.abort();
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      // Disable enter key if generating response or history update API is pending
-      if (generatingResponse || state.chatHistory.isHistoryUpdateAPIPending) {
+      if (isInputDisabled) {
         return;
       }
-      const conversationId =
-        state?.selectedConversationId || state.generatedConversationId;
       if (userMessage) {
-        makeApiRequestWithCosmosDB(userMessage, conversationId);
+        makeApiRequestWithCosmosDB(userMessage, currentConversationId);
       }
       if (questionInputRef?.current) {
         questionInputRef?.current.focus();
       }
     }
-  };
+  }, [isInputDisabled, userMessage, currentConversationId]);
 
-  const onClickSend = () => {
-    // Disable send button if generating response or history update API is pending
-    if (generatingResponse || state.chatHistory.isHistoryUpdateAPIPending) {
+  const onClickSend = useCallback(() => {
+    if (isInputDisabled) {
       return;
     }
-    const conversationId =
-      state?.selectedConversationId || state.generatedConversationId;
     if (userMessage) {
-      makeApiRequestWithCosmosDB(userMessage, conversationId);
+      makeApiRequestWithCosmosDB(userMessage, currentConversationId);
     }
     if (questionInputRef?.current) {
       questionInputRef?.current.focus();
     }
-  };
+  }, [isInputDisabled, userMessage, currentConversationId]);
 
-  const setUserMessage = (value: string) => {
-    dispatch({ type: actionConstants.UPDATE_USER_MESSAGE, payload: value });
-  };
+  const setUserMessage = useCallback((value: string) => {
+    dispatch(setUserMessageAction(value));
+  }, [dispatch]);
 
-  const onNewConversation = () => {
-    dispatch({ type: actionConstants.NEW_CONVERSATION_START });
-    dispatch({  type: actionConstants.UPDATE_CITATION,payload: { activeCitation: null, showCitation: false }})
-  };
-  const { messages } = state.chat;
+  const onNewConversation = useCallback(() => {
+    dispatch(startNewConversation());
+    dispatch(clearChat());
+    dispatch(clearCitation());
+  }, [dispatch]);
   return (
     <div className="chat-container">
       <div className="chat-header">
@@ -972,189 +589,46 @@ const sanitizeJSONString = (jsonString: string): string => {
         </span>
       </div>
       <div className="chat-messages">
-        {Boolean(state.chatHistory?.isFetchingConvMessages) && (
-          <div>
+        {Boolean(isFetchingConvMessages) && (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            height: '100%',
+            minHeight: '300px'
+          }}>
             <Spinner
-              size={SpinnerSize.small}
+              size={SpinnerSize.medium}
               aria-label="Fetching Chat messages"
             />
           </div>
         )}
-        {!Boolean(state.chatHistory?.isFetchingConvMessages) &&
-          messages.length === 0 && (
-            <div className="initial-msg">
-              {/* <SparkleRegular fontSize={32} /> */}
-              <h2>✨</h2>
-              <Subtitle2>Start Chatting</Subtitle2>
-              <Body1 style={{ textAlign: "center" }}>
-                {chatLandingText}
-              </Body1>
-            </div>
-          )}
-        {!Boolean(state.chatHistory?.isFetchingConvMessages) &&
+        {!isFetchingConvMessages && !hasMessages && (
+          <div className="initial-msg">
+            <h2>✨</h2>
+            <Subtitle2>Start Chatting</Subtitle2>
+            <Body1 style={{ textAlign: "center" }}>
+              {chatLandingText}
+            </Body1>
+          </div>
+        )}
+        {!isFetchingConvMessages &&
           messages.map((msg, index) => {
-           
+            const isLastAssistantMessage = msg.role === "assistant" && index === messages.length - 1;
+            
             return (
-            <div key={index} className={`chat-message ${msg.role}`}>
-              {(() => {
-                const isLastAssistantMessage = msg.role === "assistant" && index === messages.length - 1;
-                
-                // Handle user messages
-                if (msg.role === "user" && typeof msg.content === "string") {
-                  if (msg.content === "show in a graph by default") return null;
-                  return (
-                    <div className="user-message">
-                      <span>{msg.content}</span>
-                    </div>
-                  );
-                }
-
-                if (msg.role === "assistant" && typeof msg.content === "object" && msg.content !== null) {
-                  if (("type" in msg.content || "chartType" in msg.content) && "data" in msg.content) {
-                    
-                    try {
-                      return (
-                        <div className="assistant-message chart-message">
-                          <ChatChart chartContent={msg.content as ChartDataResponse} />
-                          <div className="answerDisclaimerContainer">
-                            <span className="answerDisclaimer">
-                              AI-generated content may be incorrect
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    } catch (e) {
-                      console.error("Chart rendering error:", e);
-                      return (
-                        <div className="assistant-message error-message">
-                            ⚠️ Sorry, we couldn’t display the chart for this response.
-                        </div>
-                      );
-                    }
-                  }
-                }
-
-                                // Handle error messages
-                if (msg.role === "error" && typeof msg.content === "string") {
-                  return (
-                    <div className="assistant-message error-message">
-                      <p>{msg.content}</p>
-                      <div className="answerDisclaimerContainer">
-                        <span className="answerDisclaimer">
-                          AI-generated content may be incorrect
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-
-                // Handle assistant messages - string content (text, lists, tables, or stringified charts)
-                if (msg.role === "assistant" && typeof msg.content === "string") {
-                  // Try parsing as JSON to detect charts
-                  let parsedContent = null;
-                  try {
-                    parsedContent = JSON.parse(msg.content);
-                  } catch {
-                    // Not JSON - treat as plain text
-                    parsedContent = null;
-                  }
-
-                  // If parsed successfully and it's a chart object
-                  if (parsedContent && typeof parsedContent === "object") {
-                    let chartData = null;
-                    
-                    // SCENARIO 1: Direct chart object {type, data, options}
-                    if (("type" in parsedContent || "chartType" in parsedContent) && "data" in parsedContent) {
-                      chartData = parsedContent;
-                    }
-                    // SCENARIO 2: Wrapped chart {"answer": {type, data, options}}
-                    else if ("answer" in parsedContent) {
-                      const answer = parsedContent.answer;
-                      if (answer && typeof answer === "object" && ("type" in answer || "chartType" in answer) && "data" in answer) {
-                        chartData = answer;
-                      } else {
-                        console.warn(`⚠️ Answer exists but is not a valid chart:`, answer);
-                      }
-                    }
-                    
-                    // Render chart if valid chartData was found
-                    if (chartData && ("type" in chartData || "chartType" in chartData) && "data" in chartData) {
-                      try {
-                        return (
-                          <div className="assistant-message chart-message">
-                            <ChatChart chartContent={chartData} />
-                            <div className="answerDisclaimerContainer">
-                              <span className="answerDisclaimer">
-                                AI-generated content may be incorrect
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      } catch (e) {
-                        console.error("❌ Chart rendering error:", e);
-                        return (
-                          <div className="assistant-message error-message">
-                            ⚠️ Sorry, we couldn’t display the chart for this response.
-                          </div>
-                        );
-                      }
-                    }
-                  }
-
-                  // Plain text message (most common case)
-                  const containsHTML = /<\/?[a-z][\s\S]*>/i.test(msg.content);
-                  
-                  return (
-                    <div className="assistant-message">
-                      {containsHTML ? (
-                        <div 
-                          dangerouslySetInnerHTML={{ __html: msg.content }}
-                          className="html-content"
-                        />
-                      ) : (
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm, supersub]}
-                          children={msg.content}
-                        />
-                      )}
-                      
-                      {/* Citation Loader: Show only while citations are fetching */}
-                      {isLastAssistantMessage && generatingResponse ? (
-                        <div className="typing-indicator">
-                          <span className="dot"></span>
-                          <span className="dot"></span>
-                          <span className="dot"></span>
-                        </div>
-                      ) : (
-                        <Citations
-                          answer={{
-                            answer: msg.content,
-                            citations:
-                              msg.role === "assistant"
-                                ? parseCitationFromMessage(msg.citations)
-                                : [],
-                          }}
-                          index={index}
-                        />
-                      )}
-
-                      <div className="answerDisclaimerContainer">
-                        <span className="answerDisclaimer">
-                          AI-generated content may be incorrect
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-
-                // Fallback for unexpected content types
-                console.warn(`Unhandled message at index ${index}:`, { role: msg.role, contentType: typeof msg.content });
-                return null;
-              })()}
-            </div>
+              <div key={msg.id || index} className={`chat-message ${msg.role}`}>
+                <ChatMessageComponent
+                  message={msg}
+                  index={index}
+                  isLastAssistantMessage={isLastAssistantMessage}
+                  generatingResponse={generatingResponse}
+                  parseCitationFromMessage={parseCitationFromMessage}
+                />
+              </div>
             );
           })}
-        {((generatingResponse && !state.chat.isStreamingInProgress) || isChartLoading)  && (
+        {((generatingResponse && !isStreamingInProgress) || isChartLoading)  && (
           <div className="assistant-message loading-indicator">
             <div className="typing-indicator">
               <span className="generating-text">{isChartLoading ? "Generating chart if possible with the provided data" : "Generating answer"} </span>
@@ -1174,9 +648,7 @@ const sanitizeJSONString = (jsonString: string): string => {
           icon={<ChatAdd24Regular />}
           onClick={onNewConversation}
           title="Create new Conversation"
-          disabled={
-            generatingResponse || state.chatHistory.isHistoryUpdateAPIPending
-          }
+          disabled={isInputDisabled}
         />
         <div className="text-area-container">
           <Textarea
@@ -1194,17 +666,9 @@ const sanitizeJSONString = (jsonString: string): string => {
             iconProps={{ iconName: "Send" }}
             role="button"
             onClick={onClickSend}
-            disabled={
-              generatingResponse ||
-              !userMessage.trim() ||
-              state.chatHistory.isHistoryUpdateAPIPending
-            }
+            disabled={isSendDisabled}
             className="send-button"
-            aria-disabled={
-              generatingResponse ||
-              !userMessage ||
-              state.chatHistory.isHistoryUpdateAPIPending
-            }
+            aria-disabled={isSendDisabled}
             title="Send Question"
           />
         </div>

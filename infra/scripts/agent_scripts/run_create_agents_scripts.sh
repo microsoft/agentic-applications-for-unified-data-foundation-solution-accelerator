@@ -9,6 +9,7 @@ gptModelName="$3"
 aiFoundryResourceId="$4"
 apiAppName="$5"
 resourceGroup="$6"
+usecase="$7"
 
 # get parameters from azd env, if not provided
 if [ -z "$projectEndpoint" ]; then
@@ -35,10 +36,13 @@ if [ -z "$resourceGroup" ]; then
     resourceGroup=$(azd env get-value AZURE_RESOURCE_GROUP)
 fi
 
+if [ -z "$usecase" ]; then
+    usecase=$(azd env get-value USE_CASE)
+fi
 
 # Check if all required arguments are provided
-if [ -z "$projectEndpoint" ] || [ -z "$solutionName" ] || [ -z "$gptModelName" ] || [ -z "$aiFoundryResourceId" ] || [ -z "$apiAppName" ] || [ -z "$resourceGroup" ]; then
-    echo "Usage: $0 <projectEndpoint> <solutionName> <gptModelName> <aiFoundryResourceId> <apiAppName> <resourceGroup>"
+if [ -z "$projectEndpoint" ] || [ -z "$solutionName" ] || [ -z "$gptModelName" ] || [ -z "$aiFoundryResourceId" ] || [ -z "$apiAppName" ] || [ -z "$resourceGroup" ] || [ -z "$usecase" ]; then
+    echo "Usage: $0 <projectEndpoint> <solutionName> <gptModelName> <aiFoundryResourceId> <apiAppName> <resourceGroup> <usecase>"
     exit 1
 fi
 
@@ -49,7 +53,7 @@ if az account show &> /dev/null; then
 else
     # Use Azure CLI login if running locally
     echo "Authenticating with Azure CLI..."
-    az login
+    az login --use-device-code
 fi
 
 echo "Getting signed in user id"
@@ -89,7 +93,7 @@ python -m pip install --quiet -r "$requirementFile"
 
 # Execute the Python scripts
 echo "Running Python agents creation script..."
-eval $(python infra/scripts/agent_scripts/01_create_agents.py --ai_project_endpoint="$projectEndpoint" --solution_name="$solutionName" --gpt_model_name="$gptModelName")
+eval $(python infra/scripts/agent_scripts/01_create_agents.py --ai_project_endpoint="$projectEndpoint" --solution_name="$solutionName" --gpt_model_name="$gptModelName" --usecase="$usecase")
 
 if [ $? -ne 0 ]; then
     echo "❌ Agents creation script failed."
@@ -99,17 +103,22 @@ fi
 echo "✓ Agents creation completed."
 
 # Update environment variables of API App
-if [ -n "$orchestratorAgentId" ] && [ -n "$titleAgentId" ]; then
+if [ -n "$chatAgentName" ] && [ -n "$titleAgentName" ]; then
     echo "Updating environment variables for App Service: $apiAppName"
   
     az webapp config appsettings set \
     --resource-group "$resourceGroup" \
     --name "$apiAppName" \
-    --settings AGENT_ID_ORCHESTRATOR="$orchestratorAgentId" AGENT_ID_TITLE="$titleAgentId" \
+    --settings AGENT_NAME_CHAT="$chatAgentName" AGENT_NAME_TITLE="$titleAgentName" \
     -o none
 
     echo "Environment variables updated for App Service: $apiAppName"
+
+    #Update local azd environment variables
+    azd env set AGENT_NAME_CHAT "$chatAgentName"
+    azd env set AGENT_NAME_TITLE "$titleAgentName"
+
 else
-    echo "Error: One or more agent IDs are empty. Cannot update environment variables."
+    echo "Error: One or more agent names are empty. Cannot update environment variables."
     exit 1
 fi

@@ -6,6 +6,10 @@ on:
       - main
       - dev
       - demo
+    paths:
+      - 'src/App/**'
+      - 'src/api/**'
+      - '.github/workflows/docker-build.yml'
   pull_request:
     types:
       - opened
@@ -16,6 +20,10 @@ on:
       - main
       - dev
       - demo
+    paths:
+      - 'src/App/**'
+      - 'src/api/**'
+      - '.github/workflows/docker-build.yml'
   workflow_dispatch:
 
 jobs:
@@ -49,7 +57,7 @@ jobs:
         id: determine_tag
         run: |
          if [[ "${{ github.ref_name }}" == "main" ]]; then
-          echo "tagname=latest" >> $GITHUB_OUTPUT
+          echo "tagname=latest_v2" >> $GITHUB_OUTPUT
          elif [[ "${{ github.ref_name }}" == "dev" ]]; then
           echo "tagname=dev" >> $GITHUB_OUTPUT
          elif [[ "${{ github.ref_name }}" == "demo" ]]; then
@@ -59,7 +67,7 @@ jobs:
          else
           echo "tagname=default" >> $GITHUB_OUTPUT
        
-         fi
+         fi      
       - name: Build and Push Docker Image for WebApp
         uses: docker/build-push-action@v6
         with:
