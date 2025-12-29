@@ -372,7 +372,7 @@ cd src/App
 npm install
 ```
 
-### 5.4. Start Development Server
+### 5.3. Start Development Server
 
 ```bash
 npm start
