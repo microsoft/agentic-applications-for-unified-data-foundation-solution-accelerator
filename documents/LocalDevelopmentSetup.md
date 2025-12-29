@@ -72,7 +72,7 @@ winget install Microsoft.DotNet.SDK.8
 # Install WSL2 first (run in PowerShell as Administrator):
 # wsl --install -d Ubuntu
 
-# Then in WSL2 Ubuntu terminal for Frontend::
+# Then in WSL2 Ubuntu terminal for Frontend:
 sudo apt update && sudo apt install git curl nodejs npm -y
 
 # For Python Backend (Option A):
