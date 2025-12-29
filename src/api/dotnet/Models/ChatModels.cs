@@ -6,7 +6,7 @@ namespace CsApi.Models;
 public class ChatRequest
 {
     [JsonPropertyName("conversation_id")] public string? ConversationId { get; set; }
-    [JsonPropertyName("messages")] public List<ChatMessage>? Messages { get; set; }
+    [JsonPropertyName("query")] public string? Query { get; set; }
 }
 
 public class ChatMessage
@@ -16,8 +16,6 @@ public class ChatMessage
     
     // Content can be either string or structured JSON (like chart data) - matches Python flexibility
     [JsonPropertyName("content")] public JsonElement Content { get; set; } = JsonSerializer.SerializeToElement(string.Empty);
-    
-    [JsonPropertyName("created_at")] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     // Citations can be any JSON structure (array, object, etc.) - matches Python flexibility
     [JsonPropertyName("citations")] public JsonElement? Citations { get; set; }
@@ -130,10 +128,9 @@ public class ChatMessage
 public class ConversationSummary
 {
     [JsonPropertyName("conversation_id")] public string ConversationId { get; set; } = string.Empty;
-    [JsonPropertyName("user_id")] public string UserId { get; set; } = string.Empty;
     [JsonPropertyName("title")] public string Title { get; set; } = string.Empty;
-    [JsonPropertyName("created_at")] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    [JsonPropertyName("updated_at")] public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class ConversationListResponse

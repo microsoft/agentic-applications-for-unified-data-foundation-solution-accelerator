@@ -1,35 +1,35 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.AI;
-using Microsoft.Agents.AI;
-using Azure.AI.OpenAI;
-using Azure.Identity;
-using Azure.AI.Agents.Persistent;
-using OpenAI;
-using CsApi.Interfaces;
-using CsApi.Repositories;
+using Azure.AI.Projects;
+using Azure.AI.Projects.OpenAI;
 using CsApi.Auth;
+using CsApi.Repositories;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 
 namespace CsApi.Services
 {
     public interface IAgentFrameworkService
     {
         AIAgent Agent { get; }
-        Task<string> RunSqlQueryAsync(string input);
+        AIProjectClient ProjectClient { get; }
+        string ChatAgentName { get; }
+        AITool SqlTool { get; }
+        Task<string> run_sql_query(string input);
     }
 
     public class AgentFrameworkService : IAgentFrameworkService
     {
         private readonly AIAgent _agent;
+        private readonly AIProjectClient _projectClient;
         private readonly IConfiguration _config;
         private readonly ILogger<AgentFrameworkService> _logger;
         private readonly ISqlConversationRepository _sqlRepo;
+        private readonly string _chatAgentName;
+        private readonly AITool _sqlTool;
 
         public AIAgent Agent => _agent;
+        public AIProjectClient ProjectClient => _projectClient;
+        public string ChatAgentName => _chatAgentName;
+        public AITool SqlTool => _sqlTool;
 
         public AgentFrameworkService(
             IConfiguration config, 
@@ -40,44 +40,37 @@ namespace CsApi.Services
             _logger = logger;
             _sqlRepo = sqlRepo;
 
-            // Create Agent Framework client similar to Python implementation using single AGENT_ID_ORCHESTRATOR
+            // Create Agent Framework client similar to Python implementation
             var endpoint = config["AZURE_AI_AGENT_ENDPOINT"] 
                 ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is required");
 
-            var foundryAgentId = config["AGENT_ID_ORCHESTRATOR"]
-                ?? throw new InvalidOperationException("AGENT_ID_ORCHESTRATOR is required");
+            _chatAgentName = config["AGENT_NAME_CHAT"]
+                ?? throw new InvalidOperationException("AGENT_NAME_CHAT is required");
 
             // Create function tools for SQL operations like Python SqlQueryTool
-            var sqlTool = AIFunctionFactory.Create(RunSqlQueryAsync);
+            _sqlTool = AIFunctionFactory.Create(run_sql_query);
 
             var credentialFactory = new AzureCredentialFactory(_config);
             var credential = credentialFactory.Create();
-            // Use Azure AI Projects agent endpoint to get the existing agent with custom tools
-            var persistentAgentsClient = new PersistentAgentsClient(endpoint, credential);
 
-            var chatOptions = new ChatOptions
-            {
-                Tools = new[] { sqlTool }
-            };
+            // Use Azure AI Projects client (Foundry v2 approach)
+            _projectClient = new AIProjectClient(new Uri(endpoint), credential);
 
-            // Get the existing Azure AI Foundry agent and add our custom tools
-            // Note: Using GetAwaiter().GetResult() instead of .Result to avoid AggregateException wrapping
-            _agent = persistentAgentsClient.GetAIAgentAsync(foundryAgentId, chatOptions).GetAwaiter().GetResult();
-
-    
+            // Get the existing Azure AI Foundry agent by name with latest version
+            _agent = _projectClient.GetAIAgent(name: _chatAgentName, tools: [_sqlTool]);
         }
 
         /// <summary>
         /// Function tool for SQL database queries - directly executes SQL like Python SqlQueryTool
         /// </summary>
-        [System.ComponentModel.Description("Executes SQL queries against the database to retrieve Sales, Products and Orders data.")]
-        public async Task<string> RunSqlQueryAsync(
-            [System.ComponentModel.Description("A SQL query to execute against the database")] string sqlQuery)
+        [System.ComponentModel.Description("Execute parameterized SQL query and return results as list of dictionaries.")]
+        public async Task<string> run_sql_query(
+            [System.ComponentModel.Description("Valid T-SQL query to execute against the SQL database in Fabric.")] string sql_query)
         {
             try
             {
                 // Clean up the SQL query similar to the original implementation
-                var cleanedQuery = sqlQuery.Replace("```sql", string.Empty).Replace("```", string.Empty).Trim();
+                var cleanedQuery = sql_query.Replace("```sql", string.Empty).Replace("```", string.Empty).Trim();
                 
                 // Execute SQL query directly like Python SqlQueryTool
                 var answerRaw = await _sqlRepo.ExecuteChatQuery(cleanedQuery, CancellationToken.None);

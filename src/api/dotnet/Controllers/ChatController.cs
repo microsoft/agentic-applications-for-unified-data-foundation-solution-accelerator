@@ -1,13 +1,15 @@
-using System.Text.Json;
+using Azure.AI.Projects;
+using Azure.AI.Projects.OpenAI;
+using CsApi.Auth;
 using CsApi.Interfaces;
 using CsApi.Models;
-using CsApi.Services;
 using CsApi.Repositories;
+using CsApi.Services;
 using CsApi.Utils;
-using Microsoft.AspNetCore.Mvc;
-using System.Collections.Concurrent;
 using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
+using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using Azure;
 
 namespace CsApi.Controllers;
 
@@ -17,7 +19,8 @@ public class ChatController : ControllerBase
 {
     private readonly IUserContextAccessor _userContextAccessor;
     private readonly ISqlConversationRepository _sqlRepo;
-    
+    private readonly IConfiguration _configuration;
+
     // Thread cache to maintain conversation context like Python ExpCache  
     private static ExpCache<string, AgentThread>? _threadCache;
 
@@ -25,6 +28,7 @@ public class ChatController : ControllerBase
     { 
         _userContextAccessor = userContextAccessor; 
         _sqlRepo = sqlRepo;
+        _configuration = configuration;
         
         // Initialize thread cache with Azure AI endpoint if not already initialized
         if (_threadCache == null)
@@ -43,8 +47,8 @@ public class ChatController : ControllerBase
     public async Task Chat([FromBody] ChatRequest request, [FromServices] IAgentFrameworkService agentService, CancellationToken ct)
     {
         Response.ContentType = "application/json-lines";
-        var query = request.Messages?.LastOrDefault()?.GetContentAsString();
-        if (string.IsNullOrWhiteSpace(query))
+        
+        if (string.IsNullOrWhiteSpace(request.Query))
         {
             await Response.WriteAsync(JsonSerializer.Serialize(new { error = "query is required" }) + "\n\n", ct);
             return;
@@ -56,8 +60,8 @@ public class ChatController : ControllerBase
         var (convId, _) = await _sqlRepo.EnsureConversationAsync(userId ?? string.Empty, request.ConversationId, title: string.Empty, ct);
         
         // Use Agent Framework AIAgent for RAG/AI response with function tools  
-        var agent = agentService.Agent;
-        
+        AIAgent agent = agentService.Agent;
+
         AgentThread? thread = null;
         if (_threadCache?.TryGet(convId, out var cachedThread) == true)
         {
@@ -65,45 +69,55 @@ public class ChatController : ControllerBase
         }
         else
         {
-           thread = agent.GetNewThread();
+            var chatClientAgent = agent as ChatClientAgent 
+                ?? throw new InvalidOperationException("Agent must be a ChatClientAgent to create conversation threads.");
+            
+            var endpoint = _configuration["AZURE_AI_AGENT_ENDPOINT"] 
+                ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is not configured.");
+            
+            var credentialFactory = new AzureCredentialFactory(_configuration);
+            var credential = credentialFactory.Create();
+            var projectClient = new AIProjectClient(new Uri(endpoint), credential);
+
+            ProjectConversation conversationResponse = await projectClient
+                .GetProjectOpenAIClient()
+                .GetProjectConversationsClient()
+                .CreateProjectConversationAsync()
+                .ConfigureAwait(false);
+
+            thread = chatClientAgent.GetNewThread(conversationResponse.Id);
             _threadCache?.Set(convId, thread);
         }
+
         try
         {
-            var messageContent = query;
-            var acc = "";
+            var accumulatedResponse = new System.Text.StringBuilder();
             
-            // Stream response from Agent Framework with thread context
-            await foreach (var update in agent.RunStreamingAsync(messageContent, thread))
+            await foreach (var update in agent.RunStreamingAsync(request.Query, thread).WithCancellation(ct))
             {
-                // Agent Framework returns string updates directly
-                var content = update?.ToString() ?? string.Empty;
-                acc += content;
+                var content = update?.ToString();
+                if (string.IsNullOrEmpty(content)) continue;
                 
-                if (!string.IsNullOrEmpty(content))
+                accumulatedResponse.Append(content);
+                
+                var envelope = new
                 {
-                    var envelope = new
-                    {
-                        id = convId,
-                        model = "rag-model",
-                        created = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                        @object = "extensions.chat.completion.chunk",
-                        choices = new[] { new { messages = new[] { new { role = "assistant", content = acc } } } }
-                    };
-                    await Response.WriteAsync(JsonSerializer.Serialize(envelope) + "\n\n", ct);
-                    await Response.Body.FlushAsync(ct);
-                }
+                    choices = new[] { new { messages = new[] { new { role = "assistant", content = accumulatedResponse.ToString() } } } }
+                };
+                await Response.WriteAsync(JsonSerializer.Serialize(envelope) + "\n\n", ct);
+                await Response.Body.FlushAsync(ct);
             }
         }
-        catch (Exception ex)
+        catch (RequestFailedException ex)
         {
-            // Stream error as JSON line
             var errorEnvelope = new { error = ex.Message };
             await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
         }
-        
-        // Note: Assistant response is NOT saved here during streaming
-        // It will be saved later when the frontend calls the update endpoint
+        catch (Exception ex)
+        {
+            var errorEnvelope = new { error = ex.Message };
+            await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
+        }
     }
 
 
@@ -137,29 +151,4 @@ public class ChatController : ControllerBase
         return BadRequest(new { error = "DISPLAY_CHART_DEFAULT flag not found in environment variables" });
     }
 
-    [HttpPost("fetch-azure-search-content")]
-    public async Task<IActionResult> FetchAzureSearchContent([FromBody] FetchAzureSearchContentRequest req)
-    {
-        if (string.IsNullOrWhiteSpace(req?.Url))
-            return BadRequest(new { error = "URL is required" });
-        try
-        {
-            using var httpClient = new HttpClient();
-            var requestMsg = new HttpRequestMessage(HttpMethod.Get, req.Url);
-            requestMsg.Headers.Add("Content-Type", "application/json");
-            var response = await httpClient.SendAsync(requestMsg);
-            if (response.IsSuccessStatusCode)
-            {
-                var json = await response.Content.ReadAsStringAsync();
-                return Ok(new { content = json });
-            }
-            return StatusCode((int)response.StatusCode, new { error = $"Error: HTTP {response.StatusCode}" });
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { error = "Internal server error" });
-        }
-    }
-
-    public class FetchAzureSearchContentRequest { public string? Url { get; set; } }
 }

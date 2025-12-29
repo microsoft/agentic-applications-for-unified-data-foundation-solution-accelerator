@@ -32,10 +32,11 @@ hooks:
       run: |
         echo "Web app URL: "
         echo $WEB_APP_URL
-
-        echo "\nRun the following 2 commands in the bash terminal to create agents and fabric items respectively:"
+        echo ""
+        echo "Run the following 2 commands in the bash terminal to create agents and fabric items respectively:"
         echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"
-        echo "\nbash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+        echo ""
+        echo "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
 
       shell: sh
       continueOnError: false

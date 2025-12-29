@@ -22,6 +22,14 @@ param createdBy string = contains(deployer(), 'userPrincipalName')? split(deploy
 ])
 param backendRuntimeStack string
 
+@minLength(1)
+@description('Industry use case for deployment:')
+@allowed([
+  'Retail-sales-analysis'
+  'Insurance-improve-customer-meetings'
+])
+param usecase string 
+
 // @minLength(1)
 // @description('Location for the Content Understanding service deployment:')
 // @allowed(['swedencentral', 'australiaeast'])
@@ -75,7 +83,7 @@ param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags =
 // @description('Capacity of the Embedding Model deployment')
 // param embeddingDeploymentCapacity int = 80
 
-param imageTag string = 'latest'
+param imageTag string = 'latest_v2'
 
 param AZURE_LOCATION string=''
 var solutionLocation = empty(AZURE_LOCATION) ? resourceGroup().location : AZURE_LOCATION
@@ -96,7 +104,8 @@ param aiDeploymentsLocation string
 
 var solutionPrefix = 'da${padLeft(take(uniqueId, 12), 12, '0')}'
 
-var acrName = 'dataagentscontainerreg'
+@description('Name of the Azure Container Registry')
+param acrName string = 'dataagentscontainerreg'
 
 //Get the current deployer's information
 var deployerInfo = deployer()
@@ -264,7 +273,8 @@ module backend_docker 'deploy_backend_docker.bicep' = if (backendRuntimeStack ==
       SOLUTION_NAME: solutionPrefix
       APP_ENV: 'Prod'
 
-      AGENT_ID_ORCHESTRATOR: ''
+      AGENT_NAME_CHAT: ''
+      AGENT_NAME_TITLE: ''
 
       FABRIC_SQL_DATABASE: ''
       FABRIC_SQL_SERVER: ''
@@ -317,7 +327,8 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendRun
       SOLUTION_NAME: solutionPrefix
       APP_ENV: 'Prod'
 
-      AGENT_ID_ORCHESTRATOR: ''
+      AGENT_NAME_CHAT: ''
+      AGENT_NAME_TITLE: ''
 
       FABRIC_SQL_DATABASE: ''
       FABRIC_SQL_SERVER: ''
@@ -326,6 +337,8 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendRun
   }
   scope: resourceGroup(resourceGroup().name)
 }
+
+var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
 
 module frontend_docker 'deploy_frontend_docker.bicep' = {
   name: 'deploy_frontend_docker'
@@ -338,7 +351,7 @@ module frontend_docker 'deploy_frontend_docker.bicep' = {
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     appSettings:{
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
-      CHAT_LANDING_TEXT:'You can ask questions around sales, products and orders.'
+      CHAT_LANDING_TEXT: landingText
     }
   }
   scope: resourceGroup(resourceGroup().name)
@@ -390,7 +403,8 @@ output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppO
 output API_APP_URL string = backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
 output WEB_APP_URL string = frontend_docker.outputs.appUrl
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = aifoundry.outputs.applicationInsightsConnectionString
-output AGENT_ID_ORCHESTRATOR string = ''
+output AGENT_NAME_CHAT string = ''
+output AGENT_NAME_TITLE string = ''
 output FABRIC_SQL_DATABASE string = ''
 output FABRIC_SQL_SERVER string = ''
 output FABRIC_SQL_CONNECTION_STRING string = ''
@@ -398,3 +412,4 @@ output FABRIC_SQL_CONNECTION_STRING string = ''
 output MANAGED_IDENTITY_CLIENT_ID string = managedIdentityModule.outputs.managedIdentityOutput.clientId
 output AI_FOUNDRY_RESOURCE_ID string = aifoundry.outputs.aiFoundryResourceId
 output BACKEND_RUNTIME_STACK string = backendRuntimeStack
+output USE_CASE string = usecase

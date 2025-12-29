@@ -6,10 +6,10 @@ import uuid
 from datetime import datetime, date
 from typing import Tuple, Any
 from decimal import Decimal
-from openai import AsyncAzureOpenAI
+from azure.ai.projects.aio import AIProjectClient
 from pydantic import BaseModel, ConfigDict
 import pyodbc
-from azure.identity.aio import AzureCliCredential, get_bearer_token_provider
+from azure.identity.aio import AzureCliCredential
 from azure.monitor.events.extension import track_event
 from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import APIRouter, HTTPException, Query, Request, status
@@ -19,6 +19,10 @@ from opentelemetry.trace import Status, StatusCode
 
 from auth.auth_utils import get_authenticated_user_details
 from auth.azure_credential_utils import get_azure_credential_async
+
+from agent_framework import ChatAgent
+from agent_framework.azure import AzureAIClient
+from agent_framework.exceptions import ServiceResponseException
 
 router = APIRouter()
 
@@ -50,11 +54,11 @@ logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
     logging.WARNING
 )
 
-# Configuration variables
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_DEPLOYMENT_MODEL = os.getenv("AZURE_OPENAI_DEPLOYMENT_MODEL")
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
-AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE")
+# Azure AI Foundry configuration
+AZURE_AI_AGENT_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
+AGENT_NAME_TITLE = os.getenv("AGENT_NAME_TITLE")
+
+# Database configuration
 
 
 def track_event_if_configured(event_name: str, event_data: dict):
@@ -134,81 +138,6 @@ async def get_fabric_db_connection():
         return None
 
 
-# async def run_query_and_return_json(sql_query: str):
-#     """
-#     Execute SQL query and return results as JSON string.
-
-#     Args:
-#         sql_query (str): The SQL query to execute.
-
-#     Returns:
-#         str: JSON string containing query results, or None if an error occurs.
-#     """
-#     # Connect to the database
-#     conn = await get_fabric_db_connection()
-#     cursor = None
-#     try:
-#         cursor = conn.cursor()
-#         cursor.execute(sql_query)
-#         columns = [desc[0] for desc in cursor.description]
-#         result = []
-#         for row in cursor.fetchall():
-#             row_dict = {}
-#             for col_name, value in zip(columns, row):
-#                 if isinstance(value, (datetime, date)):
-#                     row_dict[col_name] = value.isoformat()
-#                 else:
-#                     row_dict[col_name] = value
-#             result.append(row_dict)
-
-#         return json.dumps(result, indent=2)
-#     except Exception as e:
-#         logging.error("Error executing SQL query: %s", e)
-#         return None
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         conn.close()
-
-
-# async def run_query_and_return_json_params(sql_query, params: Tuple[Any, ...] = ()):
-#     """
-#     Execute parameterized SQL query and return results as JSON string.
-
-#     Args:
-#         sql_query (str): The SQL query to execute with parameter placeholders.
-#         params (Tuple[Any, ...]): Parameters to bind to the query.
-
-#     Returns:
-#         str: JSON string containing query results, or None if an error occurs.
-#     """
-#     # Connect to the database
-#     conn = await get_fabric_db_connection()
-#     cursor = None
-#     try:
-#         cursor = conn.cursor()
-#         cursor.execute(sql_query, params)
-#         columns = [desc[0] for desc in cursor.description]
-#         result = []
-#         for row in cursor.fetchall():
-#             row_dict = {}
-#             for col_name, value in zip(columns, row):
-#                 if isinstance(value, (datetime, date)):
-#                     row_dict[col_name] = value.isoformat()
-#                 else:
-#                     row_dict[col_name] = value
-#             result.append(row_dict)
-
-#         return json.dumps(result, indent=2)
-#     except Exception as e:
-#         logging.error("Error executing SQL query: %s", e)
-#         return None
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         conn.close()
-
-
 async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     """
     Execute a SQL non-query operation like DELETE, INSERT, or UPDATE.
@@ -274,27 +203,6 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
         if cursor:
             cursor.close()
         conn.close()
-
-
-# async def execute_sql_query(sql_query):
-#     """
-#     Executes a given SQL query and returns the result as a concatenated string.
-#     """
-#     conn = await get_fabric_db_connection()
-#     cursor = None
-#     try:
-#         cursor = conn.cursor()
-#         cursor.execute(sql_query)
-#         result = ''.join(str(row) for row in cursor.fetchall())
-
-#         return result
-#     except Exception as e:
-#         logging.error("Error executing SQL query: %s", e)
-#         return None
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         conn.close()
 
 
 class SqlQueryTool(BaseModel):
@@ -421,7 +329,8 @@ async def get_conversation_messages(user_id: str, conversation_id: str, sort_ord
         return processed_result
     except Exception:
         logger.exception(
-            "Error retrieving conversation %s for user %s", conversation_id, user_id)
+            "Error retrieving conversation %s for user %s", conversation_id, user_id
+        )
         return None
 
 
@@ -450,7 +359,8 @@ async def delete_conversation(user_id: str, conversation_id: str) -> bool:
         # If the userId in the conversation does not match the user_id, deny access
         if user_id and conversation and conversation[0]["userId"] != user_id:
             logger.warning(
-                "User %s does not have permission to delete %s.", user_id, conversation_id)
+                "User %s does not have permission to delete %s.", user_id, conversation_id
+            )
             return False
 
         if user_id:
@@ -551,7 +461,8 @@ async def rename_conversation(user_id: str, conversation_id, title) -> bool:
         # Check if the user has permission to rename it
         if user_id and conversation and conversation[0]["userId"] != user_id:
             logger.warning(
-                "User %s does not have permission to rename %s.", user_id, conversation_id)
+                "User %s does not have permission to rename %s.", user_id, conversation_id
+            )
             return False
 
         # Update the title of the conversation
@@ -568,45 +479,9 @@ async def rename_conversation(user_id: str, conversation_id, title) -> bool:
         return False
 
 
-async def init_openai_client():
-    """
-    Initialize and return an Azure OpenAI client.
-
-    Returns:
-        AsyncAzureOpenAI: Configured Azure OpenAI client instance.
-    """
-    user_agent = "GitHubSampleWebApp/AsyncAzureOpenAI/1.0.0"
-
-    try:
-        if not AZURE_OPENAI_ENDPOINT and not AZURE_OPENAI_RESOURCE:
-            raise ValueError(
-                "AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE is required")
-
-        endpoint = AZURE_OPENAI_ENDPOINT or f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
-        ad_token_provider = None
-
-        logger.debug("Using Azure AD authentication for OpenAI")
-        credential = await get_azure_credential_async()
-        ad_token_provider = get_bearer_token_provider(
-            credential, "https://cognitiveservices.azure.com/.default")
-
-        if not AZURE_OPENAI_DEPLOYMENT_MODEL:
-            raise ValueError("AZURE_OPENAI_MODEL is required")
-
-        return AsyncAzureOpenAI(
-            api_version=AZURE_OPENAI_API_VERSION,
-            azure_ad_token_provider=ad_token_provider,
-            default_headers={"x-ms-useragent": user_agent},
-            azure_endpoint=endpoint,
-        )
-    except Exception:
-        logger.exception("Failed to initialize Azure OpenAI client")
-        raise
-
-
 async def generate_title(conversation_messages):
     """
-    Generate a concise title for a conversation using Azure OpenAI service.
+    Generate a concise title for a conversation using Azure AI Foundry agent.
 
     Args:
         conversation_messages (list): List of messages in the conversation.
@@ -614,28 +489,86 @@ async def generate_title(conversation_messages):
     Returns:
         str: A 4-word or less title summarizing the conversation.
     """
-    title_prompt = (
-        "Summarize the conversation so far into a 4-word or less title. "
-        "Do not use any quotation marks or punctuation. "
-        "Do not include any other commentary or description."
-    )
-
-    messages = [{"role": msg["role"], "content": msg["content"]}
-                for msg in conversation_messages if msg["role"] == "user"]
-    messages.append({"role": "user", "content": title_prompt})
 
     try:
-        azure_openai_client = await init_openai_client()
-        response = await azure_openai_client.chat.completions.create(
-            model=AZURE_OPENAI_DEPLOYMENT_MODEL,
-            messages=messages,
-            temperature=1,
-            max_tokens=64,
-        )
-        return response.choices[0].message.content
+        # Get the last user message for title generation
+        user_messages = [msg for msg in conversation_messages if msg["role"] == "user"]
+
+        if not user_messages:
+            logger.debug("No user messages found, returning default title")
+            return generate_fallback_title(conversation_messages)
+
+        # Combine all user messages with the title prompt
+        combined_content = "\n".join([msg["content"] for msg in user_messages])
+        final_prompt = f"Generate a 4-word or less title for this request:\n{combined_content}"
+        if not AZURE_AI_AGENT_ENDPOINT:
+            logger.warning("Azure AI Agent endpoint not configured, using fallback title generation")
+            return generate_fallback_title(conversation_messages)
+
+        async with AIProjectClient(
+            endpoint=AZURE_AI_AGENT_ENDPOINT,
+            credential=await get_azure_credential_async()
+        ) as project_client:
+            chat_client = AzureAIClient(
+                project_client=project_client,
+                agent_name=AGENT_NAME_TITLE,
+                use_latest_version=True,
+            )
+
+            async with ChatAgent(
+                chat_client=chat_client,
+                tool_choice="none",
+            ) as chat_agent:
+                thread = chat_agent.get_new_thread()
+                result = await chat_agent.run(messages=final_prompt, thread=thread)
+                return str(result).strip() if result is not None else generate_fallback_title(conversation_messages)
+
+    except ServiceResponseException as sre:
+        logger.warning("ServiceResponseException generating title with Azure AI Foundry agent: %s", sre)
+        return generate_fallback_title(conversation_messages)
+
     except Exception as e:
-        logger.error("Error generating title: %s", e)
-        return messages[-2]["content"]
+        logger.warning("Error generating title with Azure AI Foundry agent: %s", e)
+        return generate_fallback_title(conversation_messages)
+
+
+def generate_fallback_title(conversation_messages):
+    """
+    Generate a fallback title from conversation messages when AI generation fails.
+
+    Args:
+        conversation_messages (list): List of messages in the conversation.
+
+    Returns:
+        str: A fallback title based on the first user message.
+    """
+    user_messages = [msg for msg in conversation_messages if msg["role"] == "user"]
+    if user_messages:
+        first_message = user_messages[0]["content"]
+        return _generate_fallback_title_from_message(first_message)
+    return "New Conversation"
+
+
+def _generate_fallback_title_from_message(message_content):
+    """
+    Generate a fallback title from a single message when AI generation fails.
+
+    Args:
+        message_content (str): The message content to generate title from.
+
+    Returns:
+        str: A fallback title based on the first few words of the message.
+    """
+    if isinstance(message_content, dict):
+        # If content is a dictionary, try to extract text
+        message_content = str(message_content)
+
+    if message_content:
+        # Create a simple title from first 4 words
+        words = str(message_content).split()[:4]
+        title = " ".join(words) if words else "New Conversation"
+        return title if title.strip() else "New Conversation"
+    return "New Conversation"
 
 
 async def create_conversation(user_id, title="", conversation_id=None):
@@ -810,15 +743,15 @@ async def update_conversation(user_id: str, request_json: dict):
                 logger.warning("Conversation not found for ID: %s", conversation_id)
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Conversation not found")
+                    detail="Conversation not found"
+                )
         else:
             logger.warning("No user message found in request")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User message not found")
+                detail="User message not found"
+            )
 
-        # Format the incoming message object in the "chat/completions" messages format
-        # then write it to the conversation history
         messages = request_json["messages"]
         if len(messages) > 0 and messages[-1]["role"] == "assistant":
             if len(messages) > 1 and messages[-2].get("role", None) == "tool":
@@ -840,7 +773,8 @@ async def update_conversation(user_id: str, request_json: dict):
             logger.warning("No assistant message found in request")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Assistant message not found")
+                detail="Assistant message not found"
+            )
 
         queryReturn = "SELECT * FROM hst_conversations where conversation_id = ?"
         conversationUpdated = await run_query_params(queryReturn, (conversation_id,))
@@ -883,7 +817,8 @@ async def list_conversations(
         # await adjust_processed_data_dates()
 
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers)
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         logger.info("Historyfab list-API: user_id: %s, offset: %s, limit: %s", user_id, offset, limit)
@@ -927,7 +862,8 @@ async def get_conversation_messages_endpoint(request: Request, id: str = Query(.
     """
     try:
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers)
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         conversation_id = id
@@ -993,7 +929,8 @@ async def delete_conversation_endpoint(request: Request, id: str = Query(...)):
     try:
         # Get the user ID from request headers
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers)
+            request_headers=request.headers
+        )
         user_id = authenticated_user["user_principal_id"]
 
         conversation_id = id

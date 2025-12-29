@@ -4,12 +4,15 @@ import json
 from azure.identity import AzureCliCredential
 import shlex
 import argparse
+import os
+import pandas as pd
 
 p = argparse.ArgumentParser()
 p.add_argument("--workspaceId", required=True)
 p.add_argument("--solutionname", required=True)
 p.add_argument("--backend_app_pid", required=True)
 p.add_argument("--backend_app_uid", required=True)
+p.add_argument("--usecase", required=True)
 p.add_argument("--exports-file", required=True)
 args = p.parse_args()
 
@@ -17,6 +20,13 @@ workspaceId = args.workspaceId
 solutionname = args.solutionname
 backend_app_pid = args.backend_app_pid
 backend_app_uid = args.backend_app_uid
+usecase = args.usecase.lower()
+
+
+if usecase == 'retail-sales-analysis':
+    usecase = 'retail'
+else: 
+    usecase = 'insurance'
 
 def get_fabric_headers():
     credential = AzureCliCredential()
@@ -27,8 +37,8 @@ def get_fabric_headers():
 
 fabric_headers = get_fabric_headers()
 
-lakehouse_name = 'retail_lakehouse_' + solutionname
-sqldb_name = 'retail_sqldatabase_' + solutionname
+lakehouse_name = f'{usecase}_lakehouse_' + solutionname
+sqldb_name = f'{usecase}_sqldatabase_' + solutionname
 pipeline_name = 'data_pipeline_' + solutionname
 
 # print("workspace id: " ,workspaceId)
@@ -76,7 +86,7 @@ directory_client = file_system_client.get_directory_client(f"{data_path}/{folder
 print('uploading files')
 # upload audio files
 file_client = directory_client.get_file_client("data/" + 'tables.json')
-with open(file='infra/scripts/fabric_scripts/sql_files/tables.json', mode="rb") as data:
+with open(file='infra/scripts/fabric_scripts/data/tables.json', mode="rb") as data:
         # print('data', data)
     file_client.upload_data(data, overwrite=True)
 
@@ -193,9 +203,88 @@ with open(sql_filename, 'r', encoding='utf-8') as f:
 cursor.commit()
 
 
+if usecase == "retail":
+    file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'sql_files', f'{usecase}_data_sql.sql'))
+    with open(file_path, 'r', encoding='utf-8') as f:
+        sql_script = f.read()
+        cursor.execute(sql_script)
+    cursor.commit()
+else: 
+    sql_data_types = {  
+        'int64': 'INT',  
+        'float64': 'DECIMAL(10,2)',  
+        'object': 'NVARCHAR(MAX)',  
+        'bool': 'BIT',  
+        'datetime64[ns]': 'DATETIME2(6)',  
+        'timedelta[ns]': 'TIME'    
+    }
+    file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'data'))
+    output_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'sql_files', f'{usecase}_data_sql.sql'))
+    sql_commands = []
+    for file in os.listdir(file_path):  
+        
+        if file.endswith('.csv'): 
+            table_file_path = os.path.join(file_path, file)  
+            df = pd.read_csv(table_file_path)
+            table_name = file.replace('.csv', '')          
+            if table_name == 'customer': 
+                    df = df.fillna('').replace({None: ''})
+            create_table_statement = f'DROP TABLE IF EXISTS [dbo].[{table_name}]; \nCREATE TABLE [dbo].[{table_name}] (\n'  
+            create_table_columns = []  
+            
+            for column in df.columns:
+                if 'id' in column.lower():    
+                    sql_type = sql_data_types[str(df.dtypes[column])] + ' NOT NULL '
+                elif 'Date' in column:
+                    sql_type = ' DATETIME2(6) NULL '
+                else: 
+                    sql_type = sql_data_types[str(df.dtypes[column])] + ' NULL ' 
+                
+                create_table_columns.append(f'    [{column}] {sql_type}')  
+
+            create_table_statement += ',\n'.join(create_table_columns) + '\n);'
+            sql_commands.append(create_table_statement)
+            insert_sql = f"INSERT INTO {table_name} ([{'] , ['.join(df.columns) }]) VALUES "
+            values_list = []
+            count = 0
+
+            for index, row in df.iterrows():    
+                values = []  
+                for value in row:    
+                    if isinstance(value, str):  
+                        str_value = value.replace("'", "''")
+                        str_value = f"'{str_value}'"
+                        values.append(str_value)  
+                    elif isinstance(value, bool): 
+                        values.append("1" if value else "0")
+                    else:  
+                        values.append(str(value))  
+                
+                count += 1
+                values_list.append(f"({', '.join(values)})") 
+
+                if count == 1000:  
+                    insert_sql += ",\n".join(values_list) + ";\n"  
+                    sql_commands.append(insert_sql)  
+                    # Reset for the next batch  
+                    insert_sql = f"INSERT INTO {table_name} ([{'] , ['.join(df.columns)}]) VALUES "  
+                    values_list = []  
+                    count = 0 
+            if values_list:
+                insert_sql += ",\n".join(values_list) + ";\n"  
+                sql_commands.append(insert_sql)
+        
+        with open(output_file_path, 'w', encoding='utf-8') as f:  
+            f.write("\n".join(sql_commands))
+
+    with open(output_file_path, 'r', encoding='utf-8') as f:
+        sql_script = f.read()
+        cursor.execute(sql_script)  
+    cursor.commit()
+
 import json
 
-file_path = "infra/scripts/fabric_scripts/sql_files/tables.json"
+file_path = "infra/scripts/fabric_scripts/data/tables.json"
 
 time.sleep(120)
 with open(file_path, "r", encoding="utf-8") as f:
@@ -219,21 +308,32 @@ for table in data['tables']:
     # print('shortcut: ',shortcut_res.json())
 
 from datetime import datetime, timedelta
+if usecase == "retail":
+    # Adjust dates to current date
+    today = datetime.today()
+    cursor.execute("SELECT MAX(CAST(OrderDate AS DATETIME)) FROM dbo.orders")
+    max_start_time = cursor.fetchone()[0]
+    days_difference = (today - max_start_time).days - 1 if max_start_time else 0
 
-# Adjust dates to current date
-today = datetime.today()
-cursor.execute("SELECT MAX(CAST(OrderDate AS DATETIME)) FROM dbo.orders")
-max_start_time = cursor.fetchone()[0]
-days_difference = (today - max_start_time).days - 1 if max_start_time else 0
+    cursor.execute("UPDATE [dbo].[orders] SET OrderDate = FORMAT(DATEADD(DAY, ?, OrderDate), 'yyyy-MM-dd')", (days_difference))
+    cursor.execute("UPDATE [dbo].[invoice] SET InvoiceDate = FORMAT(DATEADD(DAY, ?, InvoiceDate), 'yyyy-MM-dd'), DueDate = FORMAT(DATEADD(DAY, ?, DueDate), 'yyyy-MM-dd')", (days_difference, days_difference))
+    cursor.execute("UPDATE [dbo].[payment] SET PaymentDate = FORMAT(DATEADD(DAY, ?, PaymentDate), 'yyyy-MM-dd')", (days_difference))
+    cursor.execute("UPDATE [dbo].[customer] SET CustomerEstablishedDate = FORMAT(DATEADD(DAY, ?, CustomerEstablishedDate), 'yyyy-MM-dd')", (days_difference))
+    cursor.execute("UPDATE [dbo].[account] SET CreatedDate = FORMAT(DATEADD(DAY, ?, CreatedDate), 'yyyy-MM-dd')", (days_difference))
+    conn.commit()
+else: 
+    today = datetime.today()
+    cursor.execute("SELECT MAX(CAST(StartDate AS DATETIME)) FROM dbo.policy")
+    max_start_time = cursor.fetchone()[0]
+    days_difference = (today - max_start_time).days - 1 if max_start_time else 0
 
-cursor.execute("UPDATE [dbo].[orders] SET OrderDate = FORMAT(DATEADD(DAY, ?, OrderDate), 'yyyy-MM-dd')", (days_difference))
-cursor.execute("UPDATE [dbo].[invoice] SET InvoiceDate = FORMAT(DATEADD(DAY, ?, InvoiceDate), 'yyyy-MM-dd'), DueDate = FORMAT(DATEADD(DAY, ?, DueDate), 'yyyy-MM-dd')", (days_difference, days_difference))
-cursor.execute("UPDATE [dbo].[payment] SET PaymentDate = FORMAT(DATEADD(DAY, ?, PaymentDate), 'yyyy-MM-dd')", (days_difference))
-cursor.execute("UPDATE [dbo].[customer] SET CustomerEstablishedDate = FORMAT(DATEADD(DAY, ?, CustomerEstablishedDate), 'yyyy-MM-dd')", (days_difference))
-cursor.execute("UPDATE [dbo].[account] SET CreatedDate = FORMAT(DATEADD(DAY, ?, CreatedDate), 'yyyy-MM-dd')", (days_difference))
-conn.commit()
-
+    cursor.execute("UPDATE [dbo].[policy] SET StartDate = FORMAT(DATEADD(DAY, ?, StartDate), 'yyyy-MM-dd')", (days_difference))
+    cursor.execute("UPDATE [dbo].[claim] SET ClaimDate = FORMAT(DATEADD(DAY, ?, ClaimDate), 'yyyy-MM-dd')", (days_difference))
+    cursor.execute("UPDATE [dbo].[communicationshistory] SET CommunicationDate = FORMAT(DATEADD(DAY, ?, CommunicationDate), 'yyyy-MM-dd')", (days_difference))
+    cursor.execute("UPDATE [dbo].[customer] SET CustomerEstablishedDate = FORMAT(DATEADD(DAY, ?, CustomerEstablishedDate), 'yyyy-MM-dd')", (days_difference))
+    conn.commit()
 print("Dates adjusted to current date.")
+
 
 cursor.close()
 conn.close()
@@ -384,6 +484,13 @@ roleassignment_json ={
   "role": "Contributor"
 }
 roleassignment_res = requests.post(fabric_ra_url, headers=fabric_headers, json=roleassignment_json)
+
+if roleassignment_res.status_code == 201:
+    print("✓ Role assignment created successfully")
+else:
+    print(f"⚠ Failed to create role assignment. Status: {roleassignment_res.status_code}")
+    print(f"Response: {roleassignment_res.text}")
+    exit(1)
 
 odbc_driver_18 = "{ODBC Driver 18 for SQL Server}"
 FABRIC_SQL_CONNECTION_STRING_18 = f"DRIVER={odbc_driver_18};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"

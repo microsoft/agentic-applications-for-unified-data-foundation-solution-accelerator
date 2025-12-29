@@ -24,7 +24,7 @@ if [[ "${USE_LOCAL_BUILD,,}" != "true" ]]; then
     exit 0
 fi
 
-AZURE_ENV_IMAGETAG=${AZURE_ENV_IMAGETAG:-latest}
+AZURE_ENV_IMAGETAG=${AZURE_ENV_IMAGETAG:-latest_v2}
 
 echo "Local Build enabled. Starting build process."
 

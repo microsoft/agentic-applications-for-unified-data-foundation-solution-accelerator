@@ -1,12 +1,8 @@
-using System;
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.Agents.AI;
-using Azure.Identity;
-using Azure.AI.Agents.Persistent;
 using CsApi.Auth;
-using Microsoft.Extensions.Configuration;
+using Azure.AI.Projects;
+using Azure.AI.Projects.OpenAI;
 
 namespace CsApi.Utils
 {
@@ -153,10 +149,15 @@ namespace CsApi.Utils
                     // Clean up using Agent Framework pattern: thread is ChatClientAgentThread
                     if (agentThread is ChatClientAgentThread chatThread)
                     {
+                        var endpoint = _configuration["AZURE_AI_AGENT_ENDPOINT"]
+                                ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is required");
                         var credentialFactory = new AzureCredentialFactory(_configuration);
                         var credential = credentialFactory.Create();
-                        var persistentClient = new PersistentAgentsClient(_azureAIEndpoint, credential);
-                        await persistentClient.Threads.DeleteThreadAsync(chatThread.ConversationId);
+                        AIProjectClient projectClient = new AIProjectClient(new Uri(endpoint), credential);
+
+                        await projectClient.GetProjectOpenAIClient()
+                            .GetProjectConversationsClient()
+                            .DeleteConversationAsync(chatThread.ConversationId);
                     }
                     else
                     {
