@@ -68,7 +68,11 @@ Quick deploy
 ### How to install or deploy
 Follow the quick deploy steps on the deployment guide to deploy this solution to your own Azure subscription.
 
-[Click here to launch the deployment guide](./documents/DeploymentGuide.md)
+For Azure Deployment: [Click here to launch the deployment guide](./documents/DeploymentGuide.md)
+<br/><br/>
+For Local Development: 
+- [Local Development Setup Guide](./documents/LocalDevelopmentSetup.md) - Comprehensive setup instructions for Windows and Linux.
+- Includes native Windows setup, WSL2 configuration, and cross-platform development tools
 <br/><br/>
 
 
