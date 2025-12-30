@@ -2,6 +2,7 @@ import atexit
 import io
 import logging
 import os
+from datetime import datetime
 
 
 from bs4 import BeautifulSoup
@@ -11,6 +12,10 @@ from config.constants import URL
 from playwright.sync_api import sync_playwright
 
 import pytest
+
+# Create screenshots directory if it doesn't exist
+SCREENSHOTS_DIR = os.path.join(os.path.dirname(__file__), "screenshots")
+os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 
 
 @pytest.fixture(scope="session")
