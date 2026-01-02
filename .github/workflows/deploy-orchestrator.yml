@@ -22,6 +22,11 @@ on:
         type: 'string'
         required: false
         default: 'python'
+      AZURE_ENV_USE_CASES:
+        description: 'Specify use cases to deploy'
+        type: 'string'
+        required: false
+        default: 'Retail-sales-analysis'
       EXP:
         description: 'Enable EXP'
         required: false
@@ -84,6 +89,7 @@ jobs:
       azure_location: ${{ inputs.azure_location }}
       resource_group_name: ${{ inputs.resource_group_name }}
       BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
+      AZURE_ENV_USE_CASES: ${{ inputs.AZURE_ENV_USE_CASES }}
       EXP: ${{ inputs.EXP }}
       build_docker_image: ${{ inputs.build_docker_image }}
       existing_webapp_url: ${{ inputs.existing_webapp_url }}
