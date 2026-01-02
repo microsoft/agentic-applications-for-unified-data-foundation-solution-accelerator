@@ -26,7 +26,7 @@ on:
         type: 'string'
         required: false
         default: 'python'
-      AZURE_ENV_USE_CASES:
+      AZURE_ENV_USE_CASE:
         description: 'Specify use cases to deploy'
         type: 'string'
         required: false
@@ -372,7 +372,7 @@ jobs:
       BUILD_DOCKER_IMAGE: ${{ inputs.build_docker_image || 'false' }}
       EXP: ${{ inputs.EXP || 'false' }}
       BACKEND_RUNTIME_STACK: ${{ needs.azure-setup.outputs.BACKEND_RUNTIME_STACK }}
-      AZURE_ENV_USE_CASES: ${{ inputs.AZURE_ENV_USE_CASES }}
+      AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
     secrets: inherit
@@ -391,7 +391,7 @@ jobs:
       BUILD_DOCKER_IMAGE: ${{ inputs.build_docker_image || 'false' }}
       EXP: ${{ inputs.EXP || 'false' }}
       BACKEND_RUNTIME_STACK: ${{ needs.azure-setup.outputs.BACKEND_RUNTIME_STACK }}
-      AZURE_ENV_USE_CASES: ${{ inputs.AZURE_ENV_USE_CASES }}
+      AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
     secrets: inherit

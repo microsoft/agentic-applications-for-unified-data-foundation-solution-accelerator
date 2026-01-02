@@ -28,7 +28,7 @@ on:
         required: false
         type: string
         default: 'python'
-      AZURE_ENV_USE_CASES:
+      AZURE_ENV_USE_CASE:
         required: false
         type: string
         default: 'Retail-sales-analysis'
@@ -113,7 +113,7 @@ jobs:
           azd env set AZURE_RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
           azd env set AZURE_ENV_IMAGETAG="${{ inputs.IMAGE_TAG }}"
           azd env set BACKEND_RUNTIME_STACK="${{ inputs.BACKEND_RUNTIME_STACK }}"
-          azd env set AZURE_ENV_USE_CASES="${{ inputs.AZURE_ENV_USE_CASES }}"
+          azd env set AZURE_ENV_USE_CASE="${{ inputs.AZURE_ENV_USE_CASE }}"
           
           # Set ACR name only when building Docker image
           if ("${{ inputs.BUILD_DOCKER_IMAGE }}" -eq "true") {

@@ -41,7 +41,7 @@ on:
           - 'dotnet'
         required: false
         default: 'python'
-      AZURE_ENV_USE_CASES:
+      AZURE_ENV_USE_CASE:
         description: 'Specify use cases to deploy'
         type: 'choice'
         options:
@@ -103,7 +103,7 @@ jobs:
       azure_location: ${{ github.event.inputs.azure_location || 'australiaeast' }}
       resource_group_name: ${{ github.event.inputs.resource_group_name || '' }}
       BACKEND_RUNTIME_STACK: ${{ github.event.inputs.BACKEND_RUNTIME_STACK || 'python' }}
-      AZURE_ENV_USE_CASES: ${{ github.event.inputs.AZURE_ENV_USE_CASES || 'Retail-sales-analysis' }}
+      AZURE_ENV_USE_CASE: ${{ github.event.inputs.AZURE_ENV_USE_CASE || 'Retail-sales-analysis' }}
       EXP: ${{ github.event.inputs.EXP == 'true' }}
       build_docker_image: ${{ github.event.inputs.build_docker_image == 'true' }}
       cleanup_resources: ${{ github.event.inputs.cleanup_resources == 'true' }}
