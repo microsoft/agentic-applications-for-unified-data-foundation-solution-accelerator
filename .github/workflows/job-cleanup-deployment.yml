@@ -1,0 +1,167 @@
+name: Cleanup Deployment Job
+on:
+  workflow_call:
+    inputs:
+      runner_os:
+        description: 'Runner OS (ubuntu-latest or windows-latest)'
+        required: true
+        type: string
+      trigger_type:
+        description: 'Trigger type (workflow_dispatch, pull_request, schedule)'
+        required: true
+        type: string
+      cleanup_resources:
+        description: 'Cleanup Deployed Resources'
+        required: false
+        default: false
+        type: boolean
+      existing_webapp_url:
+        description: 'Existing Container WebApp URL (Skips Deployment)'
+        required: false
+        default: ''
+        type: string
+      RESOURCE_GROUP_NAME:
+        description: 'Resource Group Name to cleanup'
+        required: true
+        type: string
+      AZURE_LOCATION:
+        description: 'Azure Location'
+        required: true
+        type: string
+      AZURE_ENV_OPENAI_LOCATION:
+        description: 'Azure OpenAI Location'
+        required: true
+        type: string
+      ENV_NAME:
+        description: 'Environment Name'
+        required: true
+        type: string
+      IMAGE_TAG:
+        description: 'Docker Image Tag'
+        required: true
+        type: string
+      BACKEND_RUNTIME_STACK:
+        description: 'Backend Runtime Stack'
+        required: false
+        type: string
+        default: 'python'
+      SOLUTION_NAME:
+        description: 'Solution Name'
+        required: false
+        type: string
+        default: ''
+      API_PID:
+        description: 'API PID'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  cleanup-deployment:
+    runs-on: ${{ inputs.runner_os }}
+    continue-on-error: true
+    env:
+      RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+      AZURE_LOCATION: ${{ inputs.AZURE_LOCATION }}
+      AZURE_ENV_OPENAI_LOCATION: ${{ inputs.AZURE_ENV_OPENAI_LOCATION }}
+      ENV_NAME: ${{ inputs.ENV_NAME }}
+      IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
+      BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
+      SOLUTION_NAME: ${{ inputs.SOLUTION_NAME }}
+      API_PID: ${{ inputs.API_PID }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          fi
+          az --version
+
+      - name: Setup Azure Developer CLI
+        uses: Azure/setup-azd@v2
+
+      - name: Login to Azure
+        shell: bash
+        run: |
+          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+          azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Select Environment
+        shell: bash
+        run: |
+          set -e
+          # Try to select the environment if it exists, otherwise create a minimal environment for cleanup
+          azd env list
+          if azd env list | grep -q "${{ env.ENV_NAME }}"; then
+            echo "Environment ${{ env.ENV_NAME }} found, selecting it..."
+            azd env select ${{ env.ENV_NAME }}
+          else
+            echo "Environment ${{ env.ENV_NAME }} not found, creating minimal environment for cleanup..."
+            azd env new ${{ env.ENV_NAME }} --no-prompt
+            azd env set AZURE_RESOURCE_GROUP "${{ env.RESOURCE_GROUP_NAME }}"
+            azd env set AZURE_SUBSCRIPTION_ID "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+            azd env set AZURE_LOCATION="${{ env.AZURE_LOCATION }}"
+            azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="${{ env.AZURE_ENV_OPENAI_LOCATION }}"
+            azd env set BACKEND_RUNTIME_STACK="${{ env.BACKEND_RUNTIME_STACK }}"
+            azd env set SOLUTION_NAME="${{ env.SOLUTION_NAME }}"
+            azd env set API_PID="${{ env.API_PID }}"
+          fi
+
+      - name: Cleanup Fabric Items
+        shell: bash
+        env:
+          PYTHONIOENCODING: utf-8
+        id: cleanup_fabric
+        run: |
+          bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh \
+            "${{ secrets.FABRIC_WORKSPACE_ID }}"
+        continue-on-error: true
+
+      - name: Delete deployment using azd
+        shell: bash
+        id: delete_rg
+        run: |
+          set -e
+          echo "Deleting deployment..."
+          azd down --purge --force --no-prompt
+          echo "Deployment deleted successfully."
+
+      - name: Logout from Azure
+        if: always()
+        shell: bash
+        run: |
+          azd auth logout || true
+          az logout || echo "Warning: Failed to logout from Azure CLI"
+          echo "Logged out from Azure."
+      
+      - name: Generate Cleanup Job Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## 🧹 Cleanup Job Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resource Group deletion** | ${{ steps.delete_rg.outcome == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Resource Group** | \`${{ env.RESOURCE_GROUP_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Fabric Cleanup** | ${{ steps.cleanup_fabric.outcome == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ steps.delete_rg.outcome }}" == "success" ]]; then
+            echo "### ✅ Cleanup Details" >> $GITHUB_STEP_SUMMARY
+            echo "- Successfully deleted Resource Group \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- All Azure resources have been purged" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Cleanup Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Cleanup process encountered an error" >> $GITHUB_STEP_SUMMARY
+            echo "- Manual cleanup may be required for:" >> $GITHUB_STEP_SUMMARY
+            echo "  - Resource Group: \`${{ env.RESOURCE_GROUP_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "- Check the cleanup-deployment job logs for detailed error information" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
