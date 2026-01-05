@@ -315,4 +315,7 @@ For Insurance improve customer meetings use case:
 These questions serve as a great starting point to explore insights from the data.
 
 ## Create Fabric Data Agent and Publish to Teams
-1. Follow the step in [CopilotStudioDeployment](./CopilotStudioDeployment.md)
+1. Follow the steps in [CopilotStudioDeployment](./CopilotStudioDeployment.md)
+
+## Local Development
+To set up and run the application locally for development, see the [Local Development Setup Guide](./LocalDevelopmentSetup.md).
