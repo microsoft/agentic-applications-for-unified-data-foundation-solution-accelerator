@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "12645396819975389987"
+      "templateHash": "7509417007214881155"
     }
   },
   "parameters": {
@@ -121,7 +121,7 @@
     },
     "imageTag": {
       "type": "string",
-      "defaultValue": "latest"
+      "defaultValue": "latest_v2"
     },
     "AZURE_LOCATION": {
       "type": "string",
@@ -1527,8 +1527,8 @@
               "DUMMY_TEST": "True",
               "SOLUTION_NAME": "[variables('solutionPrefix')]",
               "APP_ENV": "Prod",
-              "AGENT_ID_ORCHESTRATOR": "",
-              "AGENT_ID_TITLE": "",
+              "AGENT_NAME_CHAT": "",
+              "AGENT_NAME_TITLE": "",
               "FABRIC_SQL_DATABASE": "",
               "FABRIC_SQL_SERVER": "",
               "FABRIC_SQL_CONNECTION_STRING": ""
@@ -2182,8 +2182,8 @@
               "DUMMY_TEST": "True",
               "SOLUTION_NAME": "[variables('solutionPrefix')]",
               "APP_ENV": "Prod",
-              "AGENT_ID_ORCHESTRATOR": "",
-              "AGENT_ID_TITLE": "",
+              "AGENT_NAME_CHAT": "",
+              "AGENT_NAME_TITLE": "",
               "FABRIC_SQL_DATABASE": "",
               "FABRIC_SQL_SERVER": "",
               "FABRIC_SQL_CONNECTION_STRING": ""
@@ -3201,11 +3201,11 @@
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.applicationInsightsConnectionString.value]"
     },
-    "AGENT_ID_ORCHESTRATOR": {
+    "AGENT_NAME_CHAT": {
       "type": "string",
       "value": ""
     },
-    "AGENT_ID_TITLE": {
+    "AGENT_NAME_TITLE": {
       "type": "string",
       "value": ""
     },

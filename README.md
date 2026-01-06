@@ -1,7 +1,7 @@
 # Agentic Applications for Unified Data Foundation
 
 <br/>
-This solution accelerator empowers organizations to make faster, smarter decisions at scale by leveraging agentic AI solutions built on a unified data foundation with Microsoft Fabric. With seamless integration of Azure AI Foundry agents and Agent Framework orchestration, teams can design intelligent workflows that automate routine processes, streamline operations, and enable natural language querying across enterprise datasets. This ensures that governed, high-quality data is accessible not only to technical specialists but also to business users, creating a shared environment where insights are surfaced more easily and decisions are grounded in trusted information. By unifying data access and applying AI in the flow of work, organizations gain the agility to respond rapidly to changing business needs, foster collaboration across teams, and drive innovation with greater confidence.
+This solution accelerator empowers organizations to make faster, smarter decisions at scale by leveraging agentic AI solutions built on a unified data foundation with Microsoft Fabric. With seamless integration of Microsoft Foundry agents and Agent Framework orchestration, teams can design intelligent workflows that automate routine processes, streamline operations, and enable natural language querying across enterprise datasets. This ensures that governed, high-quality data is accessible not only to technical specialists but also to business users, creating a shared environment where insights are surfaced more easily and decisions are grounded in trusted information. By unifying data access and applying AI in the flow of work, organizations gain the agility to respond rapidly to changing business needs, foster collaboration across teams, and drive innovation with greater confidence.
 
 <br/>
 
@@ -46,7 +46,7 @@ Features
 <details open>  
 <summary>Click to learn more about the key features this solution enables</summary>  
 
-**Built on Microsoft Fabric + Azure AI Foundry**
+**Built on Microsoft Fabric + Microsoft Foundry**
 - **Unified data foundation with Fabric** <br/>  
 Leverage the foundational capabilities of Microsoft Fabric and a Unified Data Foundation to build intelligent agents that stand apart in orchestration, retrieval, and user experience
 
@@ -54,7 +54,7 @@ Leverage the foundational capabilities of Microsoft Fabric and a Unified Data Fo
 Seamlessly integrate with Fabric’s data foundation to ensure performance, scalability, and extensibility.
 
 - **Natural language interaction** <br/>  
-Azure AI Foundry Agents coordinate orchestration and retrieval to deliver fast, contextual answers realizing insights faster. Enable intuitive, natural language querying capabilities that unify access across enterprise data assets.
+Microsoft Foundry Agents coordinate orchestration and retrieval to deliver fast, contextual answers realizing insights faster. Enable intuitive, natural language querying capabilities that unify access across enterprise data assets.
 
 </details>
 
@@ -68,7 +68,11 @@ Quick deploy
 ### How to install or deploy
 Follow the quick deploy steps on the deployment guide to deploy this solution to your own Azure subscription.
 
-[Click here to launch the deployment guide](./documents/DeploymentGuide.md)
+For Azure Deployment: [Click here to launch the deployment guide](./documents/DeploymentGuide.md)
+<br/><br/>
+For Local Development: 
+- [Local Development Setup Guide](./documents/LocalDevelopmentSetup.md) - Comprehensive setup instructions for Windows and Linux.
+- Includes native Windows setup, WSL2 configuration, and cross-platform development tools
 <br/><br/>
 
 
@@ -101,7 +105,7 @@ _Note: This is not meant to outline all costs as selected SKUs, scaled use, cust
 
 | Product | Description | Tier / Expected Usage Notes | Cost |
 |---|---|---|---|
-| [Azure AI Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry) | Used to orchestrate and build AI workflows that combine Azure AI services. | Free Tier | [Pricing](https://azure.microsoft.com/pricing/details/ai-studio/) |
+| [Microsoft Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry) | Used to orchestrate and build AI workflows that combine Azure AI services. | Free Tier | [Pricing](https://azure.microsoft.com/pricing/details/ai-studio/) |
 | [Azure AI Services (OpenAI)](https://learn.microsoft.com/en-us/azure/cognitive-services/openai/overview) | Enables language understanding and chat capabilities using GPT models. | S0 Tier; pricing depends on token volume and model used (e.g., GPT-4o-mini). | [Pricing](https://azure.microsoft.com/pricing/details/cognitive-services/) |
 | [Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/overview) | Hosts microservices and APIs powering the front-end and backend orchestration. | Consumption plan with 0.5 vCPU, 1GiB memory; includes a free usage tier. | [Pricing](https://azure.microsoft.com/pricing/details/container-apps/) |
 | [Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/container-registry-intro) | Stores and serves container images used by Azure Container Apps. | Basic Tier; fixed daily cost per registry. | [Pricing](https://azure.microsoft.com/pricing/details/container-registry/) |

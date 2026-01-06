@@ -84,7 +84,7 @@ You can run this solution in VS Code Web. The button will open a web-based VS Co
     
     Select the appropriate subscription to continue.
 
-4. Once the solution opens, the **AI Foundry terminal** will automatically start running the following command to install the required dependencies:
+3. Once the solution opens, the **AI Foundry terminal** will automatically start running the following command to install the required dependencies:
 
     ```shell
     sh install.sh
@@ -95,9 +95,9 @@ You can run this solution in VS Code Web. The button will open a web-based VS Co
     - Overwrite with versions from template
     - Keep my existing files unchanged
     ```
-    Choose “**Keep my existing files unchanged**” and provide a unique environment name when prompted.
+    Choose “**Overwrite with versions from template**” and provide a unique environment name when prompted.
  
-6. Continue with the [deploying steps](#deploying-with-azd).
+4. Continue with the [deploying steps](#deploying-with-azd).
 
 
 </details>
@@ -142,7 +142,7 @@ When you start the deployment, most parameters will have **default values**, but
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
 | **Environment Name**                        | A **3–20 character alphanumeric value** used to generate a unique ID to prefix the resources.             | env\_name              |
 | **Backend Programming Language**                   | Programming language for the backend API: **python** or **dotnet**.                           | *(empty)*              |
-| **Use Case**                   | Use case: **Retail** or **Insurance**.                           | *(empty)*              |
+| **Use Case**                   | Use case: **Retail-sales-analysis** or **Insurance-improve-customer-meetings**.                           | *(empty)*              |
 | **Deployment Type**                         | Select from a drop-down list (allowed: `Standard`, `GlobalStandard`).                                     | GlobalStandard         |
 | **GPT Model**                               | Choose from **gpt-4, gpt-4o, gpt-4o-mini**.                                                               | gpt-4o-mini            |
 | **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2024-07-18             |
@@ -186,7 +186,7 @@ Depending on your subscription quota and capacity, you can [adjust quota setting
 
 ### Deploying with AZD
 
-Once you've opened the project in [Codespaces](#github-codespaces), [Dev Containers](#vs-code-dev-containers), or [locally](#local-environment), you can deploy it to Azure by following these steps:
+Once you've opened the project in [Codespaces](#github-codespaces), [Dev Containers](#vs-code-dev-containers), [Visual Studio Code (WEB)](#visual-studio-code-web), or [locally](#local-environment), you can deploy it to Azure by following these steps:
 
 1. Login to Azure:
 
@@ -212,8 +212,8 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
    - **Python**
    - **.NET (dotnet)**
 6. Choose the use case: 
-  - **Retail**
-  - **Insurance** 
+   - **Retail-sales-analysis**
+   - **Insurance-improve-customer-meetings** 
 
    This deployment will take *7-10 minutes* to provision the resources in your account and set up the solution with sample data.
    
@@ -223,7 +223,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 `bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh` and
 `bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
 
-> **Note**: if you are running this deployment in GitHub Codespaces or VS Code Dev Container skip to step 9. 
+> **Note**: If you are running this deployment in GitHub Codespaces or VS Code Dev Container or Visual Studio Code (WEB) skip to step 9. 
 
 8. Create and activate a virtual environment 
   
@@ -239,6 +239,13 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     ```shell
     az login
     ```
+
+    Alternatively, login to Azure using a device code (recommended when using VS Code Web):
+
+    ```shell
+    az login --use-device-code
+    ```
+
 > **Note**: you will need to open a Git Bash terminal to complete steps 10 and 11.  
 10. Run the bash script from the output of the azd deployment. The script will look like the following:
     
@@ -291,15 +298,24 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
      **Note**: This script will remove the lakehouse, SQL database, and service principal role assignments from the Fabric workspace. To completely remove all Azure resources, use `azd down`.
 
-## Sample Questions
+## Sample Questions 
 
 To help you get started, here are some **Sample Questions** you can ask in the app:
 
+For Retail sales analysis use case: 
 - Show total revenue by year for last 5 years as a line chart.
 - Show top 10 products by Revenue in the last year in a table.
 - Show as a donut chart.
 
+For Insurance improve customer meetings use case: 
+- I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?
+- Can you provide details of her communications?
+- Based on Ida's policy data has she ever missed a payment?
+
 These questions serve as a great starting point to explore insights from the data.
 
 ## Create Fabric Data Agent and Publish to Teams
-1. Follow the step in [CopilotStudioDeployment](./CopilotStudioDeployment.md)
+1. Follow the steps in [CopilotStudioDeployment](./CopilotStudioDeployment.md)
+
+## Local Development
+To set up and run the application locally for development, see the [Local Development Setup Guide](./LocalDevelopmentSetup.md).
