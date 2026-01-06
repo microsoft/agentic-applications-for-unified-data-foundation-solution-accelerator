@@ -23,9 +23,19 @@ def login_logout():
     # perform login and browser close once in a session
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, args=["--start-maximized"])
-        context = browser.new_context(no_viewport=True)
+        # Create context with cleared cache - no storage state is persisted
+        context = browser.new_context(
+            no_viewport=True,
+            storage_state=None  # Ensures fresh start with no cached data
+        )
         context.set_default_timeout(80000)
         page = context.new_page()
+        
+        # Clear browser cache and cookies using CDP
+        client = context.new_cdp_session(page)
+        client.send("Network.clearBrowserCache")
+        client.send("Network.clearBrowserCookies")
+        
         # Navigate to the login URL
         page.goto(URL, wait_until="domcontentloaded")
 
