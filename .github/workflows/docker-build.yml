@@ -78,8 +78,8 @@ jobs:
           file: ./src/App/WebApp.Dockerfile
           push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'  || github.ref_name == 'dependabotchanges'  }}
           tags: |
-            ${{ secrets.ACR_LOGIN_SERVER }}/da-app:${{ steps.determine_tag.outputs.tagname }}
-            ${{ secrets.ACR_LOGIN_SERVER }}/da-app:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
+            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-app:${{ steps.determine_tag.outputs.tagname }}
+            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-app:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
 
       - name: Build and Push Docker Image for api
         uses: docker/build-push-action@v6
@@ -88,8 +88,8 @@ jobs:
           file: ./src/api/python/ApiApp.Dockerfile
           push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'  || github.ref_name == 'dependabotchanges' }}
           tags: |
-            ${{ secrets.ACR_LOGIN_SERVER }}/da-api:${{ steps.determine_tag.outputs.tagname }}
-            ${{ secrets.ACR_LOGIN_SERVER }}/da-api:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
+            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api:${{ steps.determine_tag.outputs.tagname }}
+            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
 
       - name: Build and Push Docker Image for CsApi
         uses: docker/build-push-action@v6
@@ -98,5 +98,5 @@ jobs:
           file: ./src/api/dotnet/CsApi.Dockerfile
           push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'  || github.ref_name == 'dependabotchanges' }}
           tags: |
-            ${{ secrets.ACR_LOGIN_SERVER }}/da-api-dotnet:${{ steps.determine_tag.outputs.tagname }}
-            ${{ secrets.ACR_LOGIN_SERVER }}/da-api-dotnet:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
+            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api-dotnet:${{ steps.determine_tag.outputs.tagname }}
+            ${{ secrets.ACR_LOGIN_SERVER || 'acrlogin.azurecr.io' }}/da-api-dotnet:${{ steps.determine_tag.outputs.tagname }}_${{ steps.date.outputs.date }}_${{ github.run_number }}
