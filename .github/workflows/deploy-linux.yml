@@ -1,4 +1,5 @@
 name: Deploy-Test-Cleanup (v2) Linux
+
 on:
   pull_request:
     branches:
@@ -96,6 +97,10 @@ on:
   schedule:
     - cron: "0 5,17 * * *" # Runs at 5:00 AM and 5:00 PM GMT
 
+permissions:
+  contents: read
+  actions: read
+  
 jobs:
   Run:
     uses: ./.github/workflows/deploy-orchestrator.yml

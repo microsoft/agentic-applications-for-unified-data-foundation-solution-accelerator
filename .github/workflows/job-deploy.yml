@@ -108,6 +108,10 @@ env:
   RUN_E2E_TESTS: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
   BUILD_DOCKER_IMAGE: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.build_docker_image || false) || false }}
 
+permissions:
+  contents: read
+  actions: read
+  
 jobs:
   azure-setup:
     name: Azure Setup
@@ -123,22 +127,181 @@ jobs:
       BACKEND_RUNTIME_STACK: ${{ steps.determine_backend_runtime.outputs.BACKEND_RUNTIME_STACK }}
       
     steps:
+      - name: Validate Workflow Input Parameters
+        shell: bash
+        env:
+          INPUT_AZURE_LOCATION: ${{ inputs.azure_location }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.resource_group_name }}
+          INPUT_BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
+          INPUT_AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
+          INPUT_EXP: ${{ inputs.EXP }}
+          INPUT_BUILD_DOCKER_IMAGE: ${{ inputs.build_docker_image }}
+          INPUT_CLEANUP_RESOURCES: ${{ inputs.cleanup_resources }}
+          INPUT_RUN_E2E_TESTS: ${{ inputs.run_e2e_tests }}
+          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
+          INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
+          INPUT_DOCKER_IMAGE_TAG: ${{ inputs.docker_image_tag }}
+        run: |
+          echo "🔍 Validating workflow input parameters..."
+          VALIDATION_FAILED=false
+          
+          # Validate azure_location (Azure region format)
+          if [[ -n "$INPUT_AZURE_LOCATION" ]]; then
+            if [[ ! "$INPUT_AZURE_LOCATION" =~ ^[a-z0-9]+$ ]]; then
+              echo "❌ ERROR: azure_location '$INPUT_AZURE_LOCATION' is invalid. Must contain only lowercase letters and numbers (e.g., 'australiaeast', 'westus2')"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ azure_location: '$INPUT_AZURE_LOCATION' is valid"
+            fi
+          fi
+          
+          # Validate resource_group_name (Azure resource group naming convention)
+          if [[ -n "$INPUT_RESOURCE_GROUP_NAME" ]]; then
+            if [[ ! "$INPUT_RESOURCE_GROUP_NAME" =~ ^[a-zA-Z0-9._\(\)-]+$ ]] || [[ "$INPUT_RESOURCE_GROUP_NAME" =~ \.$ ]]; then
+              echo "❌ ERROR: resource_group_name '$INPUT_RESOURCE_GROUP_NAME' is invalid. Must contain only alphanumerics, periods, underscores, hyphens, and parentheses. Cannot end with period."
+              VALIDATION_FAILED=true
+            elif [[ ${#INPUT_RESOURCE_GROUP_NAME} -gt 90 ]]; then
+              echo "❌ ERROR: resource_group_name '$INPUT_RESOURCE_GROUP_NAME' exceeds 90 characters"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ resource_group_name: '$INPUT_RESOURCE_GROUP_NAME' is valid"
+            fi
+          fi
+          
+          # Validate BACKEND_RUNTIME_STACK (optional, must be 'python' or 'dotnet' if provided)
+          if [[ -n "$INPUT_BACKEND_RUNTIME_STACK" ]]; then
+            if [[ "$INPUT_BACKEND_RUNTIME_STACK" != "python" && "$INPUT_BACKEND_RUNTIME_STACK" != "dotnet" ]]; then
+              echo "❌ ERROR: BACKEND_RUNTIME_STACK must be 'python' or 'dotnet', got: '$INPUT_BACKEND_RUNTIME_STACK'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ BACKEND_RUNTIME_STACK: '$INPUT_BACKEND_RUNTIME_STACK' is valid"
+            fi
+          fi
+          
+          # Validate AZURE_ENV_USE_CASE (optional, alphanumeric with hyphens if provided)
+          if [[ -n "$INPUT_AZURE_ENV_USE_CASE" ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_USE_CASE" =~ ^[a-zA-Z0-9-]+$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_USE_CASE '$INPUT_AZURE_ENV_USE_CASE' is invalid. Must contain only alphanumerics and hyphens"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_ENV_USE_CASE: '$INPUT_AZURE_ENV_USE_CASE' is valid"
+            fi
+          fi
+          
+          # Validate EXP (boolean)
+          if [[ "$INPUT_EXP" != "true" && "$INPUT_EXP" != "false" ]]; then
+            echo "❌ ERROR: EXP must be 'true' or 'false', got: '$INPUT_EXP'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ EXP: '$INPUT_EXP' is valid"
+          fi
+          
+          # Validate build_docker_image (boolean)
+          if [[ "$INPUT_BUILD_DOCKER_IMAGE" != "true" && "$INPUT_BUILD_DOCKER_IMAGE" != "false" ]]; then
+            echo "❌ ERROR: build_docker_image must be 'true' or 'false', got: '$INPUT_BUILD_DOCKER_IMAGE'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ build_docker_image: '$INPUT_BUILD_DOCKER_IMAGE' is valid"
+          fi
+          
+          # Validate cleanup_resources (boolean)
+          if [[ "$INPUT_CLEANUP_RESOURCES" != "true" && "$INPUT_CLEANUP_RESOURCES" != "false" ]]; then
+            echo "❌ ERROR: cleanup_resources must be 'true' or 'false', got: '$INPUT_CLEANUP_RESOURCES'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ cleanup_resources: '$INPUT_CLEANUP_RESOURCES' is valid"
+          fi
+          
+          # Validate run_e2e_tests (specific allowed values)
+          if [[ -n "$INPUT_RUN_E2E_TESTS" ]]; then
+            ALLOWED_VALUES=("None" "GoldenPath-Testing" "Smoke-Testing")
+            if [[ ! " ${ALLOWED_VALUES[@]} " =~ " ${INPUT_RUN_E2E_TESTS} " ]]; then
+              echo "❌ ERROR: run_e2e_tests '$INPUT_RUN_E2E_TESTS' is invalid. Allowed values: ${ALLOWED_VALUES[*]}"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ run_e2e_tests: '$INPUT_RUN_E2E_TESTS' is valid"
+            fi
+          fi
+          
+          # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID (Azure Resource ID format)
+          if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/resourceGroups/[^/]+/providers/microsoft\.operationalinsights/workspaces/[^/]+$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID is invalid. Must be a valid Azure Resource ID format:"
+              echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}"
+              echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Valid Resource ID format"
+            fi
+          fi
+          
+          # Validate AZURE_EXISTING_AI_PROJECT_RESOURCE_ID (Azure Resource ID format)
+          if [[ -n "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" ]]; then
+            if [[ ! "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/resourceGroups/[^/]+/providers/(Microsoft\.MachineLearningServices/(workspaces|projects)/[^/]+|Microsoft\.CognitiveServices/accounts/[^/]+/projects/[^/]+)$ ]]; then
+              echo "❌ ERROR: AZURE_EXISTING_AI_PROJECT_RESOURCE_ID is invalid. Must be a valid Azure Resource ID format:"
+              echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.CognitiveServices/accounts/{accountName}/projects/{projectName}"
+              echo "   Got: '$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: Valid Resource ID format"
+            fi
+          fi
+          
+          # Validate existing_webapp_url (must start with https)
+          if [[ -n "$INPUT_EXISTING_WEBAPP_URL" ]]; then
+            if [[ ! "$INPUT_EXISTING_WEBAPP_URL" =~ ^https:// ]]; then
+              echo "❌ ERROR: existing_webapp_url must start with 'https://', got: '$INPUT_EXISTING_WEBAPP_URL'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ existing_webapp_url: '$INPUT_EXISTING_WEBAPP_URL' is valid"
+            fi
+          fi
+          
+          # Validate docker_image_tag (Docker tag pattern)
+          if [[ -n "$INPUT_DOCKER_IMAGE_TAG" ]]; then
+            # Docker tags: lowercase and uppercase letters, digits, underscores, periods, and hyphens
+            # Cannot start with period or hyphen, max 128 characters
+            if [[ ! "$INPUT_DOCKER_IMAGE_TAG" =~ ^[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}$ ]]; then
+              echo "❌ ERROR: docker_image_tag '$INPUT_DOCKER_IMAGE_TAG' is invalid. Must:"
+              echo "   - Start with alphanumeric or underscore"
+              echo "   - Contain only alphanumerics, underscores, periods, hyphens"
+              echo "   - Be max 128 characters"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ docker_image_tag: '$INPUT_DOCKER_IMAGE_TAG' is valid"
+            fi
+          fi
+          
+          # Fail workflow if any validation failed
+          if [[ "$VALIDATION_FAILED" == "true" ]]; then
+            echo ""
+            echo "❌ Parameter validation failed. Please correct the errors above and try again."
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ All input parameters validated successfully!"
+
       - name: Validate and Auto-Configure EXP
         shell: bash
+        env:
+          INPUT_EXP: ${{ inputs.EXP }}
+          INPUT_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          INPUT_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
         run: |
           echo "🔍 Validating EXP configuration..."
           
-          if [[ "${{ inputs.EXP }}" != "true" ]]; then
-            if [[ -n "${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" ]] || [[ -n "${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" ]]; then
+          if [[ "$INPUT_EXP" != "true" ]]; then
+            if [[ -n "$INPUT_LOG_ANALYTICS_WORKSPACE_ID" ]] || [[ -n "$INPUT_AI_PROJECT_RESOURCE_ID" ]]; then
               echo "🔧 AUTO-ENABLING EXP: EXP parameter values were provided but EXP was not explicitly enabled."
               echo ""
               echo "You provided values for:"
-              [[ -n "${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" ]] && echo "  - Azure Log Analytics Workspace ID: '${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}'"
-              [[ -n "${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" ]] && echo "  - Azure AI Project Resource ID: '${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}'"
+              [[ -n "$INPUT_LOG_ANALYTICS_WORKSPACE_ID" ]] && echo "  - Azure Log Analytics Workspace ID: '$INPUT_LOG_ANALYTICS_WORKSPACE_ID'"
+              [[ -n "$INPUT_AI_PROJECT_RESOURCE_ID" ]] && echo "  - Azure AI Project Resource ID: '$INPUT_AI_PROJECT_RESOURCE_ID'"
               echo ""
               echo "✅ Automatically enabling EXP to use these values."
               echo "EXP=true" >> $GITHUB_ENV
-              echo "📌 EXP has been automatically enabled for this deployment."
             fi
           fi
           
@@ -153,14 +316,14 @@ jobs:
       
       - name: Run Quota Check
         id: quota-check
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          GPT_MIN_CAPACITY: ${{ env.GPT_MIN_CAPACITY }}
+          AZURE_REGIONS: ${{ vars.AZURE_REGIONS }}
         run: |
-          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
-          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
-          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
-          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          export GPT_MIN_CAPACITY="${{ env.GPT_MIN_CAPACITY }}"
-          export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
-
           chmod +x infra/scripts/checkquota_agentic_application.sh
           if ! infra/scripts/checkquota_agentic_application.sh; then
             # If quota check fails due to insufficient quota, set the flag
@@ -186,13 +349,16 @@ jobs:
       - name: Set Deployment Region
         id: set_region
         shell: bash
+        env:
+          TRIGGER_TYPE: ${{ inputs.trigger_type }}
+          AZURE_LOCATION_INPUT: ${{ inputs.azure_location }}
         run: |
           echo "Selected Region from Quota Check: $VALID_REGION"
           echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_ENV
           echo "AZURE_ENV_OPENAI_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
           
-          if [[ "${{ inputs.trigger_type }}" == "workflow_dispatch" && -n "${{ inputs.azure_location }}" ]]; then
-            USER_SELECTED_LOCATION="${{ inputs.azure_location }}"
+          if [[ "$TRIGGER_TYPE" == "workflow_dispatch" && -n "$AZURE_LOCATION_INPUT" ]]; then
+            USER_SELECTED_LOCATION="$AZURE_LOCATION_INPUT"
             echo "Using user-selected Azure location: $USER_SELECTED_LOCATION"
             echo "AZURE_LOCATION=$USER_SELECTED_LOCATION" >> $GITHUB_ENV
             echo "AZURE_LOCATION=$USER_SELECTED_LOCATION" >> $GITHUB_OUTPUT
@@ -205,11 +371,13 @@ jobs:
       - name: Generate Resource Group Name
         id: generate_rg_name
         shell: bash
+        env:
+          RESOURCE_GROUP_NAME_INPUT: ${{ inputs.resource_group_name }}
         run: |
           # Check if a resource group name was provided as input
-          if [[ -n "${{ inputs.resource_group_name }}" ]]; then
-            echo "Using provided Resource Group name: ${{ inputs.resource_group_name }}"
-            echo "RESOURCE_GROUP_NAME=${{ inputs.resource_group_name }}" >> $GITHUB_ENV
+          if [[ -n "$RESOURCE_GROUP_NAME_INPUT" ]]; then
+            echo "Using provided Resource Group name: $RESOURCE_GROUP_NAME_INPUT"
+            echo "RESOURCE_GROUP_NAME=$RESOURCE_GROUP_NAME_INPUT" >> $GITHUB_ENV
           else
             echo "Generating a unique resource group name..."
             ACCL_NAME="fabricsqlv2"  # Account name as specified
@@ -254,10 +422,13 @@ jobs:
 
       - name: Determine Docker Image Tag
         id: determine_image_tag
+        env:
+          BUILD_DOCKER_IMAGE: ${{ env.BUILD_DOCKER_IMAGE }}
+          DOCKER_IMAGE_TAG_INPUT: ${{ inputs.docker_image_tag }}
         run: |
-          if [[ "${{ env.BUILD_DOCKER_IMAGE }}" == "true" ]]; then
-            if [[ -n "${{ inputs.docker_image_tag }}" ]]; then
-              IMAGE_TAG="${{ inputs.docker_image_tag }}"
+          if [[ "$BUILD_DOCKER_IMAGE" == "true" ]]; then
+            if [[ -n "$DOCKER_IMAGE_TAG_INPUT" ]]; then
+              IMAGE_TAG="$DOCKER_IMAGE_TAG_INPUT"
               echo "🔗 Using Docker image tag from build job: $IMAGE_TAG"
             else
               echo "❌ Docker build job failed or was skipped, but BUILD_DOCKER_IMAGE is true"
@@ -304,9 +475,12 @@ jobs:
       - name: Determine Backend Runtime Stack
         id: determine_backend_runtime
         shell: bash
+        env:
+          TRIGGER_TYPE: ${{ inputs.trigger_type }}
+          BACKEND_RUNTIME_STACK_INPUT: ${{ inputs.BACKEND_RUNTIME_STACK }}
         run: |
-          if [ "${{ inputs.trigger_type }}" == "workflow_dispatch" ]; then
-            BACKEND_RUNTIME_STACK="${{ inputs.BACKEND_RUNTIME_STACK }}"
+          if [ "$TRIGGER_TYPE" == "workflow_dispatch" ]; then
+            BACKEND_RUNTIME_STACK="$BACKEND_RUNTIME_STACK_INPUT"
             echo "Using user-selected backend runtime stack: ${BACKEND_RUNTIME_STACK}"
           else
             # set runtime stack, based on workflow schedule count
@@ -328,31 +502,40 @@ jobs:
 
       - name: Display Workflow Configuration to GitHub Summary
         shell: bash
+        env:
+          TRIGGER_TYPE: ${{ inputs.trigger_type }}
+          AZURE_LOCATION_INPUT: ${{ inputs.azure_location }}
+          RESOURCE_GROUP_NAME_INPUT: ${{ inputs.resource_group_name }}
+          EXP_STATUS: ${{ env.EXP }}
+          RUN_E2E_TESTS: ${{ env.RUN_E2E_TESTS }}
+          CLEANUP_RESOURCES: ${{ env.CLEANUP_RESOURCES }}
+          BUILD_DOCKER_IMAGE: ${{ env.BUILD_DOCKER_IMAGE }}
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
         run: |
           echo "## 📋 Workflow Configuration Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Configuration | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|---------------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Branch** | \`${{ env.BRANCH_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`$BRANCH_NAME\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Backend Runtime** | \`${BACKEND_RUNTIME_STACK}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **EXP Enabled** | ${{ env.EXP == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Run E2E Tests** | \`${{ env.RUN_E2E_TESTS }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Cleanup Resources** | ${{ env.CLEANUP_RESOURCES == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Build Docker Image** | ${{ env.BUILD_DOCKER_IMAGE == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **EXP Enabled** | $([ "$EXP_STATUS" == "true" ] && echo "✅ Yes" || echo "❌ No") |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Run E2E Tests** | \`$RUN_E2E_TESTS\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Cleanup Resources** | $([ "$CLEANUP_RESOURCES" == "true" ] && echo "✅ Yes" || echo "❌ No") |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Build Docker Image** | $([ "$BUILD_DOCKER_IMAGE" == "true" ] && echo "✅ Yes" || echo "❌ No") |" >> $GITHUB_STEP_SUMMARY
           
-          if [[ "${{ inputs.trigger_type }}" == "workflow_dispatch" && -n "${{ inputs.azure_location }}" ]]; then
-            echo "| **Azure Location** | \`${{ inputs.azure_location }}\` (User Selected) |" >> $GITHUB_STEP_SUMMARY
+          if [[ "$TRIGGER_TYPE" == "workflow_dispatch" && -n "$AZURE_LOCATION_INPUT" ]]; then
+            echo "| **Azure Location** | \`$AZURE_LOCATION_INPUT\` (User Selected) |" >> $GITHUB_STEP_SUMMARY
           fi
           
-          if [[ -n "${{ inputs.resource_group_name }}" ]]; then
-            echo "| **Resource Group** | \`${{ inputs.resource_group_name }}\` (Pre-specified) |" >> $GITHUB_STEP_SUMMARY
+          if [[ -n "$RESOURCE_GROUP_NAME_INPUT" ]]; then
+            echo "| **Resource Group** | \`$RESOURCE_GROUP_NAME_INPUT\` (Pre-specified) |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| **Resource Group** | \`${{ env.RESOURCE_GROUP_NAME }}\` (Auto-generated) |" >> $GITHUB_STEP_SUMMARY
+            echo "| **Resource Group** | \`$RESOURCE_GROUP_NAME\` (Auto-generated) |" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          if [[ "${{ inputs.trigger_type }}" != "workflow_dispatch" ]]; then
+          if [[ "$TRIGGER_TYPE" != "workflow_dispatch" ]]; then
             echo "ℹ️ **Note:** Automatic Trigger - Using Non-WAF + Non-EXP configuration" >> $GITHUB_STEP_SUMMARY
           else
             echo "ℹ️ **Note:** Manual Trigger - Using user-specified configuration" >> $GITHUB_STEP_SUMMARY

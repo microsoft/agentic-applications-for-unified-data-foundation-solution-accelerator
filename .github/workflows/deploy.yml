@@ -33,6 +33,10 @@ env:
   GPT_MIN_CAPACITY: 150
   BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
 
+permissions:
+  contents: read
+  actions: read
+  
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -50,14 +54,14 @@ jobs:
 
       - name: Run Quota Check
         id: quota-check
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          GPT_MIN_CAPACITY: ${{ env.GPT_MIN_CAPACITY }}
+          AZURE_REGIONS: ${{ vars.AZURE_REGIONS }}
         run: |
-          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
-          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
-          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
-          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          export GPT_MIN_CAPACITY="${{ env.GPT_MIN_CAPACITY }}"
-          export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
-
           chmod +x infra/scripts/checkquota_agentic_application.sh
           if ! infra/scripts/checkquota_agentic_application.sh; then
             # If quota check fails due to insufficient quota, set the flag
