@@ -68,6 +68,10 @@ env:
   EXP: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.EXP || false) || false }}
   RUN_E2E_TESTS: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.run_e2e_tests || 'GoldenPath-Testing') || 'GoldenPath-Testing' }}
 
+permissions:
+  contents: read
+  actions: read
+  
 jobs:
   send-notification:
     runs-on: ubuntu-latest
@@ -75,18 +79,160 @@ jobs:
     env:
       accelerator_name: "Fabric SQL"
     steps:
+      - name: Validate Workflow Input Parameters
+        shell: bash
+        env:
+          INPUT_BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
+          INPUT_EXP: ${{ inputs.EXP }}
+          INPUT_RUN_E2E_TESTS: ${{ inputs.run_e2e_tests }}
+          INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
+          INPUT_DEPLOY_RESULT: ${{ inputs.deploy_result }}
+          INPUT_E2E_TEST_RESULT: ${{ inputs.e2e_test_result }}
+          INPUT_WEB_APPURL: ${{ inputs.WEB_APPURL }}
+          INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+          INPUT_QUOTA_FAILED: ${{ inputs.QUOTA_FAILED }}
+          INPUT_TEST_SUCCESS: ${{ inputs.TEST_SUCCESS }}
+          INPUT_TEST_REPORT_URL: ${{ inputs.TEST_REPORT_URL }}
+        run: |
+          echo "🔍 Validating workflow input parameters..."
+          VALIDATION_FAILED=false
+          
+          # Validate BACKEND_RUNTIME_STACK (optional, must be 'python' or 'dotnet' if provided)
+          if [[ -n "$INPUT_BACKEND_RUNTIME_STACK" ]]; then
+            if [[ "$INPUT_BACKEND_RUNTIME_STACK" != "python" && "$INPUT_BACKEND_RUNTIME_STACK" != "dotnet" ]]; then
+              echo "❌ ERROR: BACKEND_RUNTIME_STACK must be 'python' or 'dotnet', got: '$INPUT_BACKEND_RUNTIME_STACK'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ BACKEND_RUNTIME_STACK: '$INPUT_BACKEND_RUNTIME_STACK' is valid"
+            fi
+          fi
+          
+          # Validate EXP (boolean)
+          if [[ "$INPUT_EXP" != "true" && "$INPUT_EXP" != "false" ]]; then
+            echo "❌ ERROR: EXP must be 'true' or 'false', got: '$INPUT_EXP'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ EXP: '$INPUT_EXP' is valid"
+          fi
+          
+          # Validate run_e2e_tests (specific allowed values)
+          if [[ -n "$INPUT_RUN_E2E_TESTS" ]]; then
+            ALLOWED_VALUES=("None" "GoldenPath-Testing" "Smoke-Testing")
+            if [[ ! " ${ALLOWED_VALUES[@]} " =~ " ${INPUT_RUN_E2E_TESTS} " ]]; then
+              echo "❌ ERROR: run_e2e_tests '$INPUT_RUN_E2E_TESTS' is invalid. Allowed values: ${ALLOWED_VALUES[*]}"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ run_e2e_tests: '$INPUT_RUN_E2E_TESTS' is valid"
+            fi
+          fi
+          
+          # Validate existing_webapp_url (must start with https if provided)
+          if [[ -n "$INPUT_EXISTING_WEBAPP_URL" ]]; then
+            if [[ ! "$INPUT_EXISTING_WEBAPP_URL" =~ ^https:// ]]; then
+              echo "❌ ERROR: existing_webapp_url must start with 'https://', got: '$INPUT_EXISTING_WEBAPP_URL'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ existing_webapp_url: '$INPUT_EXISTING_WEBAPP_URL' is valid"
+            fi
+          fi
+          
+          # Validate deploy_result (must be specific values if provided)
+          if [[ -n "$INPUT_DEPLOY_RESULT" ]]; then
+            ALLOWED_DEPLOY_RESULTS=("success" "failure" "skipped")
+            if [[ ! " ${ALLOWED_DEPLOY_RESULTS[@]} " =~ " ${INPUT_DEPLOY_RESULT} " ]]; then
+              echo "❌ ERROR: deploy_result '$INPUT_DEPLOY_RESULT' is invalid. Allowed values: ${ALLOWED_DEPLOY_RESULTS[*]}"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ deploy_result: '$INPUT_DEPLOY_RESULT' is valid"
+            fi
+          fi
+          
+          # Validate e2e_test_result (must be specific values if provided)
+          if [[ -n "$INPUT_E2E_TEST_RESULT" ]]; then
+            ALLOWED_TEST_RESULTS=("success" "failure" "skipped")
+            if [[ ! " ${ALLOWED_TEST_RESULTS[@]} " =~ " ${INPUT_E2E_TEST_RESULT} " ]]; then
+              echo "❌ ERROR: e2e_test_result '$INPUT_E2E_TEST_RESULT' is invalid. Allowed values: ${ALLOWED_TEST_RESULTS[*]}"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ e2e_test_result: '$INPUT_E2E_TEST_RESULT' is valid"
+            fi
+          fi
+          
+          # Validate WEB_APPURL (must start with https if provided)
+          if [[ -n "$INPUT_WEB_APPURL" ]]; then
+            if [[ ! "$INPUT_WEB_APPURL" =~ ^https:// ]]; then
+              echo "❌ ERROR: WEB_APPURL must start with 'https://', got: '$INPUT_WEB_APPURL'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ WEB_APPURL: '$INPUT_WEB_APPURL' is valid"
+            fi
+          fi
+          
+          # Validate RESOURCE_GROUP_NAME (Azure resource group naming convention if provided)
+          if [[ -n "$INPUT_RESOURCE_GROUP_NAME" ]]; then
+            if [[ ! "$INPUT_RESOURCE_GROUP_NAME" =~ ^[a-zA-Z0-9._\(\)-]+$ ]] || [[ "$INPUT_RESOURCE_GROUP_NAME" =~ \.$ ]]; then
+              echo "❌ ERROR: RESOURCE_GROUP_NAME '$INPUT_RESOURCE_GROUP_NAME' is invalid. Must contain only alphanumerics, periods, underscores, hyphens, and parentheses. Cannot end with period."
+              VALIDATION_FAILED=true
+            elif [[ ${#INPUT_RESOURCE_GROUP_NAME} -gt 90 ]]; then
+              echo "❌ ERROR: RESOURCE_GROUP_NAME '$INPUT_RESOURCE_GROUP_NAME' exceeds 90 characters"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ RESOURCE_GROUP_NAME: '$INPUT_RESOURCE_GROUP_NAME' is valid"
+            fi
+          fi
+          
+          # Validate QUOTA_FAILED (must be 'true' or 'false')
+          if [[ "$INPUT_QUOTA_FAILED" != "true" && "$INPUT_QUOTA_FAILED" != "false" ]]; then
+            echo "❌ ERROR: QUOTA_FAILED must be 'true' or 'false', got: '$INPUT_QUOTA_FAILED'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ QUOTA_FAILED: '$INPUT_QUOTA_FAILED' is valid"
+          fi
+          
+          # Validate TEST_SUCCESS (must be 'true' or 'false' or empty)
+          if [[ -n "$INPUT_TEST_SUCCESS" ]]; then
+            if [[ "$INPUT_TEST_SUCCESS" != "true" && "$INPUT_TEST_SUCCESS" != "false" ]]; then
+              echo "❌ ERROR: TEST_SUCCESS must be 'true', 'false', or empty, got: '$INPUT_TEST_SUCCESS'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ TEST_SUCCESS: '$INPUT_TEST_SUCCESS' is valid"
+            fi
+          fi
+          
+          # Validate TEST_REPORT_URL (must start with https if provided)
+          if [[ -n "$INPUT_TEST_REPORT_URL" ]]; then
+            if [[ ! "$INPUT_TEST_REPORT_URL" =~ ^https:// ]]; then
+              echo "❌ ERROR: TEST_REPORT_URL must start with 'https://', got: '$INPUT_TEST_REPORT_URL'"
+              VALIDATION_FAILED=true
+            else
+              echo "✅ TEST_REPORT_URL: '$INPUT_TEST_REPORT_URL' is valid"
+            fi
+          fi
+          
+          # Fail workflow if any validation failed
+          if [[ "$VALIDATION_FAILED" == "true" ]]; then
+            echo ""
+            echo "❌ Parameter validation failed. Please correct the errors above and try again."
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ All input parameters validated successfully!"
+
       - name: Determine Test Suite Display Name
         id: test_suite
         shell: bash
+        env:
+          ENV_RUN_E2E_TESTS: ${{ env.RUN_E2E_TESTS }}
         run: |
-          if [ "${{ env.RUN_E2E_TESTS }}" = "GoldenPath-Testing" ]; then
+          if [ "$ENV_RUN_E2E_TESTS" = "GoldenPath-Testing" ]; then
             TEST_SUITE_NAME="Golden Path Testing"
-          elif [ "${{ env.RUN_E2E_TESTS }}" = "Smoke-Testing" ]; then
+          elif [ "$ENV_RUN_E2E_TESTS" = "Smoke-Testing" ]; then
             TEST_SUITE_NAME="Smoke Testing"
-          elif [ "${{ env.RUN_E2E_TESTS }}" = "None" ]; then
+          elif [ "$ENV_RUN_E2E_TESTS" = "None" ]; then
             TEST_SUITE_NAME="None"
           else
-            TEST_SUITE_NAME="${{ env.RUN_E2E_TESTS }}"
+            TEST_SUITE_NAME="$ENV_RUN_E2E_TESTS"
           fi
           echo "TEST_SUITE_NAME=$TEST_SUITE_NAME" >> $GITHUB_OUTPUT
           echo "Test Suite: $TEST_SUITE_NAME"
@@ -94,12 +240,18 @@ jobs:
       - name: Send Quota Failure Notification
         if: inputs.deploy_result == 'failure' && inputs.QUOTA_FAILED == 'true'
         shell: bash
+        env:
+          ENV_ACCELERATOR_NAME: ${{ env.accelerator_name }}
+          ENV_GPT_MIN_CAPACITY: ${{ env.GPT_MIN_CAPACITY }}
+          ENV_AZURE_REGIONS: ${{ vars.AZURE_REGIONS }}
+          ENV_GITHUB_REPOSITORY: ${{ github.repository }}
+          ENV_GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          RUN_URL="https://github.com/${ENV_GITHUB_REPOSITORY}/actions/runs/${ENV_GITHUB_RUN_ID}"
           EMAIL_BODY=$(cat <<EOF
           {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment has failed due to insufficient quota in the requested regions.</p><p><strong>Issue Details:</strong><br>• Quota check failed for GPT model<br>• Required GPT Capacity: ${{ env.GPT_MIN_CAPACITY }}<br>• Checked Regions: ${{ vars.AZURE_REGIONS }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please resolve the quota issue and retry the deployment.</p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "${{ env.accelerator_name }} Pipeline - Failed (Insufficient Quota)"
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ENV_ACCELERATOR_NAME} deployment has failed due to insufficient quota in the requested regions.</p><p><strong>Issue Details:</strong><br>• Quota check failed for GPT model<br>• Required GPT Capacity: ${ENV_GPT_MIN_CAPACITY}<br>• Checked Regions: ${ENV_AZURE_REGIONS}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please resolve the quota issue and retry the deployment.</p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${ENV_ACCELERATOR_NAME} Pipeline - Failed (Insufficient Quota)"
           }
           EOF
           )
@@ -111,14 +263,21 @@ jobs:
       - name: Send Deployment Failure Notification
         if: inputs.deploy_result == 'failure' && inputs.QUOTA_FAILED != 'true'
         shell: bash
+        env:
+          ENV_ACCELERATOR_NAME: ${{ env.accelerator_name }}
+          ENV_BACKEND_RUNTIME_STACK: ${{ env.BACKEND_RUNTIME_STACK }}
+          ENV_EXP: ${{ env.EXP }}
+          ENV_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+          ENV_GITHUB_REPOSITORY: ${{ github.repository }}
+          ENV_GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
+          RUN_URL="https://github.com/${ENV_GITHUB_REPOSITORY}/actions/runs/${ENV_GITHUB_RUN_ID}"
+          RESOURCE_GROUP="${ENV_RESOURCE_GROUP_NAME}"
           
           EMAIL_BODY=$(cat <<EOF
           {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment process has encountered an issue and has failed to complete successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Backend Runtime: ${{ env.BACKEND_RUNTIME_STACK }}<br>• EXP Enabled: ${{ env.EXP }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the deployment failure at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "${{ env.accelerator_name }} Pipeline - Failed"
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ENV_ACCELERATOR_NAME} deployment process has encountered an issue and has failed to complete successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Backend Runtime: ${ENV_BACKEND_RUNTIME_STACK}<br>• EXP Enabled: ${ENV_EXP}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the deployment failure at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${ENV_ACCELERATOR_NAME} Pipeline - Failed"
           }
           EOF
           )
@@ -130,26 +289,38 @@ jobs:
       - name: Send Success Notification
         if: inputs.deploy_result == 'success' && (inputs.e2e_test_result == 'skipped' || inputs.TEST_SUCCESS == 'true')
         shell: bash
+        env:
+          ENV_ACCELERATOR_NAME: ${{ env.accelerator_name }}
+          ENV_BACKEND_RUNTIME_STACK: ${{ env.BACKEND_RUNTIME_STACK }}
+          ENV_EXP: ${{ env.EXP }}
+          ENV_WEB_APPURL: ${{ inputs.WEB_APPURL }}
+          ENV_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
+          ENV_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+          ENV_TEST_REPORT_URL: ${{ inputs.TEST_REPORT_URL }}
+          ENV_E2E_TEST_RESULT: ${{ inputs.e2e_test_result }}
+          ENV_TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
+          ENV_GITHUB_REPOSITORY: ${{ github.repository }}
+          ENV_GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          WEBAPP_URL="${{ inputs.WEB_APPURL || inputs.existing_webapp_url }}"
-          RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
-          TEST_REPORT_URL="${{ inputs.TEST_REPORT_URL }}"
-          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+          RUN_URL="https://github.com/${ENV_GITHUB_REPOSITORY}/actions/runs/${ENV_GITHUB_RUN_ID}"
+          WEBAPP_URL="${ENV_WEB_APPURL:-$ENV_EXISTING_WEBAPP_URL}"
+          RESOURCE_GROUP="${ENV_RESOURCE_GROUP_NAME}"
+          TEST_REPORT_URL="${ENV_TEST_REPORT_URL}"
+          TEST_SUITE_NAME="${ENV_TEST_SUITE_NAME}"
           
-          if [ "${{ inputs.e2e_test_result }}" = "skipped" ]; then
+          if [ "$ENV_E2E_TEST_RESULT" = "skipped" ]; then
             EMAIL_BODY=$(cat <<EOF
           {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment has completed successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• E2E Tests: Skipped (as configured)</p><p><strong>Configuration:</strong><br>• Backend Runtime: ${{ env.BACKEND_RUNTIME_STACK }}<br>• EXP Enabled: ${{ env.EXP }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "${{ env.accelerator_name }} Pipeline - Deployment Success"
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ENV_ACCELERATOR_NAME} deployment has completed successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• E2E Tests: Skipped (as configured)</p><p><strong>Configuration:</strong><br>• Backend Runtime: ${ENV_BACKEND_RUNTIME_STACK}<br>• EXP Enabled: ${ENV_EXP}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${ENV_ACCELERATOR_NAME} Pipeline - Deployment Success"
           }
           EOF
             )
           else
             EMAIL_BODY=$(cat <<EOF
           {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${{ env.accelerator_name }} deployment and testing process has completed successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• E2E Tests: Passed ✅<br>• Test Suite: ${TEST_SUITE_NAME}<br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Configuration:</strong><br>• Backend Runtime: ${{ env.BACKEND_RUNTIME_STACK }}<br>• EXP Enabled: ${{ env.EXP }}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation - Success"
+            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ENV_ACCELERATOR_NAME} deployment and testing process has completed successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• E2E Tests: Passed ✅<br>• Test Suite: ${TEST_SUITE_NAME}<br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Configuration:</strong><br>• Backend Runtime: ${ENV_BACKEND_RUNTIME_STACK}<br>• EXP Enabled: ${ENV_EXP}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${ENV_ACCELERATOR_NAME} Pipeline - Test Automation - Success"
           }
           EOF
             )
@@ -162,17 +333,26 @@ jobs:
       - name: Send Test Failure Notification
         if: inputs.deploy_result == 'success' && inputs.e2e_test_result != 'skipped' && inputs.TEST_SUCCESS != 'true'
         shell: bash
+        env:
+          ENV_ACCELERATOR_NAME: ${{ env.accelerator_name }}
+          ENV_WEB_APPURL: ${{ inputs.WEB_APPURL }}
+          ENV_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
+          ENV_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+          ENV_TEST_REPORT_URL: ${{ inputs.TEST_REPORT_URL }}
+          ENV_TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
+          ENV_GITHUB_REPOSITORY: ${{ github.repository }}
+          ENV_GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          TEST_REPORT_URL="${{ inputs.TEST_REPORT_URL }}"
-          WEBAPP_URL="${{ inputs.WEB_APPURL || inputs.existing_webapp_url }}"
-          RESOURCE_GROUP="${{ inputs.RESOURCE_GROUP_NAME }}"
-          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+          RUN_URL="https://github.com/${ENV_GITHUB_REPOSITORY}/actions/runs/${ENV_GITHUB_RUN_ID}"
+          TEST_REPORT_URL="${ENV_TEST_REPORT_URL}"
+          WEBAPP_URL="${ENV_WEB_APPURL:-$ENV_EXISTING_WEBAPP_URL}"
+          RESOURCE_GROUP="${ENV_RESOURCE_GROUP_NAME}"
+          TEST_SUITE_NAME="${ENV_TEST_SUITE_NAME}"
           
           EMAIL_BODY=$(cat <<EOF
           {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that ${{ env.accelerator_name }} accelerator test automation process has encountered issues and failed to complete successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• Deployment Status: ✅ Success<br>• E2E Tests: ❌ Failed<br>• Test Suite: ${TEST_SUITE_NAME}</p><p><strong>Test Details:</strong><br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation - Failed"
+            "body": "<p>Dear Team,</p><p>We would like to inform you that ${ENV_ACCELERATOR_NAME} accelerator test automation process has encountered issues and failed to complete successfully.</p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• Deployment Status: ✅ Success<br>• E2E Tests: ❌ Failed<br>• Test Suite: ${TEST_SUITE_NAME}</p><p><strong>Test Details:</strong><br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${ENV_ACCELERATOR_NAME} Pipeline - Test Automation - Failed"
           }
           EOF
           )
@@ -184,16 +364,23 @@ jobs:
       - name: Send Existing URL Success Notification
         if: inputs.deploy_result == 'skipped' && inputs.existing_webapp_url != '' && inputs.e2e_test_result == 'success' && (inputs.TEST_SUCCESS == 'true' || inputs.TEST_SUCCESS == '')
         shell: bash
+        env:
+          ENV_ACCELERATOR_NAME: ${{ env.accelerator_name }}
+          ENV_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
+          ENV_TEST_REPORT_URL: ${{ inputs.TEST_REPORT_URL }}
+          ENV_TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
+          ENV_GITHUB_REPOSITORY: ${{ github.repository }}
+          ENV_GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          EXISTING_URL="${{ inputs.existing_webapp_url }}"
-          TEST_REPORT_URL="${{ inputs.TEST_REPORT_URL }}"
-          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+          RUN_URL="https://github.com/${ENV_GITHUB_REPOSITORY}/actions/runs/${ENV_GITHUB_RUN_ID}"
+          EXISTING_URL="${ENV_EXISTING_WEBAPP_URL}"
+          TEST_REPORT_URL="${ENV_TEST_REPORT_URL}"
+          TEST_SUITE_NAME="${ENV_TEST_SUITE_NAME}"
           
           EMAIL_BODY=$(cat <<EOF
           {
-            "body": "<p>Dear Team,</p><p>The ${{ env.accelerator_name }} pipeline executed against the <strong>existing WebApp URL</strong> and testing process has completed successfully.</p><p><strong>Test Results:</strong><br>• Status: ✅ Passed<br>• Test Suite: ${TEST_SUITE_NAME}<br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a></p><p><strong>Deployment:</strong> Skipped</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation Passed (Existing URL)"
+            "body": "<p>Dear Team,</p><p>The ${ENV_ACCELERATOR_NAME} pipeline executed against the <strong>existing WebApp URL</strong> and testing process has completed successfully.</p><p><strong>Test Results:</strong><br>• Status: ✅ Passed<br>• Test Suite: ${TEST_SUITE_NAME}<br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a></p><p><strong>Deployment:</strong> Skipped</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${ENV_ACCELERATOR_NAME} Pipeline - Test Automation Passed (Existing URL)"
           }
           EOF
           )
@@ -205,16 +392,23 @@ jobs:
       - name: Send Existing URL Test Failure Notification
         if: inputs.deploy_result == 'skipped' && inputs.existing_webapp_url != '' && inputs.e2e_test_result == 'failure'
         shell: bash
+        env:
+          ENV_ACCELERATOR_NAME: ${{ env.accelerator_name }}
+          ENV_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
+          ENV_TEST_REPORT_URL: ${{ inputs.TEST_REPORT_URL }}
+          ENV_TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
+          ENV_GITHUB_REPOSITORY: ${{ github.repository }}
+          ENV_GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          EXISTING_URL="${{ inputs.existing_webapp_url }}"
-          TEST_REPORT_URL="${{ inputs.TEST_REPORT_URL }}"
-          TEST_SUITE_NAME="${{ steps.test_suite.outputs.TEST_SUITE_NAME }}"
+          RUN_URL="https://github.com/${ENV_GITHUB_REPOSITORY}/actions/runs/${ENV_GITHUB_RUN_ID}"
+          EXISTING_URL="${ENV_EXISTING_WEBAPP_URL}"
+          TEST_REPORT_URL="${ENV_TEST_REPORT_URL}"
+          TEST_SUITE_NAME="${ENV_TEST_SUITE_NAME}"
           
           EMAIL_BODY=$(cat <<EOF
           {
-            "body": "<p>Dear Team,</p><p>The ${{ env.accelerator_name }} pipeline executed against the <strong>existing WebApp URL</strong> and the test automation has encountered issues and failed to complete successfully.</p><p><strong>Failure Details:</strong><br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a><br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Test Suite: ${TEST_SUITE_NAME}<br>• Deployment: Skipped</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "${{ env.accelerator_name }} Pipeline - Test Automation Failed (Existing URL)"
+            "body": "<p>Dear Team,</p><p>The ${ENV_ACCELERATOR_NAME} pipeline executed against the <strong>existing WebApp URL</strong> and the test automation has encountered issues and failed to complete successfully.</p><p><strong>Failure Details:</strong><br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a><br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Test Suite: ${TEST_SUITE_NAME}<br>• Deployment: Skipped</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
+            "subject": "${ENV_ACCELERATOR_NAME} Pipeline - Test Automation Failed (Existing URL)"
           }
           EOF
           )

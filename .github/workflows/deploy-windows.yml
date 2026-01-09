@@ -1,4 +1,5 @@
 name: Deploy-Test-Cleanup (v2) Windows
+
 on:
   # pull_request:
   #   branches:
@@ -41,6 +42,14 @@ on:
           - 'dotnet'
         required: false
         default: 'python'
+      AZURE_ENV_USE_CASE:
+        description: 'Specify use cases to deploy'
+        type: 'choice'
+        options:
+          - 'Retail-sales-analysis'
+          - 'Insurance-improve-customer-meetings'
+        required: false
+        default: 'Retail-sales-analysis'
       EXP:
         description: 'Enable EXP'
         required: false
@@ -86,7 +95,10 @@ on:
         
   # schedule:
   #   - cron: "0 5,17 * * *" # Runs at 5:00 AM and 5:00 PM GMT
-
+permissions:
+  contents: read
+  actions: read
+  
 jobs:
   Run:
     uses: ./.github/workflows/deploy-orchestrator.yml
@@ -95,6 +107,7 @@ jobs:
       azure_location: ${{ github.event.inputs.azure_location || 'australiaeast' }}
       resource_group_name: ${{ github.event.inputs.resource_group_name || '' }}
       BACKEND_RUNTIME_STACK: ${{ github.event.inputs.BACKEND_RUNTIME_STACK || 'python' }}
+      AZURE_ENV_USE_CASE: ${{ github.event.inputs.AZURE_ENV_USE_CASE || 'Retail-sales-analysis' }}
       EXP: ${{ github.event.inputs.EXP == 'true' }}
       build_docker_image: ${{ github.event.inputs.build_docker_image == 'true' }}
       cleanup_resources: ${{ github.event.inputs.cleanup_resources == 'true' }}
