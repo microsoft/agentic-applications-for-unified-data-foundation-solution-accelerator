@@ -1,4 +1,4 @@
-"""Test module for Fabric SQL Retail SMOKE test cases."""
+"""Test module for Fabric SQL Insurance SMOKE test cases."""
 import logging
 import time
 
@@ -9,9 +9,9 @@ from tests.test_utils import log_test_summary, log_test_failure
 logger = logging.getLogger(__name__)
 
 
-def test_validate_greeting_prompts(login_logout, request):
+def test_validate_greeting_prompts_insurance(login_logout, request):
     """
-    Test case to validate greeting related experience in chat.
+    Test case to validate greeting related experience in chat for Insurance.
     Steps:
     1. Validate home page elements are visible
     2. Clear chat history if available
@@ -20,9 +20,9 @@ def test_validate_greeting_prompts(login_logout, request):
     page = login_logout
     home = HomePage(page)
     # Update test node ID for HTML report
-    request.node._nodeid = "Fabric SQL - Retail - Validate greeting related experience in chat"
+    request.node._nodeid = "Fabric SQL Insurance - Validate greeting related experience in chat"
     logger.info("=" * 80)
-    logger.info("Starting Greeting Prompts Validation Test")
+    logger.info("Starting Insurance Greeting Prompts Validation Test")
     logger.info("=" * 80)
 
     # Refresh page to start fresh
@@ -39,7 +39,7 @@ def test_validate_greeting_prompts(login_logout, request):
         logger.info("STEP 1: Validating Home Page")
         logger.info("=" * 80)
         step1_start = time.time()
-        home.validate_home_page()
+        home.validate_home_page(use_case="insurance")
         step1_end = time.time()
         logger.info(f"Step 1 completed in {step1_end - step1_start:.2f} seconds")
 
@@ -50,7 +50,7 @@ def test_validate_greeting_prompts(login_logout, request):
         step2_start = time.time()
 
         # Ask greeting prompts and validate responses
-        results = home.ask_greeting_prompts_and_validate()
+        results = home.ask_greeting_prompts_and_validate(use_case="insurance")
 
         step2_end = time.time()
         logger.info(f"Step 2 completed in {step2_end - step2_start:.2f} seconds")
@@ -61,7 +61,7 @@ def test_validate_greeting_prompts(login_logout, request):
             ("Step 2 (Greeting Prompts Validation)", step2_end - step2_start)
         ]
         additional_info = {"Total Greeting Prompts Processed": len(results)}
-        total_duration = log_test_summary(start_time, step_times, "Greeting Prompts Validation Test", additional_info)
+        total_duration = log_test_summary(start_time, step_times, "Insurance Greeting Prompts Validation Test", additional_info)
 
         # Attach execution time to pytest report
         request.node._report_sections.append(
@@ -72,9 +72,9 @@ def test_validate_greeting_prompts(login_logout, request):
         raise
 
 
-def test_validate_rai_response(login_logout, request):
+def test_validate_rai_response_insurance(login_logout, request):
     """
-    Test case to validate response to harmful question.
+    Test case to validate response to harmful question for Insurance.
     Steps:
     1. Validate home page elements are visible
     2. Clear chat history if available
@@ -83,9 +83,9 @@ def test_validate_rai_response(login_logout, request):
     page = login_logout
     home = HomePage(page)
     # Update test node ID for HTML report
-    request.node._nodeid = "Fabric SQL - Retail - Validate response to harmful question"
+    request.node._nodeid = "Fabric SQL Insurance - Validate response to harmful question"
     logger.info("=" * 80)
-    logger.info("Starting RAI Response Validation Test")
+    logger.info("Starting Insurance RAI Response Validation Test")
     logger.info("=" * 80)
 
     # Refresh page to start fresh
@@ -102,7 +102,7 @@ def test_validate_rai_response(login_logout, request):
         logger.info("STEP 1: Validating Home Page")
         logger.info("=" * 80)
         step1_start = time.time()
-        home.validate_home_page()
+        home.validate_home_page(use_case="insurance")
         step1_end = time.time()
         logger.info(f"Step 1 completed in {step1_end - step1_start:.2f} seconds")
 
@@ -113,7 +113,7 @@ def test_validate_rai_response(login_logout, request):
         step2_start = time.time()
 
         # Ask RAI prompt and validate response
-        result = home.ask_rai_prompt_and_validate()
+        result = home.ask_rai_prompt_and_validate(use_case="insurance")
 
         step2_end = time.time()
         logger.info(f"Step 2 completed in {step2_end - step2_start:.2f} seconds")
@@ -124,7 +124,7 @@ def test_validate_rai_response(login_logout, request):
             ("Step 2 (RAI Response Validation)", step2_end - step2_start)
         ]
         additional_info = {"Validation Result": result['validation']}
-        total_duration = log_test_summary(start_time, step_times, "RAI Response Validation Test", additional_info)
+        total_duration = log_test_summary(start_time, step_times, "Insurance RAI Response Validation Test", additional_info)
 
         # Attach execution time to pytest report
         request.node._report_sections.append(
@@ -135,9 +135,9 @@ def test_validate_rai_response(login_logout, request):
         raise
 
 
-def test_validate_out_of_scope_response(login_logout, request):
+def test_validate_out_of_scope_response_insurance(login_logout, request):
     """
-    Test case to validate system's response to out-of-context user questions.
+    Test case to validate system's response to out-of-context user questions for Insurance.
     Steps:
     1. Validate home page elements are visible
     2. Ask out of scope prompt and validate that response contains 'I cannot'
@@ -145,9 +145,9 @@ def test_validate_out_of_scope_response(login_logout, request):
     page = login_logout
     home = HomePage(page)
     # Update test node ID for HTML report
-    request.node._nodeid = "Fabric SQL - Retail - Validate system's response to out-of-context user questions."
+    request.node._nodeid = "Fabric SQL Insurance - Validate system's response to out-of-context user questions."
     logger.info("=" * 80)
-    logger.info("Starting Out of Scope Response Validation Test")
+    logger.info("Starting Insurance Out of Scope Response Validation Test")
     logger.info("=" * 80)
 
     # Refresh page to start fresh
@@ -164,7 +164,7 @@ def test_validate_out_of_scope_response(login_logout, request):
         logger.info("STEP 1: Validating Home Page")
         logger.info("=" * 80)
         step1_start = time.time()
-        home.validate_home_page()
+        home.validate_home_page(use_case="insurance")
         step1_end = time.time()
         logger.info(f"Step 1 completed in {step1_end - step1_start:.2f} seconds")
 
@@ -175,7 +175,7 @@ def test_validate_out_of_scope_response(login_logout, request):
         step2_start = time.time()
 
         # Ask out of scope prompt and validate response
-        result = home.ask_out_of_scope_prompt_and_validate()
+        result = home.ask_out_of_scope_prompt_and_validate(use_case="insurance")
 
         step2_end = time.time()
         logger.info(f"Step 2 completed in {step2_end - step2_start:.2f} seconds")
@@ -186,7 +186,7 @@ def test_validate_out_of_scope_response(login_logout, request):
             ("Step 2 (Out of Scope Response Validation)", step2_end - step2_start)
         ]
         additional_info = {"Validation Result": result['validation']}
-        total_duration = log_test_summary(start_time, step_times, "Out of Scope Response Validation Test", additional_info)
+        total_duration = log_test_summary(start_time, step_times, "Insurance Out of Scope Response Validation Test", additional_info)
 
         # Attach execution time to pytest report
         request.node._report_sections.append(
@@ -197,9 +197,9 @@ def test_validate_out_of_scope_response(login_logout, request):
         raise
 
 
-def test_validate_show_hide_chat_history_panel(login_logout, request):
+def test_validate_show_hide_chat_history_panel_insurance(login_logout, request):
     """
-    Test case to validate Show/Hide Chat History Panel functionality.
+    Test case to validate Show/Hide Chat History Panel functionality for Insurance.
     Steps:
     1. Validate home page elements are visible
     2. Validate Show/Hide Chat History Panel functionality
@@ -207,9 +207,9 @@ def test_validate_show_hide_chat_history_panel(login_logout, request):
     page = login_logout
     home = HomePage(page)
     # Update test node ID for HTML report
-    request.node._nodeid = "Fabric SQL - Retail - Show/Hide Chat History Panel"
+    request.node._nodeid = "Fabric SQL Insurance - Show/Hide Chat History Panel"
     logger.info("=" * 80)
-    logger.info("Starting Show/Hide Chat History Panel Test")
+    logger.info("Starting Insurance Show/Hide Chat History Panel Test")
     logger.info("=" * 80)
 
     # Refresh page to start fresh
@@ -248,7 +248,7 @@ def test_validate_show_hide_chat_history_panel(login_logout, request):
             ("Step 2 (Show/Hide Chat History Panel Validation)", step2_end - step2_start)
         ]
         additional_info = {"Validation Result": result['validation']}
-        total_duration = log_test_summary(start_time, step_times, "Show/Hide Chat History Panel Test", additional_info)
+        total_duration = log_test_summary(start_time, step_times, "Insurance Show/Hide Chat History Panel Test", additional_info)
 
         # Attach execution time to pytest report
         request.node._report_sections.append(
@@ -259,21 +259,21 @@ def test_validate_show_hide_chat_history_panel(login_logout, request):
         raise
 
 
-def test_verify_new_conversation_button(login_logout, request):
+def test_verify_new_conversation_button_insurance(login_logout, request):
     """
-    Test case to verify that the "New Conversation" button starts a new session.
+    Test case to verify that the "New Conversation" button starts a new session for Insurance.
     Steps:
     1. Validate home page elements are visible
-    2. Ask a question to establish a conversation
+    2. Ask an Insurance-specific question to establish a conversation
     3. Click "New Conversation" button
     4. Verify that home page elements are displayed (confirming new session started)
     """
     page = login_logout
     home = HomePage(page)
     # Update test node ID for HTML report
-    request.node._nodeid = "Fabric SQL - Retail - Verify that the 'New Conversation' button starts a new session"
+    request.node._nodeid = "Fabric SQL Insurance - Verify that the 'New Conversation' button starts a new session"
     logger.info("=" * 80)
-    logger.info("Starting New Conversation Button Test")
+    logger.info("Starting Insurance New Conversation Button Test")
     logger.info("=" * 80)
 
     # Refresh page to start fresh
@@ -290,16 +290,16 @@ def test_verify_new_conversation_button(login_logout, request):
         logger.info("STEP 1: Validating Home Page")
         logger.info("=" * 80)
         step1_start = time.time()
-        home.validate_home_page()
+        home.validate_home_page(use_case="insurance")
         step1_end = time.time()
         logger.info(f"Step 1 completed in {step1_end - step1_start:.2f} seconds")
 
-        # Step 2: Ask a question to establish a conversation
+        # Step 2: Ask an Insurance question to establish a conversation
         logger.info("\n" + "=" * 80)
-        logger.info("STEP 2: Asking a Question to Establish Conversation")
+        logger.info("STEP 2: Asking an Insurance Question to Establish Conversation")
         logger.info("=" * 80)
         step2_start = time.time()
-        test_question = "Show total revenue by year for last 5 years as a line chart"
+        test_question = "I'm meeting Ida Abolina. Can you summarize her customer information?"
         logger.info(f"Asking question: '{test_question}'")
         response = home.ask_question_with_retry(test_question)
         logger.info(f"✓ Received response (first 100 chars): {response[:100]}...")
@@ -313,7 +313,7 @@ def test_verify_new_conversation_button(login_logout, request):
         step3_start = time.time()
 
         # The click_new_conversation function already validates HOME_PAGE_TEXT and HOME_PAGE_SUBTEXT
-        home.click_new_conversation()
+        home.click_new_conversation(use_case="insurance")
 
         step3_end = time.time()
         logger.info(f"Step 3 completed in {step3_end - step3_start:.2f} seconds")
@@ -325,7 +325,7 @@ def test_verify_new_conversation_button(login_logout, request):
             ("Step 3 (New Conversation Button)", step3_end - step3_start)
         ]
         additional_info = {"Validation": "New Conversation button successfully starts a new session with home page elements visible"}
-        total_duration = log_test_summary(start_time, step_times, "New Conversation Button Test", additional_info)
+        total_duration = log_test_summary(start_time, step_times, "Insurance New Conversation Button Test", additional_info)
 
         # Attach execution time to pytest report
         request.node._report_sections.append(
@@ -336,9 +336,9 @@ def test_verify_new_conversation_button(login_logout, request):
         raise
 
 
-def test_validate_empty_string_prompt(login_logout, request):
+def test_validate_empty_string_prompt_insurance(login_logout, request):
     """
-    Test case to validate if user can send empty string prompt.
+    Test case to validate if user can send empty string prompt for Insurance.
     Steps:
     1. Validate home page elements are visible
     2. Validate that send button is disabled for empty string
@@ -347,9 +347,9 @@ def test_validate_empty_string_prompt(login_logout, request):
     page = login_logout
     home = HomePage(page)
     # Update test node ID for HTML report
-    request.node._nodeid = "[FabricSQL Retail] - Validate if user can send empty string prompt"
+    request.node._nodeid = "[FabricSQL Insurance] - Validate if user can send empty string prompt"
     logger.info("=" * 80)
-    logger.info("Starting Empty String Prompt Validation Test")
+    logger.info("Starting Insurance Empty String Prompt Validation Test")
     logger.info("=" * 80)
 
     # Refresh page to start fresh
@@ -366,7 +366,7 @@ def test_validate_empty_string_prompt(login_logout, request):
         logger.info("STEP 1: Validating Home Page")
         logger.info("=" * 80)
         step1_start = time.time()
-        home.validate_home_page()
+        home.validate_home_page(use_case="insurance")
         step1_end = time.time()
         logger.info(f"Step 1 completed in {step1_end - step1_start:.2f} seconds")
 
@@ -388,7 +388,7 @@ def test_validate_empty_string_prompt(login_logout, request):
             ("Step 2 (Empty String Prompt Validation)", step2_end - step2_start)
         ]
         additional_info = {"Validation Result": result['validation']}
-        total_duration = log_test_summary(start_time, step_times, "Empty String Prompt Validation Test", additional_info)
+        total_duration = log_test_summary(start_time, step_times, "Insurance Empty String Prompt Validation Test", additional_info)
 
         # Attach execution time to pytest report
         request.node._report_sections.append(
@@ -398,12 +398,13 @@ def test_validate_empty_string_prompt(login_logout, request):
         total_duration = log_test_failure(start_time, e)
         raise
 
-def test_validate_chat_history_operations(login_logout, request):
+
+def test_validate_chat_history_operations_insurance(login_logout, request):
     """
-    Test case to validate chat history read, rename and delete operations.
+    Test case to validate chat history read, rename and delete operations for Insurance.
     Steps:
     1. Validate home page elements are visible
-    2. Ask a question to create chat history
+    2. Ask Insurance questions to create chat history
     3. Edit (rename) the first chat history item
     4. Delete the first chat history item
     5. Click New Conversation button
@@ -411,9 +412,9 @@ def test_validate_chat_history_operations(login_logout, request):
     page = login_logout
     home = HomePage(page)
     # Update test node ID for HTML report
-    request.node._nodeid = "Fabric SQL - Retail - Validate chat history read, rename and delete operations"
+    request.node._nodeid = "Fabric SQL Insurance - Validate chat history read, rename and delete operations"
     logger.info("=" * 80)
-    logger.info("Starting Chat History Operations Validation Test")
+    logger.info("Starting Insurance Chat History Operations Validation Test")
     logger.info("=" * 80)
 
     # Refresh page to start fresh
@@ -430,17 +431,17 @@ def test_validate_chat_history_operations(login_logout, request):
         logger.info("STEP 1: Validating Home Page")
         logger.info("=" * 80)
         step1_start = time.time()
-        home.validate_home_page()
+        home.validate_home_page(use_case="insurance")
         step1_end = time.time()
         logger.info(f"Step 1 completed in {step1_end - step1_start:.2f} seconds")
 
-        # Step 2: Ask a question to create chat history
+        # Step 2: Ask Insurance questions to create chat history
         logger.info("\n" + "=" * 80)
-        logger.info("STEP 2: Creating Chat History by Asking Questions")
+        logger.info("STEP 2: Creating Chat History by Asking Insurance Questions")
         logger.info("=" * 80)
         step2_start = time.time()
 
-        # Ask a couple of questions to create chat history
+        # Ask a couple of Insurance questions to create chat history
         test_question1 = "Hello"
         logger.info(f"Asking question 1: '{test_question1}'")
         response1 = home.ask_question_with_retry(test_question1)
@@ -448,10 +449,10 @@ def test_validate_chat_history_operations(login_logout, request):
         page.wait_for_timeout(2000)
 
         # Click new conversation to create another chat entry
-        home.click_new_conversation()
+        home.click_new_conversation(use_case="insurance")
         page.wait_for_timeout(2000)
 
-        test_question2 = "Show total revenue by year for last 5 years as a line chart"
+        test_question2 = "I'm meeting Ida Abolina. Can you summarize her customer information?"
         logger.info(f"Asking question 2: '{test_question2}'")
         response2 = home.ask_question_with_retry(test_question2)
         logger.info(f"✓ Received response 2 (first 100 chars): {response2[:100]}...")
@@ -490,7 +491,7 @@ def test_validate_chat_history_operations(login_logout, request):
         logger.info("=" * 80)
         step5_start = time.time()
 
-        home.click_new_conversation()
+        home.click_new_conversation(use_case="insurance")
         logger.info("✓ New Conversation button clicked successfully")
 
         step5_end = time.time()
@@ -508,7 +509,7 @@ def test_validate_chat_history_operations(login_logout, request):
             "Edit Operation": edit_result['validation'],
             "Delete Operation": delete_result['validation']
         }
-        total_duration = log_test_summary(start_time, step_times, "Chat History Operations Validation Test", additional_info)
+        total_duration = log_test_summary(start_time, step_times, "Insurance Chat History Operations Validation Test", additional_info)
 
         # Attach execution time to pytest report
         request.node._report_sections.append(
@@ -519,22 +520,22 @@ def test_validate_chat_history_operations(login_logout, request):
         raise
 
 
-def test_validate_empty_string_chat_history_edit(login_logout, request):
+def test_validate_empty_string_chat_history_edit_insurance(login_logout, request):
     """
-    Test case: [FabricSQL]- Validate if user can edit & update empty string in chat history
+    Test case: [FabricSQL Insurance]- Validate if user can edit & update empty string in chat history
 
     Steps:
     1. Validate Home Page
-    2. Create chat history by asking questions
+    2. Create chat history by asking Insurance questions
     3. Validate that empty string and whitespace-only chat history names cannot be saved
     4. Click New Conversation button
     """
     page = login_logout
     home = HomePage(page)
     # Update test node ID for HTML report
-    request.node._nodeid = "[FabricSQL Retail]- Validate if user can edit & update empty string in chat history"
+    request.node._nodeid = "[FabricSQL Insurance]- Validate if user can edit & update empty string in chat history"
     logger.info("=" * 80)
-    logger.info("Starting Empty String Chat History Edit Validation Test")
+    logger.info("Starting Insurance Empty String Chat History Edit Validation Test")
     logger.info("=" * 80)
 
     # Refresh page to start fresh
@@ -551,17 +552,17 @@ def test_validate_empty_string_chat_history_edit(login_logout, request):
         logger.info("STEP 1: Validating Home Page")
         logger.info("=" * 80)
         step1_start = time.time()
-        home.validate_home_page()
+        home.validate_home_page(use_case="insurance")
         step1_end = time.time()
         logger.info(f"Step 1 completed in {step1_end - step1_start:.2f} seconds")
 
-        # Step 2: Create chat history by asking questions
+        # Step 2: Create chat history by asking Insurance questions
         logger.info("\n" + "=" * 80)
-        logger.info("STEP 2: Creating Chat History")
+        logger.info("STEP 2: Creating Chat History with Insurance Questions")
         logger.info("=" * 80)
         step2_start = time.time()
 
-        # Ask a couple of questions to create chat history
+        # Ask a couple of Insurance questions to create chat history
         test_question1 = "Hello"
         logger.info(f"Asking question 1: '{test_question1}'")
         response1 = home.ask_question_with_retry(test_question1)
@@ -569,10 +570,10 @@ def test_validate_empty_string_chat_history_edit(login_logout, request):
         page.wait_for_timeout(2000)
 
         # Click new conversation to create another chat entry
-        home.click_new_conversation()
+        home.click_new_conversation(use_case="insurance")
         page.wait_for_timeout(2000)
 
-        test_question2 = "Show total revenue by year for last 5 years as a line chart"
+        test_question2 = "Can you provide details of Ida's communications?"
         logger.info(f"Asking question 2: '{test_question2}'")
         response2 = home.ask_question_with_retry(test_question2)
         logger.info(f"✓ Received response 2 (first 100 chars): {response2[:100]}...")
@@ -599,7 +600,7 @@ def test_validate_empty_string_chat_history_edit(login_logout, request):
         logger.info("=" * 80)
         step4_start = time.time()
 
-        home.click_new_conversation()
+        home.click_new_conversation(use_case="insurance")
         logger.info("✓ New Conversation button clicked successfully")
 
         step4_end = time.time()
@@ -616,7 +617,7 @@ def test_validate_empty_string_chat_history_edit(login_logout, request):
             "Validation Status": validation_result['status'],
             "Validation Message": validation_result['validation']
         }
-        total_duration = log_test_summary(start_time, step_times, "Empty String Chat History Edit Validation Test", additional_info)
+        total_duration = log_test_summary(start_time, step_times, "Insurance Empty String Chat History Edit Validation Test", additional_info)
 
         # Attach execution time to pytest report
         request.node._report_sections.append(
@@ -627,23 +628,22 @@ def test_validate_empty_string_chat_history_edit(login_logout, request):
         raise
 
 
-
-def test_validate_delete_all_chat_history(login_logout, request):
+def test_validate_delete_all_chat_history_insurance(login_logout, request):
     """
-    Test case: Fabric SQL - Validate "Delete All" chat history operation
+    Test case: Fabric SQL Insurance - Validate "Delete All" chat history operation
 
     Steps:
     1. Validate Home Page
-    2. Create chat history by asking multiple questions
+    2. Create chat history by asking multiple Insurance questions
     3. Clear/Delete all chat history using clear_chat_history function
     4. Validate that all chat history is cleared
     """
     page = login_logout
     home = HomePage(page)
     # Update test node ID for HTML report
-    request.node._nodeid = "Fabric SQL - Retail - Validate \"Delete All\" chat history operation"
+    request.node._nodeid = "Fabric SQL Insurance - Validate \"Delete All\" chat history operation"
     logger.info("=" * 80)
-    logger.info("Starting Delete All Chat History Validation Test")
+    logger.info("Starting Insurance Delete All Chat History Validation Test")
     logger.info("=" * 80)
 
     # Refresh page to start fresh
@@ -660,13 +660,13 @@ def test_validate_delete_all_chat_history(login_logout, request):
         logger.info("STEP 1: Validating Home Page")
         logger.info("=" * 80)
         step1_start = time.time()
-        home.validate_home_page()
+        home.validate_home_page(use_case="insurance")
         step1_end = time.time()
         logger.info(f"Step 1 completed in {step1_end - step1_start:.2f} seconds")
 
-        # Step 2: Create chat history by asking multiple questions
+        # Step 2: Create chat history by asking multiple Insurance questions
         logger.info("\n" + "=" * 80)
-        logger.info("STEP 2: Creating Chat History with Multiple Questions")
+        logger.info("STEP 2: Creating Chat History with Multiple Insurance Questions")
         logger.info("=" * 80)
         step2_start = time.time()
 
@@ -678,10 +678,10 @@ def test_validate_delete_all_chat_history(login_logout, request):
         page.wait_for_timeout(2000)
 
         # Create new conversation and ask second question
-        home.click_new_conversation()
+        home.click_new_conversation(use_case="insurance")
         page.wait_for_timeout(2000)
 
-        test_question2 = "Show total revenue by year for last 5 years as a line chart"
+        test_question2 = "I'm meeting Ida Abolina. Can you summarize her customer information?"
         logger.info(f"Asking question 2: '{test_question2}'")
         response2 = home.ask_question_with_retry(test_question2)
         logger.info(f"✓ Received response 2 (first 100 chars): {response2[:100]}...")
@@ -721,7 +721,7 @@ def test_validate_delete_all_chat_history(login_logout, request):
             "Conversations Created": 3,
             "Clear Operation": "Delete All chat history completed successfully"
         }
-        total_duration = log_test_summary(start_time, step_times, "Delete All Chat History Validation Test", additional_info)
+        total_duration = log_test_summary(start_time, step_times, "Insurance Delete All Chat History Validation Test", additional_info)
 
         # Attach execution time to pytest report
         request.node._report_sections.append(
