@@ -12,6 +12,11 @@ on:
             type: string
             default: "GoldenPath-Testing"
             description: "Test suite to run: 'Smoke-Testing', 'GoldenPath-Testing' "
+          AZURE_ENV_USE_CASE:
+            required: false
+            type: string
+            default: "Retail-sales-analysis"
+            description: "Use case: 'Retail-sales-analysis', 'Insurance-improve-customer-meetings'"
         outputs:
           TEST_SUCCESS:
             description: "Whether tests passed"
@@ -24,6 +29,7 @@ env:
     url: ${{ inputs.TEST_URL }}
     accelerator_name: "FabricSQL"
     test_suite: ${{ inputs.TEST_SUITE }}
+    use_case: ${{ inputs.AZURE_ENV_USE_CASE }}
 
 permissions:
   contents: read
@@ -94,8 +100,18 @@ jobs:
       - name: Run tests(1)
         id: test1
         run: |
-          if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest --html=report/report.html --self-contained-html
+          if [ "${{ env.use_case }}" == "Insurance-improve-customer-meetings" ]; then
+            if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_insurance_gp_tc.py --html=report/report.html --self-contained-html
+            elif [ "${{ env.test_suite }}" == "Smoke-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_insurance_gp_tc.py tests/test_fabricsql_insurance_smoke_tc.py --html=report/report.html --self-contained-html
+            fi
+          elif [ "${{ env.use_case }}" == "Retail-sales-analysis" ]; then
+            if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_retail_gp_tc.py --html=report/report.html --self-contained-html
+            elif [ "${{ env.test_suite }}" == "Smoke-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_retail_gp_tc.py tests/test_fabricsql_retail_smoke_tc.py --html=report/report.html --self-contained-html
+            fi
           fi
         working-directory: tests/e2e-test
         continue-on-error: true
@@ -109,8 +125,18 @@ jobs:
         id: test2
         if: ${{ steps.test1.outcome == 'failure' }}
         run: |
-          if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest --html=report/report.html --self-contained-html
+          if [ "${{ env.use_case }}" == "Insurance-improve-customer-meetings" ]; then
+            if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_insurance_gp_tc.py --html=report/report.html --self-contained-html
+            elif [ "${{ env.test_suite }}" == "Smoke-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_insurance_gp_tc.py tests/test_fabricsql_insurance_smoke_tc.py --html=report/report.html --self-contained-html
+            fi
+          elif [ "${{ env.use_case }}" == "Retail-sales-analysis" ]; then
+            if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_retail_gp_tc.py --html=report/report.html --self-contained-html
+            elif [ "${{ env.test_suite }}" == "Smoke-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_retail_gp_tc.py tests/test_fabricsql_retail_smoke_tc.py --html=report/report.html --self-contained-html
+            fi
           fi
         working-directory: tests/e2e-test
         continue-on-error: true
@@ -124,8 +150,18 @@ jobs:
         id: test3
         if: ${{ steps.test2.outcome == 'failure' }}
         run: |
-          if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
-            xvfb-run pytest --html=report/report.html --self-contained-html
+          if [ "${{ env.use_case }}" == "Insurance-improve-customer-meetings" ]; then
+            if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_insurance_gp_tc.py --html=report/report.html --self-contained-html
+            elif [ "${{ env.test_suite }}" == "Smoke-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_insurance_gp_tc.py tests/test_fabricsql_insurance_smoke_tc.py --html=report/report.html --self-contained-html
+            fi
+          elif [ "${{ env.use_case }}" == "Retail-sales-analysis" ]; then
+            if [ "${{ env.test_suite }}" == "GoldenPath-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_retail_gp_tc.py --html=report/report.html --self-contained-html
+            elif [ "${{ env.test_suite }}" == "Smoke-Testing" ]; then
+              xvfb-run pytest tests/test_fabricsql_retail_gp_tc.py tests/test_fabricsql_retail_smoke_tc.py --html=report/report.html --self-contained-html
+            fi
           fi
         working-directory: tests/e2e-test
 
@@ -135,7 +171,9 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: test-report
-          path: tests/e2e-test/report/*
+          path: | 
+            tests/e2e-test/report/*
+            tests/e2e-test/screenshots/*
 
       - name: Generate E2E Test Summary
         if: always()
@@ -159,6 +197,7 @@ jobs:
           fi
           
           echo "| **Target URL** | [${{ env.url }}](${{ env.url }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Use Case** | \`${{ env.use_case }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Test Suite** | \`${{ env.test_suite }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Test Report** | [Download Artifact](${{ steps.upload_report.outputs.artifact-url }}) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
