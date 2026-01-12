@@ -256,6 +256,8 @@ jobs:
           AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
           BUILD_DOCKER_IMAGE: ${{ inputs.BUILD_DOCKER_IMAGE }}
           EXP: ${{ inputs.EXP }}
+          AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
+          AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
         run: |
           set -e
 
@@ -289,14 +291,14 @@ jobs:
             echo "✅ EXP ENABLED - Setting EXP parameters..."
             
             # Set EXP variables dynamically
-            if [[ -n "${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}" ]]; then
-              EXP_LOG_ANALYTICS_ID="${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}"
+            if [[ -n "$AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
+              EXP_LOG_ANALYTICS_ID="$AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID"
             else
               EXP_LOG_ANALYTICS_ID="${{ secrets.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}"
             fi
             
-            if [[ -n "${{ github.event.inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}" ]]; then
-              EXP_AI_PROJECT_ID="${{ github.event.inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}"
+            if [[ -n "$AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" ]]; then
+              EXP_AI_PROJECT_ID="$AZURE_EXISTING_AI_PROJECT_RESOURCE_ID"
             else
               EXP_AI_PROJECT_ID="${{ secrets.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}"
             fi
