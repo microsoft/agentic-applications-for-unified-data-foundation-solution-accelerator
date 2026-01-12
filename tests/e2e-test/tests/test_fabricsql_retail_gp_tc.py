@@ -1,64 +1,12 @@
-"""Test module for Fabric SQL golden path and feature test cases."""
+"""Test module for Fabric SQL Retail golden path and feature test cases."""
 import logging
 import time
 
 from pages.HomePage import HomePage
 from config.constants import URL
+from tests.test_utils import log_test_summary, log_test_failure
 
 logger = logging.getLogger(__name__)
-
-
-def log_test_summary(start_time, step_times, test_name, additional_info=None):
-    """
-    Log test execution summary with timing details.
-
-    Args:
-        start_time: Test start timestamp
-        step_times: List of tuples (step_name, step_duration)
-        test_name: Name of the test
-        additional_info: Optional dict with additional info to log
-    """
-    end_time = time.time()
-    total_duration = end_time - start_time
-
-    logger.info("\n" + "=" * 80)
-    logger.info("TEST EXECUTION SUMMARY")
-    logger.info("=" * 80)
-
-    for step_name, step_duration in step_times:
-        logger.info(f"{step_name}: {step_duration:.2f}s")
-
-    if additional_info:
-        for key, value in additional_info.items():
-            logger.info(f"{key}: {value}")
-
-    logger.info(f"Total Execution Time: {total_duration:.2f}s")
-    logger.info("=" * 80)
-    logger.info(f"✓ {test_name} PASSED")
-    logger.info("=" * 80)
-
-    return total_duration
-
-
-def log_test_failure(start_time, error):
-    """
-    Log test failure with timing and error details.
-
-    Args:
-        start_time: Test start timestamp
-        error: Exception object
-    """
-    end_time = time.time()
-    total_duration = end_time - start_time
-
-    logger.error("\n" + "=" * 80)
-    logger.error("TEST EXECUTION FAILED")
-    logger.error("=" * 80)
-    logger.error(f"Error: {str(error)}")
-    logger.error(f"Execution time before failure: {total_duration:.2f}s")
-    logger.error("=" * 80)
-
-    return total_duration
 
 
 def test_validate_gp(login_logout, request):
@@ -72,7 +20,7 @@ def test_validate_gp(login_logout, request):
     page = login_logout
     home = HomePage(page)
      # Update test node ID for HTML report
-    request.node._nodeid = "Golden Path - Fabric SQL- test golden path works properly"
+    request.node._nodeid = "Golden Path - Fabric SQL Retail - test golden path works properly"
     logger.info("=" * 80)
     logger.info("Starting Home Page Validation Test")
     logger.info("=" * 80)
@@ -102,9 +50,7 @@ def test_validate_gp(login_logout, request):
         logger.info("STEP 3: Asking Questions and Validating Responses")
         logger.info("=" * 80)
         step3_start = time.time()
-        json_file_path = "testdata/prompt.json"
-
-
+        json_file_path = "testdata/prompt_retail.json"
 
         # Ask questions and validate UI responses
         results = home.ask_questions_from_json(json_file_path)
