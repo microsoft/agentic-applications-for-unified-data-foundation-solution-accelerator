@@ -51,14 +51,13 @@ jobs:
         # Use only 'java-kotlin' to analyze code written in Java, Kotlin or both
         # Use only 'javascript-typescript' to analyze code written in JavaScript, TypeScript or both
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
-        dot-version: ['3.1.x']
+        dotnet-version: ['8.0.x']
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
     
     # Installing DotNet version
-    - uses: actions/checkout@v4
     - name: Setup dotnet ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v4
       with:
@@ -94,6 +93,13 @@ jobs:
     # - run: |
     #     echo "Run, Build Application using script"
     #     ./location_of_script_within_repo/buildscript.sh
+
+    # Build C# project
+    - name: Build C# project
+      if: matrix.language == 'csharp'
+      run: |
+        dotnet restore src/api/dotnet/CsApi.csproj
+        dotnet build src/api/dotnet/CsApi.csproj --configuration Release --no-restore
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
