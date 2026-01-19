@@ -90,6 +90,17 @@ var solutionLocation = empty(AZURE_LOCATION) ? resourceGroup().location : AZURE_
 
 var uniqueId = toLower(uniqueString(subscription().id, environmentName, solutionLocation))
 
+@allowed([
+  'australiaeast'
+  'eastus'
+  'eastus2'
+  'francecentral'
+  'japaneast'
+  'swedencentral'
+  'uksouth'
+  'westus'
+  'westus3'
+])
 @metadata({
   azd:{
     type: 'location'
