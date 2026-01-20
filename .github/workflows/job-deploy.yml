@@ -441,8 +441,8 @@ jobs:
             
             # Determine image tag based on branch
             if [[ "$BRANCH_NAME" == "main" ]]; then
-              IMAGE_TAG="latest"
-              echo "Using main branch - image tag: latest"
+              IMAGE_TAG="latest_v2"
+              echo "Using main branch - image tag: latest_v2"
             elif [[ "$BRANCH_NAME" == "dev" ]]; then
               IMAGE_TAG="dev"
               echo "Using dev branch - image tag: dev"
@@ -450,8 +450,8 @@ jobs:
               IMAGE_TAG="demo"
               echo "Using demo branch - image tag: demo"
             else
-              IMAGE_TAG="latest"
-              echo "Using default for branch '$BRANCH_NAME' - image tag: latest"
+              IMAGE_TAG="latest_v2"
+              echo "Using default for branch '$BRANCH_NAME' - image tag: latest_v2"
             fi
             
             echo "Using existing Docker image tag: $IMAGE_TAG"
@@ -511,12 +511,14 @@ jobs:
           CLEANUP_RESOURCES: ${{ env.CLEANUP_RESOURCES }}
           BUILD_DOCKER_IMAGE: ${{ env.BUILD_DOCKER_IMAGE }}
           BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
         run: |
           echo "## 📋 Workflow Configuration Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Configuration | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|---------------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Branch** | \`$BRANCH_NAME\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Use Case** | \`$AZURE_ENV_USE_CASE\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Backend Runtime** | \`${BACKEND_RUNTIME_STACK}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **EXP Enabled** | $([ "$EXP_STATUS" == "true" ] && echo "✅ Yes" || echo "❌ No") |" >> $GITHUB_STEP_SUMMARY
           echo "| **Run E2E Tests** | \`$RUN_E2E_TESTS\` |" >> $GITHUB_STEP_SUMMARY
