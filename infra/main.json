@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "7509417007214881155"
+      "templateHash": "4949539203237595893"
     }
   },
   "parameters": {
@@ -129,6 +129,17 @@
     },
     "aiDeploymentsLocation": {
       "type": "string",
+      "allowedValues": [
+        "australiaeast",
+        "eastus",
+        "eastus2",
+        "francecentral",
+        "japaneast",
+        "swedencentral",
+        "uksouth",
+        "westus",
+        "westus3"
+      ],
       "metadata": {
         "azd": {
           "type": "location",
@@ -137,6 +148,13 @@
           ]
         },
         "description": "Location for AI Foundry deployment. This is the location where the AI Foundry resources will be deployed."
+      }
+    },
+    "acrName": {
+      "type": "string",
+      "defaultValue": "dataagentscontainerreg",
+      "metadata": {
+        "description": "Name of the Azure Container Registry"
       }
     }
   },
@@ -375,7 +393,6 @@
     "solutionLocation": "[if(empty(parameters('AZURE_LOCATION')), resourceGroup().location, parameters('AZURE_LOCATION'))]",
     "uniqueId": "[toLower(uniqueString(subscription().id, parameters('environmentName'), variables('solutionLocation')))]",
     "solutionPrefix": "[format('da{0}', padLeft(take(variables('uniqueId'), 12), 12, '0'))]",
-    "acrName": "dataagentscontainerreg",
     "deployerInfo": "[deployer()]",
     "deployingUserPrincipalId": "[variables('deployerInfo').objectId]",
     "landingText": "[if(equals(parameters('usecase'), 'Retail-sales-analysis'), 'You can ask questions around sales, products and orders.', 'You can ask questions around customer policies, claims and communications.')]"
@@ -1493,7 +1510,7 @@
             "value": "[parameters('imageTag')]"
           },
           "acrName": {
-            "value": "[variables('acrName')]"
+            "value": "[parameters('acrName')]"
           },
           "appServicePlanId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_app_service_plan'), '2025-04-01').outputs.name.value]"
@@ -2148,7 +2165,7 @@
             "value": "[parameters('imageTag')]"
           },
           "acrName": {
-            "value": "[variables('acrName')]"
+            "value": "[parameters('acrName')]"
           },
           "appServicePlanId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_app_service_plan'), '2025-04-01').outputs.name.value]"
@@ -2802,7 +2819,7 @@
             "value": "[parameters('imageTag')]"
           },
           "acrName": {
-            "value": "[variables('acrName')]"
+            "value": "[parameters('acrName')]"
           },
           "appServicePlanId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_app_service_plan'), '2025-04-01').outputs.name.value]"
@@ -3171,7 +3188,7 @@
     },
     "ACR_NAME": {
       "type": "string",
-      "value": "[variables('acrName')]"
+      "value": "[parameters('acrName')]"
     },
     "AZURE_ENV_IMAGETAG": {
       "type": "string",
