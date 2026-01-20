@@ -511,12 +511,14 @@ jobs:
           CLEANUP_RESOURCES: ${{ env.CLEANUP_RESOURCES }}
           BUILD_DOCKER_IMAGE: ${{ env.BUILD_DOCKER_IMAGE }}
           BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
         run: |
           echo "## 📋 Workflow Configuration Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Configuration | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|---------------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Branch** | \`$BRANCH_NAME\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Use Case** | \`$AZURE_ENV_USE_CASE\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Backend Runtime** | \`${BACKEND_RUNTIME_STACK}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **EXP Enabled** | $([ "$EXP_STATUS" == "true" ] && echo "✅ Yes" || echo "❌ No") |" >> $GITHUB_STEP_SUMMARY
           echo "| **Run E2E Tests** | \`$RUN_E2E_TESTS\` |" >> $GITHUB_STEP_SUMMARY
