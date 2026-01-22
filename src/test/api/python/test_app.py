@@ -229,7 +229,7 @@ def test_chat_router_prefix(test_env_vars):
     from app import build_app
     from chat import router as chat_router
     
-    build_app()
+    _ = build_app()
     # Verify chat router is imported and available
     assert chat_router is not None
 
@@ -663,7 +663,7 @@ def test_router_prefixes_are_correct(test_env_vars):
     from history import router as history_router
     from history_sql import router as history_sql_router
     
-    app = build_app()
+    _ = build_app()
     # Verify all routers are available (mocked routers won't have actual routes)
     assert chat_router is not None
     assert history_router is not None
@@ -1137,6 +1137,11 @@ def test_build_app_no_side_effects(test_env_vars):
     
     # Should not drastically change modules (some imports might happen)
     assert app is not None
+    # Verify all previous modules are still present
+    assert modules_before.issubset(modules_after)
+    # Verify that module changes are reasonable (less than 50 new modules)
+    new_modules = modules_after - modules_before
+    assert len(new_modules) < 50
 
 
 def test_fastapi_test_client_compatibility(test_client):

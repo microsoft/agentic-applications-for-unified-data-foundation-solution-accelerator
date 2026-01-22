@@ -35,25 +35,22 @@ class TestModuleImports:
     
     def test_module_imports_successfully(self):
         """Test that chat module imports without errors."""
-        import chat
-        assert chat is not None
+        from chat import HOST_NAME
+        assert HOST_NAME is not None
     
     def test_constants_defined(self):
         """Test that required constants are defined."""
-        import chat
-        assert hasattr(chat, 'HOST_NAME')
-        assert hasattr(chat, 'HOST_INSTRUCTIONS')
-        assert isinstance(chat.HOST_NAME, str)
-        assert len(chat.HOST_NAME) > 0
-        assert isinstance(chat.HOST_INSTRUCTIONS, str)
-        assert len(chat.HOST_INSTRUCTIONS) > 0
+        from chat import HOST_NAME, HOST_INSTRUCTIONS
+        assert isinstance(HOST_NAME, str)
+        assert len(HOST_NAME) > 0
+        assert isinstance(HOST_INSTRUCTIONS, str)
+        assert len(HOST_INSTRUCTIONS) > 0
     
     def test_router_exists(self):
         """Test that router is defined."""
-        import chat
+        from chat import router
         from fastapi import APIRouter
-        assert hasattr(chat, 'router')
-        assert isinstance(chat.router, APIRouter)
+        assert isinstance(router, APIRouter)
 
 
 class TestExpCache:
@@ -737,7 +734,7 @@ class TestMissingLineCoverage:
             del sys.modules['chat']
         
         with patch('chat.logging.warning') as mock_warning:
-            import chat as chat_module
+            chat_module = importlib.import_module('chat')
             importlib.reload(chat_module)
             # The warning should have been called during import
             assert mock_warning.called or True  # Module already loaded in other tests

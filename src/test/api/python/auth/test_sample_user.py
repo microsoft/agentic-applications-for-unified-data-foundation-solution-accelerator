@@ -88,7 +88,7 @@ class TestSampleUser:
     def test_host_is_azure(self):
         """Test that host is an Azure App Service."""
         host = sample_user.get("Host")
-        assert "azurewebsites.net" in host
+        assert host == "azurewebsites.net" or host.endswith(".azurewebsites.net")
 
     def test_has_security_headers(self):
         """Test that sample_user includes security-related headers."""

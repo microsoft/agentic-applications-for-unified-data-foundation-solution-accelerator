@@ -19,15 +19,16 @@ class TestModuleAndConfiguration:
     """Test module-level code and configuration."""
     
     def test_imports(self):
-        import history
-        assert hasattr(history, 'APIRouter')
-        assert hasattr(history, 'CosmosConversationClient')
-        assert hasattr(history, 'router')
+        from history import APIRouter, CosmosConversationClient, router
+        assert APIRouter is not None
+        assert CosmosConversationClient is not None
+        assert router is not None
     
     def test_configuration_loaded(self):
-        import history
-        assert hasattr(history, 'USE_CHAT_HISTORY_ENABLED')
-        assert hasattr(history, 'AZURE_COSMOSDB_ACCOUNT')
+        from history import USE_CHAT_HISTORY_ENABLED  # pylint: disable=import-outside-toplevel
+        assert USE_CHAT_HISTORY_ENABLED is not None
+        # AZURE_COSMOSDB_ACCOUNT can be None when not configured
+        assert hasattr(__import__('history'), 'AZURE_COSMOSDB_ACCOUNT')
     
     def test_track_event_configured(self, monkeypatch):
         from history import track_event_if_configured

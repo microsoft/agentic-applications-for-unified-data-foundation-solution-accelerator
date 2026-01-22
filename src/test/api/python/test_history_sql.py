@@ -5,6 +5,7 @@ Tests for history_sql.py module - SQL Server conversation management.
 # Pytest fixtures intentionally redefine names and are used for side effects
 # Test files need to access protected members to verify internal behavior
 
+import importlib
 import pytest
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from datetime import datetime, date
@@ -1645,7 +1646,7 @@ class TestApplicationInsights:
         
         with patch('history_sql.os.getenv') as mock_env:
             mock_env.return_value = 'test-instrumentation-key'
-            import history_sql as hs
+            hs = importlib.import_module('history_sql')
             # Module imports successfully regardless of instrumentation key
             assert hs.logger is not None
     
@@ -1659,7 +1660,7 @@ class TestApplicationInsights:
         
         with patch('history_sql.os.getenv') as mock_env:
             mock_env.return_value = None
-            import history_sql as hs
+            hs = importlib.import_module('history_sql')
             # Module imports successfully
             assert hs.logger is not None
 
