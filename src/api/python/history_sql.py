@@ -753,7 +753,7 @@ async def update_conversation(user_id: str, request_json: dict):
             )
 
         messages = request_json["messages"]
-        if len(messages) > 0 and messages[-1]["role"] == "assistant":
+        if len(messages) > 0 and messages[-1]["role"] in ("assistant", "error"):
             if len(messages) > 1 and messages[-2].get("role", None) == "tool":
                 # write the tool message first
                 await create_message(
