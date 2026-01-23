@@ -127,47 +127,6 @@ jobs:
             echo "Unit tests failed or coverage below threshold (${{ env.COVERAGE_THRESHOLD }}%)." >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Comment PR with coverage
-        if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            
-            // Read coverage.xml to get coverage percentage
-            let coverageComment = '## 📊 Unit Test Coverage Report\n\n';
-            
-            try {
-              const coverageXml = fs.readFileSync('coverage.xml', 'utf8');
-              const coverageMatch = coverageXml.match(/line-rate="([0-9.]+)"/);
-              
-              if (coverageMatch) {
-                const coverage = (parseFloat(coverageMatch[1]) * 100).toFixed(2);
-                const threshold = ${{ env.COVERAGE_THRESHOLD }};
-                const status = coverage >= threshold ? '✅ PASSED' : '❌ FAILED';
-                
-                coverageComment += `**Overall Coverage:** ${coverage}%\n`;
-                coverageComment += `**Threshold:** ${threshold}%\n`;
-                coverageComment += `**Status:** ${status}\n\n`;
-                
-                if (coverage < threshold) {
-                  coverageComment += `⚠️ Coverage is below the required threshold of ${threshold}%\n`;
-                }
-              }
-            } catch (error) {
-              coverageComment += '⚠️ Could not parse coverage report\n';
-            }
-            
-            coverageComment += `\n[View detailed coverage report in artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
-            
-            // Post comment
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: coverageComment
-            });
-
       - name: Fail if coverage below threshold
         if: steps.pytest.outcome != 'success'
         run: |
