@@ -40,7 +40,7 @@ jobs:
         run: |
           sleep_seconds=5
           for i in {1..5}; do
-            if curl -s --head --request GET "${{ env.url }}" | grep "200 OK" > /dev/null; then
+            if curl -f -s --head --request GET "${{ env.url }}" | grep "200 OK" > /dev/null; then
               echo "URL is reachable"
               exit 0
             else
