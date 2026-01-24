@@ -1,9 +1,21 @@
 name: Deploy-Test-Cleanup (v2) Linux
 
 on:
-  pull_request:
+  push:
     branches:
       - main
+      - dev
+      - demo
+    paths:
+      - 'src/**'
+      - 'infra/**'
+      - '.github/workflows/deploy-linux.yml'
+      - '.github/workflows/deploy-orchestrator.yml'
+      - '.github/workflows/job-*.yml'
+      - '.github/workflows/test-automation-v2.yml'
+      - 'azure.yaml'
+      - '**/*.Dockerfile'
+      - '**/requirements.txt'
   workflow_run:
     workflows: ["Build Docker and Optional Push - Agentic Applications for Unified Data Foundation"]
     types:
