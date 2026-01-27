@@ -91,7 +91,7 @@ const Chat: React.FC<ChatProps> = ({
     if (!convId || !newMessages.length) {
       return;
     }
-    const isNewConversation = reqType !== 'graph' ? !selectedConversationId : false;
+    const isNewConversation = !selectedConversationId;
 
     if (false) {  // Disabled: chart display default
       setIsChartLoading(true);
@@ -508,12 +508,15 @@ const Chat: React.FC<ChatProps> = ({
           } catch {
             // Error parsing chart response
           }
-        } else if (!isChartResponseReceived) {
+        }
+        
+        // If no messages have been added yet but we have streamed content, save it
+        if (updatedMessages.length === 0 && streamMessage.content) {
           updatedMessages = [newMessage, streamMessage];
         }
       }
       
-      if (updatedMessages.length > 0 && updatedMessages[updatedMessages.length - 1]?.role !== ERROR) {
+      if (updatedMessages.length > 0) {
         saveToDB(updatedMessages, conversationId, isChatReq);
       }
     } catch (e) {
