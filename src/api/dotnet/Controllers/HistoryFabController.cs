@@ -79,7 +79,7 @@ public class HistoryFabController : ControllerBase
                 {
                     var nextMessage = validMessages[j];
                     
-                    if (nextMessage.Role == "assistant")
+                    if (nextMessage.Role == "assistant" || nextMessage.Role == "error")
                     {
                         pairedAssistant = nextMessage;
                         break;
