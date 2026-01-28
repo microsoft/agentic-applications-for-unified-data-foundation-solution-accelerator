@@ -119,10 +119,7 @@ export const ChatHistoryListItemCell: React.FC<
     }
   };
 
-  const truncatedTitle =
-    item?.title?.length > 28
-      ? `${item.title.substring(0, 28)} ...`
-      : item.title;
+  const truncatedTitle = item?.title;
 
   const handleSaveEdit = async (e: any) => {
     e.preventDefault();
@@ -305,11 +302,15 @@ export const ChatHistoryListItemCell: React.FC<
                 />
               )}
             </Stack>
-            {!deleteLoading && (isHovered || isSelected) && (
+            {!deleteLoading && (
               <Stack
                 horizontal
                 horizontalAlign="end"
                 className={styles.chatHistoryItemsButtonsContainer}
+                style={{
+                  visibility: isHovered || isSelected ? 'visible' : 'hidden',
+                  opacity: isHovered || isSelected ? 1 : 0,
+                }}
               >
                 <IconButton
                   className={styles.itemButton}

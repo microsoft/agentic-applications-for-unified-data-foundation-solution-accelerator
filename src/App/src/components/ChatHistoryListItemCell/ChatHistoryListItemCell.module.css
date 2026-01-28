@@ -40,7 +40,6 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  padding-right: 8px;
 }
 
 .chatHistoryItem {
@@ -51,6 +50,6 @@
 
 .chatHistoryItemsButtonsContainer {
   flex-shrink: 0;
-  margin-left: auto;
+  margin-left: 8px;
 }
 
