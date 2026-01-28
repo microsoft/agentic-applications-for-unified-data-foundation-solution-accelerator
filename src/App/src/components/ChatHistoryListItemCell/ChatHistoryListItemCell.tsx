@@ -308,8 +308,7 @@ export const ChatHistoryListItemCell: React.FC<
                 horizontalAlign="end"
                 className={styles.chatHistoryItemsButtonsContainer}
                 style={{
-                  visibility: isHovered || isSelected ? 'visible' : 'hidden',
-                  opacity: isHovered || isSelected ? 1 : 0,
+                  visibility: isHovered || isSelected ? 'visible' : 'hidden'
                 }}
               >
                 <IconButton
