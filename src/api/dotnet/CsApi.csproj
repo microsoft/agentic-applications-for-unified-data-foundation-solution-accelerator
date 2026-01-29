@@ -7,6 +7,14 @@
     <NoWarn>1591;SKEXP0110;CA2252</NoWarn>
     <EnablePreviewFeatures>true</EnablePreviewFeatures>
   </PropertyGroup>
+  
+  <!-- Exclude test project files from compilation -->
+  <ItemGroup>
+    <Compile Remove="tests\**" />
+    <Content Remove="tests\**" />
+    <None Remove="tests\**" />
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="Azure.AI.Projects.OpenAI" Version="1.0.0-beta.4" />
     <PackageReference Include="Azure.AI.Projects" Version="1.2.0-beta.3" />
