@@ -17,7 +17,7 @@ import {
   fetchConversationMessages, // eslint-disable-line @typescript-eslint/no-unused-vars
   deleteAllConversations,
 } from "./store/chatHistorySlice";
-import { setSelectedConversationId, setAppSpinner, startNewConversation, fetchUserInfo } from "./store/appSlice";
+import { setSelectedConversationId, startNewConversation, fetchUserInfo } from "./store/appSlice";
 import { clearCitation } from "./store/citationSlice";
 import { setMessages, clearChat } from "./store/chatSlice";
 import { AppLogo } from "./components/Svg/Svg";
@@ -43,7 +43,6 @@ const Dashboard: React.FC = () => {
   const { appConfig } = useAppSelector((state) => state.app.config);
   const showAppSpinner = useAppSelector((state) => state.app.showAppSpinner);
   const citation = useAppSelector((state) => state.citation);
-  const fetchingConversations = useAppSelector((state) => state.chatHistory.fetchingConversations);
 
   const [panelShowStates, setPanelShowStates] = useState<
     Record<string, boolean>
@@ -51,39 +50,16 @@ const Dashboard: React.FC = () => {
   const [panelWidths, setPanelWidths] = useState<Record<string, number>>({
     ...defaultSingleColumnConfig,
   });
-  const [layoutWidthUpdated, setLayoutWidthUpdated] = useState<boolean>(false);
   const [showClearAllConfirmationDialog, setChowClearAllConfirmationDialog] =
     useState(false);
   const [clearing, setClearing] = React.useState(false);
   const [clearingError, setClearingError] = React.useState(false);
   const [isInitialAPItriggered, setIsInitialAPItriggered] = useState(false);
-  const [showAuthMessage, setShowAuthMessage] = useState<boolean | undefined>();
   const [offset, setOffset] = useState<number>(0);
   const OFFSET_INCREMENT = 25;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
   const [name, setName] = useState<string>("");
   const isInitialFetchStarted = useRef(false);
-
-
-  const getUserInfoList = async () => {
-    const result = await dispatch(fetchUserInfo());
-    if (fetchUserInfo.fulfilled.match(result)) {
-      const userInfoList = result.payload;
-      if (
-        userInfoList.length === 0 &&
-        window.location.hostname !== "localhost" &&
-        window.location.hostname !== "127.0.0.1"
-      ) {
-        setShowAuthMessage(true);
-      } else {
-        setShowAuthMessage(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    getUserInfoList();
-  }, []);
 
   useEffect(() => {
     dispatch(fetchUserInfo()).unwrap().then((res) => {
@@ -134,7 +110,6 @@ const Dashboard: React.FC = () => {
 
   const onHandlePanelStates = (panelName: string) => {
     dispatch(clearCitation());
-    setLayoutWidthUpdated((prevFlag) => !prevFlag);
     const newState = {
       ...panelShowStates,
       [panelName]: !panelShowStates[panelName],
