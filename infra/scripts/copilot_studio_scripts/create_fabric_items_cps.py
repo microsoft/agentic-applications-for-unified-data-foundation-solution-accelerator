@@ -164,7 +164,7 @@ import struct
 def get_fabric_db_connection():
     server = FABRIC_SQL_SERVER
     database = FABRIC_SQL_DATABASE
-    driver = "{ODBC Driver 17 for SQL Server}"
+    driver = odbc_driver
     
     try:
         conn=None
@@ -296,7 +296,7 @@ for notebook_name in notebook_names:
         }
     }
     
-    fabric_response = requests.post(fabric_items_url, headers=fabric_headers, json=notebook_data)
+    requests.post(fabric_items_url, headers=fabric_headers, json=notebook_data)
     
 time.sleep(120)
 fabric_notebooks_url = f"https://api.fabric.microsoft.com/v1/workspaces/{workspaceId}/notebooks"

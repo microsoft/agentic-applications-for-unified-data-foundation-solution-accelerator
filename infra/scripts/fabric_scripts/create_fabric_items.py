@@ -137,8 +137,6 @@ try:
             sqldb_id = sqldb['id']
             FABRIC_SQL_DATABASE = '{' + sqldb['properties']['databaseName'] + '}'
             FABRIC_SQL_SERVER = sqldb['properties']['serverFqdn'].replace(',1433','')
-            odbc_driver = "{ODBC Driver 18 for SQL Server}"
-            FABRIC_SQL_CONNECTION_STRING = f"DRIVER={odbc_driver};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"
     # print(sqldb_id)
 except Exception: 
     for sqldb in sqlsdbs_res['value']:
@@ -146,8 +144,6 @@ except Exception:
             sqldb_id = sqldb['id']
             FABRIC_SQL_DATABASE = '{' + sqldb['properties']['databaseName'] + '}'
             FABRIC_SQL_SERVER = sqldb['properties']['serverFqdn'].replace(',1433','')
-            odbc_driver = "{ODBC Driver 17 for SQL Server}"
-            FABRIC_SQL_CONNECTION_STRING = f"DRIVER={odbc_driver};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"
     # print(sqldb_id)
 
 
@@ -304,7 +300,7 @@ for table in data['tables']:
             }
         }
     }
-    shortcut_res = requests.post(fabric_shortcuts_url, headers=fabric_headers, json=shortcut_lh)
+    requests.post(fabric_shortcuts_url, headers=fabric_headers, json=shortcut_lh)
     # print('shortcut: ',shortcut_res.json())
 
 from datetime import datetime
