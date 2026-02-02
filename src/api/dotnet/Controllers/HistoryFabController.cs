@@ -113,7 +113,7 @@ public class HistoryFabController : ControllerBase
                 }
             }
             // Handle other roles (tool, system, etc.) by adding them as-is
-            else if (currentMessage.Role != "user" && currentMessage.Role != "assistant")
+            else
             {
                 finalMessages.Add(currentMessage);
                 processedMessages.Add(currentMessage.Id);
