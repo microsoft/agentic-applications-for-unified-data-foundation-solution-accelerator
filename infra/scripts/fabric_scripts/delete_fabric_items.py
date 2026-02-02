@@ -1,6 +1,4 @@
 import requests
-import time
-import json
 from azure.identity import AzureCliCredential
 import argparse
 
