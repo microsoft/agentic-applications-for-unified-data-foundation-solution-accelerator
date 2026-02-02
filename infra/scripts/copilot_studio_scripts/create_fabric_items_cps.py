@@ -187,9 +187,9 @@ def get_fabric_db_connection():
             print('connected to fabric sql db')        
  
         return conn
-    except :
-        print("Failed to connect to Fabric SQL Database")
-        pass
+    except Exception as e:
+        print("Failed to connect to Fabric SQL Database: ", str(e))
+        return None
 
 conn = get_fabric_db_connection()
 cursor = conn.cursor()
@@ -227,7 +227,7 @@ for table in data['tables']:
         }
         shortcut_res = requests.post(fabric_shortcuts_url, headers=fabric_headers, json=shortcut_lh)
         print('shortcut: ',shortcut_res.json())
-    except: 
+    except Exception: 
         time.sleep(30)
         fabric_shortcuts_url = f"https://api.fabric.microsoft.com/v1/workspaces/{workspaceId}/items/{lakehouseId}/shortcuts?shortcutConflictPolicy=CreateOrOverwrite"
         shortcut_lh ={
@@ -269,14 +269,14 @@ for notebook_name in notebook_names:
         notebook_json['metadata']['dependencies']['lakehouse']['default_lakehouse_name'] = lakehouse_res.json()['displayName']
         notebook_json['metadata']['dependencies']['lakehouse']['default_lakehouse_workspace_id'] = lakehouse_res.json()['workspaceId']
         print('lakehouse name: ', notebook_json['metadata']['dependencies']['lakehouse']['default_lakehouse_name'] )
-    except:
+    except Exception:
         pass
     
     if environmentId != '':
         try:
             notebook_json['metadata']['dependencies']['environment']['environmentId'] = environmentId
             notebook_json['metadata']['dependencies']['environment']['workspaceId'] = lakehouse_res.json()['workspaceId']
-        except:
+        except Exception:
             pass
 
 

@@ -140,7 +140,7 @@ try:
             odbc_driver = "{ODBC Driver 18 for SQL Server}"
             FABRIC_SQL_CONNECTION_STRING = f"DRIVER={odbc_driver};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"
     # print(sqldb_id)
-except: 
+except Exception: 
     for sqldb in sqlsdbs_res['value']:
         if sqldb['displayName'] == sqldb_name:
             sqldb_id = sqldb['id']
@@ -181,7 +181,7 @@ def get_fabric_db_connection():
                 connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};"  
                 conn = pyodbc.connect( connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})      
                 print('connected to fabric sql db')        
-            except:
+            except Exception:
                 SQL_COPT_SS_ACCESS_TOKEN = 1256
                 driver = "{ODBC Driver 17 for SQL Server}"
                 connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"  
@@ -189,9 +189,9 @@ def get_fabric_db_connection():
                 print('connected to fabric sql db')     
  
         return conn
-    except :
-        print("Failed to connect to Fabric SQL Database")
-        pass
+    except Exception as e:
+        print("Failed to connect to Fabric SQL Database: ", str(e))
+        return None
 
 conn = get_fabric_db_connection()
 cursor = conn.cursor()
