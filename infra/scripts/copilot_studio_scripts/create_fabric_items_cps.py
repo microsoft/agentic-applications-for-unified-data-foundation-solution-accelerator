@@ -200,8 +200,6 @@ with open(sql_filename, 'r', encoding='utf-8') as f:
 cursor.commit()
 conn.close()
 
-import json
-
 
 file_path = "../fabric_scripts/sql_files/tables.json"
 

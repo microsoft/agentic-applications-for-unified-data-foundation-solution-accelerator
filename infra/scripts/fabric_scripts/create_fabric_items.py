@@ -278,7 +278,6 @@ else:
         cursor.execute(sql_script)  
     cursor.commit()
 
-import json
 
 file_path = "infra/scripts/fabric_scripts/data/tables.json"
 
