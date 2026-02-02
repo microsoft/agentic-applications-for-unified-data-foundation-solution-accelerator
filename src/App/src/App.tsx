@@ -68,7 +68,7 @@ const Dashboard: React.FC = () => {
     }).catch(() => {
       // Error fetching user info - silent fail
     })
-  }, [])
+  }, []);
 
   const updateLayoutWidths = (newState: Record<string, boolean>) => {
     const noOfWidgetsOpen = Object.values(newState).filter((val) => val).length;
