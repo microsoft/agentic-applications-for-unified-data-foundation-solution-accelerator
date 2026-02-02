@@ -80,6 +80,6 @@ def test_validate_gp(login_logout, request):
             ("call", "log", f"Total execution time: {total_duration:.2f}s")
         )
     except Exception as e:
-        total_duration = log_test_failure(start_time, e)
+        log_test_failure(start_time, e)
         raise
 
