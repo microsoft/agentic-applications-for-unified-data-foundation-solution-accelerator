@@ -190,6 +190,8 @@ def get_fabric_db_connection():
         return None
 
 conn = get_fabric_db_connection()
+if conn is None:
+    raise SystemExit("Cannot proceed without a connection to Fabric SQL Database.")
 cursor = conn.cursor()
 print(cursor)
 sql_filename = 'infra/scripts/fabric_scripts/sql_files/data_sql.sql'
