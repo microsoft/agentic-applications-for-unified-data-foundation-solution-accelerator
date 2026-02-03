@@ -19,7 +19,6 @@ workspaceId = ""
 
 lakehouse_name = 'lakehouse_' + solutionname
 sqldb_name = 'sqldatabase_' + solutionname
-pipeline_name = 'data_pipeline_' + solutionname
 
 # print("workspace id: " ,workspaceId)
 
@@ -315,31 +314,6 @@ print("pipeline_notebook_id: ", pipeline_notebook_id)
 
 pipeline_name = 'notebook_pipeline' + solutionname
 # create pipeline item
-pipeline_json = {
-    "name": pipeline_name,
-    "properties": {
-        "activities": [
-            {
-                "name": "create_dataagent",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": "false",
-                    "secureInput": "false"
-                },
-                "typeProperties": {
-                    "notebookId": pipeline_notebook_id,
-                    "workspaceId": workspaceId
-                }
-            }
-        ]
-    }
-}
-
-
 pipeline_json = {
     "name": pipeline_name,
     "properties": {
