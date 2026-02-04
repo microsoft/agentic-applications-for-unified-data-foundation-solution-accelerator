@@ -83,7 +83,7 @@ param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags =
 // @description('Capacity of the Embedding Model deployment')
 // param embeddingDeploymentCapacity int = 80
 
-param imageTag string = 'latest_v2'
+param imageTag string = 'latest'
 
 param AZURE_LOCATION string=''
 var solutionLocation = empty(AZURE_LOCATION) ? resourceGroup().location : AZURE_LOCATION
@@ -116,7 +116,7 @@ param aiDeploymentsLocation string
 var solutionPrefix = 'da${padLeft(take(uniqueId, 12), 12, '0')}'
 
 @description('Name of the Azure Container Registry')
-param acrName string = 'dataagentscontainerreg'
+param acrName string = 'dataagentscontainerregworkshop'
 
 //Get the current deployer's information
 var deployerInfo = deployer()
