@@ -640,16 +640,25 @@ async def get_conversation_messages(user_id: str, conversation_id: str):
         conversation_messages = await cosmos_conversation_client.get_messages(user_id, conversation_id)
 
         # Format messages for the frontend
-        messages = [
-            {
+        messages = []
+        for msg in conversation_messages:
+            # Extract content - handle both string and object formats
+            content = msg.get("content", "")
+            if isinstance(content, dict):
+                message_content = content.get("content", "")
+                citations = content.get("citations", "")
+            else:
+                message_content = content
+                citations = ""
+            
+            messages.append({
                 "id": msg["id"],
                 "role": msg["role"],
-                "content": msg["content"],
+                "content": message_content,
                 "createdAt": msg["createdAt"],
                 "feedback": msg.get("feedback"),
-            }
-            for msg in conversation_messages
-        ]
+                "citations": citations,
+            })
 
         return messages
     except Exception:
