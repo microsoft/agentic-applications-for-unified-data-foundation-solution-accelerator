@@ -1,0 +1,43 @@
+# # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+# metadata:
+#     template: azd-init@1.11.1
+environment:
+  name: agentic-applications-for-unified-data-foundation-workshop
+  location: eastus
+name: agentic-applications-for-unified-data-foundation-workshop
+
+requiredVersions:
+  azd: ">= 1.15.0"
+
+metadata:
+  template: agentic-applications-for-unified-data-foundation-workshop@1.0
+
+hooks:
+  postprovision:
+    windows:
+      run: |
+        Write-Host "Web app URL: "
+        Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
+
+        # Build the exact command string (quoted to survive spaces)
+        Write-Host "`nRun the following 2 commands in the bash terminal to create agents and fabric items respectively:"
+        Write-Host "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
+
+        Write-Host "`nbash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
+
+      shell: pwsh
+      continueOnError: false
+      interactive: true
+    posix:
+      run: |
+        echo "Web app URL: "
+        echo $WEB_APP_URL
+        echo ""
+        echo "Run the following 2 commands in the bash terminal to create agents and fabric items respectively:"
+        echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"
+        echo ""
+        echo "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+
+      shell: sh
+      continueOnError: false
+      interactive: true

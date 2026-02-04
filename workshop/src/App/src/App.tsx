@@ -1,0 +1,291 @@
+import React, { useEffect, useState, useRef } from "react";
+import Chat from "./components/Chat/Chat";
+import {
+  FluentProvider,
+  Subtitle2,
+  Body2,
+  webLightTheme,
+  Avatar,
+} from "@fluentui/react-components";
+import "./App.css";
+import { ChatHistoryPanel } from "./components/ChatHistoryPanel/ChatHistoryPanel";
+
+
+import { useAppDispatch, useAppSelector } from "./store/hooks";
+import {
+  fetchChatHistory, // eslint-disable-line @typescript-eslint/no-unused-vars
+  fetchConversationMessages, // eslint-disable-line @typescript-eslint/no-unused-vars
+  deleteAllConversations,
+} from "./store/chatHistorySlice";
+import { setSelectedConversationId, setAppSpinner, startNewConversation, fetchUserInfo } from "./store/appSlice";
+import { clearCitation } from "./store/citationSlice";
+import { setMessages, clearChat } from "./store/chatSlice";
+import { AppLogo } from "./components/Svg/Svg";
+import CustomSpinner from "./components/CustomSpinner/CustomSpinner";
+import CitationPanel from "./components/CitationPanel/CitationPanel";
+const panels = {
+  CHAT: "CHAT",
+  CHATHISTORY: "CHATHISTORY",
+};
+
+const defaultSingleColumnConfig: Record<string, number> = {
+  [panels.CHAT]: 100,
+  [panels.CHATHISTORY]: 30,
+};
+
+const defaultPanelShowStates = {
+  [panels.CHAT]: true,
+  [panels.CHATHISTORY]: false,
+};
+
+const Dashboard: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { appConfig } = useAppSelector((state) => state.app.config);
+  const showAppSpinner = useAppSelector((state) => state.app.showAppSpinner);
+  const citation = useAppSelector((state) => state.citation);
+  const fetchingConversations = useAppSelector((state) => state.chatHistory.fetchingConversations);
+
+  const [panelShowStates, setPanelShowStates] = useState<
+    Record<string, boolean>
+  >({ ...defaultPanelShowStates });
+  const [panelWidths, setPanelWidths] = useState<Record<string, number>>({
+    ...defaultSingleColumnConfig,
+  });
+  const [layoutWidthUpdated, setLayoutWidthUpdated] = useState<boolean>(false);
+  const [showClearAllConfirmationDialog, setChowClearAllConfirmationDialog] =
+    useState(false);
+  const [clearing, setClearing] = React.useState(false);
+  const [clearingError, setClearingError] = React.useState(false);
+  const [isInitialAPItriggered, setIsInitialAPItriggered] = useState(false);
+  const [showAuthMessage, setShowAuthMessage] = useState<boolean | undefined>();
+  const [offset, setOffset] = useState<number>(0);
+  const OFFSET_INCREMENT = 25;
+  const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
+  const [name, setName] = useState<string>("");
+  const isInitialFetchStarted = useRef(false);
+
+
+  const getUserInfoList = async () => {
+    const result = await dispatch(fetchUserInfo());
+    if (fetchUserInfo.fulfilled.match(result)) {
+      const userInfoList = result.payload;
+      if (
+        userInfoList.length === 0 &&
+        window.location.hostname !== "localhost" &&
+        window.location.hostname !== "127.0.0.1"
+      ) {
+        setShowAuthMessage(true);
+      } else {
+        setShowAuthMessage(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    getUserInfoList();
+  }, []);
+
+  useEffect(() => {
+    dispatch(fetchUserInfo()).unwrap().then((res) => {
+      const name: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'name')?.val ?? ''
+      setName(name)
+    }).catch(() => {
+      // Error fetching user info - silent fail
+    })
+  }, [])
+
+  const updateLayoutWidths = (newState: Record<string, boolean>) => {
+    const noOfWidgetsOpen = Object.values(newState).filter((val) => val).length;
+    if (appConfig === null) {
+      return;
+    }
+
+    if (
+      noOfWidgetsOpen === 1 ||
+      (noOfWidgetsOpen === 2 && !newState[panels.CHAT])
+    ) {
+      setPanelWidths(defaultSingleColumnConfig);
+    } else if (noOfWidgetsOpen === 2 && newState[panels.CHAT]) {
+      const panelsInOpenState = Object.keys(newState).filter(
+        (key) => newState[key]
+      );
+      const twoColLayouts = Object.keys(appConfig.TWO_COLUMN) as string[];
+      for (let i = 0; i < twoColLayouts.length; i++) {
+        const key = twoColLayouts[i] as string;
+        const panelNames = key.split("_");
+        const isMatched = panelsInOpenState.every((val) =>
+          panelNames.includes(val)
+        );
+        const TWO_COLUMN = appConfig.TWO_COLUMN as Record<
+          string,
+          Record<string, number>
+        >;
+        if (isMatched) {
+          setPanelWidths({ ...TWO_COLUMN[key] });
+          break;
+        }
+      }
+    } 
+  };
+
+  useEffect(() => {
+    updateLayoutWidths(panelShowStates);
+  }, [appConfig]);
+
+  const onHandlePanelStates = (panelName: string) => {
+    dispatch(clearCitation());
+    setLayoutWidthUpdated((prevFlag) => !prevFlag);
+    const newState = {
+      ...panelShowStates,
+      [panelName]: !panelShowStates[panelName],
+    };
+    updateLayoutWidths(newState);
+    setPanelShowStates(newState);
+  };
+
+  const getHistoryListData = async () => {
+    if (!hasMoreRecords) {
+      return;
+    }
+    isInitialFetchStarted.current = true;
+    const result = await dispatch(fetchChatHistory(offset));
+    if (result.payload) {
+      const payload = result.payload as { conversations: any[] | null; offset: number };
+      const conversations = payload.conversations;
+      if (conversations && conversations.length === OFFSET_INCREMENT) {
+        setOffset((offset) => (offset += OFFSET_INCREMENT));
+        // Stopping offset increment if there were no records
+      } else if (conversations && conversations.length < OFFSET_INCREMENT) {
+        setHasMoreRecords(false);
+      }
+    }
+  };
+
+  const onClearAllChatHistory = async () => {
+    setChowClearAllConfirmationDialog(false);
+    dispatch(clearCitation());
+    setClearing(true);
+    try {
+      await dispatch(deleteAllConversations()).unwrap();
+      
+      dispatch(startNewConversation());
+      dispatch(clearChat());
+      setOffset(0);
+      setHasMoreRecords(true);
+    } catch {
+      setClearingError(true);
+    }
+    setClearing(false);
+  };
+
+  useEffect(() => {
+    setIsInitialAPItriggered(true);
+  }, []);
+
+  useEffect(() => {
+    if (isInitialAPItriggered && !isInitialFetchStarted.current) {
+      (async () => {
+        getHistoryListData();
+      })();
+    }
+  }, [isInitialAPItriggered]);
+
+  const onSelectConversation = async (id: string) => {
+    if (!id) return;
+    dispatch(setSelectedConversationId(id));
+
+    try {
+      const result = await dispatch(fetchConversationMessages(id)).unwrap();
+      if (result && result.messages) {
+        dispatch(setMessages(result.messages));
+      }
+    } catch {
+      // Error fetching conversation messages
+    }
+  };
+
+  const onClickClearAllOption = () => {
+    setChowClearAllConfirmationDialog((prevFlag) => !prevFlag);
+  };
+
+  const onHideClearAllDialog = () => {
+    setChowClearAllConfirmationDialog((prevFlag) => !prevFlag);
+    setTimeout(() => {
+      setClearingError(false);
+    }, 1000);
+  };
+
+  return (
+    <FluentProvider
+      theme={webLightTheme}
+      style={{ height: "100%", backgroundColor: "#F5F5F5" }}
+    >
+      <CustomSpinner loading={showAppSpinner} label="Please wait.....!" />
+      <div className="header">
+        <div className="header-left-section">
+          <AppLogo />
+          <Subtitle2>
+            Contoso <Body2 style={{ gap: "10px" }}>| Unified Data Analysis Agents</Body2>
+          </Subtitle2>
+        </div>
+        <div className="header-right-section">
+          <div>
+            <Avatar name={name} title={name} />
+          </div>
+        </div>
+      </div>
+      <div className="main-container">
+        {/* LEFT PANEL:  CHAT */}
+        {panelShowStates?.[panels.CHAT] && (
+          <div
+            style={{
+              width: `${panelWidths[panels.CHAT]}%`,
+            }}
+          >
+            <Chat
+              onHandlePanelStates={onHandlePanelStates}
+              panels={panels}
+              panelShowStates={panelShowStates}
+            />
+          </div>
+        )}
+        {citation.showCitation && citation.currentConversationIdForCitation !== "" && (
+          <div
+            style={{
+              // width: `${panelWidths[panels.DASHBOARD]}%`,
+              width: `${panelWidths[panels.CHATHISTORY] || 17}%`,
+              // minWidth: '30%'
+            }}
+          >
+            <CitationPanel activeCitation={citation.activeCitation}  />
+
+          </div>
+        )}
+        {/* RIGHT PANEL: CHAT HISTORY */}
+        {panelShowStates?.[panels.CHAT] &&
+          panelShowStates?.[panels.CHATHISTORY] && (
+            <div
+              style={{
+                width: `${panelWidths[panels.CHATHISTORY]}%`,
+              }}
+            >
+              <ChatHistoryPanel
+                clearing={clearing}
+                clearingError={clearingError}
+                handleFetchHistory={() => getHistoryListData()}
+                onClearAllChatHistory={onClearAllChatHistory}
+                onClickClearAllOption={onClickClearAllOption}
+                onHideClearAllDialog={onHideClearAllDialog}
+                onSelectConversation={onSelectConversation}
+                showClearAllConfirmationDialog={showClearAllConfirmationDialog}
+              />
+              {/* {useAppContext?.state.isChatHistoryOpen &&
+            useAppContext?.state.isCosmosDBAvailable?.status !== CosmosDBStatus.NotConfigured && <ChatHistoryPanel />} */}
+            </div>
+          )}
+      </div>
+    </FluentProvider>
+  );
+};
+
+export default Dashboard;

@@ -1,0 +1,55 @@
+.itemCell {
+  height: 38px;
+  cursor: pointer;
+  padding: 5px 4px 5px 12px;
+  box-sizing: border-box;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.itemCell:hover {
+  background: #e6e6e6;
+}
+
+.cursorDefault {
+  cursor: default;
+}
+
+.itemButton {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d1d1d1;
+  border-radius: 5px;
+  background-color: white;
+  margin: 0 2.5px;
+  cursor: pointer;
+}
+
+.itemButton:hover {
+  background-color: #e6e6e6;
+}
+
+.chatTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.chatHistoryItem {
+  width: 100%;
+  justify-content: space-between;
+  position: relative;
+}
+
+.chatHistoryItemsButtonsContainer {
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+

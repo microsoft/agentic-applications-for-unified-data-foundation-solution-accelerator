@@ -1,0 +1,25 @@
+# Build outputs
+bin/
+obj/
+
+# Configuration files with secrets
+appsettings.json
+appsettings.Development.json
+appsettings.Production.json
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+
+# Package files
+*.nupkg
