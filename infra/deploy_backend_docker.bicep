@@ -48,24 +48,24 @@ module appService 'deploy_app_service.bicep' = {
   }
 }
 
-// resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' existing = {
-//   name: appSettings.AZURE_COSMOSDB_ACCOUNT
-// }
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' existing = {
+  name: appSettings.AZURE_COSMOSDB_ACCOUNT
+}
 
-// resource contributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-05-15' existing = {
-//   parent: cosmos
-//   name: '00000000-0000-0000-0000-000000000002'
-// }
+resource contributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-05-15' existing = {
+  parent: cosmos
+  name: '00000000-0000-0000-0000-000000000002'
+}
 
-// resource role 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2022-05-15' = {
-//   parent: cosmos
-//   name: guid(contributorRoleDefinition.id, cosmos.id)
-//   properties: {
-//     principalId: appService.outputs.identityPrincipalId
-//     roleDefinitionId: contributorRoleDefinition.id
-//     scope: cosmos.id
-//   }
-// }
+resource role 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2022-05-15' = {
+  parent: cosmos
+  name: guid(contributorRoleDefinition.id, cosmos.id)
+  properties: {
+    principalId: appService.outputs.identityPrincipalId
+    roleDefinitionId: contributorRoleDefinition.id
+    scope: cosmos.id
+  }
+}
 
 resource aiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: aiServicesName

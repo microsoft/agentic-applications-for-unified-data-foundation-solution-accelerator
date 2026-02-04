@@ -202,16 +202,16 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
 // }
 
 
-// // ========== Cosmos DB module ========== //
-// module cosmosDBModule 'deploy_cosmos_db.bicep' = {
-//   name: 'deploy_cosmos_db'
-//   params: {
-//     accountName: '${abbrs.databases.cosmosDBDatabase}${solutionPrefix}'
-//     solutionLocation: secondaryLocation
-//     keyVaultName: kvault.outputs.keyvaultName
-//   }
-//   scope: resourceGroup(resourceGroup().name)
-// }
+// ========== Cosmos DB module ========== //
+module cosmosDBModule 'deploy_cosmos_db.bicep' = {
+  name: 'deploy_cosmos_db'
+  params: {
+    accountName: '${abbrs.databases.cosmosDBDatabase}${solutionPrefix}'
+    solutionLocation: secondaryLocation
+    // keyVaultName: kvault.outputs.keyvaultName
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
 
 // //========== SQL DB module ========== //
 // module sqlDBModule 'deploy_sql_db.bicep' = {
@@ -265,10 +265,10 @@ module backend_docker 'deploy_backend_docker.bicep' = if (backendRuntimeStack ==
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: 'True'
-      // AZURE_COSMOSDB_ACCOUNT: '' //cosmosDBModule.outputs.cosmosAccountName
-      // AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: '' //cosmosDBModule.outputs.cosmosContainerName
-      // AZURE_COSMOSDB_DATABASE: '' //cosmosDBModule.outputs.cosmosDatabaseName
-      // AZURE_COSMOSDB_ENABLE_FEEDBACK: '' //'True'
+      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule.outputs.cosmosAccountName
+      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule.outputs.cosmosContainerName
+      AZURE_COSMOSDB_DATABASE: cosmosDBModule.outputs.cosmosDatabaseName
+      AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
       // SQLDB_DATABASE: '' //sqlDBModule.outputs.sqlDbName
       // SQLDB_SERVER: '' //sqlDBModule.outputs.sqlServerName
       // SQLDB_USER_MID: '' //managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
@@ -319,10 +319,10 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (backendRun
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: 'True'
-      // AZURE_COSMOSDB_ACCOUNT: '' //cosmosDBModule.outputs.cosmosAccountName
-      // AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: '' //cosmosDBModule.outputs.cosmosContainerName
-      // AZURE_COSMOSDB_DATABASE: '' //cosmosDBModule.outputs.cosmosDatabaseName
-      // AZURE_COSMOSDB_ENABLE_FEEDBACK: '' //'True'
+      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule.outputs.cosmosAccountName
+      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule.outputs.cosmosContainerName
+      AZURE_COSMOSDB_DATABASE: cosmosDBModule.outputs.cosmosDatabaseName
+      AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
       // SQLDB_DATABASE: '' //sqlDBModule.outputs.sqlDbName
       // SQLDB_SERVER: '' //sqlDBModule.outputs.sqlServerName
       // SQLDB_USER_MID: '' //managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
@@ -379,10 +379,10 @@ output APPINSIGHTS_INSTRUMENTATIONKEY string = backendRuntimeStack == 'python' ?
 output AZURE_AI_PROJECT_CONN_STRING string = aifoundry.outputs.projectEndpoint
 output AZURE_AI_AGENT_API_VERSION string = azureAiAgentApiVersion
 output AZURE_AI_PROJECT_NAME string = aifoundry.outputs.aiProjectName
-// output AZURE_COSMOSDB_ACCOUNT string = cosmosDBModule.outputs.cosmosAccountName
-// output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = 'conversations'
-// output AZURE_COSMOSDB_DATABASE string = 'db_conversation_history'
-// output AZURE_COSMOSDB_ENABLE_FEEDBACK string = 'True'
+output AZURE_COSMOSDB_ACCOUNT string = cosmosDBModule.outputs.cosmosAccountName
+output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = 'conversations'
+output AZURE_COSMOSDB_DATABASE string = 'db_conversation_history'
+output AZURE_COSMOSDB_ENABLE_FEEDBACK string = 'True'
 output AZURE_OPENAI_DEPLOYMENT_MODEL string = gptModelName
 output AZURE_OPENAI_DEPLOYMENT_MODEL_CAPACITY int = gptDeploymentCapacity
 output AZURE_OPENAI_ENDPOINT string = aifoundry.outputs.aiServicesTarget
