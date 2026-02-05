@@ -3,6 +3,7 @@ param solutionLocation string
 param managedIdentityName string
 param serverName string
 param sqlDBName string
+param deployerPrincipalId string = ''
 // param sqlUsers array = []
 
 var location = solutionLocation
@@ -21,8 +22,8 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
     restrictOutboundNetworkAccess: 'Disabled'
     minimalTlsVersion: '1.2'
     administrators: {
-      login: managedIdentityName
-      sid: managedIdentity.properties.principalId
+      login: !empty(deployerPrincipalId) ? deployerPrincipalId : managedIdentityName
+      sid: !empty(deployerPrincipalId) ? deployerPrincipalId : managedIdentity.properties.principalId
       tenantId: subscription().tenantId
       administratorType: 'ActiveDirectory'
       azureADOnlyAuthentication: true
