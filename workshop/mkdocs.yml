@@ -1,9 +1,9 @@
 site_name: Build faster with Solution Accelerators – Foundry IQ + Fabric IQ
 site_description: Hands-on workshop for building AI agents that combine unstructured document knowledge with structured enterprise data
-site_url: https://nchandhi.github.io/nc-iq-workshop
+site_url: https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator
 
 repo_name: GitHub
-repo_url: https://github.com/nchandhi/nc-iq-workshop
+repo_url: https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator
 
 theme:
   name: material
@@ -54,7 +54,7 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/nchandhi/nc-iq-workshop
+      link: https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator
 
 nav:
   - Overview: index.md
