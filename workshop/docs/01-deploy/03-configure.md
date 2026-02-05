@@ -38,7 +38,7 @@ python -m venv .venv
 ### Verify Setup
 
 ```bash
-python -c "import azure.ai.projects; print('Ready!')"
+python -c "import azure.ai.projects; print('Ready')"
 ```
 
 ## Configure Fabric
