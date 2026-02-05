@@ -287,6 +287,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (deployApp && backendRu
       APPLICATIONINSIGHTS_CONNECTION_STRING: aifoundry.outputs.applicationInsightsConnectionString
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionPrefix
+      IS_WORKSHOP_DEPLOYMENT: isWorkShopDeployment ? 'True' : 'False'
       APP_ENV: 'Prod'
 
       AGENT_NAME_CHAT: ''
@@ -368,6 +369,7 @@ module frontend_docker 'deploy_frontend_docker.bicep' = if (deployApp) {
     appSettings:{
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
       CHAT_LANDING_TEXT: landingText
+      IS_WORKSHOP_DEPLOYMENT: isWorkShopDeployment ? 'True' : 'False'
     }
   }
   scope: resourceGroup(resourceGroup().name)
