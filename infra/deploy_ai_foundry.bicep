@@ -106,7 +106,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if(isWo
 }
 
 // Blob Service
-resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = if(isWorkShopDeployment) {
   parent: storageAccount
   name: 'default'
 }

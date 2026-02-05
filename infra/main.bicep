@@ -217,25 +217,25 @@ module cosmosDBModule 'deploy_cosmos_db.bicep' = if (isWorkShopDeployment && dep
   scope: resourceGroup(resourceGroup().name)
 }
 
-// //========== SQL DB module ========== //
-// module sqlDBModule 'deploy_sql_db.bicep' = {
-//   name: 'deploy_sql_db'
-//   params: {
-//     serverName: '${abbrs.databases.sqlDatabaseServer}${solutionPrefix}'
-//     sqlDBName: '${abbrs.databases.sqlDatabase}${solutionPrefix}'
-//     solutionLocation: secondaryLocation
-//     keyVaultName: kvault.outputs.keyvaultName
-//     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
-//     sqlUsers: [
-//       {
-//         principalId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-//         principalName: managedIdentityModule.outputs.managedIdentityBackendAppOutput.name
-//         databaseRoles: ['db_datareader', 'db_datawriter']
-//       }
-//     ]
-//   }
-//   scope: resourceGroup(resourceGroup().name)
-// }
+//========== SQL DB module ========== //
+module sqlDBModule 'deploy_sql_db.bicep' = if(isWorkShopDeployment) {
+  name: 'deploy_sql_db'
+  params: {
+    serverName: '${abbrs.databases.sqlDatabaseServer}${solutionPrefix}'
+    sqlDBName: '${abbrs.databases.sqlDatabase}${solutionPrefix}'
+    solutionLocation: secondaryLocation
+    //keyVaultName: kvault.outputs.keyvaultName
+    managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
+    // sqlUsers: [
+    //   {
+    //     principalId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
+    //     principalName: managedIdentityModule.outputs.managedIdentityBackendAppOutput.name
+    //     databaseRoles: ['db_datareader', 'db_datawriter']
+    //   }
+    // ]
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
 
 module hostingplan 'deploy_app_service_plan.bicep' = if (deployApp) {
   name: 'deploy_app_service_plan'
@@ -274,9 +274,9 @@ module backend_docker 'deploy_backend_docker.bicep' = if (deployApp && backendRu
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: isWorkShopDeployment ? cosmosDBModule!.outputs.cosmosContainerName : ''
       AZURE_COSMOSDB_DATABASE: isWorkShopDeployment? cosmosDBModule!.outputs.cosmosDatabaseName : ''
       AZURE_COSMOSDB_ENABLE_FEEDBACK: isWorkShopDeployment ? 'True' : ''
-      // SQLDB_DATABASE: '' //sqlDBModule.outputs.sqlDbName
-      // SQLDB_SERVER: '' //sqlDBModule.outputs.sqlServerName
-      // SQLDB_USER_MID: '' //managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
+      SQLDB_DATABASE: isWorkShopDeployment ? sqlDBModule!.outputs.sqlDbName : ''
+      SQLDB_SERVER: isWorkShopDeployment ? sqlDBModule!.outputs.sqlServerName : ''
+      SQLDB_USER_MID: isWorkShopDeployment ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
       // AZURE_AI_SEARCH_ENDPOINT: '' //aifoundry.outputs.aiSearchTarget
       // AZURE_AI_SEARCH_INDEX: '' //'call_transcripts_index'
@@ -400,9 +400,9 @@ output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
 output AZURE_OPENAI_RESOURCE string = aifoundry.outputs.aiServicesName
 //output REACT_APP_LAYOUT_CONFIG string = backend_docker.outputs.reactAppLayoutConfig
 output REACT_APP_LAYOUT_CONFIG string = deployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.reactAppLayoutConfig : backend_csapi_docker!.outputs.reactAppLayoutConfig) : ''
-// output SQLDB_DATABASE string = sqlDBModule.outputs.sqlDbName
-// output SQLDB_SERVER string = sqlDBModule.outputs.sqlServerName
-// output SQLDB_USER_MID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
+output SQLDB_DATABASE string = isWorkShopDeployment ? sqlDBModule!.outputs.sqlDbName : ''
+output SQLDB_SERVER string = isWorkShopDeployment ? sqlDBModule!.outputs.sqlServerName : ''
+output SQLDB_USER_MID string = isWorkShopDeployment ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
 output API_UID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
 output USE_AI_PROJECT_CLIENT string = 'False'
 output USE_CHAT_HISTORY_ENABLED string = 'True'

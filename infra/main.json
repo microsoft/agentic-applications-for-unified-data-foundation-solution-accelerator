@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "11937205086781417041"
+      "templateHash": "3888986595654741561"
     }
   },
   "parameters": {
@@ -140,7 +140,7 @@
     },
     "imageTag": {
       "type": "string",
-      "defaultValue": "latest"
+      "defaultValue": "latest_v2"
     },
     "deployApp": {
       "type": "bool",
@@ -148,6 +148,10 @@
       "metadata": {
         "description": "Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app."
       }
+    },
+    "isWorkShopDeployment": {
+      "type": "bool",
+      "defaultValue": false
     },
     "AZURE_LOCATION": {
       "type": "string",
@@ -178,7 +182,7 @@
     },
     "acrName": {
       "type": "string",
-      "defaultValue": "dataagentscontainerregworkshop",
+      "defaultValue": "[if(parameters('isWorkShopDeployment'), 'dataagentscontainerregworkshop', 'dataagentscontainerreg')]",
       "metadata": {
         "description": "Name of the Azure Container Registry"
       }
@@ -589,6 +593,9 @@
           },
           "deployingUserPrincipalId": {
             "value": "[variables('deployingUserPrincipalId')]"
+          },
+          "isWorkShopDeployment": {
+            "value": "[parameters('isWorkShopDeployment')]"
           }
         },
         "template": {
@@ -598,7 +605,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "4513704389212183152"
+              "templateHash": "18201032341678539964"
             }
           },
           "parameters": {
@@ -645,6 +652,10 @@
             "tags": {
               "type": "object",
               "defaultValue": {}
+            },
+            "isWorkShopDeployment": {
+              "type": "bool",
+              "defaultValue": false
             }
           },
           "variables": {
@@ -886,27 +897,7 @@
             "aiSearchName": "[format('{0}{1}', variables('abbrs').ai.aiSearch, parameters('solutionName'))]",
             "storageName": "[format('{0}{1}', variables('abbrs').storage.storageAccount, toLower(replace(parameters('solutionName'), '-', '')))]",
             "aiSearchConnectionName": "[format('myVectorStoreProjectConnectionName-{0}', parameters('solutionName'))]",
-            "aiModelDeployments": [
-              {
-                "name": "[parameters('gptModelName')]",
-                "model": "[parameters('gptModelName')]",
-                "sku": {
-                  "name": "[parameters('deploymentType')]",
-                  "capacity": "[parameters('gptDeploymentCapacity')]"
-                },
-                "version": "[parameters('gptModelVersion')]",
-                "raiPolicyName": "Microsoft.Default"
-              },
-              {
-                "name": "[parameters('embeddingModel')]",
-                "model": "[parameters('embeddingModel')]",
-                "sku": {
-                  "name": "GlobalStandard",
-                  "capacity": "[parameters('embeddingDeploymentCapacity')]"
-                },
-                "raiPolicyName": "Microsoft.Default"
-              }
-            ],
+            "aiModelDeployments": "[concat(createArray(createObject('name', parameters('gptModelName'), 'model', parameters('gptModelName'), 'sku', createObject('name', parameters('deploymentType'), 'capacity', parameters('gptDeploymentCapacity')), 'version', parameters('gptModelVersion'), 'raiPolicyName', 'Microsoft.Default')), if(parameters('isWorkShopDeployment'), createArray(createObject('name', parameters('embeddingModel'), 'model', parameters('embeddingModel'), 'sku', createObject('name', 'GlobalStandard', 'capacity', parameters('embeddingDeploymentCapacity')), 'raiPolicyName', 'Microsoft.Default')), createArray()))]",
             "useExisting": "[not(empty(parameters('existingLogAnalyticsWorkspaceId')))]",
             "existingLawSubscription": "[if(variables('useExisting'), split(parameters('existingLogAnalyticsWorkspaceId'), '/')[2], '')]",
             "existingLawResourceGroup": "[if(variables('useExisting'), split(parameters('existingLogAnalyticsWorkspaceId'), '/')[4], '')]",
@@ -950,6 +941,7 @@
               ]
             },
             {
+              "condition": "[parameters('isWorkShopDeployment')]",
               "type": "Microsoft.Storage/storageAccounts",
               "apiVersion": "2023-05-01",
               "name": "[variables('storageName')]",
@@ -1027,6 +1019,7 @@
               ]
             },
             {
+              "condition": "[parameters('isWorkShopDeployment')]",
               "type": "Microsoft.Search/searchServices",
               "apiVersion": "2024-06-01-preview",
               "name": "[variables('aiSearchName')]",
@@ -1068,7 +1061,7 @@
               ]
             },
             {
-              "condition": "[empty(parameters('azureExistingAIProjectResourceId'))]",
+              "condition": "[and(empty(parameters('azureExistingAIProjectResourceId')), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.CognitiveServices/accounts/projects/connections",
               "apiVersion": "2025-04-01-preview",
               "name": "[format('{0}/{1}/{2}', variables('aiServicesName'), variables('aiProjectName'), 'search-connection')]",
@@ -1127,7 +1120,7 @@
               ]
             },
             {
-              "condition": "[empty(parameters('azureExistingAIProjectResourceId'))]",
+              "condition": "[and(empty(parameters('azureExistingAIProjectResourceId')), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', variables('aiServicesName'))]",
@@ -1143,7 +1136,7 @@
               ]
             },
             {
-              "condition": "[empty(parameters('azureExistingAIProjectResourceId'))]",
+              "condition": "[and(empty(parameters('azureExistingAIProjectResourceId')), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Search/searchServices/{0}', variables('aiSearchName'))]",
@@ -1159,7 +1152,7 @@
               ]
             },
             {
-              "condition": "[not(empty(parameters('azureExistingAIProjectResourceId')))]",
+              "condition": "[and(not(empty(parameters('azureExistingAIProjectResourceId'))), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Search/searchServices/{0}', variables('aiSearchName'))]",
@@ -1175,7 +1168,7 @@
               ]
             },
             {
-              "condition": "[empty(parameters('azureExistingAIProjectResourceId'))]",
+              "condition": "[and(empty(parameters('azureExistingAIProjectResourceId')), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Search/searchServices/{0}', variables('aiSearchName'))]",
@@ -1191,7 +1184,7 @@
               ]
             },
             {
-              "condition": "[not(empty(parameters('azureExistingAIProjectResourceId')))]",
+              "condition": "[and(not(empty(parameters('azureExistingAIProjectResourceId'))), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Search/searchServices/{0}', variables('aiSearchName'))]",
@@ -1207,7 +1200,7 @@
               ]
             },
             {
-              "condition": "[empty(parameters('azureExistingAIProjectResourceId'))]",
+              "condition": "[and(empty(parameters('azureExistingAIProjectResourceId')), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Search/searchServices/{0}', variables('aiSearchName'))]",
@@ -1223,7 +1216,7 @@
               ]
             },
             {
-              "condition": "[empty(parameters('azureExistingAIProjectResourceId'))]",
+              "condition": "[and(empty(parameters('azureExistingAIProjectResourceId')), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Storage/storageAccounts/{0}', variables('storageName'))]",
@@ -1239,7 +1232,7 @@
               ]
             },
             {
-              "condition": "[not(empty(parameters('azureExistingAIProjectResourceId')))]",
+              "condition": "[and(not(empty(parameters('azureExistingAIProjectResourceId'))), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Storage/storageAccounts/{0}', variables('storageName'))]",
@@ -1255,7 +1248,7 @@
               ]
             },
             {
-              "condition": "[empty(parameters('azureExistingAIProjectResourceId'))]",
+              "condition": "[and(empty(parameters('azureExistingAIProjectResourceId')), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Storage/storageAccounts/{0}', variables('storageName'))]",
@@ -1271,7 +1264,7 @@
               ]
             },
             {
-              "condition": "[not(empty(parameters('azureExistingAIProjectResourceId')))]",
+              "condition": "[and(not(empty(parameters('azureExistingAIProjectResourceId'))), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Storage/storageAccounts/{0}', variables('storageName'))]",
@@ -1287,6 +1280,7 @@
               ]
             },
             {
+              "condition": "[parameters('isWorkShopDeployment')]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Storage/storageAccounts/{0}', variables('storageName'))]",
@@ -1302,6 +1296,7 @@
               ]
             },
             {
+              "condition": "[parameters('isWorkShopDeployment')]",
               "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
               "apiVersion": "2023-05-01",
               "name": "[format('{0}/{1}/{2}', variables('storageName'), 'default', 'default')]",
@@ -1313,6 +1308,7 @@
               ]
             },
             {
+              "condition": "[parameters('isWorkShopDeployment')]",
               "type": "Microsoft.CognitiveServices/accounts/projects/connections",
               "apiVersion": "2025-04-01-preview",
               "name": "[format('{0}/{1}/{2}', variables('aiServicesName'), variables('aiProjectName'), 'storage-connection')]",
@@ -1364,6 +1360,7 @@
               ]
             },
             {
+              "condition": "[parameters('isWorkShopDeployment')]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Search/searchServices/{0}', variables('aiSearchName'))]",
@@ -1378,6 +1375,7 @@
               ]
             },
             {
+              "condition": "[parameters('isWorkShopDeployment')]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Search/searchServices/{0}', variables('aiSearchName'))]",
@@ -1392,6 +1390,7 @@
               ]
             },
             {
+              "condition": "[parameters('isWorkShopDeployment')]",
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[format('Microsoft.Storage/storageAccounts/{0}', variables('storageName'))]",
@@ -1742,7 +1741,7 @@
               ]
             },
             {
-              "condition": "[not(empty(parameters('azureExistingAIProjectResourceId')))]",
+              "condition": "[and(not(empty(parameters('azureExistingAIProjectResourceId'))), parameters('isWorkShopDeployment'))]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
               "name": "assignOpenAIRoleToAISearchExisting",
@@ -2022,7 +2021,7 @@
       ]
     },
     {
-      "condition": "[parameters('deployApp')]",
+      "condition": "[and(parameters('isWorkShopDeployment'), parameters('deployApp'))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "deploy_cosmos_db",
@@ -2168,6 +2167,310 @@
       }
     },
     {
+      "condition": "[parameters('isWorkShopDeployment')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy_sql_db",
+      "resourceGroup": "[resourceGroup().name]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "serverName": {
+            "value": "[format('{0}{1}', variables('abbrs').databases.sqlDatabaseServer, variables('solutionPrefix'))]"
+          },
+          "sqlDBName": {
+            "value": "[format('{0}{1}', variables('abbrs').databases.sqlDatabase, variables('solutionPrefix'))]"
+          },
+          "solutionLocation": {
+            "value": "[parameters('secondaryLocation')]"
+          },
+          "managedIdentityName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityOutput.value.name]"
+          },
+          "sqlUsers": {
+            "value": [
+              {
+                "principalId": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId]",
+                "principalName": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.name]",
+                "databaseRoles": [
+                  "db_datareader",
+                  "db_datawriter"
+                ]
+              }
+            ]
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "9616679111674594412"
+            }
+          },
+          "parameters": {
+            "solutionLocation": {
+              "type": "string"
+            },
+            "managedIdentityName": {
+              "type": "string"
+            },
+            "serverName": {
+              "type": "string"
+            },
+            "sqlDBName": {
+              "type": "string"
+            },
+            "sqlUsers": {
+              "type": "array",
+              "defaultValue": []
+            }
+          },
+          "variables": {
+            "location": "[parameters('solutionLocation')]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Sql/servers",
+              "apiVersion": "2023-08-01-preview",
+              "name": "[parameters('serverName')]",
+              "location": "[variables('location')]",
+              "kind": "v12.0",
+              "properties": {
+                "publicNetworkAccess": "Enabled",
+                "version": "12.0",
+                "restrictOutboundNetworkAccess": "Disabled",
+                "minimalTlsVersion": "1.2",
+                "administrators": {
+                  "login": "[parameters('managedIdentityName')]",
+                  "sid": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2023-01-31').principalId]",
+                  "tenantId": "[subscription().tenantId]",
+                  "administratorType": "ActiveDirectory",
+                  "azureADOnlyAuthentication": true
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Sql/servers/firewallRules",
+              "apiVersion": "2023-08-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), 'AllowSpecificRange')]",
+              "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "255.255.255.255"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Sql/servers/firewallRules",
+              "apiVersion": "2023-08-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), 'AllowAllWindowsAzureIps')]",
+              "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "0.0.0.0"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Sql/servers/databases",
+              "apiVersion": "2023-08-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), parameters('sqlDBName'))]",
+              "location": "[variables('location')]",
+              "sku": {
+                "name": "GP_S_Gen5",
+                "tier": "GeneralPurpose",
+                "family": "Gen5",
+                "capacity": 2
+              },
+              "kind": "v12.0,user,vcore,serverless",
+              "properties": {
+                "collation": "SQL_Latin1_General_CP1_CI_AS",
+                "autoPauseDelay": 60,
+                "minCapacity": 1,
+                "readScale": "Disabled",
+                "zoneRedundant": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "copy": {
+                "name": "sqluser",
+                "count": "[length(parameters('sqlUsers'))]"
+              },
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[format('sqluser-{0}', guid(parameters('solutionLocation'), parameters('sqlUsers')[copyIndex()].principalId, parameters('sqlUsers')[copyIndex()].principalName, parameters('sqlDBName'), parameters('serverName')))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "managedIdentityName": {
+                    "value": "[parameters('managedIdentityName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('solutionLocation')]"
+                  },
+                  "sqlDatabaseName": {
+                    "value": "[parameters('sqlDBName')]"
+                  },
+                  "sqlServerName": {
+                    "value": "[parameters('serverName')]"
+                  },
+                  "principalId": {
+                    "value": "[parameters('sqlUsers')[copyIndex()].principalId]"
+                  },
+                  "principalName": {
+                    "value": "[parameters('sqlUsers')[copyIndex()].principalName]"
+                  },
+                  "databaseRoles": {
+                    "value": "[parameters('sqlUsers')[copyIndex()].databaseRoles]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "languageVersion": "2.0",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.39.26.7824",
+                      "templateHash": "1148341459545503053"
+                    }
+                  },
+                  "parameters": {
+                    "location": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The Azure region for the resource."
+                      }
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "The tags to associate with this resource."
+                      }
+                    },
+                    "databaseRoles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "defaultValue": [
+                        "db_datareader"
+                      ],
+                      "metadata": {
+                        "description": "The database roles to assign to the user."
+                      }
+                    },
+                    "managedIdentityName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the User Assigned Managed Identity to be used."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The principal (or object) ID of the user to create."
+                      }
+                    },
+                    "principalName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the user to create."
+                      }
+                    },
+                    "sqlDatabaseName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the SQL Database resource."
+                      }
+                    },
+                    "sqlServerName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the SQL Server resource."
+                      }
+                    },
+                    "uniqueScriptId": {
+                      "type": "string",
+                      "defaultValue": "[newGuid()]",
+                      "metadata": {
+                        "description": "Do not set - unique script ID to force the script to run."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "$fxv#0": "#Requires -Version 7.2\r\n\r\n<#\r\n.SYNOPSIS\r\n    Creates a SQL user and assigns the user account to one or more roles.\r\n\r\n.DESCRIPTION\r\n    During an application deployment, the managed identity (and potentially the developer identity)\r\n    must be added to the SQL database as a user and assigned to one or more roles. This script\r\n    accomplishes this task using the owner-managed identity for authentication.\r\n\r\n.PARAMETER SqlServerName\r\n    The name of the Azure SQL Server resource.\r\n\r\n.PARAMETER SqlDatabaseName\r\n    The name of the Azure SQL Database where the user will be created.\r\n\r\n.PARAMETER ClientId\r\n    The Client (Principal) ID (GUID) of the identity to be added.\r\n\r\n.PARAMETER DisplayName\r\n    The Object (Principal) display name of the identity to be added.\r\n\r\n.PARAMETER DatabaseRoles\r\n    A comma-separated string of database roles to assign (e.g., 'db_datareader,db_datawriter')\r\n#>\r\n\r\nParam(\r\n    [string] $SqlServerName,\r\n    [string] $SqlDatabaseName,\r\n    [string] $ClientId,\r\n    [string] $DisplayName,\r\n    [string] $DatabaseRoles\r\n)\r\n\r\n# Using specific version of SqlServer module to avoid issues with newer versions\r\n$SqlServerModuleVersion = \"22.3.0\"\r\n\r\nfunction Resolve-Module($moduleName) {\r\n    # If module is imported; say that and do nothing\r\n    if (Get-Module | Where-Object { $_.Name -eq $moduleName }) {\r\n        Write-Debug \"Module $moduleName is already imported\"\r\n    } elseif (Get-Module -ListAvailable | Where-Object { $_.Name -eq $moduleName }) {\r\n        Import-Module $moduleName\r\n    } elseif (Find-Module -Name $moduleName | Where-Object { $_.Name -eq $moduleName }) {\r\n        # Use specific version for SqlServer\r\n        if ($moduleName -eq \"SqlServer\") {\r\n            Install-Module -Name $moduleName -RequiredVersion $SqlServerModuleVersion -Force -Scope CurrentUser\r\n        } else {\r\n            Install-Module -Name $moduleName -Force\r\n        }\r\n        Import-Module $moduleName\r\n    } else {\r\n        Write-Error \"Module $moduleName not found\"\r\n        [Environment]::exit(1)\r\n    }\r\n}\r\n\r\n###\r\n### MAIN SCRIPT\r\n###\r\nResolve-Module -moduleName Az.Resources\r\nResolve-Module -moduleName SqlServer\r\n\r\n# Split comma-separated roles into an array\r\n$roleArray = $DatabaseRoles -split ','\r\n\r\n$roleSql = \"\"\r\nforeach ($role in $roleArray) {\r\n    $trimmedRole = $role.Trim()\r\n    $roleSql += \"EXEC sp_addrolemember N'$trimmedRole', N'$DisplayName';`n\"\r\n}\r\n\r\n$sql = @\"\r\nDECLARE @username nvarchar(max) = N'$($DisplayName)';\r\nDECLARE @clientId uniqueidentifier = '$($ClientId)';\r\nDECLARE @sid NVARCHAR(max) = CONVERT(VARCHAR(max), CONVERT(VARBINARY(16), @clientId), 1);\r\nDECLARE @cmd NVARCHAR(max) = N'CREATE USER [' + @username + '] WITH SID = ' + @sid + ', TYPE = E;';\r\nIF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = @username)\r\nBEGIN\r\n    EXEC(@cmd)\r\nEND\r\n$($roleSql)\r\n\"@\r\n\r\nWrite-Output \"`nSQL:`n$($sql)`n`n\"\r\n\r\n$token = (Get-AzAccessToken -AsSecureString -ResourceUrl https://database.windows.net/).Token\r\n$ssPtr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($token)\r\ntry {\r\n    $serverInstance = if ($SqlServerName -like \"*.database.windows.net\") {  \r\n        $SqlServerName  \r\n    } else {  \r\n        \"$SqlServerName.database.windows.net\"  \r\n    }\r\n    $plaintext = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR($ssPtr)\r\n    Invoke-Sqlcmd -ServerInstance $serverInstance -Database $SqlDatabaseName -AccessToken $plaintext -Query $sql -ErrorAction 'Stop'\r\n} finally {\r\n    # The following line ensures that sensitive data is not left in memory.\r\n    $plainText = [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ssPtr)\r\n}"
+                  },
+                  "resources": {
+                    "managedIdentity": {
+                      "existing": true,
+                      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+                      "apiVersion": "2023-01-31",
+                      "name": "[parameters('managedIdentityName')]"
+                    },
+                    "createSqlUserAndRole": {
+                      "type": "Microsoft.Resources/deploymentScripts",
+                      "apiVersion": "2023-08-01",
+                      "name": "[format('sqlUserRole-{0}', guid(parameters('principalId'), parameters('sqlServerName'), parameters('sqlDatabaseName')))]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "kind": "AzurePowerShell",
+                      "identity": {
+                        "type": "UserAssigned",
+                        "userAssignedIdentities": {
+                          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')))]": {}
+                        }
+                      },
+                      "properties": {
+                        "forceUpdateTag": "[parameters('uniqueScriptId')]",
+                        "azPowerShellVersion": "7.2",
+                        "retentionInterval": "PT1H",
+                        "cleanupPreference": "OnSuccess",
+                        "arguments": "[join(createArray(format('-SqlServerName ''{0}''', parameters('sqlServerName')), format('-SqlDatabaseName ''{0}''', parameters('sqlDatabaseName')), format('-ClientId ''{0}''', parameters('principalId')), format('-DisplayName ''{0}''', parameters('principalName')), format('-DatabaseRoles ''{0}''', join(parameters('databaseRoles'), ','))), ' ')]",
+                        "scriptContent": "[variables('$fxv#0')]"
+                      }
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers/databases', parameters('serverName'), parameters('sqlDBName'))]",
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "sqlServerName": {
+              "type": "string",
+              "value": "[format('{0}.database.windows.net', parameters('serverName'))]"
+            },
+            "sqlDbName": {
+              "type": "string",
+              "value": "[parameters('sqlDBName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]"
+      ]
+    },
+    {
       "condition": "[parameters('deployApp')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
@@ -2299,6 +2602,9 @@
           "azureExistingAIProjectResourceId": {
             "value": "[parameters('azureExistingAIProjectResourceId')]"
           },
+          "enableCosmosDb": {
+            "value": "[and(parameters('deployApp'), parameters('isWorkShopDeployment'))]"
+          },
           "appSettings": {
             "value": {
               "AZURE_OPENAI_DEPLOYMENT_MODEL": "[parameters('gptModelName')]",
@@ -2309,16 +2615,20 @@
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
               "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "[parameters('gptModelName')]",
               "USE_CHAT_HISTORY_ENABLED": "True",
-              "AZURE_COSMOSDB_ACCOUNT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosAccountName.value]",
-              "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosContainerName.value]",
-              "AZURE_COSMOSDB_DATABASE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosDatabaseName.value]",
-              "AZURE_COSMOSDB_ENABLE_FEEDBACK": "True",
+              "AZURE_COSMOSDB_ACCOUNT": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosAccountName.value, '')]",
+              "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosContainerName.value, '')]",
+              "AZURE_COSMOSDB_DATABASE": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosDatabaseName.value, '')]",
+              "AZURE_COSMOSDB_ENABLE_FEEDBACK": "[if(parameters('isWorkShopDeployment'), 'True', '')]",
+              "SQLDB_DATABASE": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]",
+              "SQLDB_SERVER": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]",
+              "SQLDB_USER_MID": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId, '')]",
               "API_UID": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId]",
               "USE_AI_PROJECT_CLIENT": "True",
               "DISPLAY_CHART_DEFAULT": "False",
               "APPLICATIONINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.applicationInsightsConnectionString.value]",
               "DUMMY_TEST": "True",
               "SOLUTION_NAME": "[variables('solutionPrefix')]",
+              "IS_WORKSHOP_DEPLOYMENT": "[if(parameters('isWorkShopDeployment'), 'True', 'False')]",
               "APP_ENV": "Prod",
               "AGENT_NAME_CHAT": "",
               "AGENT_NAME_TITLE": "",
@@ -2335,7 +2645,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "15848692485004074875"
+              "templateHash": "6437198611874731858"
             }
           },
           "parameters": {
@@ -2371,6 +2681,10 @@
               "type": "string",
               "defaultValue": ""
             },
+            "enableCosmosDb": {
+              "type": "bool",
+              "defaultValue": false
+            },
             "name": {
               "type": "string"
             }
@@ -2385,6 +2699,7 @@
           },
           "resources": [
             {
+              "condition": "[parameters('enableCosmosDb')]",
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
               "apiVersion": "2022-05-15",
               "name": "[format('{0}/{1}', parameters('appSettings').AZURE_COSMOSDB_ACCOUNT, guid(resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', parameters('appSettings').AZURE_COSMOSDB_ACCOUNT, '00000000-0000-0000-0000-000000000002'), resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('appSettings').AZURE_COSMOSDB_ACCOUNT)))]",
@@ -2930,7 +3245,8 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db')]",
         "[resourceId('Microsoft.Resources/deployments', 'deploy_app_service_plan')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db')]"
       ]
     },
     {
@@ -2982,10 +3298,10 @@
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
               "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "[parameters('gptModelName')]",
               "USE_CHAT_HISTORY_ENABLED": "True",
-              "AZURE_COSMOSDB_ACCOUNT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosAccountName.value]",
-              "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosContainerName.value]",
-              "AZURE_COSMOSDB_DATABASE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosDatabaseName.value]",
-              "AZURE_COSMOSDB_ENABLE_FEEDBACK": "True",
+              "AZURE_COSMOSDB_ACCOUNT": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosAccountName.value, '')]",
+              "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosContainerName.value, '')]",
+              "AZURE_COSMOSDB_DATABASE": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosDatabaseName.value, '')]",
+              "AZURE_COSMOSDB_ENABLE_FEEDBACK": "[if(parameters('isWorkShopDeployment'), 'True', '')]",
               "API_UID": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId]",
               "USE_AI_PROJECT_CLIENT": "True",
               "DISPLAY_CHART_DEFAULT": "False",
@@ -3626,7 +3942,8 @@
           "appSettings": {
             "value": {
               "APP_API_BASE_URL": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]",
-              "CHAT_LANDING_TEXT": "[variables('landingText')]"
+              "CHAT_LANDING_TEXT": "[variables('landingText')]",
+              "IS_WORKSHOP_DEPLOYMENT": "[if(parameters('isWorkShopDeployment'), 'True', 'False')]"
             }
           }
         },
@@ -3932,19 +4249,19 @@
     },
     "AZURE_COSMOSDB_ACCOUNT": {
       "type": "string",
-      "value": "[if(parameters('deployApp'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosAccountName.value, '')]"
+      "value": "[if(and(parameters('deployApp'), parameters('isWorkShopDeployment')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosAccountName.value, '')]"
     },
     "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": {
       "type": "string",
-      "value": "conversations"
+      "value": "[if(parameters('isWorkShopDeployment'), 'conversations', '')]"
     },
     "AZURE_COSMOSDB_DATABASE": {
       "type": "string",
-      "value": "db_conversation_history"
+      "value": "[if(parameters('isWorkShopDeployment'), 'db_conversation_history', '')]"
     },
     "AZURE_COSMOSDB_ENABLE_FEEDBACK": {
       "type": "string",
-      "value": "True"
+      "value": "[if(parameters('isWorkShopDeployment'), 'True', '')]"
     },
     "AZURE_OPENAI_DEPLOYMENT_MODEL": {
       "type": "string",
@@ -3973,6 +4290,18 @@
     "REACT_APP_LAYOUT_CONFIG": {
       "type": "string",
       "value": "[if(parameters('deployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value), '')]"
+    },
+    "SQLDB_DATABASE": {
+      "type": "string",
+      "value": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]"
+    },
+    "SQLDB_SERVER": {
+      "type": "string",
+      "value": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]"
+    },
+    "SQLDB_USER_MID": {
+      "type": "string",
+      "value": "[if(parameters('isWorkShopDeployment'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId, '')]"
     },
     "API_UID": {
       "type": "string",
@@ -4065,6 +4394,14 @@
     "USE_CASE": {
       "type": "string",
       "value": "[parameters('usecase')]"
+    },
+    "AZURE_AI_SEARCH_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiSearchTarget.value]"
+    },
+    "AZURE_AI_PROJECT_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.projectEndpoint.value]"
     }
   }
 }
