@@ -68,7 +68,7 @@ def create_guide():
     pdf.section_title('Deployment Steps')
     
     pdf.subsection('1. Clone Repository')
-    pdf.code_block('git clone https://github.com/nchandhi/nc-iq-workshop.git && cd nc-iq-workshop')
+    pdf.code_block('git clone https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator.git && cd agentic-applications-for-unified-data-foundation-solution-accelerator')
     
     pdf.subsection('2. Login to Azure')
     pdf.code_block('azd auth login')
@@ -123,7 +123,7 @@ def create_guide():
     
     # Resources
     pdf.section_title('Resources')
-    pdf.body_text('Workshop: nchandhi.github.io/nc-iq-workshop | Repo: github.com/nchandhi/nc-iq-workshop')
+    pdf.body_text('Workshop: microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/ | Repo: github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator')
     
     return pdf
 

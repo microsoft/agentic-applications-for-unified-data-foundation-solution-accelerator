@@ -3,8 +3,8 @@
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/nchandhi/nc-iq-workshop.git
-cd nc-iq-workshop
+git clone https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator.git
+cd agentic-applications-for-unified-data-foundation-solution-accelerator
 ```
 
 ## Login to Azure
