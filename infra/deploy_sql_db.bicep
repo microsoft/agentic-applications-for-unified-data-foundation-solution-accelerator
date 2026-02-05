@@ -5,12 +5,6 @@ param serverName string
 param sqlDBName string
 // param sqlUsers array = []
 
-@description('The principal ID (object ID) of the user deploying the solution')
-param deployingUserPrincipalId string
-
-@description('The user principal name (email) of the user deploying the solution')
-param deployingUserPrincipalName string
-
 var location = solutionLocation
 
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
@@ -27,8 +21,8 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
     restrictOutboundNetworkAccess: 'Disabled'
     minimalTlsVersion: '1.2'
     administrators: {
-      login: deployingUserPrincipalName
-      sid: deployingUserPrincipalId
+      login: managedIdentityName
+      sid: managedIdentity.properties.principalId
       tenantId: subscription().tenantId
       administratorType: 'ActiveDirectory'
       azureADOnlyAuthentication: true

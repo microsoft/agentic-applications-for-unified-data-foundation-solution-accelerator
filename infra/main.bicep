@@ -20,7 +20,7 @@ param createdBy string = contains(deployer(), 'userPrincipalName')? split(deploy
   'python'
   'dotnet'
 ])
-param backendRuntimeStack string
+param backendRuntimeStack string = 'python'
 
 @minLength(1)
 @description('Industry use case for deployment:')
@@ -28,7 +28,7 @@ param backendRuntimeStack string
   'Retail-sales-analysis'
   'Insurance-improve-customer-meetings'
 ])
-param usecase string 
+param usecase string = 'Retail-sales-analysis'
 
 // @minLength(1)
 // @description('Location for the Content Understanding service deployment:')
@@ -231,8 +231,6 @@ module sqlDBModule 'deploy_sql_db.bicep' = if(isWorkshop) {
     solutionLocation: secondaryLocation
     //keyVaultName: kvault.outputs.keyvaultName
     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
-    deployingUserPrincipalId: deployingUserPrincipalId
-    deployingUserPrincipalName: deployer().?userPrincipalName ?? deployer().objectId
     // sqlUsers: [
     //   {
     //     principalId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
