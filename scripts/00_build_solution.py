@@ -19,6 +19,7 @@ Steps:
     04  - Generate agent prompt
     05  - Create Fabric Data Agent
     06  - Upload documents to AI Search
+    6a  - Upload data to Azure SQL Server
     07  - Create Foundry agent
     08  - Test agent
 
@@ -43,13 +44,14 @@ STEPS = {
     "04": {"script": "04_generate_agent_prompt.py", "name": "Generate Agent Prompt", "time": "~5s"},
     "05": {"script": "05_create_fabric_agent.py", "name": "Create Fabric Data Agent", "time": "~30s"},
     "06": {"script": "06_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
+    "6a": {"script": "6a_upload_to_sql.py", "name": "Upload to Azure SQL", "time": "~1min"},
     "07": {"script": "07_create_foundry_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
     "07-search": {"script": "07_create_foundry_agent.py", "name": "Create Foundry Agent (Search Only)", "time": "~10s", "args": ["--foundry-only"]},
     "08": {"script": "08_test_foundry_agent.py", "name": "Test Foundry Agent", "time": "interactive"},
 }
 
 # Default pipeline order
-DEFAULT_PIPELINE = ["01", "02", "03", "04", "05", "06", "07"]
+DEFAULT_PIPELINE = ["01", "02", "03", "04", "05", "06", "6a", "07"]
 FOUNDRY_ONLY_PIPELINE = ["01", "06", "07-search"]
 
 # ============================================================================

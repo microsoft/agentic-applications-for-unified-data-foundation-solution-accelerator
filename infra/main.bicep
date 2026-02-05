@@ -231,6 +231,7 @@ module sqlDBModule 'deploy_sql_db.bicep' = if(isWorkshop) {
     solutionLocation: secondaryLocation
     //keyVaultName: kvault.outputs.keyvaultName
     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
+    deployerPrincipalId: deployingUserPrincipalId
     // sqlUsers: [
     //   {
     //     principalId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
