@@ -10,7 +10,7 @@ requiredVersions:
   azd: ">= 1.15.0"
 
 metadata:
-  template: agentic-applications-for-unified-data-foundation@1.0
+  template: agentic-applications-for-unified-data-foundation@1.1
 
 hooks:
   postprovision:

@@ -12,6 +12,7 @@ param userassignedIdentityId string
 // param keyVaultName string
 param aiServicesName string
 param azureExistingAIProjectResourceId string = ''
+param enableCosmosDb bool = false
 // param aiSearchName string
 var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
@@ -48,24 +49,24 @@ module appService 'deploy_app_service.bicep' = {
   }
 }
 
-// resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' existing = {
-//   name: appSettings.AZURE_COSMOSDB_ACCOUNT
-// }
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' existing = if (enableCosmosDb) {
+  name: appSettings.AZURE_COSMOSDB_ACCOUNT
+}
 
-// resource contributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-05-15' existing = {
-//   parent: cosmos
-//   name: '00000000-0000-0000-0000-000000000002'
-// }
+resource contributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-05-15' existing = if (enableCosmosDb) {
+  parent: cosmos
+  name: '00000000-0000-0000-0000-000000000002'
+}
 
-// resource role 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2022-05-15' = {
-//   parent: cosmos
-//   name: guid(contributorRoleDefinition.id, cosmos.id)
-//   properties: {
-//     principalId: appService.outputs.identityPrincipalId
-//     roleDefinitionId: contributorRoleDefinition.id
-//     scope: cosmos.id
-//   }
-// }
+resource role 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2022-05-15' = if (enableCosmosDb) {
+  parent: cosmos
+  name: guid(contributorRoleDefinition.id, cosmos.id)
+  properties: {
+    principalId: appService.outputs.identityPrincipalId
+    roleDefinitionId: contributorRoleDefinition.id
+    scope: cosmos.id
+  }
+}
 
 resource aiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: aiServicesName

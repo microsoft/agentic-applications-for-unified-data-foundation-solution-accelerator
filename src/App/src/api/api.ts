@@ -61,7 +61,7 @@ export async function getUserInfo(): Promise<UserInfo[]> {
 }
 
 export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
-  const endpoint = `/historyfab/read`;
+  const endpoint = `/history/read`;
   
   try {
     const response = await httpClient.get(endpoint, {
@@ -110,7 +110,7 @@ export const historyList = async (
   offset = 0,
   limit = 25
 ): Promise<Conversation[] | null> => {
-  const endpoint = `/historyfab/list`;
+  const endpoint = `/history/list`;
   
   try {
     const response = await httpClient.get(endpoint, {
@@ -171,7 +171,7 @@ export const historyUpdate = async (
   newMessages: ChatMessage[],
   convId: string
 ): Promise<Response> => {
-  const endpoint = `/historyfab/update`;
+  const endpoint = `/history/update`;
   
   try {
     const response = await httpClient.post(endpoint, {
@@ -228,7 +228,7 @@ export const historyRename = async (
   convId: string,
   title: string
 ): Promise<Response> => {
-  const endpoint = `/historyfab/rename`;
+  const endpoint = `/history/rename`;
   
   try {
     const response = await httpClient.post(endpoint, {
@@ -245,7 +245,7 @@ export const historyRename = async (
 };
 
 export const historyDelete = async (convId: string): Promise<Response> => {
-  const endpoint = `/historyfab/delete`;
+  const endpoint = `/history/delete`;
   
   try {
     const response = await httpClient.delete(endpoint, {
@@ -261,7 +261,7 @@ export const historyDelete = async (convId: string): Promise<Response> => {
 };
 
 export const historyDeleteAll = async (): Promise<Response> => {
-  const endpoint = `/historyfab/delete_all`;
+  const endpoint = `/history/delete_all`;
   
   try {
     const response = await httpClient.delete(endpoint, {
