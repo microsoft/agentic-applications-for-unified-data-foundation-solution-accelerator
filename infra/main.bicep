@@ -20,7 +20,7 @@ param createdBy string = contains(deployer(), 'userPrincipalName')? split(deploy
   'python'
   'dotnet'
 ])
-param backendRuntimeStack string
+param backendRuntimeStack string = 'python'
 
 @minLength(1)
 @description('Industry use case for deployment:')
@@ -28,7 +28,7 @@ param backendRuntimeStack string
   'Retail-sales-analysis'
   'Insurance-improve-customer-meetings'
 ])
-param usecase string 
+param usecase string = 'Retail-sales-analysis'
 
 // @minLength(1)
 // @description('Location for the Content Understanding service deployment:')
