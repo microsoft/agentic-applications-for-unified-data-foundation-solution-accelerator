@@ -1,0 +1,61 @@
+{
+  "name": "Network Management",
+  "description": "Tracking outages and managing customer impacts",
+  "tables": {
+    "network_outages": {
+      "columns": [
+        {
+          "name": "outage_id",
+          "type": "String"
+        },
+        {
+          "name": "outage_start",
+          "type": "DateTime"
+        },
+        {
+          "name": "duration_minutes",
+          "type": "BigInt"
+        },
+        {
+          "name": "impact_level",
+          "type": "String"
+        }
+      ],
+      "key": "outage_id"
+    },
+    "trouble_tickets": {
+      "columns": [
+        {
+          "name": "ticket_id",
+          "type": "String"
+        },
+        {
+          "name": "ticket_created",
+          "type": "Date"
+        },
+        {
+          "name": "resolution_time",
+          "type": "BigInt"
+        },
+        {
+          "name": "outage_id",
+          "type": "String"
+        },
+        {
+          "name": "customer_impact",
+          "type": "String"
+        }
+      ],
+      "key": "ticket_id"
+    }
+  },
+  "relationships": [
+    {
+      "name": "ticket_outage",
+      "from": "trouble_tickets",
+      "to": "network_outages",
+      "fromKey": "outage_id",
+      "toKey": "outage_id"
+    }
+  ]
+}

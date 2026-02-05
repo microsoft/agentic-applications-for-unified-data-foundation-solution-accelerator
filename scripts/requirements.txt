@@ -1,0 +1,36 @@
+# Fabric Ontology Lab - Requirements
+# Install with: pip install -r scripts/requirements.txt
+# Versions locked for workshop consistency (February 2026)
+
+# Azure Authentication
+azure-identity==1.23.0
+
+# Azure AI Foundry SDK
+azure-ai-projects==2.0.0b2
+
+# Azure Storage (OneLake uploads)
+azure-storage-file-datalake==12.20.0
+
+# HTTP requests (Fabric REST API)
+requests==2.32.5
+
+# Data generation (AI-generated scripts use these)
+pandas==2.3.0
+
+# PDF generation (unstructured data for AI Search)
+fpdf2==2.8.5
+
+# PDF reading (for AI Search upload)
+pypdf==5.6.0
+
+# Azure AI Search
+azure-search-documents==11.6.0
+
+# OpenAI SDK (for embeddings)
+openai==2.8.1
+
+# SQL connectivity (pyodbc agent)
+pyodbc==5.2.0
+
+# Environment variables
+python-dotenv==1.1.0
