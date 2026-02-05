@@ -11,6 +11,7 @@ aiSearchName="$3"
 aiProjectEndpoint="$4"
 openaiEndpoint="$5"
 embeddingModel="$6"
+indexName="$7"
 
 # Get parameters from azd env, if not provided
 if [ -z "$resourceGroupName" ]; then
@@ -35,6 +36,14 @@ fi
 
 if [ -z "$embeddingModel" ]; then
     embeddingModel=$(azd env get-value AZURE_OPENAI_EMBEDDING_MODEL)
+fi
+
+if [ -z "$indexName" ]; then
+    indexName=$(azd env get-value AZURE_AI_SEARCH_INDEX)
+fi
+
+if [ -z "$indexName" ]; then
+    indexName="knowledge_index"
 fi
 
 # Check if all required arguments are provided
@@ -91,7 +100,8 @@ error_flag=false
 python "$SCRIPT_DIR/01_create_search_index.py" \
     --search_endpoint="$searchEndpoint" \
     --openai_endpoint="$openaiEndpoint" \
-    --embedding_model="$embeddingModel"
+    --embedding_model="$embeddingModel" \
+    --index_name="$indexName"
 
 if [ $? -ne 0 ]; then
     error_flag=true
@@ -101,6 +111,7 @@ python "$SCRIPT_DIR/02_upload_documents.py" \
     --search_endpoint="$searchEndpoint" \
     --ai_project_endpoint="$aiProjectEndpoint" \
     --embedding_model="$embeddingModel" \
+    --index_name="$indexName" \
     --data_folder="data/default/documents"
 
 if [ $? -ne 0 ]; then

@@ -279,7 +279,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (deployApp && backendRu
       SQLDB_USER_MID: isWorkShopDeployment ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
       AZURE_AI_SEARCH_ENDPOINT: isWorkShopDeployment ? aifoundry.outputs.aiSearchTarget : ''
-      AZURE_AI_SEARCH_INDEX: isWorkShopDeployment ? 'call_transcripts_index' : ''
+      AZURE_AI_SEARCH_INDEX: isWorkShopDeployment ? 'knowledge_index' : ''
       AZURE_AI_SEARCH_CONNECTION_NAME: isWorkShopDeployment ? aifoundry.outputs.aiSearchConnectionName : ''
 
       USE_AI_PROJECT_CLIENT: 'True'
@@ -432,7 +432,7 @@ output AI_FOUNDRY_RESOURCE_ID string = aifoundry.outputs.aiFoundryResourceId
 output BACKEND_RUNTIME_STACK string = backendRuntimeStack
 output USE_CASE string = usecase
 output AZURE_AI_SEARCH_ENDPOINT string = isWorkShopDeployment ? aifoundry.outputs.aiSearchTarget : ''
-output AZURE_AI_SEARCH_INDEX string = isWorkShopDeployment ? 'call_transcripts_index' : ''
+output AZURE_AI_SEARCH_INDEX string = isWorkShopDeployment ? 'knowledge_index' : ''
 output AZURE_AI_SEARCH_NAME string = isWorkShopDeployment ? aifoundry.outputs.aiSearchName : ''
 output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkShopDeployment ? aifoundry.outputs.aiSearchConnectionName : ''
 output AZURE_AI_PROJECT_ENDPOINT string = aifoundry.outputs.projectEndpoint

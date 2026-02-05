@@ -30,6 +30,7 @@ p = argparse.ArgumentParser()
 p.add_argument("--search_endpoint", required=True, help="Azure AI Search endpoint")
 p.add_argument("--ai_project_endpoint", required=True, help="Azure AI Project endpoint")
 p.add_argument("--embedding_model", required=True, help="Embedding model deployment name")
+p.add_argument("--index_name", default="knowledge_index", help="Search index name")
 p.add_argument("--data_folder", default="data/default/documents", help="Folder containing PDF files")
 p.add_argument("--chunk_size", type=int, default=1024, help="Maximum chunk size in tokens")
 args = p.parse_args()
@@ -37,10 +38,9 @@ args = p.parse_args()
 SEARCH_ENDPOINT = args.search_endpoint
 AI_PROJECT_ENDPOINT = args.ai_project_endpoint
 EMBEDDING_MODEL = args.embedding_model
+INDEX_NAME = args.index_name
 DATA_FOLDER = args.data_folder
 CHUNK_SIZE = args.chunk_size
-
-INDEX_NAME = "call_transcripts_index"
 
 # ============================================================================
 # PDF Processing

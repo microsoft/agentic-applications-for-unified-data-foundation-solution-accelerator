@@ -39,13 +39,13 @@ p = argparse.ArgumentParser()
 p.add_argument("--search_endpoint", required=True, help="Azure AI Search endpoint")
 p.add_argument("--openai_endpoint", required=True, help="Azure OpenAI endpoint")
 p.add_argument("--embedding_model", required=True, help="Embedding model deployment name")
+p.add_argument("--index_name", default="knowledge_index", help="Search index name")
 args = p.parse_args()
 
 SEARCH_ENDPOINT = args.search_endpoint
 OPENAI_ENDPOINT = args.openai_endpoint
 EMBEDDING_MODEL = args.embedding_model
-
-INDEX_NAME = "call_transcripts_index"
+INDEX_NAME = args.index_name
 
 # Embedding dimensions by model
 EMBEDDING_DIMENSIONS = {
