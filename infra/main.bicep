@@ -89,10 +89,13 @@ param embeddingDeploymentCapacity int = 80
 param imageTag string = 'latest_v2'
 
 @description('Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app.')
-param deployApp bool = true
+param deployApp bool = false
 
 @description('Set to true for workshop deployment with sample data and simplified configuration.')
 param isWorkshop bool = false
+
+// If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
+var shouldDeployApp = !isWorkshop || deployApp
 
 param AZURE_LOCATION string=''
 var solutionLocation = empty(AZURE_LOCATION) ? resourceGroup().location : AZURE_LOCATION
@@ -243,7 +246,7 @@ module sqlDBModule 'deploy_sql_db.bicep' = if(isWorkshop) {
   scope: resourceGroup(resourceGroup().name)
 }
 
-module hostingplan 'deploy_app_service_plan.bicep' = if (deployApp) {
+module hostingplan 'deploy_app_service_plan.bicep' = if (shouldDeployApp) {
   name: 'deploy_app_service_plan'
   params: {
     solutionLocation: solutionLocation
@@ -252,7 +255,7 @@ module hostingplan 'deploy_app_service_plan.bicep' = if (deployApp) {
 }
 
 // ========== Backend Deployment (Python) ========== //
-module backend_docker 'deploy_backend_docker.bicep' = if (deployApp && backendRuntimeStack == 'python') {
+module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
   name: 'deploy_backend_docker'
   params: {
     name: 'api-${solutionPrefix}'
@@ -265,7 +268,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (deployApp && backendRu
     // keyVaultName: kvault.outputs.keyvaultName
     aiServicesName: aifoundry.outputs.aiServicesName
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
-    enableCosmosDb: deployApp && isWorkshop
+    enableCosmosDb: shouldDeployApp && isWorkshop
     // aiSearchName: aifoundry.outputs.aiSearchName 
     appSettings: {
       AZURE_OPENAI_DEPLOYMENT_MODEL: gptModelName
@@ -308,7 +311,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (deployApp && backendRu
 }
 
 // ========== Backend Deployment (C#) ========== //
-module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (deployApp && backendRuntimeStack == 'dotnet') {
+module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
   name: 'deploy_backend_csapi_docker'
   params: {
     name: 'api-cs-${solutionPrefix}'
@@ -363,7 +366,7 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (deployApp 
 
 var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
 
-module frontend_docker 'deploy_frontend_docker.bicep' = if (deployApp) {
+module frontend_docker 'deploy_frontend_docker.bicep' = if (shouldDeployApp) {
   name: 'deploy_frontend_docker'
   params: {
     name: '${abbrs.compute.webApp}${solutionPrefix}'
@@ -388,11 +391,11 @@ output ENVIRONMENT_NAME string = environmentName
 output AZURE_CONTENT_UNDERSTANDING_LOCATION string = contentUnderstandingLocation
 output AZURE_SECONDARY_LOCATION string = secondaryLocation
 //output APPINSIGHTS_INSTRUMENTATIONKEY string = backend_docker.outputs.appInsightInstrumentationKey
-output APPINSIGHTS_INSTRUMENTATIONKEY string = deployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appInsightInstrumentationKey : backend_csapi_docker!.outputs.appInsightInstrumentationKey) : ''
+output APPINSIGHTS_INSTRUMENTATIONKEY string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appInsightInstrumentationKey : backend_csapi_docker!.outputs.appInsightInstrumentationKey) : ''
 output AZURE_AI_PROJECT_CONN_STRING string = aifoundry.outputs.projectEndpoint
 output AZURE_AI_AGENT_API_VERSION string = azureAiAgentApiVersion
 output AZURE_AI_PROJECT_NAME string = aifoundry.outputs.aiProjectName
-output AZURE_COSMOSDB_ACCOUNT string = deployApp && isWorkshop ? cosmosDBModule!.outputs.cosmosAccountName : ''
+output AZURE_COSMOSDB_ACCOUNT string = shouldDeployApp && isWorkshop ? cosmosDBModule!.outputs.cosmosAccountName : ''
 output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = isWorkshop ? 'conversations' : ''
 output AZURE_COSMOSDB_DATABASE string = isWorkshop ? 'db_conversation_history' : ''
 output AZURE_COSMOSDB_ENABLE_FEEDBACK string = isWorkshop ? 'True' : ''
@@ -405,7 +408,7 @@ output AZURE_OPENAI_EMBEDDING_MODEL string = embeddingModel
 output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
 output AZURE_OPENAI_RESOURCE string = aifoundry.outputs.aiServicesName
 //output REACT_APP_LAYOUT_CONFIG string = backend_docker.outputs.reactAppLayoutConfig
-output REACT_APP_LAYOUT_CONFIG string = deployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.reactAppLayoutConfig : backend_csapi_docker!.outputs.reactAppLayoutConfig) : ''
+output REACT_APP_LAYOUT_CONFIG string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.reactAppLayoutConfig : backend_csapi_docker!.outputs.reactAppLayoutConfig) : ''
 output SQLDB_DATABASE string = isWorkshop ? sqlDBModule!.outputs.sqlDbName : ''
 output SQLDB_SERVER string = isWorkshop ? sqlDBModule!.outputs.sqlServerName : ''
 output SQLDB_USER_MID string = isWorkshop ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
@@ -420,12 +423,12 @@ output AZURE_ENV_IMAGETAG string = imageTag
 
 output AI_SERVICE_NAME string = aifoundry.outputs.aiServicesName
 //output API_APP_NAME string = backend_docker.outputs.appName
-output API_APP_NAME string = deployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appName : backend_csapi_docker!.outputs.appName) : ''
+output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appName : backend_csapi_docker!.outputs.appName) : ''
 output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.objectId
 output MID_DISPLAY_NAME string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.name
 //output API_APP_URL string = backend_docker.outputs.appUrl
-output API_APP_URL string = deployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl) : ''
-output WEB_APP_URL string = deployApp ? frontend_docker!.outputs.appUrl : ''
+output API_APP_URL string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl) : ''
+output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : ''
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = aifoundry.outputs.applicationInsightsConnectionString
 output AGENT_NAME_CHAT string = ''
 output AGENT_NAME_TITLE string = ''

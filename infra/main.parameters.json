@@ -54,7 +54,7 @@
       "value": "${AZURE_ENV_SEARCH_SERVICE_LOCATION}"
     },
     "deployApp": {
-      "value": "${AZURE_ENV_DEPLOY_APP=true}"
+      "value": "${AZURE_ENV_DEPLOY_APP=false}"
     },
     "isWorkshop": {
       "value": "${IS_WORKSHOP=false}"
