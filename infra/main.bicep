@@ -89,7 +89,7 @@ param embeddingDeploymentCapacity int = 80
 param imageTag string = 'latest_v2'
 
 @description('Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app.')
-param deployApp bool = false
+param deployApp bool = true
 
 @description('Set to true for workshop deployment with sample data and simplified configuration.')
 param isWorkshop bool = false
