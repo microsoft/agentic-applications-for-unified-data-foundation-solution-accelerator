@@ -12,6 +12,7 @@ aiProjectEndpoint="$4"
 openaiEndpoint="$5"
 embeddingModel="$6"
 indexName="$7"
+dataFolder="$8"
 
 # Get parameters from azd env, if not provided
 if [ -z "$resourceGroupName" ]; then
@@ -44,6 +45,14 @@ fi
 
 if [ -z "$indexName" ]; then
     indexName="knowledge_index"
+fi
+
+if [ -z "$dataFolder" ]; then
+    dataFolder=$(azd env get-value SEARCH_DATA_FOLDER)
+fi
+
+if [ -z "$dataFolder" ]; then
+    dataFolder="data/default/documents"
 fi
 
 # Check if all required arguments are provided
@@ -112,7 +121,7 @@ python "$SCRIPT_DIR/02_upload_documents.py" \
     --ai_project_endpoint="$aiProjectEndpoint" \
     --embedding_model="$embeddingModel" \
     --index_name="$indexName" \
-    --data_folder="data/default/documents"
+    --data_folder="$dataFolder"
 
 if [ $? -ne 0 ]; then
     error_flag=true
