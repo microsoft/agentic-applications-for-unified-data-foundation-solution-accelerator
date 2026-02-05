@@ -163,8 +163,8 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
             thread_conversation_id = cache.get(conversation_id, None)
             truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
 
-            from history_sql import SqlQueryTool, get_fabric_db_connection
-            db_connection = await get_fabric_db_connection()
+            from history_sql import SqlQueryTool, get_db_connection
+            db_connection = await get_db_connection()
             if not db_connection:
                 logger.error("Failed to establish database connection")
                 raise Exception("Database connection failed")

@@ -19,11 +19,18 @@ hooks:
         Write-Host "Web app URL: "
         Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
 
-        # Build the exact command string (quoted to survive spaces)
-        Write-Host "`nRun the following 2 commands in the bash terminal to create agents and fabric items respectively:"
+        Write-Host "`nRun the following commands in the bash terminal:"
+        Write-Host "1. Create agents:"
         Write-Host "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
 
-        Write-Host "`nbash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
+        $isWorkshop = $env:IS_WORKSHOP
+        if ($isWorkshop -eq "true") {
+            Write-Host "`n2. Setup workshop data (SQL + Search Index):"
+            Write-Host "bash ./infra/scripts/run_workshop_data_setup.sh" -ForegroundColor Cyan
+        } else {
+            Write-Host "`n2. Create Fabric items:"
+            Write-Host "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
+        }
 
       shell: pwsh
       continueOnError: false
@@ -33,10 +40,19 @@ hooks:
         echo "Web app URL: "
         echo $WEB_APP_URL
         echo ""
-        echo "Run the following 2 commands in the bash terminal to create agents and fabric items respectively:"
+        echo "Run the following commands in the bash terminal:"
+        echo "1. Create agents:"
         echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"
-        echo ""
-        echo "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+
+        if [ "$IS_WORKSHOP" = "true" ]; then
+            echo ""
+            echo "2. Setup workshop data (SQL + Search Index):"
+            echo "bash ./infra/scripts/run_workshop_data_setup.sh"
+        else
+            echo ""
+            echo "2. Create Fabric items:"
+            echo "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+        fi
 
       shell: sh
       continueOnError: false

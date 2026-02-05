@@ -78,7 +78,7 @@ def track_event_if_configured(event_name: str, event_data: dict):
 
 async def get_fabric_db_connection():
     """
-    Get a connection to the SQL database.
+    Get a connection to the Fabric SQL database.
 
     Returns:
         Connection: Database connection object, or None if connection fails.
@@ -138,6 +138,87 @@ async def get_fabric_db_connection():
         return None
 
 
+async def get_azure_sql_connection():
+    """
+    Get a connection to the Azure SQL Server database (for workshop deployment).
+    Uses token-based authentication with fallback to connection string.
+
+    Returns:
+        Connection: Database connection object, or None if connection fails.
+    """
+    database = os.getenv("SQLDB_DATABASE")
+    server = os.getenv("SQLDB_SERVER")
+    mid_id = os.getenv("SQLDB_USER_MID", os.getenv("API_UID", ""))
+
+    credential = None
+    try:
+        credential = await get_azure_credential_async(client_id=mid_id)
+        token = await credential.get_token("https://database.windows.net/.default")
+        token_bytes = token.token.encode("utf-16-LE")
+        token_struct = struct.pack(
+            f"<I{len(token_bytes)}s",
+            len(token_bytes),
+            token_bytes
+        )
+        SQL_COPT_SS_ACCESS_TOKEN = 1256
+
+        # Try both ODBC Driver 18 and 17
+        conn = None
+        for driver in ["{ODBC Driver 18 for SQL Server}", "{ODBC Driver 17 for SQL Server}"]:
+            try:
+                connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};"
+                conn = pyodbc.connect(
+                    connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct}
+                )
+                logging.info("AZURE-SQL: Connected using Azure Credential with %s", driver)
+                return conn
+            except pyodbc.Error as e:
+                logging.info("AZURE-SQL: Failed with %s: %s", driver, str(e))
+                continue
+
+        if conn is None:
+            logging.error("AZURE-SQL: Unable to connect using ODBC Driver 18 or 17 with Azure Credential")
+            return None
+    except Exception as e:
+        logging.error("AZURE-SQL: Failed with Azure Credential: %s", str(e))
+        # Fallback to ActiveDirectoryMSI connection string
+        for driver in ["{ODBC Driver 18 for SQL Server}", "{ODBC Driver 17 for SQL Server}"]:
+            try:
+                connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};UID={mid_id};Authentication=ActiveDirectoryMSI"
+                conn = pyodbc.connect(connection_string)
+                logging.info("AZURE-SQL: Connected using ActiveDirectoryMSI with %s", driver)
+                return conn
+            except pyodbc.Error as e:
+                logging.info("AZURE-SQL: MSI fallback failed with %s: %s", driver, str(e))
+                continue
+
+        logging.error("AZURE-SQL: Unable to connect using any method")
+        return None
+    finally:
+        if credential and hasattr(credential, "close"):
+            await credential.close()
+
+
+async def get_db_connection():
+    """
+    Get a database connection based on deployment mode.
+    
+    When IS_WORKSHOP is true, uses Azure SQL Server.
+    When IS_WORKSHOP is false or not set, uses Fabric SQL.
+
+    Returns:
+        Connection: Database connection object, or None if connection fails.
+    """
+    is_workshop = os.getenv("IS_WORKSHOP", "false").lower() == "true"
+    
+    if is_workshop:
+        logging.info("Workshop deployment mode: Using Azure SQL Server")
+        return await get_azure_sql_connection()
+    else:
+        logging.info("Standard deployment mode: Using Fabric SQL")
+        return await get_fabric_db_connection()
+
+
 async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     """
     Execute a SQL non-query operation like DELETE, INSERT, or UPDATE.
@@ -149,7 +230,10 @@ async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     Returns:
         bool: True if the operation was successful, False otherwise.
     """
-    conn = await get_fabric_db_connection()
+    conn = await get_db_connection()
+    if conn is None:
+        logging.error("Failed to establish database connection")
+        return False
     cursor = None
     try:
         cursor = conn.cursor()
@@ -162,7 +246,8 @@ async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     finally:
         if cursor:
             cursor.close()
-        conn.close()
+        if conn:
+            conn.close()
 
 
 async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
@@ -177,7 +262,10 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
         list: List of dictionaries containing query results, or None if an error occurs.
     """
     # Connect to the database
-    conn = await get_fabric_db_connection()
+    conn = await get_db_connection()
+    if conn is None:
+        logging.error("Failed to establish database connection")
+        return None
     cursor = None
     try:
         cursor = conn.cursor()
@@ -202,7 +290,8 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
     finally:
         if cursor:
             cursor.close()
-        conn.close()
+        if conn:
+            conn.close()
 
 
 class SqlQueryTool(BaseModel):

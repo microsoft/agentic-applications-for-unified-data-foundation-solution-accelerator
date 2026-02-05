@@ -89,7 +89,7 @@ param embeddingDeploymentCapacity int = 80
 param imageTag string = 'latest_v2'
 
 @description('Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app.')
-param deployApp bool = true
+param deployApp bool = false
 
 @description('Set to true for workshop deployment with sample data and simplified configuration.')
 param isWorkshop bool = false
@@ -421,7 +421,7 @@ output AI_SERVICE_NAME string = aifoundry.outputs.aiServicesName
 //output API_APP_NAME string = backend_docker.outputs.appName
 output API_APP_NAME string = deployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appName : backend_csapi_docker!.outputs.appName) : ''
 output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.objectId
-
+output MID_DISPLAY_NAME string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.name
 //output API_APP_URL string = backend_docker.outputs.appUrl
 output API_APP_URL string = deployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl) : ''
 output WEB_APP_URL string = deployApp ? frontend_docker!.outputs.appUrl : ''
@@ -439,5 +439,7 @@ output USE_CASE string = usecase
 output AZURE_AI_SEARCH_ENDPOINT string = isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
 output AZURE_AI_SEARCH_INDEX string = isWorkshop ? 'knowledge_index' : ''
 output AZURE_AI_SEARCH_NAME string = isWorkshop ? aifoundry.outputs.aiSearchName : ''
+output SEARCH_DATA_FOLDER string = isWorkshop ? 'data/default/documents' : ''
 output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
 output AZURE_AI_PROJECT_ENDPOINT string = aifoundry.outputs.projectEndpoint
+output IS_WORKSHOP bool = isWorkshop
