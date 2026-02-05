@@ -10,7 +10,7 @@ requiredVersions:
   azd: ">= 1.15.0"
 
 metadata:
-  template: agentic-applications-for-unified-data-foundation@1.0
+  template: agentic-applications-for-unified-data-foundation@1.1
 
 hooks:
   postprovision:
@@ -19,11 +19,27 @@ hooks:
         Write-Host "Web app URL: "
         Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
 
-        # Build the exact command string (quoted to survive spaces)
-        Write-Host "`nRun the following 2 commands in the bash terminal to create agents and fabric items respectively:"
-        Write-Host "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
+        $isWorkshop = $env:IS_WORKSHOP
+        if ($isWorkshop -eq "true") {
+            Write-Host "`n=== Run each command one at a time, waiting for completion before proceeding ===" -ForegroundColor Yellow
+            Write-Host "`n1. Setup Python environment:"
+            Write-Host "   cd scripts" -ForegroundColor Cyan
+            Write-Host "   python -m venv .venv" -ForegroundColor Cyan
+            Write-Host "   .venv\Scripts\activate" -ForegroundColor Cyan
+            Write-Host "   pip install uv && uv pip install -r requirements.txt" -ForegroundColor Cyan
 
-        Write-Host "`nbash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
+            Write-Host "`n2. Build solution (data processing and agent creation):"
+            Write-Host "   python scripts/00_build_solution.py --from 02" -ForegroundColor Cyan
+
+            Write-Host "`nFor full instructions, see: https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/01-deploy/03-configure/" -ForegroundColor Gray
+        } else {
+            Write-Host "`nRun the following commands in the bash terminal:"
+            Write-Host "1. Create agents:"
+            Write-Host "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
+
+            Write-Host "`n2. Create Fabric items:"
+            Write-Host "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
+        }
 
       shell: pwsh
       continueOnError: false
@@ -33,10 +49,31 @@ hooks:
         echo "Web app URL: "
         echo $WEB_APP_URL
         echo ""
-        echo "Run the following 2 commands in the bash terminal to create agents and fabric items respectively:"
-        echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"
-        echo ""
-        echo "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+
+        if [ "$IS_WORKSHOP" = "true" ]; then
+            echo ""
+            echo "=== Run each command one at a time, waiting for completion before proceeding ==="
+            echo ""
+            echo "1. Setup Python environment:"
+            echo "   cd scripts"
+            echo "   python -m venv .venv"
+            echo "   source .venv/bin/activate"
+            echo "   pip install uv && uv pip install -r requirements.txt"
+
+            echo ""
+            echo "2. Build solution (data processing and agent creation):"
+            echo "   python scripts/00_build_solution.py --from 02"
+
+            echo ""
+            echo "For full instructions, see: https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/01-deploy/03-configure/"
+        else
+            echo "Run the following commands in the bash terminal:"
+            echo "1. Create agents:"
+            echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"
+            echo ""
+            echo "2. Create Fabric items:"
+            echo "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+        fi
 
       shell: sh
       continueOnError: false
