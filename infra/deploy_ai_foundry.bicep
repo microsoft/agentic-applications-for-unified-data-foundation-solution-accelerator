@@ -1,19 +1,51 @@
 // Creates Azure dependent resources for Azure AI studio
+
+@description('The name of the solution, used as a base for naming all resources.')
 param solutionName string
+
+@description('The Azure region where resources will be deployed.')
 param solutionLocation string
+
+@description('The deployment type for the GPT model (e.g., Standard, GlobalStandard).')
 param deploymentType string
+
+@description('The name of the GPT model to deploy (e.g., gpt-4o, gpt-4).')
 param gptModelName string
+
+@description('The version of the GPT model to deploy.')
 param gptModelVersion string
+
 // param azureOpenAIApiVersion string
+
+@description('The capacity (in thousands of tokens per minute) for the GPT model deployment.')
 param gptDeploymentCapacity int
+
+@description('The name of the embedding model to deploy.')
 param embeddingModel string
+
+@description('The capacity for the embedding model deployment.')
 param embeddingDeploymentCapacity int
-param managedIdentityObjectId string=''
+
+@description('The object ID of the managed identity to assign roles to.')
+param managedIdentityObjectId string = ''
+
+@description('The resource ID of an existing Log Analytics workspace. If empty, a new one will be created.')
 param existingLogAnalyticsWorkspaceId string = ''
+
+@description('The resource ID of an existing Azure AI Foundry project. If provided, the existing project will be used instead of creating a new one.')
 param azureExistingAIProjectResourceId string = ''
+
+@description('The principal ID of the user deploying the solution, used for role assignments.')
 param deployingUserPrincipalId string = ''
+
+@description('Tags to apply to all resources.')
 param tags object = {}
-param isWorkShopDeployment bool = false
+
+@description('Location for AI services deployment. This is the location where the Search service resource will be deployed.')
+param searchServiceLocation string = resourceGroup().location
+
+@description('When true, deploys additional resources for workshop scenarios including AI Search and Storage.')
+param isWorkshop bool = false
 
 var abbrs = loadJsonContent('./abbreviations.json')
 var aiServicesName = '${abbrs.ai.aiServices}${solutionName}'
@@ -36,7 +68,7 @@ var aiModelDeployments = concat([
     version: gptModelVersion
     raiPolicyName: 'Microsoft.Default'
   }
-], isWorkShopDeployment ? [
+], isWorkshop ? [
   {
     name: embeddingModel
     model: embeddingModel
@@ -90,7 +122,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
 }
 
 // Storage Account
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if(isWorkShopDeployment) {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if(isWorkshop) {
   name: storageName
   location: location
   tags: tags
@@ -106,7 +138,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if(isWo
 }
 
 // Blob Service
-resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = if(isWorkShopDeployment) {
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = if(isWorkshop) {
   parent: storageAccount
   name: 'default'
 }
@@ -160,9 +192,9 @@ resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments
   }
 }]
 
-resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' = if(isWorkShopDeployment) {
+resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' = if(isWorkshop) {
   name: aiSearchName
-  location: solutionLocation
+  location: searchServiceLocation
   sku: {
     name: 'basic'
   }
@@ -197,7 +229,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-pre
 }
 
 // Connect AI Search to Project
-resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (empty(azureExistingAIProjectResourceId) && isWorkShopDeployment) {
+resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (empty(azureExistingAIProjectResourceId) && isWorkshop) {
   parent: aiProject
   name: 'search-connection'
   properties: {
@@ -287,7 +319,7 @@ module assignFoundryRoleToMIExisting 'deploy_foundry_role_assignment.bicep' = if
   }
 }
 
-resource assignOpenAIRoleToAISearch 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkShopDeployment)  {
+resource assignOpenAIRoleToAISearch 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkshop)  {
   name: guid(resourceGroup().id, aiServices.id, cognitiveServicesOpenAIUser.id)
   scope: aiServices
   properties: {
@@ -297,7 +329,7 @@ resource assignOpenAIRoleToAISearch 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
-module existingOpenAiProject 'deploy_foundry_role_assignment.bicep' = if (!empty(azureExistingAIProjectResourceId) && isWorkShopDeployment) {
+module existingOpenAiProject 'deploy_foundry_role_assignment.bicep' = if (!empty(azureExistingAIProjectResourceId) && isWorkshop) {
   name: 'assignOpenAIRoleToAISearchExisting'
   scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
   params: {
@@ -310,7 +342,7 @@ module existingOpenAiProject 'deploy_foundry_role_assignment.bicep' = if (!empty
   }
 }
 
-resource assignSearchIndexDataReaderToAiProject 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkShopDeployment) {
+resource assignSearchIndexDataReaderToAiProject 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkshop) {
   name: guid(resourceGroup().id, aiProject.id, searchIndexDataReader.id)
   scope: aiSearch
   properties: {
@@ -320,7 +352,7 @@ resource assignSearchIndexDataReaderToAiProject 'Microsoft.Authorization/roleAss
   }
 }
 
-resource assignSearchIndexDataReaderToExistingAiProject 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azureExistingAIProjectResourceId) && isWorkShopDeployment) {
+resource assignSearchIndexDataReaderToExistingAiProject 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azureExistingAIProjectResourceId) && isWorkshop) {
   name: guid(resourceGroup().id, existingAIProjectName, searchIndexDataReader.id, 'Existing')
   scope: aiSearch
   properties: {
@@ -330,7 +362,7 @@ resource assignSearchIndexDataReaderToExistingAiProject 'Microsoft.Authorization
   }
 }
 
-resource assignSearchServiceContributorToAiProject 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkShopDeployment) {
+resource assignSearchServiceContributorToAiProject 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkshop) {
   name: guid(resourceGroup().id, aiProject.id, searchServiceContributor.id)
   scope: aiSearch
   properties: {
@@ -340,7 +372,7 @@ resource assignSearchServiceContributorToAiProject 'Microsoft.Authorization/role
   }
 }
 
-resource assignSearchServiceContributorToExistingAiProject 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azureExistingAIProjectResourceId) && isWorkShopDeployment) {
+resource assignSearchServiceContributorToExistingAiProject 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azureExistingAIProjectResourceId) && isWorkshop) {
   name: guid(resourceGroup().id, existingAIProjectName, searchServiceContributor.id, 'Existing')
   scope: aiSearch
   properties: {
@@ -350,7 +382,7 @@ resource assignSearchServiceContributorToExistingAiProject 'Microsoft.Authorizat
   }
 }
 
-resource assignSearchIndexDataContributorToMI 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkShopDeployment) {
+resource assignSearchIndexDataContributorToMI 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkshop) {
   name: guid(resourceGroup().id, aiProject.id, searchIndexDataContributor.id)
   scope: aiSearch
   properties: {
@@ -372,7 +404,7 @@ resource storageBlobDataReader 'Microsoft.Authorization/roleDefinitions@2022-04-
 }
 
 // Grant AI Project identity access to Storage
-resource projectStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkShopDeployment) {
+resource projectStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkshop) {
   scope: storageAccount
   name: guid(storageAccount.id, aiProject.id, storageBlobDataContributor.id)
   properties: {
@@ -382,7 +414,7 @@ resource projectStorageBlobContributor 'Microsoft.Authorization/roleAssignments@
   }
 }
 
-resource existingProjectStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azureExistingAIProjectResourceId) && isWorkShopDeployment) {
+resource existingProjectStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azureExistingAIProjectResourceId) && isWorkshop) {
   scope: storageAccount
   name: guid(storageAccount.id, existingAIProjectName, storageBlobDataContributor.id)
   properties: {
@@ -392,7 +424,7 @@ resource existingProjectStorageBlobContributor 'Microsoft.Authorization/roleAssi
   }
 }
 
-resource projectStorageBlobReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkShopDeployment) {
+resource projectStorageBlobReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId) && isWorkshop) {
   scope: storageAccount
   name: guid(storageAccount.id, aiProject.id, storageBlobDataReader.id)
   properties: {
@@ -402,7 +434,7 @@ resource projectStorageBlobReader 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-resource existingProjectStorageBlobReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azureExistingAIProjectResourceId) && isWorkShopDeployment) {
+resource existingProjectStorageBlobReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(azureExistingAIProjectResourceId) && isWorkshop) {
   scope: storageAccount
   name: guid(storageAccount.id, existingAIProjectName, storageBlobDataReader.id)
   properties: {
@@ -413,7 +445,7 @@ resource existingProjectStorageBlobReader 'Microsoft.Authorization/roleAssignmen
 }
 
 // Grant AI Search identity access to Storage (for indexers)
-resource searchStorageBlobDataReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (isWorkShopDeployment) {
+resource searchStorageBlobDataReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (isWorkshop) {
   scope: storageAccount
   name: guid(storageAccount.id, aiSearch.id, storageBlobDataReader.id)
   properties: {
@@ -424,7 +456,7 @@ resource searchStorageBlobDataReader 'Microsoft.Authorization/roleAssignments@20
 }
 
 // Default container for AI Foundry
-resource defaultContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = if (isWorkShopDeployment) {
+resource defaultContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = if (isWorkshop) {
   parent: blobService
   name: 'default'
   properties: {
@@ -433,7 +465,7 @@ resource defaultContainer 'Microsoft.Storage/storageAccounts/blobServices/contai
 }
 
 // Connect Storage to Project
-resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (isWorkShopDeployment) {
+resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (isWorkshop) {
   parent: aiProject
   name: 'storage-connection'
   properties: {
@@ -479,7 +511,7 @@ resource userAzureAIAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' 
 }
 
 // Grant deploying user access to AI Search
-resource userSearchIndexContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (isWorkShopDeployment) {
+resource userSearchIndexContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (isWorkshop) {
   scope: aiSearch
   name: guid(aiSearch.id, deployingUserPrincipalId, searchIndexDataContributor.id)
   properties: {
@@ -489,7 +521,7 @@ resource userSearchIndexContributor 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
-resource userSearchServiceContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (isWorkShopDeployment) {
+resource userSearchServiceContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (isWorkshop) {
   scope: aiSearch
   name: guid(aiSearch.id, deployingUserPrincipalId, searchServiceContributor.id)
   properties: {
@@ -500,7 +532,7 @@ resource userSearchServiceContributor 'Microsoft.Authorization/roleAssignments@2
 }
 
 // Grant deploying user access to Storage
-resource userStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (isWorkShopDeployment) {
+resource userStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (isWorkshop) {
   scope: storageAccount
   name: guid(storageAccount.id, deployingUserPrincipalId, storageBlobDataContributor.id)
   properties: {
@@ -513,12 +545,12 @@ resource userStorageBlobContributor 'Microsoft.Authorization/roleAssignments@202
 output aiServicesTarget string = !empty(existingOpenAIEndpoint) ? existingOpenAIEndpoint : aiServices.properties.endpoints['OpenAI Language Model Instance API'] //aiServices_m.properties.endpoint
 output aiServicesName string = !empty(existingAIServicesName) ? existingAIServicesName : aiServicesName
 
-output aiSearchName string = isWorkShopDeployment ? aiSearchName : ''
-output aiSearchId string = isWorkShopDeployment ? aiSearch.id : ''
-output aiSearchTarget string = isWorkShopDeployment ? 'https://${aiSearch.name}.search.windows.net' : ''
-output aiSearchService string = isWorkShopDeployment ? aiSearch.name : ''
+output aiSearchName string = isWorkshop ? aiSearchName : ''
+output aiSearchId string = isWorkshop ? aiSearch.id : ''
+output aiSearchTarget string = isWorkshop ? 'https://${aiSearch.name}.search.windows.net' : ''
+output aiSearchService string = isWorkshop ? aiSearch.name : ''
 output aiProjectName string = !empty(existingAIProjectName) ? existingAIProjectName : aiProject.name
-output aiSearchConnectionName string = isWorkShopDeployment ? aiSearchConnectionName : ''
+output aiSearchConnectionName string = isWorkshop ? aiSearchConnectionName : ''
 
 output applicationInsightsId string = applicationInsights.id
 output logAnalyticsWorkspaceResourceName string = useExisting ? existingLogAnalyticsWorkspace.name : logAnalytics.name
