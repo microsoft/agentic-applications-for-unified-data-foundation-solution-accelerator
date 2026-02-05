@@ -51,7 +51,7 @@
       "value": "${AZURE_ENV_USE_CASE}"
     },
     "deployApp": {
-      "value": "${AZURE_ENV_DEPLOY_APP=false}"
+      "value": "${AZURE_ENV_DEPLOY_APP=true}"
     }
   }
 }
