@@ -49,6 +49,15 @@
     },
     "usecase": {
       "value": "${AZURE_ENV_USE_CASE}"
+    },
+    "searchServiceLocation": {
+      "value": "${AZURE_ENV_SEARCH_SERVICE_LOCATION}"
+    },
+    "deployApp": {
+      "value": "${AZURE_ENV_DEPLOY_APP=true}"
+    },
+    "isWorkshop": {
+      "value": "${IS_WORKSHOP=false}"
     }
   }
 }

@@ -3,7 +3,7 @@ param solutionLocation string
 param managedIdentityName string
 param serverName string
 param sqlDBName string
-param sqlUsers array = []
+// param sqlUsers array = []
 
 var location = solutionLocation
 
@@ -68,20 +68,20 @@ resource sqlDB 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   }
 }
 
-module sqluser 'create-sql-user-and-role.bicep' = [
-  for user in sqlUsers: {
-    name: 'sqluser-${guid(solutionLocation, user.principalId, user.principalName, sqlDB.name, sqlServer.name)}'
-    params: {
-      managedIdentityName: managedIdentityName
-      location: solutionLocation
-      sqlDatabaseName: sqlDB.name
-      sqlServerName: sqlServer.name
-      principalId: user.principalId
-      principalName: user.principalName
-      databaseRoles: user.databaseRoles
-    }
-  }
-]
+// module sqluser 'create-sql-user-and-role.bicep' = [
+//   for user in sqlUsers: {
+//     name: 'sqluser-${guid(solutionLocation, user.principalId, user.principalName, sqlDB.name, sqlServer.name)}'
+//     params: {
+//       managedIdentityName: managedIdentityName
+//       location: solutionLocation
+//       sqlDatabaseName: sqlDB.name
+//       sqlServerName: sqlServer.name
+//       principalId: user.principalId
+//       principalName: user.principalName
+//       databaseRoles: user.databaseRoles
+//     }
+//   }
+// ]
 
 // resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
 //   name: keyVaultName

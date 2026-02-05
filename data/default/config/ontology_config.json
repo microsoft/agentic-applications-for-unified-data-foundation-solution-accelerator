@@ -1,0 +1,50 @@
+{
+    "scenario": "telecommunications",
+    "name": "Network Management",
+    "description": "Tracking outages and managing customer impacts",
+    "tables": {
+        "network_outages": {
+            "columns": [
+                "outage_id",
+                "outage_start",
+                "duration_minutes",
+                "impact_level"
+            ],
+            "types": {
+                "outage_id": "String",
+                "outage_start": "DateTime",
+                "duration_minutes": "BigInt",
+                "impact_level": "String"
+            },
+            "key": "outage_id",
+            "source_table": "network_outages"
+        },
+        "trouble_tickets": {
+            "columns": [
+                "ticket_id",
+                "ticket_created",
+                "resolution_time",
+                "outage_id",
+                "customer_impact"
+            ],
+            "types": {
+                "ticket_id": "String",
+                "ticket_created": "Date",
+                "resolution_time": "BigInt",
+                "outage_id": "String",
+                "customer_impact": "String"
+            },
+            "key": "ticket_id",
+            "source_table": "trouble_tickets"
+        }
+    },
+    "relationships": [
+        {
+            "name": "ticket_outage",
+            "from": "trouble_tickets",
+            "to": "network_outages",
+            "fromKey": "outage_id",
+            "toKey": "outage_id"
+        }
+    ]
+}
