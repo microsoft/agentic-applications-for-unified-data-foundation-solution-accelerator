@@ -1,0 +1,20 @@
+=== SQL QUESTIONS (Fabric Data) ===
+- How many outages occurred last month?
+- What is the average duration of outages?
+- Which outage caused the most customer impact?
+- How many trouble tickets were created for each outage?
+- What is the average resolution time for tickets?
+
+=== DOCUMENT QUESTIONS (AI Search) ===
+- What are the policies for notifying customers of outages?
+- How is customer impact classified in our documentation?
+- What is the response time required for outages?
+- What steps must be taken to escalate an outage?
+- How often should outage reports be generated?
+
+=== COMBINED INSIGHT QUESTIONS ===
+- Which outages exceeded the maximum duration defined in our policy?
+- What percentage of tickets were resolved in less time than our SLA?
+- How many outages were rated as 'High' impact based on our threshold?
+- Which tickets experienced delays longer than our expected resolution times?
+- What was the average customer impact during the last 30 days compared to policy standards?

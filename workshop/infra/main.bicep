@@ -425,3 +425,5 @@ output MANAGED_IDENTITY_CLIENT_ID string = managedIdentityModule.outputs.managed
 output AI_FOUNDRY_RESOURCE_ID string = aifoundry.outputs.aiFoundryResourceId
 output BACKEND_RUNTIME_STACK string = backendRuntimeStack
 output USE_CASE string = usecase
+output AZURE_AI_SEARCH_ENDPOINT string = aifoundry.outputs.aiSearchTarget
+output AZURE_AI_PROJECT_ENDPOINT string = aifoundry.outputs.projectEndpoint

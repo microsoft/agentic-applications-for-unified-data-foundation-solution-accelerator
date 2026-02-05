@@ -1,0 +1,12 @@
+=== DATABASE SCHEMA ===
+
+network_outages(outage_id*:str, outage_start:date, duration_minutes:int, impact_level:str)
+trouble_tickets(ticket_id*:str, ticket_created:dat, resolution_time:int, outage_id:str, customer_impact:str)
+
+JOINS:
+  trouble_tickets.outage_id -> network_outages.outage_id
+
+RULES:
+- Use T-SQL syntax
+- Key columns marked with *
+- Types: str=string, int=integer, num=decimal
