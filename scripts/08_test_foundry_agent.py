@@ -124,7 +124,7 @@ print(f"\n{'='*60}")
 if FOUNDRY_ONLY:
     print("AI Agent Chat (Search Only)")
 else:
-    print("Multi-Tool AI Agent Chat")
+    print("Orchestrator Agent Chat")
 print(f"{'='*60}")
 print("Type 'quit' to exit, 'help' for sample questions\n")
 

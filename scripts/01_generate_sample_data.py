@@ -3,7 +3,7 @@
 Uses AI to generate a custom data generation script for ANY industry and use case.
 
 Usage:
-    python 01_generate_sample_data.py --industry "Healthcare" --usecase "Patient appointment scheduling"
+    python 01_generate_sample_data.py --industry "Telecommunications" --usecase "Network outage tracking"
     python 01_generate_sample_data.py  # Interactive mode
 
 The agent will:
@@ -65,11 +65,11 @@ if not industry:
     print("="*60)
     print("\nNo INDUSTRY found in .env or CLI args.\n")
     print("Examples:")
-    print("  Industry: Healthcare")
-    print("  Use Case: Patient appointment scheduling with doctor availability")
+    print("  Industry: Telecommunications")
+    print("  Use Case: Network operations with outage tracking")
     print()
-    print("  Industry: Logistics")
-    print("  Use Case: Fleet management with delivery tracking")
+    print("  Industry: Energy")
+    print("  Use Case: Grid monitoring and outage response")
     print()
     industry = input("Industry: ").strip()
     if not industry:

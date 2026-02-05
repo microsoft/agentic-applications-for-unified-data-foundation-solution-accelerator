@@ -113,7 +113,12 @@ def create_guide():
     pdf.body_text('Then run: python scripts/00_build_solution.py --clean')
     pdf.ln(1)
     
-    pdf.body_text('Sample industries: Healthcare, Insurance, Finance, Retail, Manufacturing, Education')
+    pdf.body_text('Sample industries: Telecommunications, Insurance, Finance, Retail, Manufacturing, Energy')
+    pdf.ln(1)
+    
+    # Troubleshooting
+    pdf.section_title('Troubleshooting')
+    pdf.body_text('Tip: Use GitHub Copilot Chat (Ctrl+I in VS Code) for help with errors.')
     pdf.ln(1)
     
     # Resources

@@ -139,3 +139,4 @@ output appUrl string = appService.outputs.appUrl
 output appName string = name
 output reactAppLayoutConfig string = reactAppLayoutConfig
 output appInsightInstrumentationKey string = reference(applicationInsightsId, '2015-05-01').InstrumentationKey
+output identityPrincipalId string = appService.outputs.identityPrincipalId

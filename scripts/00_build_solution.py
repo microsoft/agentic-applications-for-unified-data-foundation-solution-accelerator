@@ -158,16 +158,16 @@ if "01" in pipeline:
         print(f"  {'Industry':<18} {'Use Case':<40}")
         print("-" * 60)
         samples = [
-            ("Logistics", "Fleet management with delivery tracking"),
-            ("Healthcare", "Patient records and appointment scheduling"),
+            ("Telecommunications", "Network operations and service management"),
             ("Retail", "Inventory management with sales analytics"),
-            ("Finance", "Transaction monitoring and fraud detection"),
             ("Manufacturing", "Production line tracking with quality control"),
+            ("Insurance", "Claims processing and policy management"),
+            ("Finance", "Transaction monitoring and fraud detection"),
+            ("Energy", "Grid monitoring and outage response"),
             ("Education", "Student enrollment and course management"),
             ("Hospitality", "Hotel reservations and guest services"),
+            ("Logistics", "Fleet management with delivery tracking"),
             ("Real Estate", "Property listings and lease management"),
-            ("Insurance", "Claims processing and policy management"),
-            ("Telecommunications", "Customer service and network monitoring"),
         ]
         for ind, uc in samples:
             print(f"  {ind:<18} {uc:<40}")

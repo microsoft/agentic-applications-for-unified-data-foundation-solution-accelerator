@@ -290,7 +290,7 @@ def generate_workshop_guide():
     
     pdf.chapter_title("Orchestration Layer", level=3)
     pdf.bullet_point("**Azure AI Foundry Agent**: Orchestrates tools and generates responses", markdown=True)
-    pdf.bullet_point("**Multi-tool routing**: Determines which source(s) to query", markdown=True)
+    pdf.bullet_point("**Orchestrator Agent**: Determines which source(s) to query", markdown=True)
     pdf.ln(2)
     
     pdf.chapter_title("Data Flow", level=2)
@@ -395,7 +395,7 @@ def generate_workshop_guide():
     pdf.set_text_color(51, 51, 51)
     
     scenarios = [
-        ("Healthcare", "Help staff quickly find patient info and answer policy questions"),
+        ("Telecommunications", "Help support staff find outage info and answer policy questions"),
         ("Finance", "Enable advisors to assess loan eligibility and compliance requirements"),
         ("Education", "Let admins query enrollment data and academic policy questions"),
         ("Manufacturing", "Help technicians find equipment history and maintenance procedures"),
@@ -412,18 +412,18 @@ def generate_workshop_guide():
     pdf.ln(5)
     
     pdf.chapter_title("Step 2: Run with AI Generation", level=2)
-    pdf.body_text("Add the --ai flag to generate custom data:")
+    pdf.body_text("Run the build script with your industry and use case:")
     pdf.code_block(
-        'python scripts/00_build_solution.py --ai \\\n'
+        'python scripts/00_build_solution.py --clean \\\n'
         '    --industry "YOUR_INDUSTRY" \\\n'
         '    --usecase "YOUR_USE_CASE"'
     )
     
-    pdf.body_text("For example, to create a Healthcare patient system:")
+    pdf.body_text("For example, to create an Insurance claims system:")
     pdf.code_block(
-        'python scripts/00_build_solution.py --ai \\\n'
-        '    --industry "Healthcare" \\\n'
-        '    --usecase "Patient records and appointment scheduling"'
+        'python scripts/00_build_solution.py --clean \\\n'
+        '    --industry "Insurance" \\\n'
+        '    --usecase "Claims processing and policy management"'
     )
     
     pdf.info_box(
@@ -534,6 +534,13 @@ def generate_workshop_guide():
     # ========================================================================
     pdf.add_page()
     pdf.chapter_title("8. Troubleshooting")
+    
+    pdf.info_box(
+        "Tip",
+        "Use GitHub Copilot Chat (Ctrl+I in VS Code) for help with errors. "
+        "Copilot can explain error messages and suggest fixes."
+    )
+    pdf.ln(3)
     
     issues = [
         ("Ontology stuck on 'Setting up'",
