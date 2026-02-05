@@ -513,12 +513,12 @@ resource userStorageBlobContributor 'Microsoft.Authorization/roleAssignments@202
 output aiServicesTarget string = !empty(existingOpenAIEndpoint) ? existingOpenAIEndpoint : aiServices.properties.endpoints['OpenAI Language Model Instance API'] //aiServices_m.properties.endpoint
 output aiServicesName string = !empty(existingAIServicesName) ? existingAIServicesName : aiServicesName
 
-output aiSearchName string = aiSearchName
-output aiSearchId string = aiSearch.id
-output aiSearchTarget string = 'https://${aiSearch.name}.search.windows.net'
-output aiSearchService string = aiSearch.name
+output aiSearchName string = isWorkShopDeployment ? aiSearchName : ''
+output aiSearchId string = isWorkShopDeployment ? aiSearch.id : ''
+output aiSearchTarget string = isWorkShopDeployment ? 'https://${aiSearch.name}.search.windows.net' : ''
+output aiSearchService string = isWorkShopDeployment ? aiSearch.name : ''
 output aiProjectName string = !empty(existingAIProjectName) ? existingAIProjectName : aiProject.name
-output aiSearchConnectionName string = aiSearchConnectionName
+output aiSearchConnectionName string = isWorkShopDeployment ? aiSearchConnectionName : ''
 
 output applicationInsightsId string = applicationInsights.id
 output logAnalyticsWorkspaceResourceName string = useExisting ? existingLogAnalyticsWorkspace.name : logAnalytics.name

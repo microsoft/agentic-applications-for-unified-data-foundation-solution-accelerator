@@ -86,9 +86,9 @@ param embeddingDeploymentCapacity int = 80
 param imageTag string = 'latest_v2'
 
 @description('Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app.')
-param deployApp bool = false
+param deployApp bool = true
 
-param isWorkShopDeployment bool = false
+param isWorkShopDeployment bool = true
 
 param AZURE_LOCATION string=''
 var solutionLocation = empty(AZURE_LOCATION) ? resourceGroup().location : AZURE_LOCATION
@@ -278,9 +278,9 @@ module backend_docker 'deploy_backend_docker.bicep' = if (deployApp && backendRu
       SQLDB_SERVER: isWorkShopDeployment ? sqlDBModule!.outputs.sqlServerName : ''
       SQLDB_USER_MID: isWorkShopDeployment ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-      // AZURE_AI_SEARCH_ENDPOINT: '' //aifoundry.outputs.aiSearchTarget
-      // AZURE_AI_SEARCH_INDEX: '' //'call_transcripts_index'
-      // AZURE_AI_SEARCH_CONNECTION_NAME: '' //aifoundry.outputs.aiSearchConnectionName
+      AZURE_AI_SEARCH_ENDPOINT: isWorkShopDeployment ? aifoundry.outputs.aiSearchTarget : ''
+      AZURE_AI_SEARCH_INDEX: isWorkShopDeployment ? 'call_transcripts_index' : ''
+      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkShopDeployment ? aifoundry.outputs.aiSearchConnectionName : ''
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
@@ -333,9 +333,9 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (deployApp 
       // SQLDB_SERVER: '' //sqlDBModule.outputs.sqlServerName
       // SQLDB_USER_MID: '' //managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-      // AZURE_AI_SEARCH_ENDPOINT: '' //aifoundry.outputs.aiSearchTarget
-      // AZURE_AI_SEARCH_INDEX: '' //'call_transcripts_index'
-      // AZURE_AI_SEARCH_CONNECTION_NAME: '' //aifoundry.outputs.aiSearchConnectionName
+      AZURE_AI_SEARCH_ENDPOINT: isWorkShopDeployment ? aifoundry.outputs.aiSearchTarget : ''
+      AZURE_AI_SEARCH_INDEX: isWorkShopDeployment ? 'call_transcripts_index' : ''
+      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkShopDeployment ? aifoundry.outputs.aiSearchConnectionName : ''
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
@@ -394,7 +394,7 @@ output AZURE_OPENAI_DEPLOYMENT_MODEL string = gptModelName
 output AZURE_OPENAI_DEPLOYMENT_MODEL_CAPACITY int = gptDeploymentCapacity
 output AZURE_OPENAI_ENDPOINT string = aifoundry.outputs.aiServicesTarget
 output AZURE_OPENAI_MODEL_DEPLOYMENT_TYPE string = deploymentType
-// output AZURE_OPENAI_EMBEDDING_MODEL string = embeddingModel
+output AZURE_OPENAI_EMBEDDING_MODEL string = embeddingModel
 // output AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY int = embeddingDeploymentCapacity
 output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
 output AZURE_OPENAI_RESOURCE string = aifoundry.outputs.aiServicesName
@@ -431,5 +431,8 @@ output MANAGED_IDENTITY_CLIENT_ID string = managedIdentityModule.outputs.managed
 output AI_FOUNDRY_RESOURCE_ID string = aifoundry.outputs.aiFoundryResourceId
 output BACKEND_RUNTIME_STACK string = backendRuntimeStack
 output USE_CASE string = usecase
-output AZURE_AI_SEARCH_ENDPOINT string = aifoundry.outputs.aiSearchTarget
+output AZURE_AI_SEARCH_ENDPOINT string = isWorkShopDeployment ? aifoundry.outputs.aiSearchTarget : ''
+output AZURE_AI_SEARCH_INDEX string = isWorkShopDeployment ? 'call_transcripts_index' : ''
+output AZURE_AI_SEARCH_NAME string = isWorkShopDeployment ? aifoundry.outputs.aiSearchName : ''
+output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkShopDeployment ? aifoundry.outputs.aiSearchConnectionName : ''
 output AZURE_AI_PROJECT_ENDPOINT string = aifoundry.outputs.projectEndpoint
