@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "9587884114926030723"
+      "templateHash": "6216739118375327137"
     }
   },
   "parameters": {
@@ -160,7 +160,7 @@
     },
     "isWorkshop": {
       "type": "bool",
-      "defaultValue": false,
+      "defaultValue": true,
       "metadata": {
         "description": "Set to true for workshop deployment with sample data and simplified configuration."
       }
