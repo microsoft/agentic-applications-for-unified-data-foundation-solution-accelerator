@@ -79,7 +79,7 @@ def track_event_if_configured(event_name: str, event_data: dict):
 async def get_azure_sql_connection():
     """
     Get a connection to Azure SQL Server using DefaultAzureCredential.
-    
+
     Returns:
         Connection: Database connection object for Azure SQL.
     """
@@ -88,11 +88,11 @@ async def get_azure_sql_connection():
     driver18 = "ODBC Driver 18 for SQL Server"
     driver17 = "ODBC Driver 17 for SQL Server"
     api_uid = os.getenv("API_UID", "")
-    
+
     credential = await get_azure_credential_async(client_id=api_uid)
     token = await credential.get_token("https://database.windows.net/.default")
     await credential.close()
-    
+
     token_bytes = token.token.encode("utf-16-LE")
     token_struct = struct.pack(
         f"<I{len(token_bytes)}s",
@@ -100,7 +100,7 @@ async def get_azure_sql_connection():
         token_bytes
     )
     SQL_COPT_SS_ACCESS_TOKEN = 1256
-    
+
     try:
         connection_string = f"DRIVER={{{driver18}}};SERVER={sql_server};DATABASE={sql_database};"
         conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
@@ -176,7 +176,7 @@ async def get_fabric_db_connection():
 async def get_db_connection():
     """
     Get a database connection based on deployment mode.
-    
+
     When IS_WORKSHOP is true, uses Azure SQL Server.
     When IS_WORKSHOP is false or not set, uses Fabric SQL.
 
@@ -184,7 +184,7 @@ async def get_db_connection():
         Connection: Database connection object, or None if connection fails.
     """
     is_workshop = os.getenv("IS_WORKSHOP", "false").lower() == "true"
-    
+
     if is_workshop:
         logging.info("Workshop deployment mode: Using Azure SQL Server")
         return await get_azure_sql_connection()

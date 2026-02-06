@@ -235,6 +235,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
             logger.info("No response received from OpenAI.")
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
+
 async def stream_openai_text_workshop(conversation_id: str, query: str) -> StreamingResponse:
     """
     Get a streaming text response from OpenAI with workshop mode using responses.create().
@@ -256,55 +257,45 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
             credential=credential
         ) as project_client:
 
-            cache = get_thread_cache()
-            conv_id = cache.get(conversation_id, None)
-            
             # Get database connection based on AZURE_ENV_ONLY flag
             from history_sql import SqlQueryTool, get_azure_sql_connection, get_fabric_db_connection
-            
+
             if AZURE_ENV_ONLY:
                 logger.info("Workshop mode: Using Azure SQL Database")
                 db_connection = await get_azure_sql_connection()
             else:
                 logger.info("Workshop mode: Using Fabric Lakehouse SQL")
                 db_connection = await get_fabric_db_connection()
-            
+
             if not db_connection:
                 logger.error("Failed to establish database connection")
                 raise Exception("Database connection failed")
-            
+
             custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
 
             openai_client = project_client.get_openai_client()
-            
-            # Create or retrieve conversation
-            if not conv_id:
-                conv = await openai_client.conversations.create()
-                conv_id = conv.id
-                cache[conversation_id] = conv_id
 
             # Initial request to the agent
             response = await openai_client.responses.create(
-                conversation=conv_id,
                 input=query,
                 extra_body={"agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
             )
-            
+
             # Process response - handle function calls and search
             max_iterations = 10
             iteration = 0
-            
+
             while iteration < max_iterations:
                 iteration += 1
-                
+
                 # Check for function calls and tool uses in output
                 function_calls = []
                 text_output = ""
                 search_results = []
-                
+
                 for item in response.output:
                     item_type = getattr(item, 'type', None)
-                    
+
                     if item_type == 'function_call':
                         function_calls.append(item)
                     elif item_type == 'message':
@@ -332,22 +323,22 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
                     # Handle search tool output (result)
                     elif item_type == 'azure_ai_search_call_output':
                         logger.info("AI Search completed")
-                
+
                 # If no function calls, we're done
                 if not function_calls:
                     if text_output:
                         complete_response += text_output
                         yield text_output
                     break
-                
+
                 # Handle function calls
                 tool_outputs = []
                 for fc in function_calls:
                     func_name = fc.name
                     func_args = json.loads(fc.arguments)
-                    
+
                     logger.info("Calling function: %s", func_name)
-                    
+
                     if func_name == "execute_sql":
                         sql_query = func_args.get("sql_query", "")
                         logger.info("Executing SQL query: %s", sql_query[:100])
@@ -363,13 +354,13 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
                     else:
                         result_str = f"Unknown function: {func_name}"
                         logger.warning("Unknown function called: %s", func_name)
-                    
+
                     tool_outputs.append({
                         "type": "function_call_output",
                         "call_id": fc.call_id,
                         "output": result_str
                     })
-                
+
                 # Submit tool outputs and get next response
                 # Note: Don't include 'conversation' when using 'previous_response_id'
                 response = await openai_client.responses.create(
@@ -379,7 +370,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
                         "previous_response_id": response.id
                     }
                 )
-            
+
             if iteration >= max_iterations:
                 logger.warning("Max iterations reached in workshop mode")
                 yield "\n\n(Response processing reached maximum iterations)"
@@ -387,11 +378,6 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
     except Exception as e:
         complete_response = str(e)
         logger.error("Error in stream_openai_text_workshop: %s", e)
-        cache = get_thread_cache()
-        conv_id = cache.pop(conversation_id, None)
-        if conv_id is not None:
-            corrupt_key = f"{conversation_id}_corrupt_{random.randint(1000, 9999)}"
-            cache[corrupt_key] = conv_id
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error streaming OpenAI text") from e
 
     finally:
