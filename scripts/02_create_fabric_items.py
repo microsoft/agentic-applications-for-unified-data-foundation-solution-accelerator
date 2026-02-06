@@ -478,10 +478,41 @@ else:
 time.sleep(3)
 
 # ============================================================================
-# Step 3: Save IDs for later scripts
+# Step 3: Assign Role to Backend App (Service Principal)
 # ============================================================================
 
-print(f"\n[3/4] Saving configuration...")
+print(f"\n[3/4] Assigning workspace role...")
+
+# Get backend app principal ID from environment
+BACKEND_APP_PID = os.getenv("API_PID") or os.getenv("BACKEND_APP_PID")
+
+if BACKEND_APP_PID:
+    fabric_ra_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/roleAssignments"
+    roleassignment_json = {
+        "principal": {
+            "id": BACKEND_APP_PID,
+            "type": "ServicePrincipal"
+        },
+        "role": "Contributor"
+    }
+    roleassignment_res = make_request("POST", fabric_ra_url, json=roleassignment_json)
+    
+    if roleassignment_res.status_code == 201:
+        print(f"  [OK] Role assignment created successfully")
+    elif roleassignment_res.status_code == 409:
+        print(f"  [OK] Role assignment already exists")
+    else:
+        print(f"  [WARN] Failed to create role assignment. Status: {roleassignment_res.status_code}")
+        print(f"       Response: {roleassignment_res.text}")
+else:
+    print(f"  [SKIP] API_PID not set - skipping role assignment")
+    print(f"       Set API_PID in .env to enable automatic role assignment")
+
+# ============================================================================
+# Step 4: Save IDs for later scripts
+# ============================================================================
+
+print(f"\n[4/4] Saving configuration...")
 
 ids_path = os.path.join(config_dir, "fabric_ids.json")
 fabric_ids = {

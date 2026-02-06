@@ -15,6 +15,7 @@ What this script does:
     2. Creates tables in Azure SQL based on ontology config
     3. Loads CSV files from tables/ folder into SQL tables
     4. Adjusts date columns to current date
+    5. Assigns SQL roles to API managed identity (db_datareader, db_datawriter)
 """
 
 import argparse
@@ -230,6 +231,64 @@ def adjust_dates_to_current(cursor, conn, table_name: str, date_columns: list, r
         print(f"    [WARN] Could not adjust dates: {e}")
 
 
+def assign_sql_roles(cursor, conn, display_name: str, roles: list):
+    """
+    Assign SQL roles to a managed identity.
+    
+    Args:
+        cursor: Database cursor
+        conn: Database connection
+        display_name: Display name of the managed identity
+        roles: List of roles to assign (e.g., ['db_datareader', 'db_datawriter'])
+    """
+    if not display_name:
+        print("  [SKIP] No managed identity display name provided")
+        return
+    
+    # Check if user already exists
+    check_user_sql = f"SELECT COUNT(*) FROM sys.database_principals WHERE name = N'{display_name}'"
+    cursor.execute(check_user_sql)
+    user_exists = cursor.fetchone()[0] > 0
+    
+    if not user_exists:
+        # Create user from external provider
+        create_user_sql = f"CREATE USER [{display_name}] FROM EXTERNAL PROVIDER"
+        try:
+            cursor.execute(create_user_sql)
+            conn.commit()
+            print(f"  [OK] Created user: {display_name}")
+        except Exception as e:
+            print(f"  [FAIL] Failed to create user {display_name}: {e}")
+            return
+    else:
+        print(f"  [OK] User already exists: {display_name}")
+    
+    # Assign each role
+    for role in roles:
+        # Check if user already has the role
+        check_role_sql = f"""
+            SELECT COUNT(*) 
+            FROM sys.database_role_members rm
+            JOIN sys.database_principals rp ON rm.role_principal_id = rp.principal_id
+            JOIN sys.database_principals mp ON rm.member_principal_id = mp.principal_id
+            WHERE mp.name = N'{display_name}' AND rp.name = N'{role}'
+        """
+        cursor.execute(check_role_sql)
+        has_role = cursor.fetchone()[0] > 0
+        
+        if not has_role:
+            # Add user to role
+            add_role_sql = f"ALTER ROLE [{role}] ADD MEMBER [{display_name}]"
+            try:
+                cursor.execute(add_role_sql)
+                conn.commit()
+                print(f"  [OK] Assigned {role} to {display_name}")
+            except Exception as e:
+                print(f"  [FAIL] Failed to assign {role}: {e}")
+        else:
+            print(f"  [OK] {display_name} already has {role}")
+
+
 # ============================================================================
 # Main
 # ============================================================================
@@ -348,11 +407,21 @@ def main():
         loaded_tables.append(table_name)
     
     # Summary
-    print(f"\n[3/3] Verifying data...")
+    print(f"\n[3/4] Verifying data...")
     for table_name in loaded_tables:
         cursor.execute(f"SELECT COUNT(*) FROM [dbo].[{table_name}]")
         count = cursor.fetchone()[0]
         print(f"  [OK] {table_name}: {count} rows")
+    
+    # Assign SQL roles to API managed identity
+    print(f"\n[4/4] Assigning SQL roles to API managed identity...")
+    api_mid_name = os.getenv("MID_DISPLAY_NAME")
+    
+    if api_mid_name:
+        assign_sql_roles(cursor, conn, api_mid_name, ['db_datareader', 'db_datawriter'])
+    else:
+        print("  [SKIP] MID_DISPLAY_NAME not set - skipping role assignment")
+        print("         Set MID_DISPLAY_NAME in azd environment to enable")
     
     cursor.close()
     conn.close()
