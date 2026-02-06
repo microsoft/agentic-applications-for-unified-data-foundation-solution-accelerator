@@ -87,8 +87,9 @@ async def get_azure_sql_connection():
     sql_database = os.getenv("SQLDB_DATABASE")
     driver18 = "ODBC Driver 18 for SQL Server"
     driver17 = "ODBC Driver 17 for SQL Server"
+    api_uid = os.getenv("API_UID", "")
     
-    credential = await get_azure_credential_async()
+    credential = await get_azure_credential_async(client_id=api_uid)
     token = await credential.get_token("https://database.windows.net/.default")
     await credential.close()
     

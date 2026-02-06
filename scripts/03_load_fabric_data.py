@@ -240,6 +240,77 @@ else:
     time.sleep(30)
 
 # ============================================================================
+# Step 4: Get Fabric SQL Endpoint and Update App Service
+# ============================================================================
+
+print(f"\n[4/4] Getting Fabric SQL endpoint...")
+
+def get_fabric_sql_endpoint():
+    """Get the SQL analytics endpoint for the Fabric Lakehouse"""
+    try:
+        url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/lakehouses/{LAKEHOUSE_ID}"
+        resp = make_request("GET", url)
+        if resp.status_code == 200:
+            data = resp.json()
+            props = data.get("properties", {})
+            sql_props = props.get("sqlEndpointProperties", {})
+            return sql_props.get("connectionString")
+    except Exception as e:
+        print(f"  [WARN] Could not get Fabric SQL endpoint: {e}")
+    return None
+
+FABRIC_SQL_ENDPOINT = get_fabric_sql_endpoint()
+
+if FABRIC_SQL_ENDPOINT:
+    print(f"  [OK] SQL Endpoint: {FABRIC_SQL_ENDPOINT}")
+    
+    # Save to fabric_ids.json
+    fabric_ids["sql_endpoint"] = FABRIC_SQL_ENDPOINT
+    with open(fabric_ids_path, "w") as f:
+        json.dump(fabric_ids, f, indent=2)
+
+# Update App Service env vars
+subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
+resource_group = os.getenv("RESOURCE_GROUP_NAME")
+app_name = os.getenv("API_APP_NAME")
+
+if subscription_id and resource_group and app_name:
+    try:
+        from azure.mgmt.web import WebSiteManagementClient
+        from azure.identity import DefaultAzureCredential
+        
+        web_credential = DefaultAzureCredential()
+        web_client = WebSiteManagementClient(web_credential, subscription_id)
+        
+        current = web_client.web_apps.list_application_settings(resource_group, app_name)
+        props = dict(current.properties or {})
+        
+        # Build full ODBC connection string
+        if FABRIC_SQL_ENDPOINT:
+            fabric_conn_string = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={FABRIC_SQL_ENDPOINT};DATABASE={LAKEHOUSE_NAME};Encrypt=yes;TrustServerCertificate=no"
+        else:
+            fabric_conn_string = ""
+        
+        new_settings = {
+            "FABRIC_SQL_CONNECTION_STRING": fabric_conn_string
+        }
+        props.update(new_settings)
+        
+        web_client.web_apps.update_application_settings(
+            resource_group,
+            app_name,
+            {"properties": props}
+        )
+        
+        print(f"  [OK] App Service settings updated")
+    except Exception as e:
+        print(f"  [WARN] Failed to update App Service: {e}")
+else:
+    if FABRIC_SQL_ENDPOINT:
+        fabric_conn_string = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={FABRIC_SQL_ENDPOINT};DATABASE={LAKEHOUSE_NAME};Encrypt=yes;TrustServerCertificate=no"
+        print(f"  NOTE: Set FABRIC_SQL_CONNECTION_STRING={fabric_conn_string} in App Service")
+
+# ============================================================================
 # Summary
 # ============================================================================
 
@@ -249,13 +320,10 @@ print(f"{'='*60}")
 print(f"""
 Uploaded {len(uploaded_files)} files: {', '.join(uploaded_files)}
 Tables loaded: {', '.join(ontology_config['tables'].keys())}
+SQL Endpoint: {FABRIC_SQL_ENDPOINT or 'Not available yet'}
 
 Next step - Generate schema prompt:
   python scripts/04_generate_agent_prompt.py
-
-To reload data later (e.g., with new/larger dataset):
-  python scripts/01_generate_sample_data.py --scenario <SCENARIO> --size medium
-  python scripts/03_load_fabric_data.py
 """)
 
 
