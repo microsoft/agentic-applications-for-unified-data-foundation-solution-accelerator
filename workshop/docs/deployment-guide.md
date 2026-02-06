@@ -1,6 +1,6 @@
 ## Prerequisites
 
-- Azure subscription with Contributor access
+- Azure subscription with Contributor access & Role Based Access Control access
 - Microsoft Fabric workspace (F2+ capacity) with admin permissions
 - VS Code, Azure Developer CLI ([aka.ms/azd](https://aka.ms/azd)), Python 3.10+, Git
 
