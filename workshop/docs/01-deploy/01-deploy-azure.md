@@ -15,7 +15,7 @@ azd auth login
 
 This opens a browser for authentication.
 
-**To authenticate with Azure Developer CLI (azd), use the following command with your Tenant ID:**
+**Having trouble authenticating? Try specifying your Tenant ID:**
 ```bash
 azd auth login --tenant-id <tenant-id>
 az login --tenant <tenant-id>
@@ -23,14 +23,14 @@ az login --tenant <tenant-id>
 
 ## Deploy Resources
 
-!!! info "No Fabric SQL Instance?"
+!!! info "No Microsoft Fabric Access?"
     If you don't have access to Microsoft Fabric or prefer to use Azure SQL instead, set the Azure-only flag before deploying:
     
     ```bash
     azd env set AZURE_ENV_ONLY true
     ```
     
-    This deploys Azure SQL Database instead of using Fabric SQL, allowing you to run the workshop without a Fabric workspace.
+    When prompted, enter a unique environment name. This deploys Azure SQL Database instead of Fabric SQL, allowing you to run the workshop without a Fabric workspace.
 
 ```bash
 azd up

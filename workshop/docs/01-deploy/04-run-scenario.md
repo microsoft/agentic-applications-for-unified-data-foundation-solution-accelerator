@@ -10,7 +10,7 @@ Fabric Workspace Mode
 python scripts/00_build_solution.py --from 02
 ```
 
-Azure Only Mode
+Azure Only Mode (if you ran `azd env set AZURE_ENV_ONLY true` before deploying)
 ```bash
 python scripts/00_build_solution.py --from 04
 ```

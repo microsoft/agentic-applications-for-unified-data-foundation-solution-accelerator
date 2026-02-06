@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Azure subscription with Contributor access
-- gpt-4o-mini and text-embedding-ada-002 model capacity
+- Azure OpenAI model quota of at least 150K TPM for gpt-4o-mini and 80K TPM for text-embedding-ada-002
 - Microsoft Fabric workspace (for Fabric IQ features)
 
 - [Visual Studio Code](https://code.visualstudio.com/download)
