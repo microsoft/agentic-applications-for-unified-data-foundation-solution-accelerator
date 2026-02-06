@@ -5,7 +5,6 @@
 ### Create and Activate
 
 ```bash
-cd scripts
 python -m venv .venv
 ```
 
@@ -26,13 +25,13 @@ python -m venv .venv
 === "Fast (Recommended)"
 
     ```bash
-    pip install uv && uv pip install -r requirements.txt
+    pip install uv && uv pip install -r scripts/requirements.txt
     ```
 
 === "Standard"
 
     ```bash
-    pip install -r requirements.txt
+    pip install -r scripts/requirements.txt
     ```
 
 ### Verify Setup

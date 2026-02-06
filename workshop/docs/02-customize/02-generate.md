@@ -1,25 +1,31 @@
 # Generate Custom Data
 
 ## Run the AI Generator
-
-With your `.env` configured, generate customer-specific data:
-
+Override `.env` settings directly from the command line:
 ```bash
-python scripts/00_build_solution.py --clean
+python scripts/00_build_solution.py --clean \
+  --industry "Insurance" \
+  --usecase "Property insurance with claims processing and policy management"
 ```
+
+No Fabric license? Run the following command: 
+```bash
+python scripts/00_build_solution.py --clean \
+  --foundry-only \
+  --industry "Insurance" \
+  --usecase "Property insurance with claims processing and policy management"
+```
+
 
 | Flag | Purpose |
 |------|---------|
 | `--clean` | Reset Fabric artifacts (required when switching scenarios) |
 
-### Alternative: Inline Parameters
-
-Override `.env` settings directly from the command line:
+### Alternative: update .env configuration
+With your `.env` configured, generate customer-specific data:
 
 ```bash
-python scripts/00_build_solution.py --clean \
-  --industry "Insurance" \
-  --usecase "Property insurance with claims processing and policy management"
+python scripts/00_build_solution.py --clean
 ```
 
 ## Generation Process

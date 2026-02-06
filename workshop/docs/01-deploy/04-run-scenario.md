@@ -23,7 +23,7 @@ This uses the `data/default` folder and runs all setup steps:
     If you don't have access to Microsoft Fabric, you can still run the workshop using azure services only:
     
     ```bash
-    python scripts/00_build_solution.py --foundry-only
+    python scripts/00_build_solution.py --from 06 --foundry-only
     ```
     
     This skips Fabric setup (steps 02-05) and creates an agent in Microsoft Foundry only.
@@ -45,10 +45,26 @@ Next: python scripts/08_test_foundry_agent.py
 
 ```
 
+## Test the Fabric Data Agent
+1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
+2. Select "New item" 
+3. Search for and select "Data Agent" 
+4. Select add data source and select your Ontology resource created in the previous step. 
+5. select Agent instructions and paste the below instructions. 
+``` 
+You are a helpful assistant that can answer user questions using data.
+Support group by in GQL.
+```
+
 ## Test the Agent
 
 ```bash
 python scripts/08_test_foundry_agent.py
+```
+
+No Fabric license? Run the following command: 
+```bash
+python scripts/08_test_foundry_agent.py --foundry-only
 ```
 
 ### Sample Conversation

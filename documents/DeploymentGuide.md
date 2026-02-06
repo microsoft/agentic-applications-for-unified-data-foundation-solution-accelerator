@@ -205,6 +205,12 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     azd auth login --tenant-id <tenant-id>
     ```
 
+    Note: this solution accelerator now supports two modes (standard and workshop). By default it will run in workshop mode. If you do not want to run the workshop please set IS_WORKSHOP run the below azd command to set the workshop to false. 
+
+    ```sh
+    azd env set IS_WORKSHOP false
+    ```
+
 2. Provision and deploy all the resources:
 
     ```shell

@@ -61,6 +61,7 @@ nav:
   - Get Started:
     - Prerequisites: 00-get-started/index.md
     - Workshop Flow: 00-get-started/workshop-flow.md
+    - Workshop Outcome: 00-get-started/workshop-outcome.md
   - Deploy solution:
     - Overview: 01-deploy/index.md
     - Deploy Azure resources: 01-deploy/01-deploy-azure.md
