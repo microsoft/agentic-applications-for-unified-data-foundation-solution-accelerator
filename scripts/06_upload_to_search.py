@@ -25,7 +25,7 @@ import re
 from pathlib import Path
 
 # Load environment from azd + project .env
-from load_env import load_all_env, get_required_env, print_env_status
+from load_env import load_all_env, get_required_env, get_data_folder, print_env_status
 load_all_env()
 
 from azure.identity import DefaultAzureCredential
@@ -58,10 +58,10 @@ AZURE_AI_SEARCH_ENDPOINT = os.getenv("AZURE_AI_SEARCH_ENDPOINT")
 EMBEDDING_MODEL = os.getenv("AZURE_EMBEDDING_MODEL") or os.getenv("EMBEDDING_MODEL", "text-embedding-ada-002")
 
 # Project settings - from .env
-DATA_FOLDER = os.getenv("DATA_FOLDER")
 SOLUTION_NAME = os.getenv("SOLUTION_NAME") or os.getenv("SOLUTION_PREFIX") or os.getenv("AZURE_ENV_NAME", "demo")
 
-INDEX_NAME = f"{SOLUTION_NAME}-documents"
+# Use AZURE_AI_SEARCH_INDEX from azd env, fallback to generated name
+INDEX_NAME = os.getenv("AZURE_AI_SEARCH_INDEX") or f"{SOLUTION_NAME}-documents"
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 
@@ -69,12 +69,14 @@ if not AZURE_AI_SEARCH_ENDPOINT:
     print("ERROR: AZURE_AI_SEARCH_ENDPOINT not set in .env")
     sys.exit(1)
 
-if not DATA_FOLDER:
+# Get data folder with proper path resolution
+try:
+    data_dir = Path(get_data_folder())
+except ValueError:
     print("ERROR: DATA_FOLDER not set in .env")
-    print("       Run 01_generate_sample_data.py first")
+    print("       Run 01_generate_data.py first")
     sys.exit(1)
 
-data_dir = Path(DATA_FOLDER)
 if not data_dir.exists():
     print(f"ERROR: Data folder not found: {data_dir}")
     sys.exit(1)

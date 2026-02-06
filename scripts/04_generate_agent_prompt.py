@@ -19,7 +19,7 @@ import sys
 import json
 
 # Load environment from azd + project .env
-from load_env import load_all_env
+from load_env import load_all_env, get_data_folder
 load_all_env()
 
 # ============================================================================
@@ -29,21 +29,22 @@ load_all_env()
 p = argparse.ArgumentParser(description="Generate optimized schema prompt")
 p.add_argument("--from-fabric", action="store_true", help="Fetch from Fabric API")
 p.add_argument("--from-config", action="store_true", help="Use local config (default)")
-p.add_argument("--data-folder", default=os.getenv("DATA_FOLDER"),
-               help="Path to data folder (default: from .env)")
+p.add_argument("--data-folder", help="Path to data folder (default: from .env)")
 args = p.parse_args()
 
 # Default to config if neither specified
 if not args.from_fabric:
     args.from_config = True
 
-data_dir = args.data_folder
-if not data_dir:
-    print("ERROR: DATA_FOLDER not set.")
-    print("       Run 01_generate_sample_data.py first, or pass --data-folder")
-    sys.exit(1)
-
-data_dir = os.path.abspath(data_dir)
+# Get data folder - use arg if provided, else from .env with proper path resolution
+if args.data_folder:
+    data_dir = os.path.abspath(args.data_folder)
+else:
+    try:
+        data_dir = get_data_folder()
+    except ValueError as e:
+        print(f"ERROR: {e}")
+        sys.exit(1)
 
 # Set up paths for new folder structure
 config_dir = os.path.join(data_dir, "config")

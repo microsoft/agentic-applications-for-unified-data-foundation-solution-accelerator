@@ -29,7 +29,7 @@ import uuid
 from datetime import datetime
 
 # Load environment from azd + project .env
-from load_env import load_all_env
+from load_env import load_all_env, get_data_folder
 load_all_env()
 
 # Azure imports
@@ -41,8 +41,7 @@ import requests
 # ============================================================================
 
 p = argparse.ArgumentParser(description="Setup Fabric Lakehouse and Ontology")
-p.add_argument("--data-folder", default=os.getenv("DATA_FOLDER"), 
-               help="Path to data folder (default: from .env)")
+p.add_argument("--data-folder", help="Path to data folder (default: from .env)")
 p.add_argument("--solutionname", default=os.getenv("SOLUTION_NAME") or os.getenv("SOLUTION_PREFIX") or os.getenv("AZURE_ENV_NAME", "demo"),
                help="Solution name prefix (default: from SOLUTION_NAME or SOLUTION_PREFIX)")
 p.add_argument("--clean", action="store_true",
@@ -54,14 +53,16 @@ if not WORKSPACE_ID:
     print("ERROR: FABRIC_WORKSPACE_ID not set in .env")
     sys.exit(1)
 
-# Validate data folder
-data_dir = args.data_folder
-if not data_dir:
-    print("ERROR: DATA_FOLDER not set.")
-    print("       Run 01_generate_sample_data.py first, or pass --data-folder")
-    sys.exit(1)
-
-data_dir = os.path.abspath(data_dir)
+# Get data folder - use arg if provided, else from .env with proper path resolution
+if args.data_folder:
+    data_dir = os.path.abspath(args.data_folder)
+else:
+    try:
+        data_dir = get_data_folder()
+    except ValueError:
+        print("ERROR: DATA_FOLDER not set.")
+        print("       Run 01_generate_data.py first, or pass --data-folder")
+        sys.exit(1)
 
 # Set up paths for new folder structure (config/, tables/, documents/)
 config_dir = os.path.join(data_dir, "config")
@@ -477,10 +478,41 @@ else:
 time.sleep(3)
 
 # ============================================================================
-# Step 3: Save IDs for later scripts
+# Step 3: Assign Role to Backend App (Service Principal)
 # ============================================================================
 
-print(f"\n[3/4] Saving configuration...")
+print(f"\n[3/4] Assigning workspace role...")
+
+# Get backend app principal ID from environment
+BACKEND_APP_PID = os.getenv("API_PID") or os.getenv("BACKEND_APP_PID")
+
+if BACKEND_APP_PID:
+    fabric_ra_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/roleAssignments"
+    roleassignment_json = {
+        "principal": {
+            "id": BACKEND_APP_PID,
+            "type": "ServicePrincipal"
+        },
+        "role": "Contributor"
+    }
+    roleassignment_res = make_request("POST", fabric_ra_url, json=roleassignment_json)
+    
+    if roleassignment_res.status_code == 201:
+        print(f"  [OK] Role assignment created successfully")
+    elif roleassignment_res.status_code == 409:
+        print(f"  [OK] Role assignment already exists")
+    else:
+        print(f"  [WARN] Failed to create role assignment. Status: {roleassignment_res.status_code}")
+        print(f"       Response: {roleassignment_res.text}")
+else:
+    print(f"  [SKIP] API_PID not set - skipping role assignment")
+    print(f"       Set API_PID in .env to enable automatic role assignment")
+
+# ============================================================================
+# Step 4: Save IDs for later scripts
+# ============================================================================
+
+print(f"\n[4/4] Saving configuration...")
 
 ids_path = os.path.join(config_dir, "fabric_ids.json")
 fabric_ids = {

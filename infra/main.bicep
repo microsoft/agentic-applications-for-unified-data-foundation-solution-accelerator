@@ -94,6 +94,9 @@ param deployApp bool = false
 @description('Set to true for workshop deployment with sample data and simplified configuration.')
 param isWorkshop bool = true
 
+@description('Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used.')
+param azureEnvOnly bool = false
+
 // If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
 var shouldDeployApp = !isWorkshop || deployApp
 
@@ -226,7 +229,7 @@ module cosmosDBModule 'deploy_cosmos_db.bicep' = if (isWorkshop && deployApp) {
 }
 
 //========== SQL DB module ========== //
-module sqlDBModule 'deploy_sql_db.bicep' = if(isWorkshop) {
+module sqlDBModule 'deploy_sql_db.bicep' = if(isWorkshop && azureEnvOnly) {
   name: 'deploy_sql_db'
   params: {
     serverName: '${abbrs.databases.sqlDatabaseServer}${solutionPrefix}'
@@ -283,9 +286,9 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: isWorkshop ? cosmosDBModule!.outputs.cosmosContainerName : ''
       AZURE_COSMOSDB_DATABASE: isWorkshop? cosmosDBModule!.outputs.cosmosDatabaseName : ''
       AZURE_COSMOSDB_ENABLE_FEEDBACK: isWorkshop ? 'True' : ''
-      SQLDB_DATABASE: isWorkshop ? sqlDBModule!.outputs.sqlDbName : ''
-      SQLDB_SERVER: isWorkshop ? sqlDBModule!.outputs.sqlServerName : ''
-      SQLDB_USER_MID: isWorkshop ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
+      SQLDB_DATABASE: (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
+      SQLDB_SERVER: (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
+      SQLDB_USER_MID: (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'knowledge_index' : ''
@@ -297,6 +300,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionPrefix
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
+      AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
       APP_ENV: 'Prod'
 
       AGENT_NAME_CHAT: ''
@@ -409,9 +413,9 @@ output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
 output AZURE_OPENAI_RESOURCE string = aifoundry.outputs.aiServicesName
 //output REACT_APP_LAYOUT_CONFIG string = backend_docker.outputs.reactAppLayoutConfig
 output REACT_APP_LAYOUT_CONFIG string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.reactAppLayoutConfig : backend_csapi_docker!.outputs.reactAppLayoutConfig) : ''
-output SQLDB_DATABASE string = isWorkshop ? sqlDBModule!.outputs.sqlDbName : ''
-output SQLDB_SERVER string = isWorkshop ? sqlDBModule!.outputs.sqlServerName : ''
-output SQLDB_USER_MID string = isWorkshop ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
+output SQLDB_DATABASE string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
+output SQLDB_SERVER string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
+output SQLDB_USER_MID string = (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
 output API_UID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
 output USE_AI_PROJECT_CLIENT string = 'False'
 output USE_CHAT_HISTORY_ENABLED string = 'True'

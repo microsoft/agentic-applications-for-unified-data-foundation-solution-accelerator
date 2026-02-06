@@ -23,6 +23,15 @@ az login --tenant <tenant-id>
 
 ## Deploy Resources
 
+!!! info "No Fabric SQL Instance?"
+    If you don't have access to Microsoft Fabric or prefer to use Azure SQL instead, set the Azure-only flag before deploying:
+    
+    ```bash
+    azd env set AZURE_ENV_ONLY true
+    ```
+    
+    This deploys Azure SQL Database instead of using Fabric SQL, allowing you to run the workshop without a Fabric workspace.
+
 ```bash
 azd up
 ```

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "6216739118375327137"
+      "templateHash": "7117669587961877905"
     }
   },
   "parameters": {
@@ -163,6 +163,13 @@
       "defaultValue": true,
       "metadata": {
         "description": "Set to true for workshop deployment with sample data and simplified configuration."
+      }
+    },
+    "azureEnvOnly": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used."
       }
     },
     "AZURE_LOCATION": {
@@ -621,7 +628,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "16648345837379906926"
+              "templateHash": "16641945886964033767"
             }
           },
           "parameters": {
@@ -961,7 +968,7 @@
             "aiProjectName": "[format('{0}{1}', variables('abbrs').ai.aiFoundryProject, parameters('solutionName'))]",
             "aiSearchName": "[format('{0}{1}', variables('abbrs').ai.aiSearch, parameters('solutionName'))]",
             "storageName": "[format('{0}{1}', variables('abbrs').storage.storageAccount, toLower(replace(parameters('solutionName'), '-', '')))]",
-            "aiSearchConnectionName": "[format('myVectorStoreProjectConnectionName-{0}', parameters('solutionName'))]",
+            "aiSearchConnectionName": "[format('search-connection-{0}', parameters('solutionName'))]",
             "aiModelDeployments": "[concat(createArray(createObject('name', parameters('gptModelName'), 'model', parameters('gptModelName'), 'sku', createObject('name', parameters('deploymentType'), 'capacity', parameters('gptDeploymentCapacity')), 'version', parameters('gptModelVersion'), 'raiPolicyName', 'Microsoft.Default')), if(parameters('isWorkshop'), createArray(createObject('name', parameters('embeddingModel'), 'model', parameters('embeddingModel'), 'sku', createObject('name', 'GlobalStandard', 'capacity', parameters('embeddingDeploymentCapacity')), 'raiPolicyName', 'Microsoft.Default')), createArray()))]",
             "useExisting": "[not(empty(parameters('existingLogAnalyticsWorkspaceId')))]",
             "existingLawSubscription": "[if(variables('useExisting'), split(parameters('existingLogAnalyticsWorkspaceId'), '/')[2], '')]",
@@ -1130,7 +1137,7 @@
               "condition": "[and(empty(parameters('azureExistingAIProjectResourceId')), parameters('isWorkshop'))]",
               "type": "Microsoft.CognitiveServices/accounts/projects/connections",
               "apiVersion": "2025-04-01-preview",
-              "name": "[format('{0}/{1}/{2}', variables('aiServicesName'), variables('aiProjectName'), 'search-connection')]",
+              "name": "[format('{0}/{1}/{2}', variables('aiServicesName'), variables('aiProjectName'), variables('aiSearchConnectionName'))]",
               "properties": {
                 "category": "CognitiveSearch",
                 "target": "[format('https://{0}.search.windows.net', variables('aiSearchName'))]",
@@ -2233,7 +2240,7 @@
       }
     },
     {
-      "condition": "[parameters('isWorkshop')]",
+      "condition": "[and(parameters('isWorkshop'), parameters('azureEnvOnly'))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "deploy_sql_db",
@@ -2525,9 +2532,9 @@
               "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosContainerName.value, '')]",
               "AZURE_COSMOSDB_DATABASE": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosDatabaseName.value, '')]",
               "AZURE_COSMOSDB_ENABLE_FEEDBACK": "[if(parameters('isWorkshop'), 'True', '')]",
-              "SQLDB_DATABASE": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]",
-              "SQLDB_SERVER": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]",
-              "SQLDB_USER_MID": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId, '')]",
+              "SQLDB_DATABASE": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]",
+              "SQLDB_SERVER": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]",
+              "SQLDB_USER_MID": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId, '')]",
               "API_UID": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId]",
               "AZURE_AI_SEARCH_ENDPOINT": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiSearchTarget.value, '')]",
               "AZURE_AI_SEARCH_INDEX": "[if(parameters('isWorkshop'), 'knowledge_index', '')]",
@@ -2538,6 +2545,7 @@
               "DUMMY_TEST": "True",
               "SOLUTION_NAME": "[variables('solutionPrefix')]",
               "IS_WORKSHOP": "[if(parameters('isWorkshop'), 'True', 'False')]",
+              "AZURE_ENV_ONLY": "[if(parameters('azureEnvOnly'), 'True', 'False')]",
               "APP_ENV": "Prod",
               "AGENT_NAME_CHAT": "",
               "AGENT_NAME_TITLE": "",
@@ -4213,15 +4221,15 @@
     },
     "SQLDB_DATABASE": {
       "type": "string",
-      "value": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]"
+      "value": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]"
     },
     "SQLDB_SERVER": {
       "type": "string",
-      "value": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]"
+      "value": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]"
     },
     "SQLDB_USER_MID": {
       "type": "string",
-      "value": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId, '')]"
+      "value": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId, '')]"
     },
     "API_UID": {
       "type": "string",

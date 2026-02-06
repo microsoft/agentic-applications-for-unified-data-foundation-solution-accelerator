@@ -19,15 +19,6 @@ This uses the `data/default` folder and runs all setup steps:
 | 06 | Upload documents to AI Search | ~1min |
 | 07a | Create Orchestrator Agent | ~10s |
 
-!!! tip "No Fabric License?"
-    If you don't have access to Microsoft Fabric, you can still run the workshop using azure services only:
-    
-    ```bash
-    python scripts/00_build_solution.py --from 06 --foundry-only
-    ```
-    
-    This skips Fabric setup (steps 02-05) and creates an agent in Microsoft Foundry only.
-
 ## Expected Output
 
 ```
@@ -62,10 +53,6 @@ Support group by in GQL.
 python scripts/08_test_foundry_agent.py
 ```
 
-No Fabric license? Run the following command: 
-```bash
-python scripts/08_test_foundry_agent.py --foundry-only
-```
 
 ### Sample Conversation
 
@@ -118,7 +105,7 @@ You: quit
 !!! success "Solution Deployed!"
     You now have a working solution with:
     
-    - [x] **Fabric IQ** answering data questions
+    - [x] **Data queries** via Fabric IQ or Azure SQL function tools for AzureOnly mode
     - [x] **Foundry IQ** retrieving document knowledge
     - [x] **Orchestrator Agent** combining both sources
     

@@ -595,23 +595,38 @@ Next steps:
 # ============================================================================
 
 env_path = os.path.join(script_dir, "..", ".env")
+project_root = os.path.abspath(os.path.join(script_dir, ".."))
+
+# Use relative path for .env (relative to project root)
+relative_data_dir = os.path.relpath(data_dir, project_root)
+
 if os.path.exists(env_path):
     with open(env_path, "r") as f:
         env_content = f.read()
     
     lines = env_content.split("\n")
-    updated = False
-    for i, line in enumerate(lines):
-        if line.startswith("DATA_FOLDER="):
-            lines[i] = f"DATA_FOLDER={data_dir}"
-            updated = True
-            break
     
-    if not updated:
-        lines.append(f"DATA_FOLDER={data_dir}")
+    # Update or add each setting
+    settings_to_update = {
+        "DATA_FOLDER": relative_data_dir,
+        "INDUSTRY": industry,
+        "USECASE": usecase,
+    }
+    
+    for key, value in settings_to_update.items():
+        found = False
+        for i, line in enumerate(lines):
+            if line.startswith(f"{key}="):
+                lines[i] = f"{key}={value}"
+                found = True
+                break
+        if not found:
+            lines.append(f"{key}={value}")
     
     with open(env_path, "w") as f:
         f.write("\n".join(lines))
     
-    print(f"[OK] Updated .env with DATA_FOLDER={data_dir}")
+    print(f"[OK] Updated .env with DATA_FOLDER={relative_data_dir}")
+    print(f"[OK] Updated .env with INDUSTRY={industry}")
+    print(f"[OK] Updated .env with USECASE={usecase}")
 
