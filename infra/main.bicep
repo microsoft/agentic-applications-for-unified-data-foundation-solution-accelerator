@@ -92,7 +92,7 @@ param imageTag string = 'latest_v2'
 param deployApp bool = false
 
 @description('Set to true for workshop deployment with sample data and simplified configuration.')
-param isWorkshop bool = false
+param isWorkshop bool = true
 
 // If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
 var shouldDeployApp = !isWorkshop || deployApp
