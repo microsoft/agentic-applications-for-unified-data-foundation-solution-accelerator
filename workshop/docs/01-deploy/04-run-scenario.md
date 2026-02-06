@@ -39,7 +39,7 @@ This uses the `data/default` folder and runs all setup steps:
 ------------------------------------------------------------
 [OK] Pipeline completed successfully!
 
-Next: python scripts/08_test_foundry_agent.py
+Next: python scripts/08_test_agent.py
 
 ```
 
@@ -57,7 +57,7 @@ Support group by in GQL.
 ## Test the Agent
 
 ```bash
-python scripts/08_test_foundry_agent.py
+python scripts/08_test_agent.py
 ```
 
 

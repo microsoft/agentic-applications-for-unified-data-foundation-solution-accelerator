@@ -5,12 +5,7 @@
 After generation completes, test the agent:
 
 ```bash
-python scripts/08_test_foundry_agent.py
-```
-
-No Fabric license? Run the following command: 
-```bash
-python scripts/08_test_foundry_agent.py --foundry-only
+python scripts/08_test_agent.py
 ```
 
 ## Use the Generated Sample Questions

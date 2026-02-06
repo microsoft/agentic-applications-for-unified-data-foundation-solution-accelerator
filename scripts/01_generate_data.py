@@ -587,7 +587,7 @@ Next steps:
      python scripts/04_generate_agent_prompt.py
      python scripts/06_upload_to_search.py
      python scripts/07_create_foundry_agent.py
-     python scripts/08_test_foundry_agent.py
+     python scripts/08_test_agent.py
 """)
 
 # ============================================================================
