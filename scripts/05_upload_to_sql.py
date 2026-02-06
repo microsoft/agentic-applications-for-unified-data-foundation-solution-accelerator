@@ -358,7 +358,7 @@ def main():
     print(f"  Tables: {', '.join(tables.keys())}")
     
     # Connect to Azure SQL Server
-    print("\n[1/3] Connecting to Azure SQL Server...")
+    print("\n[1/4] Connecting to Azure SQL Server...")
     try:
         conn = get_sql_connection(sql_server, sql_database)
     except Exception as e:
@@ -368,7 +368,7 @@ def main():
     cursor = conn.cursor()
     
     # Process each table from ontology config
-    print("\n[2/3] Creating tables and loading data...")
+    print("\n[2/4] Creating tables and loading data...")
     
     loaded_tables = []
     for table_name, table_config in tables.items():
