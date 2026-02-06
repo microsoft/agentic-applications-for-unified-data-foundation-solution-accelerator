@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "17800107476078640122"
+      "templateHash": "17018978731632593238"
     }
   },
   "parameters": {
@@ -193,7 +193,8 @@
         "azd": {
           "type": "location",
           "usageName": [
-            "OpenAI.GlobalStandard.gpt-4o-mini,150"
+            "OpenAI.GlobalStandard.gpt-4o-mini,150",
+            "OpenAI.GlobalStandard.text-embedding-ada-002,80"
           ]
         },
         "description": "Location for AI Foundry deployment. This is the location where the AI Foundry resources will be deployed."

@@ -8,15 +8,6 @@ python scripts/00_build_solution.py --clean \
   --usecase "Property insurance with claims processing and policy management"
 ```
 
-No Fabric license? Run the following command: 
-```bash
-python scripts/00_build_solution.py --clean \
-  --foundry-only \
-  --industry "Insurance" \
-  --usecase "Property insurance with claims processing and policy management"
-```
-
-
 | Flag | Purpose |
 |------|---------|
 | `--clean` | Reset Fabric artifacts (required when switching scenarios) |
