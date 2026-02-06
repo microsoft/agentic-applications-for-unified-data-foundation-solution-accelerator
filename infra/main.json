@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "7117669587961877905"
+      "templateHash": "5328852932549604918"
     }
   },
   "parameters": {
@@ -149,7 +149,7 @@
     },
     "imageTag": {
       "type": "string",
-      "defaultValue": "latest_v2"
+      "defaultValue": "[if(parameters('isWorkshop'), 'latest_waf', 'latest_v2')]"
     },
     "deployApp": {
       "type": "bool",

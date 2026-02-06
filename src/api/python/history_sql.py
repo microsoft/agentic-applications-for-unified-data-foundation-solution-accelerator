@@ -113,7 +113,7 @@ async def get_azure_sql_connection():
 
 async def get_fabric_db_connection():
     """
-    Get a connection to the SQL database.
+    Get a connection to the Fabric SQL database.
 
     Returns:
         Connection: Database connection object, or None if connection fails.
@@ -173,6 +173,26 @@ async def get_fabric_db_connection():
         return None
 
 
+async def get_db_connection():
+    """
+    Get a database connection based on deployment mode.
+    
+    When IS_WORKSHOP is true, uses Azure SQL Server.
+    When IS_WORKSHOP is false or not set, uses Fabric SQL.
+
+    Returns:
+        Connection: Database connection object, or None if connection fails.
+    """
+    is_workshop = os.getenv("IS_WORKSHOP", "false").lower() == "true"
+    
+    if is_workshop:
+        logging.info("Workshop deployment mode: Using Azure SQL Server")
+        return await get_azure_sql_connection()
+    else:
+        logging.info("Standard deployment mode: Using Fabric SQL")
+        return await get_fabric_db_connection()
+
+
 async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     """
     Execute a SQL non-query operation like DELETE, INSERT, or UPDATE.
@@ -184,7 +204,10 @@ async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     Returns:
         bool: True if the operation was successful, False otherwise.
     """
-    conn = await get_fabric_db_connection()
+    conn = await get_db_connection()
+    if conn is None:
+        logging.error("Failed to establish database connection")
+        return False
     cursor = None
     try:
         cursor = conn.cursor()
@@ -197,7 +220,8 @@ async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     finally:
         if cursor:
             cursor.close()
-        conn.close()
+        if conn:
+            conn.close()
 
 
 async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
@@ -212,12 +236,12 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
         list: List of dictionaries containing query results, or None if an error occurs.
     """
     # Connect to the database
-    conn = await get_fabric_db_connection()
+    conn = await get_db_connection()
+    if conn is None:
+        logging.error("Failed to establish database connection")
+        return None
     cursor = None
     try:
-        if not conn:
-            logging.error("Failed to establish fabric SQL database connection")
-            return None
         cursor = conn.cursor()
         cursor.execute(sql_query, params)
         columns = [desc[0] for desc in cursor.description]

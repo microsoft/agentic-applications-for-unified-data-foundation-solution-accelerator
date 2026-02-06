@@ -20,3 +20,15 @@ export function getChatLandingText() {
     "You can ask questions around sales, products and orders."
   );
 }
+
+export function isWorkShopDeployment() {
+  const rawValue = getRuntimeConfigValue(
+    "IS_WORKSHOP",
+    "REACT_APP_IS_WORKSHOP",
+    "false"
+  );
+  // Strip quotes and whitespace that might be included
+  const value = rawValue.replace(/['"]/g, '').trim().toLowerCase();
+  console.log('[config] isWorkShopDeployment raw:', rawValue, 'cleaned:', value, 'result:', value === "true");
+  return value === "true";
+}
