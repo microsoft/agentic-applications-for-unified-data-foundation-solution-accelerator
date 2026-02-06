@@ -27,8 +27,10 @@ Confirm when prompted:
 
 If you created Fabric artifacts and want to remove them:
 
-1. Go to [Microsoft Fabric](https://app.fabric.microsoft.com/)
-2. Open your workspace
+1. Go to [Azure Portal](https://portal.azure.com/) 
+2. Go to the resource group you created your Fabric Capacity in to delete it.  
+3. Go to [Microsoft Fabric](https://app.fabric.microsoft.com/)
+4. Open your workspace
 3. Delete the Lakehouse and Warehouse created for this workshop
 
 ## Clean Up Local Files (Optional)

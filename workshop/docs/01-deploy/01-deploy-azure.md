@@ -15,6 +15,12 @@ azd auth login
 
 This opens a browser for authentication.
 
+**To authenticate with Azure Developer CLI (azd), use the following command with your Tenant ID:**
+```bash
+azd auth login --tenant-id <tenant-id>
+az login --tenant <tenant-id>
+```
+
 ## Deploy Resources
 
 ```bash
