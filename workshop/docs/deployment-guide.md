@@ -8,7 +8,7 @@
 
 ## Choose Your Development Environment
 
-**Local VS Code:** Clone the repository and open it in your locally installed VS Code.
+**Local Visual Studio Code:** Clone the repository and open it in your locally installed VS Code.
 
 Or choose one of the options below:
 
@@ -48,7 +48,7 @@ azd up
 Create a new [Fabric workspace](./01-deploy/02-setup-fabric.md), then:
 
 ```bash
-cp .env.example .env
+cp .env.example .env # or: copy .env.example .env
 ```
 
 Open `.env` and set `FABRIC_WORKSPACE_ID` from [Microsoft Fabric](https://app.fabric.microsoft.com) URL
@@ -168,6 +168,11 @@ python -m venv .venv
 ```bash
 pip install uv && uv pip install -r scripts/requirements.txt
 ```
+
+```bash
+cp .env.example .env # or: copy .env.example .env
+```
+
 
 ### 5. Build the solution
 
