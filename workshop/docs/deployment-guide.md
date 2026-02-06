@@ -1,12 +1,25 @@
+# Quick Deploy Guide
+
 ## Prerequisites
 
 - Azure subscription with Contributor access & Role Based Access Control access
-- Microsoft Fabric workspace (F2+ capacity) with admin permissions
 - VS Code, Azure Developer CLI ([aka.ms/azd](https://aka.ms/azd)), Python 3.10+, Git
+- **For Fabric deployment:** Microsoft Fabric workspace (F2+ capacity) with admin permissions
+
+## Choose Your Development Environment
+
+**Local VS Code:** Clone the repository and open it in your locally installed VS Code.
+
+Or choose one of the options below:
+
+[![Open in GitHub Codespaces](https://img.shields.io/badge/GitHub-Codespaces-blue?logo=github)](https://codespaces.new/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator)
+[![Open in VS Code Dev Containers](https://img.shields.io/badge/VS%20Code-Dev%20Containers-blue?logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator)
+[![Open in VS Code Web](https://img.shields.io/badge/VS%20Code-Open%20in%20Web-blue?logo=visualstudiocode)](https://vscode.dev/azure/?vscode-azure-exp=foundry&agentPayload=eyJiYXNlVXJsIjogImh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9taWNyb3NvZnQvYWdlbnRpYy1hcHBsaWNhdGlvbnMtZm9yLXVuaWZpZWQtZGF0YS1mb3VuZGF0aW9uLXNvbHV0aW9uLWFjY2VsZXJhdG9yL21haW4vaW5mcmEvdnNjb2RlX3dlYiIsICJpbmRleFVybCI6ICIvaW5kZXguanNvbiIsICJ2YXJpYWJsZXMiOiB7ImFnZW50SWQiOiAiIiwgImNvbm5lY3Rpb25TdHJpbmciOiAiIiwgInRocmVhZElkIjogIiIsICJ1c2VyTWVzc2FnZSI6ICIiLCAicGxheWdyb3VuZE5hbWUiOiAiIiwgImxvY2F0aW9uIjogIiIsICJzdWJzY3JpcHRpb25JZCI6ICIiLCAicmVzb3VyY2VJZCI6ICIiLCAicHJvamVjdFJlc291cmNlSWQiOiAiIiwgImVuZHBvaW50IjogIiJ9LCAiY29kZVJvdXRlIjogWyJhaS1wcm9qZWN0cy1zZWsiLCAicHl0aG9uIiwgImRlZmF1bHQtYXp1cmUtYXV0aCIsICJlbmRwb2ludCJdfQ==)
+
 
 ---
 
-## Quick Start
+## Option A: Full Deployment (Fabric + Foundry)
 
 ### 1. Clone the repository
 
@@ -18,40 +31,29 @@ git clone https://github.com/microsoft/agentic-applications-for-unified-data-fou
 cd agentic-applications-for-unified-data-foundation-solution-accelerator
 ```
 
-### 2. (Optional) Enable Azure-only mode
-```bash
-azd env set AZURE_ENV_ONLY true
-```
-*Skip this if you have Microsoft Fabric Access. Uses Azure SQL instead of Fabric SQL.*
+### 2. Deploy Azure resources
 
-### 3. Deploy Azure resources (~7 min)
-Authenticate to Azure Developer CLI (azd): 
 ```bash
 azd auth login
 ```
 
-Deploy azure resources:
 ```bash
 azd up
 ```
-*Choose environment name and region. To authenticate with Azure Developer CLI (azd), use the following command with your Tenant ID: azd auth login --tenant-id <tenant-id>*
 
+*Choose environment name and region. Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
 
+### 3. Configure Fabric workspace
 
-### 4. Configure Fabric workspace
-Create a new [Fabric workspace](./01-deploy/02-setup-fabric.md). 
+Create a new [Fabric workspace](./01-deploy/02-setup-fabric.md), then:
 
-*Skip to step 4 if you are using Azure-only mode*
-
-Once you have your workspace ID run the following command: 
 ```bash
 cp .env.example .env
 ```
 
+Open `.env` and set `FABRIC_WORKSPACE_ID` from [Microsoft Fabric](https://app.fabric.microsoft.com) URL
 
-Open the `.env` and set `FABRIC_WORKSPACE_ID` from [Microsoft Fabric](https://app.fabric.microsoft.com) URL
-
-### 5. Setup Python environment
+### 4. Setup Python environment
 
 ```bash
 python -m venv .venv
@@ -65,7 +67,7 @@ python -m venv .venv
 pip install uv && uv pip install -r scripts/requirements.txt
 ```
 
-### 6. Build the solution (~5 min)
+### 5. Build the solution
 
 ```bash
 az login
@@ -75,24 +77,35 @@ az login
 python scripts/00_build_solution.py --from 02
 ```
 
-*Azure-only mode? Use:  `python scripts/00_build_solution.py --from 04`*
-
-### 7. Test the agent
+### 6. Test the agent
 
 ```bash
 python scripts/08_test_agent.py
 ```
 
-### 7.1 Test the Fabric Data Agent
+**Sample questions to try:**
+
+- "How many outages occurred last month?"
+- "What's the average resolution time?"
+- "What are the policies for notifying customers of outages?"
+- "Which outages exceeded the maximum duration defined in our policy?"
+
+### 7. Test the Fabric Data Agent
+
 1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
-2. Select "New item" 
-3. Search for and select "Data Agent" 
-4. Select add data source and select your Ontology resource created in the previous step. 
-5. Select Agent instructions and paste the below instructions. 
-``` 
+2. Select "New item" → Search for "Data Agent"
+3. Add data source → Select your Ontology resource
+4. Add Agent instructions:
+```
 You are a helpful assistant that can answer user questions using data.
 Support group by in GQL.
 ```
+
+**Sample questions to try:**
+
+- "Which outages had the most customer impact?"
+- "Show me the top 5 regions by total outage duration"
+- "What's the total number of tickets by priority?"
 
 ### 8. Deploy and launch the application
 
@@ -104,37 +117,104 @@ azd env set AZURE_ENV_DEPLOY_APP true
 azd up
 ```
 
-After deployment completes, open the app URL shown in the output
+After deployment completes, open the app URL shown in the output. **Done!**
 
-### 9. (Azure-only mode) Update agent configuration
+### 9. Customize for Your Industry (Optional)
+
+Follow steps in this page to  [Customize for your use case](./02-customize/index.md).
+
+---
+
+## Option B: Azure-Only Deployment
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator.git
+```
+
+```bash
+cd agentic-applications-for-unified-data-foundation-solution-accelerator
+```
+
+### 2. Enable Azure-only mode
+
+```bash
+azd env set AZURE_ENV_ONLY true
+```
+
+### 3. Deploy Azure resources
+
+```bash
+azd auth login
+```
+
+```bash
+azd up
+```
+
+*Choose environment name and region. Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
+
+### 4. Setup Python environment
+
+```bash
+python -m venv .venv
+```
+
+```bash
+.venv\Scripts\activate   # or: source .venv/bin/activate
+```
+
+```bash
+pip install uv && uv pip install -r scripts/requirements.txt
+```
+
+### 5. Build the solution
+
+```bash
+az login
+```
+
+```bash
+python scripts/00_build_solution.py --from 04
+```
+
+### 6. Test the agent
+
+```bash
+python scripts/08_test_agent.py
+```
+
+**Sample questions to try:**
+
+- "How many outages occurred last month?"
+- "What's the average resolution time?"
+- "What are the policies for notifying customers of outages?"
+- "Which outages exceeded the maximum duration defined in our policy?"
+
+### 7. Deploy and launch the application
+
+```bash
+azd env set AZURE_ENV_DEPLOY_APP true
+```
+
+```bash
+azd up
+```
+
+### 8. Update agent configuration
 
 ```bash
 python scripts/00_build_solution.py --from 05
 ```
-*Only run this if you set AZURE_ENV_DEPLOY_APP=true. Skip this step if using Fabric mode.*
 
----
+After deployment completes, open the app URL shown in the output. **Done!**
 
-## Try These Questions
+### 9. Customize for Your Industry (Optional)
 
-| Type | Example |
-|------|---------|
-| **Structured** | "How many outages occurred last month?" \| "What is the average resolution time?" |
-| **Unstructured** | "What are the policies for notifying customers of outages?" |
-| **Combined** | "Which outages exceeded the maximum duration defined in our policy?" |
+Follow steps in this page to  [Customize for your use case](./02-customize/index.md).
 
----
 
-## Customize for Your Industry
-
-```bash
-python scripts/00_build_solution.py --clean --industry "Insurance" --usecase "Claims processing"
-```
-
-**Industries:** Telecommunications | Insurance | Finance | Retail | Manufacturing | Energy
-
-**Tip:** Use GitHub Copilot Chat (Ctrl+I) for help with errors
-
----
+----------
 
 **Repository:** [github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator](https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator)
