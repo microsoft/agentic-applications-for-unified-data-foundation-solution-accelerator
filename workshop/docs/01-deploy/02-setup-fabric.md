@@ -2,6 +2,9 @@
 
 Create and configure your Microsoft Fabric workspace for Fabric IQ.
 
+!!! note "Using Azure-Only Mode?"
+    If you set `AZURE_ENV_ONLY=true` before running `azd up`, you can **skip this page** and proceed directly to [Configure dev environment](03-configure.md).
+
 ## Prerequisites
 
 - Microsoft Fabric capacity (F2 or higher recommended)
