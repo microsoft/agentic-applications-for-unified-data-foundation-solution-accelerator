@@ -115,6 +115,35 @@ def get_required_env(var_name: str, description: str = None) -> str:
     return value
 
 
+def get_data_folder() -> str:
+    """
+    Get DATA_FOLDER resolved to an absolute path.
+    
+    DATA_FOLDER in .env can be relative (to project root) or absolute.
+    This function always returns an absolute path.
+    
+    Returns:
+        Absolute path to the data folder
+        
+    Raises:
+        ValueError: If DATA_FOLDER is not set
+    """
+    data_folder = os.environ.get("DATA_FOLDER")
+    if not data_folder:
+        raise ValueError(
+            "DATA_FOLDER not set.\n"
+            "Run 01_generate_data.py first, or set DATA_FOLDER in .env"
+        )
+    
+    # If already absolute, return as-is
+    if os.path.isabs(data_folder):
+        return data_folder
+    
+    # Resolve relative path from project root (parent of scripts folder)
+    project_root = Path(__file__).parent.parent
+    return str((project_root / data_folder).resolve())
+
+
 def print_env_status():
     """Print status of loaded environment variables (for debugging)."""
     print("\n📋 Environment Configuration:")
