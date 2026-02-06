@@ -283,9 +283,10 @@ if args.quiet:
 for step in pipeline:
     if run_step(step):
         successful += 1
-        # Reload environment after step 01 (it updates DATA_FOLDER in .env)
+        # Force reload environment after step 01 (it updates DATA_FOLDER, INDUSTRY, USECASE in .env)
         if step == "01":
-            load_all_env()
+            from load_env import reload_env
+            reload_env()
     else:
         failed += 1
 
@@ -299,6 +300,9 @@ if args.quiet:
     print(f"\n✓ Done! {successful}/{len(pipeline)} steps completed in {total_elapsed:.1f}s")
     if failed == 0:
         print(f"  Next: python scripts/08_test_agent.py")
+    else:
+        print(f"  Some steps failed. Check output above.")
+        sys.exit(1)
 else:
     print("\n" + "="*60)
     print("Pipeline Complete!")
@@ -317,6 +321,6 @@ Sample questions to try:
   - "What is the response time required for outages?"
   - "Which outages exceeded the maximum duration defined in our policy?"
 """)
-else:
-    print("\nSome steps failed. Check the output above for errors.")
-    sys.exit(1)
+    else:
+        print("\nSome steps failed. Check the output above for errors.")
+        sys.exit(1)

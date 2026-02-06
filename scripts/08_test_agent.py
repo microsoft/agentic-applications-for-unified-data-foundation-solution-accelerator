@@ -8,7 +8,8 @@ Modes:
     - Both modes: Native AI Search handles document queries automatically
 
 Usage:
-    python 08_test_agent.py
+    python 08_test_agent.py           # Clean output (default)
+    python 08_test_agent.py -v         # Verbose: show SQL queries, search details
     python 08_test_agent.py --agent-name <name>
 
 The script reads sql_mode from agent_ids.json to determine which SQL backend to use.
@@ -23,7 +24,10 @@ import argparse
 # Parse arguments first
 parser = argparse.ArgumentParser()
 parser.add_argument("--agent-name", type=str, help="Agent name to test")
+parser.add_argument("-v", "--verbose", action="store_true", help="Show detailed SQL queries, search calls, and results")
 args = parser.parse_args()
+
+VERBOSE = args.verbose
 
 # Load environment from azd + project .env
 from load_env import load_all_env, get_data_folder
@@ -331,18 +335,59 @@ def chat(user_message: str):
         while iteration < max_iterations:
             iteration += 1
             
-            # Check for function calls in output
+            # Check for function calls and tool uses in output
             function_calls = []
             text_output = ""
+            search_results = []
             
             for item in response.output:
-                if hasattr(item, 'type'):
-                    if item.type == 'function_call':
-                        function_calls.append(item)
-                    elif item.type == 'message':
-                        for content in item.content:
-                            if hasattr(content, 'text'):
-                                text_output += content.text
+                item_type = getattr(item, 'type', None)
+                
+                if item_type == 'function_call':
+                    function_calls.append(item)
+                elif item_type == 'message':
+                    for content in item.content:
+                        if hasattr(content, 'text'):
+                            text_output += content.text
+                        # Check for annotations (citations from search)
+                        if hasattr(content, 'annotations'):
+                            for ann in content.annotations:
+                                if hasattr(ann, 'url_citation'):
+                                    search_results.append(ann.url_citation)
+                                elif hasattr(ann, 'file_citation'):
+                                    search_results.append(getattr(ann.file_citation, 'file_id', str(ann.file_citation)))
+                # Handle search tool call (request)
+                elif item_type == 'azure_ai_search_call':
+                    if VERBOSE:
+                        # Extract the search query from arguments
+                        args_str = getattr(item, 'arguments', '{}')
+                        try:
+                            args = json.loads(args_str) if args_str else {}
+                            query = args.get('query', 'unknown')
+                        except:
+                            query = args_str
+                        print(f"\n🔍 AI Search: \"{query}\"")
+                # Handle search tool output (result) - results are internal to the agent
+                elif item_type == 'azure_ai_search_call_output':
+                    if VERBOSE:
+                        # Native AI Search doesn't expose raw results in API response
+                        # The agent uses results internally and includes citations in the answer
+                        print(f"   ✓ Search completed (results used internally by agent)")
+                # Handle other tool result types
+                elif item_type in ['tool_call']:
+                    if VERBOSE:
+                        print(f"\n🔧 Tool called: {getattr(item, 'name', 'unknown')}")
+                        
+                # Catch-all for other tool results
+                elif item_type and 'search' in str(item_type).lower():
+                    print(f"\n🔍 Search result (type: {item_type})")
+                    print(f"   {str(item)[:500]}")
+            
+            # Print search citations if any (verbose only)
+            if search_results and VERBOSE:
+                print(f"\n📚 Search Citations:")
+                for citation in search_results[:5]:  # Show up to 5 citations
+                    print(f"   - {citation}")
             
             # If no function calls, we're done
             if not function_calls:
@@ -356,13 +401,23 @@ def chat(user_message: str):
                 func_name = fc.name
                 func_args = json.loads(fc.arguments)
                 
-                print(f"\n🔧 Calling {func_name}...")
+                if VERBOSE:
+                    print(f"\n🔧 Calling {func_name}...")
                 
                 if func_name == "execute_sql":
                     sql_query = func_args.get("sql_query", "")
-                    print(f"   SQL: {sql_query[:100]}{'...' if len(sql_query) > 100 else ''}")
+                    if VERBOSE:
+                        print(f"\n   📝 SQL Query:")
+                        print(f"   {'-'*50}")
+                        print(f"   {sql_query}")
+                        print(f"   {'-'*50}")
                     result = execute_sql(sql_query)
-                    print(f"   ✓ Query executed")
+                    if VERBOSE:
+                        print(f"\n   📊 SQL Result:")
+                        print(f"   {'-'*50}")
+                        for line in result.split('\n'):
+                            print(f"   {line}")
+                        print(f"   {'-'*50}")
                 else:
                     result = f"Unknown function: {func_name}"
                 

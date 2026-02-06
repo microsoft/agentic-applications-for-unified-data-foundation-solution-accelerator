@@ -91,6 +91,20 @@ def load_all_env():
     return azd_loaded, project_loaded
 
 
+def reload_env():
+    """
+    Force reload environment variables from .env files.
+    Uses override=True to pick up changes made by scripts.
+    """
+    script_dir = Path(__file__).parent
+    project_env = script_dir.parent / ".env"
+    
+    if project_env.exists():
+        load_dotenv(project_env, override=True)
+        return True
+    return False
+
+
 def get_required_env(var_name: str, description: str = None) -> str:
     """
     Get a required environment variable or raise an error.

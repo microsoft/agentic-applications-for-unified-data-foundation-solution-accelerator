@@ -157,10 +157,8 @@ def create_guide():
 if __name__ == '__main__':
     import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    guides_dir = os.path.join(script_dir, '..', 'guides')
-    os.makedirs(guides_dir, exist_ok=True)
     
     pdf = create_guide()
-    output_path = os.path.join(guides_dir, 'deployment_guide.pdf')
+    output_path = os.path.join(script_dir, 'deployment_guide.pdf')
     pdf.output(output_path)
     print(f'Created: {output_path}')

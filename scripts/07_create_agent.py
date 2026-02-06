@@ -210,88 +210,14 @@ print(f"Search Index: {INDEX_NAME}")
 # Build Agent Instructions
 # ============================================================================
 
-def load_sample_questions(config_dir):
-    """Load sample questions from config folder if available"""
-    questions_path = os.path.join(config_dir, "sample_questions.txt")
-    if os.path.exists(questions_path):
-        with open(questions_path) as f:
-            content = f.read()
-        
-        # Parse the structured questions file
-        sql_questions = []
-        doc_questions = []
-        combined_questions = []
-        
-        current_section = None
-        for line in content.split('\n'):
-            line = line.strip()
-            if 'SQL QUESTIONS' in line:
-                current_section = 'sql'
-            elif 'DOCUMENT QUESTIONS' in line:
-                current_section = 'doc'
-            elif 'COMBINED' in line:
-                current_section = 'combined'
-            elif line.startswith('- '):
-                question = line[2:].strip()
-                if current_section == 'sql':
-                    sql_questions.append(question)
-                elif current_section == 'doc':
-                    doc_questions.append(question)
-                elif current_section == 'combined':
-                    combined_questions.append(question)
-        
-        return {
-            'sql': sql_questions[:3],  # Take top 3 of each
-            'doc': doc_questions[:3],
-            'combined': combined_questions[:2]
-        }
-    return None
-
-
-def generate_example_questions(tables_config):
-    """Generate example questions from table schema when no sample_questions.txt exists"""
-    sql_examples = []
-    
-    for table_name, table_config in tables_config.items():
-        columns = table_config.get("columns", [])
-        # Find date columns for time-based questions
-        date_cols = [c for c in columns if 'date' in c.lower() or 'time' in c.lower()]
-        # Find numeric columns for aggregation questions
-        numeric_types = ['Int', 'BigInt', 'Float', 'Double', 'Decimal']
-        types = table_config.get("types", {})
-        numeric_cols = [c for c in columns if types.get(c) in numeric_types]
-        
-        # Generate questions
-        sql_examples.append(f"How many records are in {table_name}?")
-        if date_cols:
-            sql_examples.append(f"Show {table_name} from the last 30 days")
-        if numeric_cols and len(numeric_cols) > 0:
-            sql_examples.append(f"What is the average {numeric_cols[0]} in {table_name}?")
-    
-    return {
-        'sql': sql_examples[:3],
-        'doc': ["What are the policies for this scenario?", "What procedures should be followed?"],
-        'combined': ["Which records exceed the thresholds defined in our policies?"]
-    }
-
-
 def build_agent_instructions(config, schema_text, use_fabric, config_dir):
-    """Build agent instructions based on SQL mode and scenario"""
+    """Build simple, clean agent instructions based on scenario ontology"""
     scenario_name = config.get("name", "Business Data")
     scenario_desc = config.get("description", "")
     tables_config = config.get("tables", {})
     relationships = config.get("relationships", [])
     
     table_names = list(tables_config.keys())
-    
-    # Load or generate sample questions
-    sample_questions = load_sample_questions(config_dir)
-    if not sample_questions:
-        sample_questions = generate_example_questions(tables_config)
-    
-    # Format example questions for instructions
-    sql_examples = "\n".join([f"  - {q}" for q in sample_questions.get('sql', [])])
-    doc_examples = "\n".join([f"  - {q}" for q in sample_questions.get('doc', [])])
     
     # Build relationship descriptions for JOINs
     join_hints = []
@@ -309,51 +235,29 @@ def build_agent_instructions(config, schema_text, use_fabric, config_dir):
         sql_source = "Azure SQL Database"
         table_format = "Use [dbo].[table_name] format"
     
-    # Get primary table for examples
-    primary_table = table_names[0] if table_names else "records"
-    
-    return f"""You are a helpful data analyst assistant that answers questions about {scenario_name}.
+    return f"""You are a data analyst assistant for {scenario_name}.
 
 {scenario_desc}
 
-You have access to TWO tools. Choose the correct tool based on the question type.
+## Tools
 
-## Tool 1: execute_sql (REQUIRED for data questions)
-**USE THIS TOOL** for any question about:
-- Numbers, counts, totals, averages, sums
-- "How many...", "What is the total...", "What is the average..."
-- "List all...", "Show me...", "Which..."
-- Any question that requires querying database tables
-
-Database: {sql_source}
-Tables: {', '.join(table_names)}
-{table_format}
-{schema_text}
-
-Example SQL questions:
-{sql_examples}
-
-## Tool 2: Azure AI Search (for document/policy questions)
-Use for questions about:
-- Policies, procedures, guidelines, rules
-- "What is the policy for...", "How should we...", "What are the rules..."
-
-Example document questions:
-{doc_examples}
-
-## Decision Rules:
-1. Data questions (numbers, lists, specific records) → execute_sql
-2. Policy/procedure questions → Azure AI Search
-3. Combined questions → Use BOTH tools
-
-## SQL Guidelines:
-- Use T-SQL syntax
+**execute_sql** - Query the {sql_source} database
+- Tables: {', '.join(table_names)}
 - {table_format}
-- Available tables: {', '.join(table_names)}
-- For JOINs: {'; '.join(join_hints) if join_hints else 'check schema for foreign keys'}
-- Use TOP N instead of LIMIT
+- Use T-SQL syntax (TOP N, not LIMIT)
+{f"- JOINs: {'; '.join(join_hints)}" if join_hints else ""}
 
-IMPORTANT: The search index contains ONLY policy documents, NOT database records. For data queries, always use execute_sql."""
+**Azure AI Search** - Search policy and reference documents
+- Contains guidelines, thresholds, rules, requirements, and reference information
+
+## When to Use Each Tool
+
+- **Database queries** (counts, lists, aggregations, filtering records) → execute_sql
+- **Document lookups** (policies, thresholds, rules, guidelines) → Azure AI Search  
+- **Comparisons** (data vs. policy thresholds) → Search first for threshold, then query with that value
+
+{schema_text}
+"""
 
 instructions = build_agent_instructions(ontology_config, schema_prompt, USE_FABRIC, config_dir)
 print(f"\nBuilt instructions ({len(instructions)} chars)")
@@ -486,15 +390,6 @@ print(f"\n[OK] Agent config saved to: {agent_ids_path}")
 
 sql_mode = "Fabric Lakehouse" if USE_FABRIC else "Azure SQL Database"
 
-# Load sample questions for summary
-sample_questions = load_sample_questions(config_dir)
-if not sample_questions:
-    sample_questions = generate_example_questions(ontology_config.get("tables", {}))
-
-sql_example = sample_questions.get('sql', [''])[0] if sample_questions.get('sql') else "How many records are there?"
-doc_example = sample_questions.get('doc', [''])[0] if sample_questions.get('doc') else "What are the policies?"
-combined_example = sample_questions.get('combined', [''])[0] if sample_questions.get('combined') else "How do records compare to policies?"
-
 print(f"""
 {'='*60}
 AI Foundry Agent Created Successfully!
@@ -504,15 +399,11 @@ Agent ID: {agent.id}
 Agent Name: {agent.name}
 Model: {MODEL}
 Scenario: {scenario_name}
+Tables: {', '.join(tables)}
 
 Tools:
-  1. execute_sql (function) - Query {sql_mode}
-  2. AzureAISearchTool (native) - Document search with citations
-
-Sample questions:
-  SQL: "{sql_example}"
-  Search: "{doc_example}"
-  Combined: "{combined_example}"
+  1. execute_sql - Query {sql_mode}
+  2. Azure AI Search - Document search
 
 Next step:
   python scripts/08_test_agent.py
