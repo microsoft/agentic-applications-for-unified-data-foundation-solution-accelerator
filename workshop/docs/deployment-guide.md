@@ -34,7 +34,7 @@ Deploy azure resources:
 ```bash
 azd up
 ```
-*Choose environment name and region (eastus2 or westus2 recommended). To authenticate with Azure Developer CLI (azd), use the following command with your Tenant ID: azd auth login --tenant-id <tenant-id>*
+*Choose environment name and region. To authenticate with Azure Developer CLI (azd), use the following command with your Tenant ID: azd auth login --tenant-id <tenant-id>*
 
 
 
