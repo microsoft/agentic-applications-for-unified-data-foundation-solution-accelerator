@@ -3,13 +3,13 @@ Build Solution - Unified Pipeline
 Master script that runs all steps to build the complete solution.
 
 Usage:
-    # Run all steps from the beginning (uses either Fabric Lakehouse or SQL + AI Search)
+    # Run all steps from the beginning (uses either Fabric Lakehouse or Azure SQL + AI Search)
     python scripts/00_build_solution.py
     
     # Start from a specific step
     python scripts/00_build_solution.py --from 06
 
-Steps (Full mode):
+Steps (Fabric SQL mode):
     01  - Generate sample data
     02  - Create Fabric Lakehouse
     03  - Load data into Fabric

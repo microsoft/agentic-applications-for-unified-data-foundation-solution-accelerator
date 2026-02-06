@@ -123,10 +123,14 @@ def create_guide():
     
     pdf.step(5, 'Build the solution (~5 min)',
         'python scripts/00_build_solution.py --from 02',
-        'No Fabric? Use: python scripts/00_build_solution.py --from 04 --azure-only')
+        'No Fabric? Use: python scripts/00_build_solution.py --from 04')
     
     pdf.step(6, 'Test the agent',
         'python scripts/08_test_agent.py')
+    
+    pdf.step(7, 'Deploy and launch the application',
+        'azd env set AZURE_ENV_DEPLOY_APP true\nazd up',
+        'After deployment completes, open the app URL shown in the output')
     
     # Sample Questions
     pdf.section_header('Try These Questions')

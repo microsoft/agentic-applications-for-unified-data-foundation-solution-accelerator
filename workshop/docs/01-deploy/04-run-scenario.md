@@ -4,8 +4,15 @@
 
 One command builds the solution including data processing and agent creation:
 
+Fabric Workspace Mode
+
 ```bash
 python scripts/00_build_solution.py --from 02
+```
+
+Azure Only Mode
+```bash
+python scripts/00_build_solution.py --from 04
 ```
 
 This uses the `data/default` folder and runs all setup steps:
