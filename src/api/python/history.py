@@ -650,7 +650,7 @@ async def get_conversation_messages(user_id: str, conversation_id: str):
             else:
                 message_content = content
                 citations = ""
-            
+
             messages.append({
                 "id": msg["id"],
                 "role": msg["role"],
@@ -862,7 +862,7 @@ async def delete_conversation_route(request: Request, id: str = Query(...)):
         authenticated_user = get_authenticated_user_details(
             request_headers=request.headers)
         user_id = authenticated_user["user_principal_id"]
-        
+
         conversation_id = id
         if not conversation_id:
             track_event_if_configured("DeleteConversationValidationError", {
