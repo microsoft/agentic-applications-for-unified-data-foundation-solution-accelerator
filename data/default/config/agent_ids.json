@@ -2,7 +2,5 @@
   "_comment": "This file is populated when you run 07_create_foundry_agent.py",
   "chat_agent_id": null,
   "chat_agent_name": null,
-  "title_agent_id": null,
-  "title_agent_name": null,
   "search_index": null
 }

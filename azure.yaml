@@ -23,10 +23,9 @@ hooks:
         if ($isWorkshop -eq "true") {
             Write-Host "`n=== Run each command one at a time, waiting for completion before proceeding ===" -ForegroundColor Yellow
             Write-Host "`n1. Setup Python environment:"
-            Write-Host "   cd scripts" -ForegroundColor Cyan
             Write-Host "   python -m venv .venv" -ForegroundColor Cyan
             Write-Host "   .venv\Scripts\activate" -ForegroundColor Cyan
-            Write-Host "   pip install uv && uv pip install -r requirements.txt" -ForegroundColor Cyan
+            Write-Host "   pip install uv && uv pip install -r scripts/requirements.txt" -ForegroundColor Cyan
 
             Write-Host "`n2. Build solution (data processing and agent creation):"
             Write-Host "   python scripts/00_build_solution.py --from 02" -ForegroundColor Cyan
@@ -55,10 +54,9 @@ hooks:
             echo "=== Run each command one at a time, waiting for completion before proceeding ==="
             echo ""
             echo "1. Setup Python environment:"
-            echo "   cd scripts"
             echo "   python -m venv .venv"
             echo "   source .venv/bin/activate"
-            echo "   pip install uv && uv pip install -r requirements.txt"
+            echo "   pip install uv && uv pip install -r scripts/requirements.txt"
 
             echo ""
             echo "2. Build solution (data processing and agent creation):"

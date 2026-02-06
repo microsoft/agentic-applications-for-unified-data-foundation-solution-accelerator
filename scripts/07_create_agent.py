@@ -367,18 +367,14 @@ try:
         print(f"  Agent Name: {chat_agent.name}")
 
         # Delete existing title agent if it exists
-        print(f"\nChecking if title agent '{TITLE_AGENT_NAME}' already exists...")
         try:
             existing_title_agent = project_client.agents.get(TITLE_AGENT_NAME)
             if existing_title_agent:
-                print(f"  Found existing title agent, deleting...")
                 project_client.agents.delete(TITLE_AGENT_NAME)
-                print(f"[OK] Deleted existing title agent")
         except Exception:
-            print(f"  No existing title agent found")
+            pass
 
         # Create title agent
-        print(f"\nCreating title agent...")
         title_agent_definition = PromptAgentDefinition(
             model=MODEL,
             instructions=title_agent_instructions,
@@ -391,8 +387,6 @@ try:
         )
         
         print(f"\n[OK] Title agent created successfully!")
-        print(f"  Title Agent ID: {title_agent.id}")
-        print(f"  Title Agent Name: {title_agent.name}")
         
 except Exception as e:
     print(f"\n[FAIL] Failed to create agent: {e}")
@@ -413,8 +407,6 @@ if os.path.exists(agent_ids_path):
 # Save agent-specific info
 agent_ids["chat_agent_id"] = chat_agent.id
 agent_ids["chat_agent_name"] = chat_agent.name
-agent_ids["title_agent_id"] = title_agent.id
-agent_ids["title_agent_name"] = title_agent.name
 agent_ids["search_index"] = INDEX_NAME
 agent_ids["sql_mode"] = "fabric" if USE_FABRIC else "azure_sql"
 if not USE_FABRIC:

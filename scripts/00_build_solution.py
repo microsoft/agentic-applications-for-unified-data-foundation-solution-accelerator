@@ -3,16 +3,13 @@ Build Solution - Unified Pipeline
 Master script that runs all steps to build the complete solution.
 
 Usage:
-    # Full Fabric mode (uses Fabric Lakehouse + AI Search)
+    # Run all steps from the beginning (uses either Fabric Lakehouse or Azure SQL + AI Search)
     python scripts/00_build_solution.py
-
-    # Azure-only mode (uses Azure SQL + AI Search, no Fabric required)
-    python scripts/00_build_solution.py --azure-only
     
     # Start from a specific step
     python scripts/00_build_solution.py --from 06
 
-Steps (Full mode):
+Steps (Fabric SQL mode):
     01  - Generate sample data
     02  - Create Fabric Lakehouse
     03  - Load data into Fabric
@@ -66,15 +63,11 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog="""
 Examples:
-  python scripts/00_build_solution.py                # Full Fabric mode
-  python scripts/00_build_solution.py --azure-only   # Azure SQL mode (no Fabric)
+  python scripts/00_build_solution.py                # Full Fabric mode or SQL mode
   python scripts/00_build_solution.py --from 06      # Start from step 06
   python scripts/00_build_solution.py --only 07      # Run only specific steps
 """
 )
-
-parser.add_argument("--azure-only", action="store_true",
-                    help="Use Azure SQL instead of Fabric Lakehouse")
 parser.add_argument("--industry", type=str, 
                     help="Industry for data generation (overrides .env)")
 parser.add_argument("--usecase", type=str, 
@@ -101,13 +94,20 @@ args = parser.parse_args()
 # Quiet mode is default (verbose must be explicitly requested)
 args.quiet = not args.verbose
 
+# Load environment from azd + project .env
+from load_env import load_all_env
+load_all_env()
+
+# Get azure_only from environment variable (set AZURE_ENV_ONLY=true to use Azure SQL mode)
+azure_only = os.getenv("AZURE_ENV_ONLY", "false").lower() in ("true", "1", "yes")
+
 # ============================================================================
 # Determine Pipeline
 # ============================================================================
 
 if args.only:
     pipeline = args.only
-elif args.azure_only:
+elif azure_only:
     pipeline = AZURE_ONLY_PIPELINE.copy()
 else:
     pipeline = FABRIC_PIPELINE.copy()
@@ -134,10 +134,6 @@ for step in pipeline:
     if not os.path.exists(script_path):
         print(f"ERROR: Script not found: {STEPS[step]['script']}")
         sys.exit(1)
-
-# Load environment from azd + project .env
-from load_env import load_all_env
-load_all_env()
 
 # ============================================================================
 # Interactive Prompts for Data Generation
@@ -180,7 +176,7 @@ if "01" in pipeline:
 # Print Plan
 # ============================================================================
 
-mode = "Azure SQL" if args.azure_only else "Fabric"
+mode = "Azure SQL" if azure_only else "Fabric"
 print("\n" + "="*60)
 print(f"Build Solution Pipeline ({mode} Mode)")
 print("="*60)
@@ -231,7 +227,7 @@ def run_step(step_id):
     if step_id == "02" and args.clean:
         cmd.append("--clean")
     
-    if step_id == "07" and args.azure_only:
+    if step_id == "07" and azure_only:
         cmd.append("--azure-only")
     
     # Run the script
