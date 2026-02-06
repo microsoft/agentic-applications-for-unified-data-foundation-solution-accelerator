@@ -4,11 +4,11 @@
 
 - Azure subscription with Contributor access & Role Based Access Control access
 - VS Code, Azure Developer CLI ([aka.ms/azd](https://aka.ms/azd)), Python 3.10+, Git
-- **For Fabric deployment:** Microsoft Fabric workspace (F2+ capacity) with admin permissions
+- For Fabric deployment: Microsoft Fabric workspace (F2+ capacity) with admin permissions
 
 ## Choose Your Development Environment
 
-**Local Visual Studio Code:** Clone the repository and open it in your locally installed VS Code.
+Local Visual Studio Code: Open Visual Studio Code. From the File menu, select Open Folder and choose the folder where you want to deploy the workshop.
 
 Or choose one of the options below:
 
