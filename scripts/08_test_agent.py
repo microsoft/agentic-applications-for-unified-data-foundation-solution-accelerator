@@ -74,9 +74,9 @@ if not os.path.exists(agent_ids_path):
 with open(agent_ids_path) as f:
     agent_ids = json.load(f)
 
-# Get agent name
-AGENT_NAME = args.agent_name or agent_ids.get("agent_name")
-if not AGENT_NAME:
+# Get chat agent name
+CHAT_AGENT_NAME = args.agent_name or agent_ids.get("chat_agent_name")
+if not CHAT_AGENT_NAME:
     print("ERROR: No agent name found")
     print("       Run 07_create_agent.py first or provide --agent-name")
     sys.exit(1)
@@ -117,7 +117,7 @@ if USE_FABRIC:
 else:
     print("AI Agent Chat (Azure SQL + Native Search)")
 print(f"{'='*60}")
-print(f"Agent: {AGENT_NAME}")
+print(f"Chat Agent: {CHAT_AGENT_NAME}")
 if USE_FABRIC:
     print(f"SQL Mode: Fabric Lakehouse")
     print(f"Lakehouse: {LAKEHOUSE_NAME}")
@@ -325,7 +325,7 @@ def chat(user_message: str):
         # Initial request to the agent
         response = openai_client.responses.create(
             input=user_message,
-            extra_body={"agent": {"name": AGENT_NAME, "type": "agent_reference"}}
+            extra_body={"agent": {"name": CHAT_AGENT_NAME, "type": "agent_reference"}}
         )
         
         # Process response - handle function calls if any
@@ -431,7 +431,7 @@ def chat(user_message: str):
             response = openai_client.responses.create(
                 input=tool_outputs,
                 extra_body={
-                    "agent": {"name": AGENT_NAME, "type": "agent_reference"},
+                    "agent": {"name": CHAT_AGENT_NAME, "type": "agent_reference"},
                     "previous_response_id": response.id
                 }
             )

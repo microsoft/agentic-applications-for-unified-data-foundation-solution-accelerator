@@ -57,6 +57,7 @@ from azure.ai.projects.models import (
     AzureAISearchToolResource,
     AISearchIndexResource,
 )
+from azure.mgmt.web import WebSiteManagementClient
 
 # ============================================================================
 # Configuration
@@ -179,7 +180,7 @@ else:
         INDEX_NAME = f"{SOLUTION_NAME}-documents"
 
 # Agent name
-AGENT_NAME = f"{SOLUTION_NAME}-agent"
+CHAT_AGENT_NAME = f"{SOLUTION_NAME}-ChatAgent"
 
 # ============================================================================
 # Print Configuration
@@ -262,6 +263,17 @@ def build_agent_instructions(config, schema_text, use_fabric, config_dir):
 instructions = build_agent_instructions(ontology_config, schema_prompt, USE_FABRIC, config_dir)
 print(f"\nBuilt instructions ({len(instructions)} chars)")
 
+# Title Agent Instructions
+title_agent_instructions = '''You are a specialized agent for generating concise conversation titles. 
+Create 4-word or less titles that capture the main action or data request. 
+Focus on key nouns and actions (e.g., 'Revenue Line Chart', 'Sales Report', 'Data Analysis'). 
+Never use quotation marks or punctuation. 
+Be descriptive but concise.
+Respond only with the title, no additional commentary.'''
+
+# Title Agent Name
+TITLE_AGENT_NAME = f"{SOLUTION_NAME}-TitleAgent"
+
 # ============================================================================
 # Tool Definitions
 # ============================================================================
@@ -326,12 +338,12 @@ except Exception as e:
 try:
     with project_client:
         # Delete existing agent if it exists
-        print(f"\nChecking if agent '{AGENT_NAME}' already exists...")
+        print(f"\nChecking if agent '{CHAT_AGENT_NAME}' already exists...")
         try:
-            existing_agent = project_client.agents.get(AGENT_NAME)
+            existing_agent = project_client.agents.get(CHAT_AGENT_NAME)
             if existing_agent:
                 print(f"  Found existing agent, deleting...")
-                project_client.agents.delete(AGENT_NAME)
+                project_client.agents.delete(CHAT_AGENT_NAME)
                 print(f"[OK] Deleted existing agent")
         except Exception:
             print(f"  No existing agent found")
@@ -345,14 +357,42 @@ try:
             tools=agent_tools
         )
         
-        agent = project_client.agents.create(
-            name=AGENT_NAME,
+        chat_agent = project_client.agents.create(
+            name=CHAT_AGENT_NAME,
             definition=agent_definition
         )
         
         print(f"\n[OK] Agent created successfully!")
-        print(f"  Agent ID: {agent.id}")
-        print(f"  Agent Name: {agent.name}")
+        print(f"  Agent ID: {chat_agent.id}")
+        print(f"  Agent Name: {chat_agent.name}")
+
+        # Delete existing title agent if it exists
+        print(f"\nChecking if title agent '{TITLE_AGENT_NAME}' already exists...")
+        try:
+            existing_title_agent = project_client.agents.get(TITLE_AGENT_NAME)
+            if existing_title_agent:
+                print(f"  Found existing title agent, deleting...")
+                project_client.agents.delete(TITLE_AGENT_NAME)
+                print(f"[OK] Deleted existing title agent")
+        except Exception:
+            print(f"  No existing title agent found")
+
+        # Create title agent
+        print(f"\nCreating title agent...")
+        title_agent_definition = PromptAgentDefinition(
+            model=MODEL,
+            instructions=title_agent_instructions,
+            tools=[]
+        )
+        
+        title_agent = project_client.agents.create(
+            name=TITLE_AGENT_NAME,
+            definition=title_agent_definition
+        )
+        
+        print(f"\n[OK] Title agent created successfully!")
+        print(f"  Title Agent ID: {title_agent.id}")
+        print(f"  Title Agent Name: {title_agent.name}")
         
 except Exception as e:
     print(f"\n[FAIL] Failed to create agent: {e}")
@@ -371,8 +411,10 @@ if os.path.exists(agent_ids_path):
         agent_ids = json.load(f)
 
 # Save agent-specific info
-agent_ids["agent_id"] = agent.id
-agent_ids["agent_name"] = agent.name
+agent_ids["chat_agent_id"] = chat_agent.id
+agent_ids["chat_agent_name"] = chat_agent.name
+agent_ids["title_agent_id"] = title_agent.id
+agent_ids["title_agent_name"] = title_agent.name
 agent_ids["search_index"] = INDEX_NAME
 agent_ids["sql_mode"] = "fabric" if USE_FABRIC else "azure_sql"
 if not USE_FABRIC:
@@ -392,19 +434,79 @@ sql_mode = "Fabric Lakehouse" if USE_FABRIC else "Azure SQL Database"
 
 print(f"""
 {'='*60}
-AI Foundry Agent Created Successfully!
+AI Foundry Agents Created Successfully!
 {'='*60}
 
-Agent ID: {agent.id}
-Agent Name: {agent.name}
-Model: {MODEL}
-Scenario: {scenario_name}
-Tables: {', '.join(tables)}
+Chat Agent:
+  Agent ID: {chat_agent.id}
+  Agent Name: {chat_agent.name}
+  Model: {MODEL}
+  Scenario: {scenario_name}
+  Tables: {', '.join(tables)}
+  Tools:
+    1. execute_sql - Query {sql_mode}
+    2. Azure AI Search - Document search
 
-Tools:
-  1. execute_sql - Query {sql_mode}
-  2. Azure AI Search - Document search
+Title Agent:
+  Agent ID: {title_agent.id}
+  Agent Name: {title_agent.name}
+  Model: {MODEL}
+  Tools: None (text generation only)
 
 Next step:
   python scripts/08_test_agent.py
 """)
+
+# ============================================================================
+# Update App Service Environment Variables
+# ============================================================================
+
+subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
+resource_group = os.getenv("RESOURCE_GROUP_NAME")
+app_name = os.getenv("API_APP_NAME")
+
+if subscription_id and resource_group and app_name:
+    print(f"\n{'='*60}")
+    print("Updating App Service Environment Variables")
+    print(f"{'='*60}")
+    print(f"  Subscription: {subscription_id}")
+    print(f"  Resource Group: {resource_group}")
+    print(f"  App Service: {app_name}")
+    
+    try:
+        web_client = WebSiteManagementClient(credential, subscription_id)
+        
+        # Get current settings
+        current = web_client.web_apps.list_application_settings(resource_group, app_name)
+        props = dict(current.properties or {})
+        
+        # Agent name settings
+        new_settings = {
+            "AGENT_NAME_CHAT": chat_agent.name,
+            "AGENT_NAME_TITLE": title_agent.name
+        }
+        
+        # Update settings
+        props.update(new_settings)
+        
+        web_client.web_apps.update_application_settings(
+            resource_group,
+            app_name,
+            {"properties": props}
+        )
+        
+        print(f"\n  Settings updated:")
+        for key, value in new_settings.items():
+            print(f"    {key}: {value}")
+        
+        print(f"\n[OK] App Service settings updated successfully!")
+        
+    except Exception as e:
+        print(f"\nWARNING: Failed to update App Service settings: {e}")
+        print("         You may need to set AGENT_NAME_CHAT and AGENT_NAME_TITLE manually.")
+else:
+    print(f"\nNOTE: Skipping App Service update (missing AZURE_SUBSCRIPTION_ID, RESOURCE_GROUP_NAME, or API_APP_NAME)")
+    print(f"      Set these environment variables to auto-update App Service settings.")
+    print(f"      Agent names to configure:")
+    print(f"        AGENT_NAME_CHAT={chat_agent.name}")
+    print(f"        AGENT_NAME_TITLE={title_agent.name}")
