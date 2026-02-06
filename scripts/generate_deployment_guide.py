@@ -100,7 +100,7 @@ def create_guide():
     
     # Prerequisites
     pdf.section_header('Prerequisites')
-    pdf.bullet_item('Azure subscription with Contributor access')
+    pdf.bullet_item('Azure subscription with Contributor access & Role Based Access Control access')
     pdf.bullet_item('Microsoft Fabric workspace (F2+ capacity) with admin permissions')
     pdf.bullet_item('VS Code, Azure Developer CLI (aka.ms/azd), Python 3.10+, Git')
     
@@ -110,27 +110,35 @@ def create_guide():
     pdf.step(1, 'Clone the repository',
         'git clone https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator.git\ncd agentic-applications-for-unified-data-foundation-solution-accelerator')
     
-    pdf.step(2, 'Deploy Azure resources (~7 min)',
+    pdf.step(2, '(Optional) Enable Azure-only mode',
+        'azd env set AZURE_ENV_ONLY true',
+        'Skip this if you have Microsoft Fabric access. Uses Azure SQL instead of Fabric SQL.')
+    
+    pdf.step(3, 'Deploy Azure resources (~7 min)',
         'azd auth login\nazd up',
         'Choose environment name and region (eastus2 or westus2 recommended). If needed: azd auth login --tenant-id <tenant-id>')
     
-    pdf.step(3, 'Configure Fabric workspace',
+    pdf.step(4, 'Configure Fabric workspace',
         'cp .env.example .env',
-        'Edit .env: Set FABRIC_WORKSPACE_ID from app.fabric.microsoft.com URL')
+        'Edit .env: Set FABRIC_WORKSPACE_ID from app.fabric.microsoft.com URL (skip if using Azure-only mode)')
     
-    pdf.step(4, 'Setup Python environment',
+    pdf.step(5, 'Setup Python environment',
         'python -m venv .venv\n.venv\\Scripts\\activate   # or: source .venv/bin/activate\npip install uv && uv pip install -r scripts/requirements.txt')
     
-    pdf.step(5, 'Build the solution (~5 min)',
+    pdf.step(6, 'Build the solution (~5 min)',
         'python scripts/00_build_solution.py --from 02',
-        'No Fabric? Use: python scripts/00_build_solution.py --from 04')
+        'Azure-only mode? Use: python scripts/00_build_solution.py --from 04')
     
-    pdf.step(6, 'Test the agent',
+    pdf.step(7, 'Test the agent',
         'python scripts/08_test_agent.py')
     
-    pdf.step(7, 'Deploy and launch the application',
+    pdf.step(8, 'Deploy and launch the application',
         'azd env set AZURE_ENV_DEPLOY_APP true\nazd up',
         'After deployment completes, open the app URL shown in the output')
+    
+    pdf.step(9, 'Build the solution (~5 min)',
+        'python scripts/00_build_solution.py --from 02',
+        'Azure-only mode? Use: python scripts/00_build_solution.py --from 04')
     
     # Sample Questions
     pdf.section_header('Try These Questions')

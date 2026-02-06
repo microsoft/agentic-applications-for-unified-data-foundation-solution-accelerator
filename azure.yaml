@@ -30,8 +30,14 @@ hooks:
             Write-Host "   .venv\Scripts\activate" -ForegroundColor Cyan
             Write-Host "   pip install uv && uv pip install -r scripts/requirements.txt" -ForegroundColor Cyan
 
-            Write-Host "`n2. Build solution (data processing and agent creation):"
+            Write-Host "`n2. Configure environment file:"
+            Write-Host "   cp .env.example .env" -ForegroundColor Cyan
             $azureEnvOnly = $env:AZURE_ENV_ONLY
+            if ($azureEnvOnly -ne "true") {
+                Write-Host "   Edit .env and set FABRIC_WORKSPACE_ID" -ForegroundColor Cyan
+            }
+
+            Write-Host "`n3. Build solution (data processing and agent creation):"
             if ($azureEnvOnly -eq "true") {
                 Write-Host "   python scripts/00_build_solution.py --from 04" -ForegroundColor Cyan
             } else {
@@ -69,7 +75,14 @@ hooks:
             echo "   pip install uv && uv pip install -r scripts/requirements.txt"
 
             echo ""
-            echo "2. Build solution (data processing and agent creation):"
+            echo "2. Configure environment file:"
+            echo "   cp .env.example .env"
+            if [ "$AZURE_ENV_ONLY" != "true" ]; then
+                echo "   Edit .env and set FABRIC_WORKSPACE_ID"
+            fi
+
+            echo ""
+            echo "3. Build solution (data processing and agent creation):"
             if [ "$AZURE_ENV_ONLY" = "true" ]; then
                 echo "   python scripts/00_build_solution.py --from 04"
             else
