@@ -55,7 +55,7 @@ var location = solutionLocation //'eastus2'
 var aiProjectName = '${abbrs.ai.aiFoundryProject}${solutionName}'
 var aiSearchName = '${abbrs.ai.aiSearch}${solutionName}'
 var storageName = '${abbrs.storage.storageAccount}${toLower(replace(solutionName, '-', ''))}'
-var aiSearchConnectionName = 'myVectorStoreProjectConnectionName-${solutionName}'
+var aiSearchConnectionName = 'search-connection-${solutionName}'
 
 var aiModelDeployments = concat([
   {
@@ -231,7 +231,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-pre
 // Connect AI Search to Project
 resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (empty(azureExistingAIProjectResourceId) && isWorkshop) {
   parent: aiProject
-  name: 'search-connection'
+  name: aiSearchConnectionName
   properties: {
     category: 'CognitiveSearch'
     target: 'https://${aiSearch.name}.search.windows.net'
