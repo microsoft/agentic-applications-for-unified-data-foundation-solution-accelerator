@@ -205,11 +205,25 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     azd auth login --tenant-id <tenant-id>
     ```
 
-    Note: this solution accelerator now supports two modes (standard and workshop). By default it will run in workshop mode. If you do not want to run the workshop please set IS_WORKSHOP run the below azd command to set the workshop to false. 
+    > **Note**: This solution accelerator now supports two modes (standard and workshop). By default it will run in workshop mode. If you do not want to run the workshop please set IS_WORKSHOP run the below azd command to set the workshop to false. 
 
-    ```sh
-    azd env set IS_WORKSHOP false
-    ```
+      ```sh
+      azd env set IS_WORKSHOP false
+      ```
+    
+      In standard mode, by default the backend API is configured to Python.
+      To use dotnet instead, run the below command.
+
+      ```sh
+      azd env set BACKEND_RUNTIME_STACK dotnet
+      ```
+      
+      In standard mode, by default the use case is set to Retail Sales.
+      To switch to Insurance, run the below command.
+
+      ```sh
+      azd env set AZURE_ENV_USE_CASE Insurance-improve-customer-meetings
+      ```
 
 2. Provision and deploy all the resources:
 
@@ -219,12 +233,12 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 3. Provide an `azd` environment name (e.g., "daapp").
 4. Select a subscription from your Azure account and choose a location that has quota for all the resources.
-5. Choose the programming language for the backend API:
+<!--5. Choose the programming language for the backend API:
    - **Python**
    - **.NET (dotnet)**
 6. Choose the use case: 
    - **Retail-sales-analysis**
-   - **Insurance-improve-customer-meetings** 
+   - **Insurance-improve-customer-meetings** -->
 
    This deployment will take *7-10 minutes* to provision the resources in your account and set up the solution with sample data.
    
