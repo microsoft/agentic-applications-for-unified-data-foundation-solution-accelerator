@@ -48,7 +48,7 @@ Next: python scripts/08_test_agent.py
 2. Select "New item" 
 3. Search for and select "Data Agent" 
 4. Select add data source and select your Ontology resource created in the previous step. 
-5. select Agent instructions and paste the below instructions. 
+5. Select Agent instructions and paste the below instructions. 
 ``` 
 You are a helpful assistant that can answer user questions using data.
 Support group by in GQL.
