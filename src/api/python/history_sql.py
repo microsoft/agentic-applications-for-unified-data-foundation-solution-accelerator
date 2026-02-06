@@ -76,6 +76,40 @@ def track_event_if_configured(event_name: str, event_data: dict):
         logging.warning("Skipping track_event for %s as Application Insights is not configured", event_name)
 
 
+async def get_azure_sql_connection():
+    """
+    Get a connection to Azure SQL Server using DefaultAzureCredential.
+    
+    Returns:
+        Connection: Database connection object for Azure SQL.
+    """
+    sql_server = os.getenv("SQLDB_SERVER")
+    sql_database = os.getenv("SQLDB_DATABASE")
+    driver18 = "ODBC Driver 18 for SQL Server"
+    driver17 = "ODBC Driver 17 for SQL Server"
+    
+    credential = await get_azure_credential_async()
+    token = await credential.get_token("https://database.windows.net/.default")
+    await credential.close()
+    
+    token_bytes = token.token.encode("utf-16-LE")
+    token_struct = struct.pack(
+        f"<I{len(token_bytes)}s",
+        len(token_bytes),
+        token_bytes
+    )
+    SQL_COPT_SS_ACCESS_TOKEN = 1256
+    
+    try:
+        connection_string = f"DRIVER={{{driver18}}};SERVER={sql_server};DATABASE={sql_database};"
+        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+        return conn
+    except Exception:
+        connection_string = f"DRIVER={{{driver17}}};SERVER={sql_server};DATABASE={sql_database};"
+        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+        return conn
+
+
 async def get_fabric_db_connection():
     """
     Get a connection to the SQL database.
@@ -180,6 +214,9 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
     conn = await get_fabric_db_connection()
     cursor = None
     try:
+        if not conn:
+            logging.error("Failed to establish fabric SQL database connection")
+            return None
         cursor = conn.cursor()
         cursor.execute(sql_query, params)
         columns = [desc[0] for desc in cursor.description]
@@ -202,7 +239,8 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
     finally:
         if cursor:
             cursor.close()
-        conn.close()
+        if conn:
+            conn.close()
 
 
 class SqlQueryTool(BaseModel):
