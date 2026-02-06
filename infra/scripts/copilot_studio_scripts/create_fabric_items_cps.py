@@ -43,9 +43,9 @@ environmentId = env_res.json()['id']
 # upload yml file
 url = f"https://api.fabric.microsoft.com/v1/workspaces/{workspaceId}/environments/{environmentId}/staging/libraries"
 file_path='environment.yml'
-files = {'file': open(file_path, 'rb')}
-
-response = requests.post(url=url, files=files, headers=fabric_headers)
+with open(file_path, 'rb') as f:
+    files = {'file': f}
+    response = requests.post(url=url, files=files, headers=fabric_headers)
 print(response.status_code)
 print(response.json())
 
