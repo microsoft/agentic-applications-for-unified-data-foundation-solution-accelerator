@@ -362,28 +362,24 @@ public class SqlConversationRepository : ISqlConversationRepository
             return false; // Permission denied
 
         // 3. Delete conversation and messages
-        string deleteMessagesSql, deleteConversationSql;
-        SqlCommand delMsgCmd, delConvCmd;
+        string deleteMessagesSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversation_messages WHERE userId=@u AND conversation_id=@c"
+            : "DELETE FROM hst_conversation_messages WHERE conversation_id=@c";
+        string deleteConversationSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversations WHERE userId=@u AND conversation_id=@c"
+            : "DELETE FROM hst_conversations WHERE conversation_id=@c";
+
+        using var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
+        using var delConvCmd = new SqlCommand(deleteConversationSql, (SqlConnection)conn);
+
         if (!string.IsNullOrEmpty(userId))
         {
-            deleteMessagesSql = "DELETE FROM hst_conversation_messages WHERE userId=@u AND conversation_id=@c";
-            deleteConversationSql = "DELETE FROM hst_conversations WHERE userId=@u AND conversation_id=@c";
-            delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
-            delConvCmd = new SqlCommand(deleteConversationSql, (SqlConnection)conn);
             delMsgCmd.Parameters.AddWithValue("@u", userId);
-            delMsgCmd.Parameters.AddWithValue("@c", conversationId);
             delConvCmd.Parameters.AddWithValue("@u", userId);
-            delConvCmd.Parameters.AddWithValue("@c", conversationId);
         }
-        else
-        {
-            deleteMessagesSql = "DELETE FROM hst_conversation_messages WHERE conversation_id=@c";
-            deleteConversationSql = "DELETE FROM hst_conversations WHERE conversation_id=@c";
-            delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
-            delConvCmd = new SqlCommand(deleteConversationSql, (SqlConnection)conn);
-            delMsgCmd.Parameters.AddWithValue("@c", conversationId);
-            delConvCmd.Parameters.AddWithValue("@c", conversationId);
-        }
+        delMsgCmd.Parameters.AddWithValue("@c", conversationId);
+        delConvCmd.Parameters.AddWithValue("@c", conversationId);
+
         delMsgCmd.ExecuteNonQuery();
         var rows = delConvCmd.ExecuteNonQuery();
         return rows > 0;
@@ -393,32 +389,28 @@ public class SqlConversationRepository : ISqlConversationRepository
     {
         using var conn = await CreateConnectionAsync();
         
-        string deleteMessagesSql, deleteConversationsSql;
-        SqlCommand delMsgCmd, delConvCmd;
-        
         // If userId is provided, delete only that user's conversations
         // If userId is null/empty, allow global delete (all conversations)
+        string deleteMessagesSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversation_messages WHERE userId=@u"
+            : "DELETE FROM hst_conversation_messages";
+        string deleteConversationsSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversations WHERE userId=@u"
+            : "DELETE FROM hst_conversations";
+
+        using var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
+        using var delConvCmd = new SqlCommand(deleteConversationsSql, (SqlConnection)conn);
+
         if (!string.IsNullOrEmpty(userId))
         {
-            deleteMessagesSql = "DELETE FROM hst_conversation_messages WHERE userId=@u";
-            deleteConversationsSql = "DELETE FROM hst_conversations WHERE userId=@u";
-            delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
-            delConvCmd = new SqlCommand(deleteConversationsSql, (SqlConnection)conn);
             delMsgCmd.Parameters.AddWithValue("@u", userId);
             delConvCmd.Parameters.AddWithValue("@u", userId);
         }
-        else
-        {
-            deleteMessagesSql = "DELETE FROM hst_conversation_messages";
-            deleteConversationsSql = "DELETE FROM hst_conversations";
-            delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
-            delConvCmd = new SqlCommand(deleteConversationsSql, (SqlConnection)conn);
-        }
-        
+
         // Delete messages first, then conversations
         delMsgCmd.ExecuteNonQuery();
         var conversationsDeleted = delConvCmd.ExecuteNonQuery();
-        
+
         return conversationsDeleted;
     }
 
@@ -442,25 +434,19 @@ public class SqlConversationRepository : ISqlConversationRepository
             return false; // Permission denied
 
         // 3. Update title
-        string updateSql;
-        SqlCommand updateCmd;
+        string updateSql = !string.IsNullOrEmpty(userId)
+            ? "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE userId=@u AND conversation_id=@c"
+            : "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE conversation_id=@c";
+
+        using var updateCmd = new SqlCommand(updateSql, (SqlConnection)conn);
+        updateCmd.Parameters.AddWithValue("@t", title);
+        updateCmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
         if (!string.IsNullOrEmpty(userId))
         {
-            updateSql = "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE userId=@u AND conversation_id=@c";
-            updateCmd = new SqlCommand(updateSql, (SqlConnection)conn);
-            updateCmd.Parameters.AddWithValue("@t", title);
-            updateCmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
             updateCmd.Parameters.AddWithValue("@u", userId);
-            updateCmd.Parameters.AddWithValue("@c", conversationId);
         }
-        else
-        {
-            updateSql = "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE conversation_id=@c";
-            updateCmd = new SqlCommand(updateSql, (SqlConnection)conn);
-            updateCmd.Parameters.AddWithValue("@t", title);
-            updateCmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
-            updateCmd.Parameters.AddWithValue("@c", conversationId);
-        }
+        updateCmd.Parameters.AddWithValue("@c", conversationId);
+
         var rows = updateCmd.ExecuteNonQuery();
         return rows > 0;
     }
