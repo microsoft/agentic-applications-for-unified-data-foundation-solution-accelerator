@@ -7,7 +7,7 @@ Create and configure your Microsoft Fabric workspace for Fabric IQ.
 
 ## Prerequisites
 
-- Microsoft Fabric capacity (F2 or higher recommended)
+- [Microsoft Fabric capacity (F2 or higher recommended)](https://learn.microsoft.com/en-us/fabric/admin/capacity-settings?tabs=fabric-capacity#create-a-new-capacity)
 - Workspace admin permissions
 
 ## Create a Fabric workspace
