@@ -136,9 +136,9 @@ def create_guide():
         'azd env set AZURE_ENV_DEPLOY_APP true\nazd up',
         'After deployment completes, open the app URL shown in the output')
     
-    pdf.step(9, 'Build the solution (~5 min)',
-        'python scripts/00_build_solution.py --from 02',
-        'Azure-only mode? Use: python scripts/00_build_solution.py --from 04')
+    pdf.step(9, '(Azure-only mode) Update agent configuration',
+        'python scripts/00_build_solution.py --from 05',
+        'Only run this if you set AZURE_ENV_ONLY=true. Skip this step if using Fabric mode.')
     
     # Sample Questions
     pdf.section_header('Try These Questions')

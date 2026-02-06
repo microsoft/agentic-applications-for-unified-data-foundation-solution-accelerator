@@ -77,6 +77,35 @@ Before customer meetings, prepare 5-7 questions:
 !!! tip "Let customers ask questions"
     After your prepared questions, let customers ask their own questions. This shows the solution handles real scenarios, not just scripted ones.
 
+## Deploy the Web Application (Optional)
+
+If you want to deploy a web UI for your solution:
+
+### Step 1: Enable app deployment and deploy
+
+```bash
+azd env set AZURE_ENV_DEPLOY_APP true
+azd up
+```
+
+!!! warning "Wait for Completion"
+    Deployment takes 5-7 minutes. Don't proceed until you see the success message with the web app URL.
+
+### Step 2: Reconfigure the agent (Azure-only mode)
+
+!!! note "Only for Azure-only mode"
+    If you set `AZURE_ENV_ONLY=true` before deployment, run this additional step to update the agent configuration:
+    
+    ```bash
+    python scripts/00_build_solution.py --from 05
+    ```
+    
+    If you're using Fabric mode, skip this step.
+
+### Step 3: Access the application
+
+After deployment completes, the web app URL will be displayed in the output. Open it in your browser to interact with the agent through a chat interface.
+
 ## Checkpoint
 
 !!! success "Ready for Customer PoC"
