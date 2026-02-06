@@ -24,27 +24,7 @@ hooks:
             Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
         }
         if ($isWorkshop -eq "true") {
-            Write-Host "`n=== Run each command one at a time, waiting for completion before proceeding ===" -ForegroundColor Yellow
-            Write-Host "`n1. Setup Python environment:"
-            Write-Host "   python -m venv .venv" -ForegroundColor Cyan
-            Write-Host "   .venv\Scripts\activate" -ForegroundColor Cyan
-            Write-Host "   pip install uv && uv pip install -r scripts/requirements.txt" -ForegroundColor Cyan
-
-            Write-Host "`n2. Configure environment file:"
-            Write-Host "   cp .env.example .env" -ForegroundColor Cyan
-            $azureEnvOnly = $env:AZURE_ENV_ONLY
-            if ($azureEnvOnly -ne "true") {
-                Write-Host "   Edit .env and set FABRIC_WORKSPACE_ID" -ForegroundColor Cyan
-            }
-
-            Write-Host "`n3. Build solution (data processing and agent creation):"
-            if ($azureEnvOnly -eq "true") {
-                Write-Host "   python scripts/00_build_solution.py --from 04" -ForegroundColor Cyan
-            } else {
-                Write-Host "   python scripts/00_build_solution.py --from 02" -ForegroundColor Cyan
-            }
-
-            Write-Host "`nFor full instructions, see: https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/01-deploy/03-configure/" -ForegroundColor Gray
+            Write-Host ""
         } else {
             Write-Host "`nRun the following commands in the bash terminal:"
             Write-Host "1. Create agents:"
@@ -67,30 +47,6 @@ hooks:
 
         if [ "$IS_WORKSHOP" = "true" ]; then
             echo ""
-            echo "=== Run each command one at a time, waiting for completion before proceeding ==="
-            echo ""
-            echo "1. Setup Python environment:"
-            echo "   python -m venv .venv"
-            echo "   source .venv/bin/activate"
-            echo "   pip install uv && uv pip install -r scripts/requirements.txt"
-
-            echo ""
-            echo "2. Configure environment file:"
-            echo "   cp .env.example .env"
-            if [ "$AZURE_ENV_ONLY" != "true" ]; then
-                echo "   Edit .env and set FABRIC_WORKSPACE_ID"
-            fi
-
-            echo ""
-            echo "3. Build solution (data processing and agent creation):"
-            if [ "$AZURE_ENV_ONLY" = "true" ]; then
-                echo "   python scripts/00_build_solution.py --from 04"
-            else
-                echo "   python scripts/00_build_solution.py --from 02"
-            fi
-
-            echo ""
-            echo "For full instructions, see: https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/01-deploy/03-configure/"
         else
             echo "Run the following commands in the bash terminal:"
             echo "1. Create agents:"
