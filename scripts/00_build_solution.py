@@ -184,7 +184,7 @@ print("="*60)
 print(f"\nSteps ({len(pipeline)}):")
 for i, step in enumerate(pipeline, 1):
     info = STEPS[step]
-    print(f"  {i}. [{step}] {info['name']} ({info['time']})")
+    print(f"  {i}. [{step}] {info['name']}")
 
 if args.dry_run:
     print("\n[DRY RUN] No scripts will be executed.")
