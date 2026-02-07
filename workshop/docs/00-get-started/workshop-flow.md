@@ -37,4 +37,4 @@ Prepare for technical questions in customer conversations:
 
 ---
 
-[← Get Started](index.md) | [Deploy solution →](../01-deploy/index.md)
+[← Get Started](index.md) | [Workshop Outcome →](workshop-outcome.md)
