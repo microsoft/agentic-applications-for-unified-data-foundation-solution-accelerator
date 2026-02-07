@@ -22,18 +22,8 @@ Or choose one of the options below:
 
 ### 1. Configure Fabric workspace
 
-Create a new [Fabric workspace](./01-deploy/02-setup-fabric.md), then:
+Create a new [Fabric workspace](./01-deploy/02-setup-fabric.md).
 
-```bash
-cp .env.example .env # or: copy .env.example .env
-```
-### 1.1 Get Fabric workspace Id
-Open `.env` and set `FABRIC_WORKSPACE_ID` from [Microsoft Fabric](https://app.fabric.microsoft.com) URL
-
-| Setting | Where to find it |
-|---------|------------------|
-| Workspace ID | URL after `/groups/` |
-| Workspace name | Workspace settings |
 
 ### 2. Clone the repository
 
@@ -44,6 +34,18 @@ git clone https://github.com/microsoft/agentic-applications-for-unified-data-fou
 ```bash
 cd agentic-applications-for-unified-data-foundation-solution-accelerator
 ```
+
+```bash
+cp .env.example .env # or: copy .env.example .env
+```
+
+### 2.1 Get Fabric workspace Id
+Open `.env` and set `FABRIC_WORKSPACE_ID` from [Microsoft Fabric](https://app.fabric.microsoft.com) URL
+
+| Setting | Where to find it |
+|---------|------------------|
+| Workspace ID | URL after `/groups/` |
+| Workspace name | Workspace settings |
 
 ### 3. Deploy Azure resources
 
@@ -101,10 +103,12 @@ python scripts/08_test_agent.py
 2. Select "New item" → Search for "Data Agent" → select data agent, provide a name and click create
 3. Add data source → Select your Ontology resource for this workshop
 4. Click Agent instructions from top menu and add the below agent instructions:
-```
-You are a helpful assistant that can answer user questions using data.
-Support group by in GQL.
-```
+    ```
+    You are a helpful assistant that can answer user questions using data.
+    Support group by in GQL.
+    ```
+5. Click Publish from the top menu and select Publish. 
+
 > Note: The Ontology set up may take a few minutes so retry after some time if you don't see good responses. 
 
 **Sample questions to try:**
