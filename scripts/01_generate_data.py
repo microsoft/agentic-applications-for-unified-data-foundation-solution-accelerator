@@ -630,3 +630,129 @@ if os.path.exists(env_path):
     print(f"[OK] Updated .env with INDUSTRY={industry}")
     print(f"[OK] Updated .env with USECASE={usecase}")
 
+# ============================================================================
+# Clear Cosmos DB Conversation History
+# ============================================================================
+
+COSMOSDB_ACCOUNT = os.getenv("AZURE_COSMOSDB_ACCOUNT")
+COSMOSDB_DATABASE = os.getenv("AZURE_COSMOSDB_DATABASE", "db_conversation_history")
+COSMOSDB_CONTAINER = os.getenv("AZURE_COSMOSDB_CONVERSATIONS_CONTAINER", "conversations")
+AZURE_RESOURCE_GROUP = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
+AZURE_SUBSCRIPTION_ID = os.getenv("AZURE_SUBSCRIPTION_ID")
+
+if COSMOSDB_ACCOUNT:
+    print(f"\nClearing conversation history in Cosmos DB...")
+
+    # ---- Ensure the current user has Cosmos DB Data Contributor role ----
+    try:
+        import uuid as _uuid
+        from azure.mgmt.cosmosdb import CosmosDBManagementClient
+        from azure.mgmt.cosmosdb.models import SqlRoleAssignmentCreateUpdateParameters
+
+        print("  Checking Cosmos DB role assignment for current user...")
+
+        # Get the current user's object ID from the credential's token
+        import json as _json, base64 as _base64
+        token = credential.get_token("https://management.azure.com/.default")
+        # Decode the JWT payload (2nd segment) to extract the oid (object ID)
+        payload = token.token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)  # pad base64
+        token_claims = _json.loads(_base64.b64decode(payload))
+        user_object_id = token_claims.get("oid")
+
+        if user_object_id and AZURE_RESOURCE_GROUP and AZURE_SUBSCRIPTION_ID:
+            # Cosmos DB Built-in Data Contributor role definition ID
+            data_contributor_role_id = "00000000-0000-0000-0000-000000000002"
+            full_role_def_id = (
+                f"/subscriptions/{AZURE_SUBSCRIPTION_ID}/resourceGroups/{AZURE_RESOURCE_GROUP}"
+                f"/providers/Microsoft.DocumentDB/databaseAccounts/{COSMOSDB_ACCOUNT}"
+                f"/sqlRoleDefinitions/{data_contributor_role_id}"
+            )
+            account_scope = (
+                f"/subscriptions/{AZURE_SUBSCRIPTION_ID}/resourceGroups/{AZURE_RESOURCE_GROUP}"
+                f"/providers/Microsoft.DocumentDB/databaseAccounts/{COSMOSDB_ACCOUNT}"
+            )
+            # Use a deterministic GUID so re-runs detect the existing assignment
+            assignment_id = str(_uuid.uuid5(_uuid.NAMESPACE_URL, f"{COSMOSDB_ACCOUNT}-{user_object_id}"))
+
+            mgmt_client = CosmosDBManagementClient(credential, AZURE_SUBSCRIPTION_ID)
+
+            # Check if role assignment already exists before creating
+            try:
+                existing = mgmt_client.sql_resources.get_sql_role_assignment(
+                    role_assignment_id=assignment_id,
+                    resource_group_name=AZURE_RESOURCE_GROUP,
+                    account_name=COSMOSDB_ACCOUNT,
+                )
+                if existing:
+                    print(f"  [OK] Cosmos DB Data Contributor role already assigned - skipping")
+            except Exception:
+                # Role doesn't exist yet, create it
+                role_params = SqlRoleAssignmentCreateUpdateParameters(
+                    role_definition_id=full_role_def_id,
+                    scope=account_scope,
+                    principal_id=user_object_id,
+                )
+                mgmt_client.sql_resources.begin_create_update_sql_role_assignment(
+                    role_assignment_id=assignment_id,
+                    resource_group_name=AZURE_RESOURCE_GROUP,
+                    account_name=COSMOSDB_ACCOUNT,
+                    create_update_sql_role_assignment_parameters=role_params,
+                ).result(timeout=120)
+                print(f"  [OK] Cosmos DB Data Contributor role assigned to current user ({user_object_id})")
+        else:
+            missing = [k for k, v in {"user_object_id": user_object_id, "AZURE_RESOURCE_GROUP": AZURE_RESOURCE_GROUP, "AZURE_SUBSCRIPTION_ID": AZURE_SUBSCRIPTION_ID}.items() if not v]
+            print(f"  [WARN] Cannot assign Cosmos DB role - missing: {', '.join(missing)}")
+    except ImportError:
+        print("  [WARN] azure-mgmt-cosmosdb not installed. Run: pip install azure-mgmt-cosmosdb")
+        print("         Skipping role assignment.")
+    except Exception as e:
+        print(f"  [WARN] Role assignment check failed: {e}")
+        print(f"         This is non-critical - continuing...")
+
+    # ---- Delete all conversation history items ----
+    try:
+        from azure.cosmos import CosmosClient, exceptions as cosmos_exceptions
+
+        cosmos_endpoint = f"https://{COSMOSDB_ACCOUNT}.documents.azure.com:443/"
+        cosmos_client = CosmosClient(cosmos_endpoint, credential=credential)
+        database = cosmos_client.get_database_client(COSMOSDB_DATABASE)
+        container = database.get_container_client(COSMOSDB_CONTAINER)
+
+        # Detect partition key configuration (single vs hierarchical)
+        container_props = container.read()
+        pk_paths = container_props["partitionKey"]["paths"]
+        pk_kind = container_props["partitionKey"].get("kind", "Hash")
+        pk_fields = [p.lstrip("/") for p in pk_paths]
+
+        items = list(container.query_items(
+            query="SELECT * FROM c",
+            enable_cross_partition_query=True
+        ))
+
+        if items:
+            deleted_count = 0
+            for item in items:
+                try:
+                    # Always use list format for partition key (works for both null and non-null values)
+                    pk_value = [item.get(f) for f in pk_fields]
+                    container.delete_item(
+                        item=item["id"],
+                        partition_key=pk_value
+                    )
+                    deleted_count += 1
+                except cosmos_exceptions.CosmosHttpResponseError as e:
+                    print(f"  [WARN] Failed to delete item {item['id']}: {e.message}")
+            print(f"[OK] Cleared {deleted_count}/{len(items)} conversation history items from Cosmos DB")
+        else:
+            print("[OK] No conversation history to clear")
+
+    except ImportError:
+        print("[WARN] azure-cosmos not installed. Run: pip install azure-cosmos")
+        print("       Skipping conversation history cleanup.")
+    except Exception as e:
+        print(f"[WARN] Could not clear conversation history: {e}")
+        print("       This is non-critical - continuing...")
+else:
+    print("\n[INFO] AZURE_COSMOSDB_ACCOUNT not set - skipping conversation history cleanup")
+

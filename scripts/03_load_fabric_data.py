@@ -273,6 +273,7 @@ if FABRIC_SQL_ENDPOINT:
 subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
 resource_group = os.getenv("RESOURCE_GROUP_NAME")
 app_name = os.getenv("API_APP_NAME")
+api_uid = os.getenv("API_UID")
 
 if subscription_id and resource_group and app_name:
     try:
@@ -287,7 +288,7 @@ if subscription_id and resource_group and app_name:
         
         # Build full ODBC connection string
         if FABRIC_SQL_ENDPOINT:
-            fabric_conn_string = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={FABRIC_SQL_ENDPOINT};DATABASE={LAKEHOUSE_NAME};Encrypt=yes;TrustServerCertificate=no"
+            fabric_conn_string = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={FABRIC_SQL_ENDPOINT};DATABASE={LAKEHOUSE_NAME};Encrypt=yes;TrustServerCertificate=no;UID={api_uid};Authentication=ActiveDirectoryMSI"
         else:
             fabric_conn_string = ""
         
@@ -307,7 +308,7 @@ if subscription_id and resource_group and app_name:
         print(f"  [WARN] Failed to update App Service: {e}")
 else:
     if FABRIC_SQL_ENDPOINT:
-        fabric_conn_string = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={FABRIC_SQL_ENDPOINT};DATABASE={LAKEHOUSE_NAME};Encrypt=yes;TrustServerCertificate=no"
+        fabric_conn_string = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={FABRIC_SQL_ENDPOINT};DATABASE={LAKEHOUSE_NAME};Encrypt=yes;TrustServerCertificate=no;UID={api_uid};Authentication=ActiveDirectoryMSI"
         print(f"  NOTE: Set FABRIC_SQL_CONNECTION_STRING={fabric_conn_string} in App Service")
 
 # ============================================================================
