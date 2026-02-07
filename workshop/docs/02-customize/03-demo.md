@@ -91,16 +91,15 @@ azd up
 !!! warning "Wait for Completion"
     Deployment takes 5-7 minutes. Don't proceed until you see the success message with the web app URL.
 
-### Step 2: Reconfigure the agent (Azure-only mode)
+### Step 2: Set up app permissions
 
-!!! note "Only for Azure-only mode"
-    If you set `AZURE_ENV_ONLY=true` before deployment, run this additional step to update the agent configuration:
-    
-    ```bash
-    python scripts/00_build_solution.py --from 05
-    ```
-    
-    If you're using Fabric mode, skip this step.
+Run step 09 to assign roles and configure the deployed application:
+
+```bash
+python scripts/00_build_solution.py --from 09
+```
+
+This sets up Cosmos DB permissions, agent configuration, and — depending on your mode — Fabric workspace roles or Azure SQL roles for the app service.
 
 ### Step 3: Access the application
 
