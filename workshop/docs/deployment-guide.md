@@ -28,8 +28,13 @@ Create a new [Fabric workspace](./01-deploy/02-setup-fabric.md), then:
 ```bash
 cp .env.example .env # or: copy .env.example .env
 ```
-
+### 1.1 Get Fabric workspace Id
 Open `.env` and set `FABRIC_WORKSPACE_ID` from [Microsoft Fabric](https://app.fabric.microsoft.com) URL
+
+| Setting | Where to find it |
+|---------|------------------|
+| Workspace ID | URL after `/groups/` |
+| Workspace name | Workspace settings |
 
 ### 2. Clone the repository
 
@@ -94,19 +99,20 @@ python scripts/08_test_agent.py
 ### 7. Test the Fabric Data Agent
 
 1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
-2. Select "New item" → Search for "Data Agent"
-3. Add data source → Select your Ontology resource
-4. Add Agent instructions:
+2. Select "New item" → Search for "Data Agent" → select data agent, provide a name and click create
+3. Add data source → Select your Ontology resource for this workshop
+4. Click Agent instructions from top menu and add the below agent instructions:
 ```
 You are a helpful assistant that can answer user questions using data.
 Support group by in GQL.
 ```
+> Note: The Ontology set up may take a few minutes so retry after some time if you don't see good responses. 
 
 **Sample questions to try:**
 
-- "Which outages had the most customer impact?"
-- "Show me the top 5 regions by total outage duration"
-- "What's the total number of tickets by priority?"
+- "How many outages occurred last month?"
+- "What is the average duration of outages?"
+- "What is the average resolution time for tickets?"
 
 ### 8. Deploy and launch the application
 
