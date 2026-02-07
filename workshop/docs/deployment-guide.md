@@ -124,9 +124,14 @@ azd env set AZURE_ENV_DEPLOY_APP true
 azd up
 ```
 
-After deployment completes, open the app URL shown in the output. **Done!**
+### 9. Set up app permissions
 
-### 9. Customize for Your Industry (Optional)
+```bash
+python scripts/00_build_solution.py --from 09
+```
+After the agent configuration & API permission set up completes, open the app URL shown in the output.
+
+### 10. Customize for Your Industry (Optional)
 
 Follow steps in this page to  [Customize for your use case](./02-customize/index.md).
 
@@ -204,7 +209,7 @@ python scripts/08_test_agent.py
 - "What are the policies for notifying customers of outages?"
 - "Which outages exceeded the maximum duration defined in our policy?"
 
-### 7. Deploy and launch the application
+### 7. Deploy the application
 
 ```bash
 azd env set AZURE_ENV_DEPLOY_APP true
@@ -214,13 +219,13 @@ azd env set AZURE_ENV_DEPLOY_APP true
 azd up
 ```
 
-### 8. Update agent configuration
+### 8. Set up app permissions
 
 ```bash
-python scripts/00_build_solution.py --from 05
+python scripts/00_build_solution.py --from 09
 ```
 
-After deployment completes, open the app URL shown in the output. **Done!**
+After the agent configuration & API permission set up completes, open the app URL shown in the output. 
 
 ### 9. Customize for Your Industry (Optional)
 

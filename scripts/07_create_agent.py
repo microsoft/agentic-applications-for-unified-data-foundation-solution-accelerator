@@ -57,7 +57,6 @@ from azure.ai.projects.models import (
     AzureAISearchToolResource,
     AISearchIndexResource,
 )
-from azure.mgmt.web import WebSiteManagementClient
 
 # ============================================================================
 # Configuration
@@ -407,6 +406,8 @@ if os.path.exists(agent_ids_path):
 # Save agent-specific info
 agent_ids["chat_agent_id"] = chat_agent.id
 agent_ids["chat_agent_name"] = chat_agent.name
+agent_ids["title_agent_id"] = title_agent.id
+agent_ids["title_agent_name"] = title_agent.name
 agent_ids["search_index"] = INDEX_NAME
 agent_ids["sql_mode"] = "fabric" if USE_FABRIC else "azure_sql"
 if not USE_FABRIC:
@@ -448,57 +449,3 @@ Title Agent:
 Next step:
   python scripts/08_test_agent.py
 """)
-
-# ============================================================================
-# Update App Service Environment Variables
-# ============================================================================
-
-subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
-resource_group = os.getenv("RESOURCE_GROUP_NAME")
-app_name = os.getenv("API_APP_NAME")
-
-if subscription_id and resource_group and app_name:
-    print(f"\n{'='*60}")
-    print("Updating App Service Environment Variables")
-    print(f"{'='*60}")
-    print(f"  Subscription: {subscription_id}")
-    print(f"  Resource Group: {resource_group}")
-    print(f"  App Service: {app_name}")
-    
-    try:
-        web_client = WebSiteManagementClient(credential, subscription_id)
-        
-        # Get current settings
-        current = web_client.web_apps.list_application_settings(resource_group, app_name)
-        props = dict(current.properties or {})
-        
-        # Agent name settings
-        new_settings = {
-            "AGENT_NAME_CHAT": chat_agent.name,
-            "AGENT_NAME_TITLE": title_agent.name
-        }
-        
-        # Update settings
-        props.update(new_settings)
-        
-        web_client.web_apps.update_application_settings(
-            resource_group,
-            app_name,
-            {"properties": props}
-        )
-        
-        print(f"\n  Settings updated:")
-        for key, value in new_settings.items():
-            print(f"    {key}: {value}")
-        
-        print(f"\n[OK] App Service settings updated successfully!")
-        
-    except Exception as e:
-        print(f"\nWARNING: Failed to update App Service settings: {e}")
-        print("         You may need to set AGENT_NAME_CHAT and AGENT_NAME_TITLE manually.")
-else:
-    print(f"\nNOTE: Skipping App Service update (missing AZURE_SUBSCRIPTION_ID, RESOURCE_GROUP_NAME, or API_APP_NAME)")
-    print(f"      Set these environment variables to auto-update App Service settings.")
-    print(f"      Agent names to configure:")
-    print(f"        AGENT_NAME_CHAT={chat_agent.name}")
-    print(f"        AGENT_NAME_TITLE={title_agent.name}")

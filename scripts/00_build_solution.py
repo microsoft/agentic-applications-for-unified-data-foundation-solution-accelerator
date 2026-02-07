@@ -48,11 +48,12 @@ STEPS = {
     "05": {"script": "05_upload_to_sql.py", "name": "Upload to Azure SQL", "time": "~30s", "azure_only": True},
     "06": {"script": "06_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
     "07": {"script": "07_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
+    "09": {"script": "09_app_deployment.py", "name": "App Deployment Config", "time": "~15s", "deploy_app": True},
 }
 
 # Pipeline order by mode
-FABRIC_PIPELINE = ["01", "02", "03", "04", "06", "07"]
-AZURE_ONLY_PIPELINE = ["01", "04", "05", "06", "07"]
+FABRIC_PIPELINE = ["01", "02", "03", "04", "06", "07", "09"]
+AZURE_ONLY_PIPELINE = ["01", "04", "05", "06", "07", "09"]
 
 # ============================================================================
 # Parse Arguments
@@ -100,6 +101,7 @@ load_all_env()
 
 # Get azure_only from environment variable (set AZURE_ENV_ONLY=true to use Azure SQL mode)
 azure_only = os.getenv("AZURE_ENV_ONLY", "false").lower() in ("true", "1", "yes")
+deploy_app = os.getenv("AZURE_ENV_DEPLOY_APP", "false").lower() in ("true", "1", "yes")
 
 # ============================================================================
 # Determine Pipeline
@@ -121,6 +123,10 @@ if args.from_step:
         print(f"ERROR: Step '{args.from_step}' not in pipeline")
         print(f"Available steps: {pipeline}")
         sys.exit(1)
+
+# Append app deployment step if AZURE_ENV_DEPLOY_APP is true
+if not deploy_app:
+    pipeline = [s for s in pipeline if s != "09"]
 
 # ============================================================================
 # Validate Scripts Exist
@@ -292,6 +298,8 @@ total_elapsed = time.time() - total_start
 # Summary
 # ============================================================================
 
+web_app_url = os.getenv("WEB_APP_URL", "")
+
 if args.quiet:
     print(f"\n✓ Done! {successful}/{len(pipeline)} steps completed in {total_elapsed:.1f}s")
     if failed == 0:
@@ -320,3 +328,6 @@ Sample questions to try:
     else:
         print("\nSome steps failed. Check the output above for errors.")
         sys.exit(1)
+
+if web_app_url and "09" in pipeline:
+    print(f"🚀 Your app is live! Open it here: {web_app_url}")
