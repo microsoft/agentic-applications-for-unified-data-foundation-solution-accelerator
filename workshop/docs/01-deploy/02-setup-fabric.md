@@ -9,6 +9,7 @@ Create and configure your Microsoft Fabric workspace for Fabric IQ.
 
 - [Microsoft Fabric capacity (F2 or higher recommended)](https://learn.microsoft.com/en-us/fabric/admin/capacity-settings?tabs=fabric-capacity#create-a-new-capacity)
 - Workspace admin permissions
+- [Fabric IQ enabled on your tenant](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings)
 
 ## Create a Fabric workspace
 
@@ -21,7 +22,7 @@ Create and configure your Microsoft Fabric workspace for Fabric IQ.
 ## Configure workspace settings
 
 1. Open your new workspace
-2. Go to **Settings** → **License info**
+2. Go to **Workspace settings** → **License info**
 3. Verify the workspace is using Fabric capacity
 
 ## Get workspace details

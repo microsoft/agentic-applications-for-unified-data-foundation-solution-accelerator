@@ -21,7 +21,17 @@ Or choose one of the options below:
 
 ## Option A: Full Deployment (Fabric + Foundry)
 
-### 1. Clone the repository
+### 1. Configure Fabric workspace
+
+Create a new [Fabric workspace](./01-deploy/02-setup-fabric.md), then:
+
+```bash
+cp .env.example .env # or: copy .env.example .env
+```
+
+Open `.env` and set `FABRIC_WORKSPACE_ID` from [Microsoft Fabric](https://app.fabric.microsoft.com) URL
+
+### 2. Clone the repository
 
 ```bash
 git clone https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator.git
@@ -31,7 +41,7 @@ git clone https://github.com/microsoft/agentic-applications-for-unified-data-fou
 cd agentic-applications-for-unified-data-foundation-solution-accelerator
 ```
 
-### 2. Deploy Azure resources
+### 3. Deploy Azure resources
 
 ```bash
 azd auth login
@@ -43,15 +53,6 @@ azd up
 
 *Choose environment name and region. Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
 
-### 3. Configure Fabric workspace
-
-Create a new [Fabric workspace](./01-deploy/02-setup-fabric.md), then:
-
-```bash
-cp .env.example .env # or: copy .env.example .env
-```
-
-Open `.env` and set `FABRIC_WORKSPACE_ID` from [Microsoft Fabric](https://app.fabric.microsoft.com) URL
 
 ### 4. Setup Python environment
 
