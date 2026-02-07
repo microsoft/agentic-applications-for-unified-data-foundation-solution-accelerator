@@ -35,5 +35,14 @@ openai==2.8.1
 # SQL connectivity (pyodbc agent)
 pyodbc==5.2.0
 
+# Azure Cosmos DB (conversation history)
+azure-cosmos==4.9.0
+
+# Azure Cosmos DB management (role assignments)
+azure-mgmt-cosmosdb==9.6.0
+
+# Azure resource graph (user identity lookup)
+azure-mgmt-resource==23.3.0
+
 # Environment variables
 python-dotenv==1.1.0
