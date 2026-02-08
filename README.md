@@ -73,6 +73,8 @@ For Azure Deployment: [Click here to launch the deployment guide](./documents/De
 For Local Development: 
 - [Local Development Setup Guide](./documents/LocalDevelopmentSetup.md) - Comprehensive setup instructions for Windows and Linux.
 - Includes native Windows setup, WSL2 configuration, and cross-platform development tools
+
+For Workshop: [Workshop Guide](https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator) - A hands-on, step-by-step walkthrough for building AI agents that combine unstructured document knowledge with structured enterprise data.
 <br/><br/>
 
 
