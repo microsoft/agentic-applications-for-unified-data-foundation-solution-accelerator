@@ -145,10 +145,10 @@ public class HistoryFabController : ControllerBase
         if (count == null)
             return Problem(statusCode: 500, title: "Internal Server Error", detail: "Failed to delete conversations");
         
-        if (!string.IsNullOrEmpty(user))
-            return Ok(new { message = $"Deleted all conversations for user {user}", affected = count });
-        else
-            return Ok(new { message = "Deleted all conversations for all users (admin operation)", affected = count });
+        var message = !string.IsNullOrEmpty(user)
+            ? $"Deleted all conversations for user {user}"
+            : "Deleted all conversations for all users (admin operation)";
+        return Ok(new { message, affected = count });
     }
 
     public sealed class RenameRequest { public string Conversation_Id { get; set; } = string.Empty; public string Title { get; set; } = string.Empty; }

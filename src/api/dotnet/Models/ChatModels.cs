@@ -27,10 +27,9 @@ public class ChatMessage
     {
         try
         {
-            if (Content.ValueKind == JsonValueKind.String)
-                return Content.GetString() ?? string.Empty;
-            else
-                return Content.GetRawText();
+            return Content.ValueKind == JsonValueKind.String
+                ? Content.GetString() ?? string.Empty
+                : Content.GetRawText();
         }
         catch
         {
@@ -58,17 +57,9 @@ public class ChatMessage
     {
         try
         {
-            if (Content.ValueKind == JsonValueKind.String)
-            {
-                // If it's already a string, we might need to serialize it as JSON
-                var stringValue = Content.GetString() ?? string.Empty;
-                return JsonSerializer.Serialize(stringValue);
-            }
-            else
-            {
-                // For objects or arrays, return the raw JSON
-                return Content.GetRawText();
-            }
+            return Content.ValueKind == JsonValueKind.String
+                ? JsonSerializer.Serialize(Content.GetString() ?? string.Empty)
+                : Content.GetRawText();
         }
         catch
         {
