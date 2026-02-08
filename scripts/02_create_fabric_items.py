@@ -310,7 +310,10 @@ else:
         "BigInt": "BigInt",
         "Double": "Double",
         "Boolean": "Boolean",
-        "DateTime": "DateTime"
+        "DateTime": "DateTime",
+        "Date": "DateTime",
+        "Int": "BigInt",
+        "Float": "Double"
     }
     
     # Add EntityTypes and DataBindings for each table
@@ -408,32 +411,37 @@ else:
         })
         
         # Relationship Contextualization (how to join the data)
-        # The dataBindingTable should be the table that contains the foreign key
-        # For a relationship from A -> B where B has a FK to A:
-        #   - dataBindingTable = B (the table with the FK column)
-        #   - sourceKeyRefBindings = maps FK column to source entity's PK property
-        #   - targetKeyRefBindings = maps target's PK column to target entity's PK property
+        # For relationship: from_table (with FK) -> to_table (with PK)
+        # Example: inspections.part_id -> parts.part_id
+        #   - Source entity = inspections (has the FK)
+        #   - Target entity = parts (has the PK being referenced)
+        #   - dataBindingTable = from_table (inspections - contains both source PK and target FK)
+        #   - sourceKeyRefBindings = maps source PK column to source entity's KEY property
+        #   - targetKeyRefBindings = maps FK column to target entity's KEY property
         
-        from_key = ontology_config["tables"][from_table]["key"]  # PK of source entity (e.g., drivers.id)
-        from_key_prop_id = property_ids[from_table][from_key]
+        from_key_col = rel["fromKey"]  # FK column in source table (e.g., inspections.part_id)
+        to_key_col = rel["toKey"]      # PK column in target table (e.g., parts.part_id)
         
-        to_key_col = rel["toKey"]  # FK column in target table (e.g., orders.driver_id)
-        to_table_pk = ontology_config["tables"][to_table]["key"]  # PK of target entity (e.g., orders.id)
-        to_key_prop_id = property_ids[to_table][to_table_pk]
+        # Source entity's primary key
+        from_table_pk = ontology_config["tables"][from_table]["key"]  # e.g., inspection_id
+        from_pk_prop_id = property_ids[from_table][from_table_pk]
+        
+        # Target entity's primary key  
+        to_key_prop_id = property_ids[to_table][to_key_col]  # part_id property in parts entity
         
         contextualization = {
             "id": contextualization_id,
             "dataBindingTable": {
                 "workspaceId": WORKSPACE_ID,
                 "itemId": lakehouse_id,
-                "sourceTableName": to_table,  # Use target table (the one with FK)
+                "sourceTableName": from_table,  # Table with the FK (inspections)
                 "sourceType": "LakehouseTable"
             },
             "sourceKeyRefBindings": [
-                {"sourceColumnName": to_key_col, "targetPropertyId": from_key_prop_id}  # FK col -> source PK prop
+                {"sourceColumnName": from_table_pk, "targetPropertyId": from_pk_prop_id}  # source PK col -> source entity KEY
             ],
             "targetKeyRefBindings": [
-                {"sourceColumnName": to_table_pk, "targetPropertyId": to_key_prop_id}  # target PK col -> target PK prop
+                {"sourceColumnName": from_key_col, "targetPropertyId": to_key_prop_id}  # FK col -> target entity KEY
             ]
         }
         
