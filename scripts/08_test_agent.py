@@ -257,6 +257,7 @@ print("-" * 60)
 def load_sample_questions_from_file(config_dir):
     """Load sample questions from config folder if available"""
     questions_path = os.path.join(config_dir, "sample_questions.txt")
+    print(questions_path)
     if os.path.exists(questions_path):
         with open(questions_path) as f:
             content = f.read()
@@ -275,13 +276,18 @@ def load_sample_questions_from_file(config_dir):
                 current_section = 'doc'
             elif 'COMBINED' in line:
                 current_section = 'combined'
-            elif line.startswith('- '):
-                question = line[2:].strip()
-                if current_section == 'sql':
+            else:
+                # Match "- question" or "1. question" / "2. question" etc.
+                question = None
+                if line.startswith('- '):
+                    question = line[2:].strip()
+                elif len(line) > 2 and line[0].isdigit() and '. ' in line:
+                    question = line.split('. ', 1)[1].strip()
+                if question and current_section == 'sql':
                     sql_questions.append(question)
-                elif current_section == 'doc':
+                elif question and current_section == 'doc':
                     doc_questions.append(question)
-                elif current_section == 'combined':
+                elif question and current_section == 'combined':
                     combined_questions.append(question)
         
         # Return a mix of questions: 2 SQL, 1 doc, 1 combined
