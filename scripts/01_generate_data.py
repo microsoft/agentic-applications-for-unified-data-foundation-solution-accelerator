@@ -215,6 +215,16 @@ with open(os.path.join(config_dir, "ontology_config.json"), "w") as f:
     json.dump(config, f, indent=4)
 ```
 
+=== CRITICAL: RELATIONSHIP RULES ===
+When creating relationships between tables:
+1. The "toKey" MUST be the primary key of the target table (the "key" field in that table's config)
+2. This represents a foreign key relationship: from table has FK column -> to table's PK
+3. Example: drivers.assigned_vehicle (FK) -> vehicles.vehicle_id (PK)
+   - "fromKey": "assigned_vehicle" (a column in drivers table)
+   - "toKey": "vehicle_id" (MUST match vehicles table's "key" field)
+4. Do NOT create relationships based on shared non-key columns
+5. Each "from" table should have a column matching the "toKey" to enable the join
+
 === CRITICAL: DATAFRAME SAFETY RULES ===
 DataFrame errors are the #1 cause of script failure. Follow these rules EXACTLY:
 

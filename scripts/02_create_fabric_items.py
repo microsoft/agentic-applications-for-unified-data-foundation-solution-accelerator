@@ -479,8 +479,14 @@ else:
         from_table_pk = ontology_config["tables"][from_table]["key"]  # e.g., inspection_id
         from_pk_prop_id = property_ids[from_table][from_table_pk]
         
-        # Target entity's primary key  
-        to_key_prop_id = property_ids[to_table][to_key_col]  # part_id property in parts entity
+        # Target entity's primary key (must use the actual entity key, not the join column)
+        to_table_pk = ontology_config["tables"][to_table]["key"]  
+        to_pk_prop_id = property_ids[to_table][to_table_pk]  
+        
+        if to_key_col != to_table_pk:
+            print(f"  ! Skipping relationship {from_table} -> {to_table}: toKey '{to_key_col}' is not the target entity's primary key '{to_table_pk}'")
+            print(f"    Fabric relationships require targetKeyRefBindings to reference the target entity's key property (entityIdParts)")
+            continue
         
         contextualization = {
             "id": contextualization_id,
@@ -494,7 +500,7 @@ else:
                 {"sourceColumnName": from_table_pk, "targetPropertyId": from_pk_prop_id}  # source PK col -> source entity KEY
             ],
             "targetKeyRefBindings": [
-                {"sourceColumnName": from_key_col, "targetPropertyId": to_key_prop_id}  # FK col -> target entity KEY
+                {"sourceColumnName": from_key_col, "targetPropertyId": to_pk_prop_id}  # FK col -> target entity KEY
             ]
         }
         
