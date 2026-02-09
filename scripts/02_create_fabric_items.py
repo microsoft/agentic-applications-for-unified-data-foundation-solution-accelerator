@@ -323,9 +323,19 @@ else:
         key_col = table_def["key"]
         key_prop_id = property_ids[table_name][key_col]
         
-        # Build properties
+        # Find DateTime column for timeseries binding
+        timeseries_col = None
+        for col in table_def["columns"]:
+            col_type = table_def["types"].get(col, "String")
+            if col_type in ["DateTime", "Date"]:
+                timeseries_col = col
+                break
+        
+        # Build static properties - all columns EXCEPT DateTime
         properties = []
         for col in table_def["columns"]:
+            if col == timeseries_col:
+                continue  # DateTime goes in timeseriesProperties
             col_type = table_def["types"].get(col, "String")
             properties.append({
                 "id": property_ids[table_name][col],
@@ -333,6 +343,17 @@ else:
                 "redefines": None,
                 "baseTypeNamespaceType": None,
                 "valueType": type_map.get(col_type, "String")
+            })
+        
+        # Build timeseries properties - only DateTime columns
+        timeseries_properties = []
+        if timeseries_col:
+            timeseries_properties.append({
+                "id": property_ids[table_name][timeseries_col],
+                "name": timeseries_col,
+                "redefines": None,
+                "baseTypeNamespaceType": None,
+                "valueType": "DateTime"
             })
         
         # Entity Type definition
@@ -346,7 +367,7 @@ else:
             "namespaceType": "Custom",
             "visibility": "Visible",
             "properties": properties,
-            "timeseriesProperties": []
+            "timeseriesProperties": timeseries_properties
         }
         
         definition_parts.append({
@@ -355,19 +376,22 @@ else:
             "payloadType": "InlineBase64"
         })
         
-        # Data Binding - use dataBindingConfiguration structure
-        property_bindings = []
+        # Binding 1: Static (NonTimeSeries) - all columns EXCEPT DateTime
+        static_property_bindings = []
         for col in table_def["columns"]:
-            property_bindings.append({
+            if col == timeseries_col:
+                continue  # DateTime goes in timeseries binding
+            static_property_bindings.append({
                 "sourceColumnName": col,
                 "targetPropertyId": property_ids[table_name][col]
             })
         
-        data_binding = {
-            "id": databinding_ids[table_name],
+        static_binding_id = databinding_ids[table_name]
+        static_binding = {
+            "id": static_binding_id,
             "dataBindingConfiguration": {
                 "dataBindingType": "NonTimeSeries",
-                "propertyBindings": property_bindings,
+                "propertyBindings": static_property_bindings,
                 "sourceTableProperties": {
                     "sourceType": "LakehouseTable",
                     "workspaceId": WORKSPACE_ID,
@@ -378,12 +402,41 @@ else:
         }
         
         definition_parts.append({
-            "path": f"EntityTypes/{entity_id}/DataBindings/{databinding_ids[table_name]}.json",
-            "payload": b64encode(data_binding),
+            "path": f"EntityTypes/{entity_id}/DataBindings/{static_binding_id}.json",
+            "payload": b64encode(static_binding),
             "payloadType": "InlineBase64"
         })
         
-        print(f"  + Entity: {entity_name} ({len(properties)} properties)")
+        # Binding 2: TimeSeries - for DateTime column (if exists)
+        if timeseries_col:
+            ts_binding_id = str(uuid.uuid4())
+            ts_binding = {
+                "id": ts_binding_id,
+                "dataBindingConfiguration": {
+                    "dataBindingType": "TimeSeries",
+                    "timestampColumnName": timeseries_col,
+                    "propertyBindings": [
+                        {"sourceColumnName": key_col, "targetPropertyId": key_prop_id},
+                        {"sourceColumnName": timeseries_col, "targetPropertyId": property_ids[table_name][timeseries_col]}
+                    ],
+                    "sourceTableProperties": {
+                        "sourceType": "LakehouseTable",
+                        "workspaceId": WORKSPACE_ID,
+                        "itemId": lakehouse_id,
+                        "sourceTableName": table_name
+                    }
+                }
+            }
+            
+            definition_parts.append({
+                "path": f"EntityTypes/{entity_id}/DataBindings/{ts_binding_id}.json",
+                "payload": b64encode(ts_binding),
+                "payloadType": "InlineBase64"
+            })
+            
+            print(f"  + Entity: {entity_name} ({len(properties)} static + 1 timeseries)")
+        else:
+            print(f"  + Entity: {entity_name} ({len(properties)} properties)")
     
     # Add Relationships
     for i, rel in enumerate(ontology_config.get("relationships", [])):

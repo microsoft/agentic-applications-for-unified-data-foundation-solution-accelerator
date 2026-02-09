@@ -471,7 +471,7 @@ Write 5 questions that use YOUR actual columns. Include a mix of:
 - Top N: "Which [entity] has the highest [numeric_column]?" (use actual column)
 - Trends: "What is the monthly breakdown of [metric]?" (only if you have date columns)
 
-VALIDATION: For each SQL question, verify the column EXISTS in your table.
+VALIDATION: For each SQL question, verify the column EXISTS in your table & there is relevant data.
 If you ask "What is the average score?" → your table MUST have a 'score' column
 If you ask "Show tickets by priority" → your table MUST have a 'priority' column
 
