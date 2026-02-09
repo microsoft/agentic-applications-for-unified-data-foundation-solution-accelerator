@@ -451,4 +451,5 @@ output SEARCH_DATA_FOLDER string = isWorkshop ? 'data/default/documents' : ''
 output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
 output AZURE_AI_PROJECT_ENDPOINT string = aifoundry.outputs.projectEndpoint
 output IS_WORKSHOP bool = isWorkshop
+output AZURE_ENV_DEPLOY_APP bool = deployApp
 output AZURE_ENV_ONLY bool = azureEnvOnly
