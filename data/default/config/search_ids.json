@@ -1,6 +1,8 @@
 {
-  "_comment": "This file is populated when you run 06_upload_to_search.py",
-  "index_name": null,
-  "document_count": 0,
-  "pdf_files": []
+  "index_name": "knowledge_index",
+  "document_count": 2,
+  "pdf_files": [
+    "inspection_procedures.pdf",
+    "ticket_management_policy.pdf"
+  ]
 }
