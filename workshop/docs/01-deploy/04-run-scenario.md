@@ -10,10 +10,14 @@ Fabric Workspace Mode
 python scripts/00_build_solution.py --from 02
 ```
 
+> **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
+
 Azure Only Mode (if you ran `azd env set AZURE_ENV_ONLY true` before deploying)
 ```bash
 python scripts/00_build_solution.py --from 04
 ```
+
+> **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
 This uses the `data/default` folder and runs all setup steps:
 

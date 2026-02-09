@@ -21,6 +21,12 @@ azd auth login --tenant-id <tenant-id>
 az login --tenant <tenant-id>
 ```
 
+!!! tip "VS Code Web users"
+    Browser-based login is not supported in VS Code Web. Use device code authentication instead:
+    ```bash
+    az login --use-device-code
+    ```
+
 ## Deploy Resources
 
 !!! info "No Microsoft Fabric Access?"
