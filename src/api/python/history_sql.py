@@ -106,9 +106,13 @@ async def get_azure_sql_connection():
         conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
         return conn
     except Exception:
-        connection_string = f"DRIVER={{{driver17}}};SERVER={sql_server};DATABASE={sql_database};"
-        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-        return conn
+        try:
+            connection_string = f"DRIVER={{{driver17}}};SERVER={sql_server};DATABASE={sql_database};"
+            conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+            return conn
+        except Exception as e:
+            logging.info("AZURE-SQL: Failed to connect to Azure SQL Database: %s", e)
+            return None
 
 
 async def get_fabric_db_connection():
