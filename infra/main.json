@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "17018978731632593238"
+      "templateHash": "2977090563231408516"
     }
   },
   "parameters": {
@@ -149,7 +149,7 @@
     },
     "imageTag": {
       "type": "string",
-      "defaultValue": "[if(parameters('isWorkshop'), 'latest_workshop', 'latest_v2')]"
+      "defaultValue": "[if(parameters('isWorkshop'), 'latest_workshop_convo_id', 'latest_v2')]"
     },
     "deployApp": {
       "type": "bool",
@@ -629,7 +629,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "16641945886964033767"
+              "templateHash": "5473254064442287214"
             }
           },
           "parameters": {
@@ -2058,6 +2058,10 @@
             "aiSearchConnectionName": {
               "type": "string",
               "value": "[if(parameters('isWorkshop'), variables('aiSearchConnectionName'), '')]"
+            },
+            "aiSearchConnectionId": {
+              "type": "string",
+              "value": "[if(and(parameters('isWorkshop'), empty(parameters('azureExistingAIProjectResourceId'))), resourceId('Microsoft.CognitiveServices/accounts/projects/connections', variables('aiServicesName'), variables('aiProjectName'), variables('aiSearchConnectionName')), '')]"
             },
             "applicationInsightsId": {
               "type": "string",
@@ -4347,6 +4351,10 @@
     "AZURE_AI_SEARCH_CONNECTION_NAME": {
       "type": "string",
       "value": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiSearchConnectionName.value, '')]"
+    },
+    "AZURE_AI_SEARCH_CONNECTION_ID": {
+      "type": "string",
+      "value": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiSearchConnectionId.value, '')]"
     },
     "AZURE_AI_PROJECT_ENDPOINT": {
       "type": "string",

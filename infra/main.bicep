@@ -86,7 +86,7 @@ param embeddingModel string = 'text-embedding-ada-002'
 @description('Capacity of the Embedding Model deployment')
 param embeddingDeploymentCapacity int = 80
 
-param imageTag string = isWorkshop ? 'latest_workshop' : 'latest_v2'
+param imageTag string = isWorkshop ? 'latest_workshop_convo_id' : 'latest_v2'
 
 @description('Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app.')
 param deployApp bool = false
@@ -449,6 +449,7 @@ output AZURE_AI_SEARCH_INDEX string = isWorkshop ? 'knowledge_index' : ''
 output AZURE_AI_SEARCH_NAME string = isWorkshop ? aifoundry.outputs.aiSearchName : ''
 output SEARCH_DATA_FOLDER string = isWorkshop ? 'data/default/documents' : ''
 output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
+output AZURE_AI_SEARCH_CONNECTION_ID string = isWorkshop ? aifoundry.outputs.aiSearchConnectionId : ''
 output AZURE_AI_PROJECT_ENDPOINT string = aifoundry.outputs.projectEndpoint
 output IS_WORKSHOP bool = isWorkshop
 output AZURE_ENV_ONLY bool = azureEnvOnly

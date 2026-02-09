@@ -563,6 +563,9 @@ else:
 assign_cosmos_role()
 update_agent_app_settings()
 
+# Wait for 30 seconds as APP service restarts to ensure new permissions are in effect before any API calls are made
+time.sleep(30)
+
 # ============================================================================
 # Summary
 # ============================================================================

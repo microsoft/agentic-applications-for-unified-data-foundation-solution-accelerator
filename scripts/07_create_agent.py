@@ -65,7 +65,7 @@ from azure.ai.projects.models import (
 # Azure services - from azd environment
 ENDPOINT = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
 MODEL = os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4o-mini")
-SEARCH_CONNECTION_NAME = args.connection_name or os.getenv("AZURE_AI_SEARCH_CONNECTION_NAME")
+SEARCH_CONNECTION_ID = args.connection_name or os.getenv("AZURE_AI_SEARCH_CONNECTION_ID")
 
 # SQL Configuration - determine mode
 FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
@@ -98,8 +98,8 @@ except ValueError:
     sys.exit(1)
     sys.exit(1)
 
-if not SEARCH_CONNECTION_NAME:
-    print("ERROR: Azure AI Search connection name not set")
+if not SEARCH_CONNECTION_ID:
+    print("ERROR: Azure AI Search connection ID not set")
     print("       Set AZURE_AI_SEARCH_CONNECTION_NAME in azd env or pass --connection-name")
     sys.exit(1)
 
@@ -203,7 +203,7 @@ else:
     print(f"SQL Mode: Azure SQL Database")
     print(f"SQL Server: {SQL_SERVER}")
     print(f"SQL Database: {SQL_DATABASE}")
-print(f"Search Connection: {SEARCH_CONNECTION_NAME}")
+print(f"Search Connection: {SEARCH_CONNECTION_ID}")
 print(f"Search Index: {INDEX_NAME}")
 
 # ============================================================================
@@ -308,7 +308,7 @@ search_tool = AzureAISearchAgentTool(
     azure_ai_search=AzureAISearchToolResource(
         indexes=[
             AISearchIndexResource(
-                project_connection_id=SEARCH_CONNECTION_NAME,
+                project_connection_id=SEARCH_CONNECTION_ID,
                 index_name=INDEX_NAME,
                 query_type="simple",
             )
