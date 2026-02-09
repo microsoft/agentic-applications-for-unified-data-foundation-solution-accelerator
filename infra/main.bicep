@@ -86,7 +86,7 @@ param embeddingModel string = 'text-embedding-ada-002'
 @description('Capacity of the Embedding Model deployment')
 param embeddingDeploymentCapacity int = 80
 
-param imageTag string = isWorkshop ? 'latest_workshop_convo_id' : 'latest_v2'
+param imageTag string = isWorkshop ? 'latest_workshop' : 'latest_v2'
 
 @description('Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app.')
 param deployApp bool = false
