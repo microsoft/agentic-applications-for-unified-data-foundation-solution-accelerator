@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "2977090563231408516"
+      "templateHash": "15275092260487391319"
     }
   },
   "parameters": {
@@ -4363,6 +4363,10 @@
     "IS_WORKSHOP": {
       "type": "bool",
       "value": "[parameters('isWorkshop')]"
+    },
+    "AZURE_ENV_DEPLOY_APP": {
+      "type": "bool",
+      "value": "[parameters('deployApp')]"
     },
     "AZURE_ENV_ONLY": {
       "type": "bool",
