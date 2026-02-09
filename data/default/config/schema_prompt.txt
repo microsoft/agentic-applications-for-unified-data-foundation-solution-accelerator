@@ -1,10 +1,10 @@
 === DATABASE SCHEMA ===
 
-network_outages(outage_id*:str, outage_start:date, duration_minutes:int, impact_level:str)
-trouble_tickets(ticket_id*:str, ticket_created:dat, resolution_time:int, outage_id:str, customer_impact:str)
+tickets(ticket_id*:str, customer_name:str, issue_description:str, priority:str, status:str)
+inspections(inspection_id*:str, ticket_id:str, result:str, score:int)
 
 JOINS:
-  trouble_tickets.outage_id -> network_outages.outage_id
+  inspections.ticket_id -> tickets.ticket_id
 
 RULES:
 - Use T-SQL syntax

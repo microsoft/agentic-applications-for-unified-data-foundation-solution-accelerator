@@ -1,0 +1,17 @@
+ticket_id,customer_name,issue_description,priority,status
+TICKET001,Customer 1,Issue description for ticket 1,Medium,Closed
+TICKET002,Customer 2,Issue description for ticket 2,Low,In Progress
+TICKET003,Customer 3,Issue description for ticket 3,High,In Progress
+TICKET004,Customer 4,Issue description for ticket 4,Low,Open
+TICKET005,Customer 5,Issue description for ticket 5,High,Closed
+TICKET006,Customer 6,Issue description for ticket 6,Medium,In Progress
+TICKET007,Customer 7,Issue description for ticket 7,High,In Progress
+TICKET008,Customer 8,Issue description for ticket 8,Medium,Closed
+TICKET009,Customer 9,Issue description for ticket 9,Medium,In Progress
+TICKET010,Customer 10,Issue description for ticket 10,Medium,Closed
+TICKET011,Customer 11,Issue description for ticket 11,High,In Progress
+TICKET012,Customer 12,Issue description for ticket 12,Medium,Closed
+TICKET013,Customer 13,Issue description for ticket 13,Low,In Progress
+TICKET014,Customer 14,Issue description for ticket 14,Low,Open
+TICKET015,Customer 15,Issue description for ticket 15,Medium,In Progress
+TICKET016,Customer 16,Issue description for ticket 16,Low,In Progress
