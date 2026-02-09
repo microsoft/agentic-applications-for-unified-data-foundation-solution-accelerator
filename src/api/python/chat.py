@@ -256,6 +256,8 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
             endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
             credential=credential
         ) as project_client:
+            cache = get_thread_cache()
+            conv_id = cache.get(conversation_id, None)
 
             # Get database connection based on AZURE_ENV_ONLY flag
             from history_sql import SqlQueryTool, get_azure_sql_connection, get_fabric_db_connection
@@ -275,8 +277,15 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
 
             openai_client = project_client.get_openai_client()
 
+            # Create or retrieve conversation
+            if not conv_id:
+                conv = await openai_client.conversations.create()
+                conv_id = conv.id
+                cache[conversation_id] = conv_id
+
             # Initial request to the agent
             response = await openai_client.responses.create(
+                conversation=conv_id,
                 input=query,
                 extra_body={"agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
             )
@@ -364,10 +373,10 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
                 # Submit tool outputs and get next response
                 # Note: Don't include 'conversation' when using 'previous_response_id'
                 response = await openai_client.responses.create(
+                    conversation=conv_id,
                     input=tool_outputs,
                     extra_body={
-                        "agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"},
-                        "previous_response_id": response.id
+                        "agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}
                     }
                 )
 
@@ -378,6 +387,11 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
     except Exception as e:
         complete_response = str(e)
         logger.error("Error in stream_openai_text_workshop: %s", e)
+        cache = get_thread_cache()
+        conv_id = cache.pop(conversation_id, None)
+        if conv_id is not None:
+            corrupt_key = f"{conversation_id}_corrupt_{random.randint(1000, 9999)}"
+            cache[corrupt_key] = conv_id
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error streaming OpenAI text") from e
 
     finally:
