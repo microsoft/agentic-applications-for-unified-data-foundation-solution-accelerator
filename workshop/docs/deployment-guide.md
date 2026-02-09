@@ -118,10 +118,10 @@ python scripts/08_test_agent.py
 
 **Sample questions to try:**
 
-- "How many outages occurred last month?"
-- "What's the average resolution time?"
-- "What are the policies for notifying customers of outages?"
-- "Which outages exceeded the maximum duration defined in our policy?"
+- "How many tickets have priority = 'High'?"
+- "What is the average score from inspections?"
+- "What are the requirements for handling customer tickets?"
+- "Are we meeting our resolution targets for high priority tickets according to our Ticket Management Policy?"
 
 ### 7. Test the Fabric Data Agent
 
@@ -139,9 +139,9 @@ python scripts/08_test_agent.py
 
 **Sample questions to try:**
 
-- "How many outages occurred last month?"
-- "What is the average duration of outages?"
-- "What is the average resolution time for tickets?"
+- "How many tickets have priority = 'High'?"
+- "What is the average score from inspections?"
+- Show tickets grouped by status.
 
 ### 8. Deploy and launch the application
 

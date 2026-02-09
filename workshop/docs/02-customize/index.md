@@ -41,8 +41,8 @@ Simply provide two inputs:
     
     **Sample Questions:**
     
-    - "Which outages exceeded our maximum duration policy?"
-    - "What are the escalation procedures for high-impact outages?"
+    - "Do any inspections violate quality control standards in our Inspection Procedures?"
+    - "Are there any tickets that require follow-up assessments based on our Inspection Procedures?"
 
 === "Retail"
 

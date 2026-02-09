@@ -69,44 +69,62 @@ python scripts/08_test_agent.py
 
 ```
 ============================================================
-Orchestrator Agent Chat
+AI Agent Chat (Fabric SQL + Native Search)
 ============================================================
+Chat Agent: dauypdob4c4d2k-ChatAgent
+SQL Mode: Fabric Lakehouse
+Lakehouse: <workshop_lakehouse_1>
 Type 'quit' to exit, 'help' for sample questions
 
 ------------------------------------------------------------
 
-You: How many outages occurred last month?
+You: How many tickets have priority = 'High'?
 
-Agent: Based on the database, there were 16 network outages recorded 
-       in January 2024.
+Agent: There are **4 tickets** with priority **High**.
 
-You: What are the policies for notifying customers of outages?
+You: What is the average score from inspections?
 
-Agent: According to our Customer Service Policies document:
-       
-       - Customers must be notified within 15 minutes of confirmed outage
-       - Use SMS, email, and app notifications for affected customers
-       - Provide estimated restoration time when available
-       - Send updates every 30 minutes during extended outages
-       
-       [Source: customer_service_policies.pdf]
+Agent: The average score from inspections is **77**.
 
-You: Which outages exceeded the maximum duration defined in our policy?
+You: What are the requirements for handling customer tickets?
 
-Agent: Let me check the outage data against our policy thresholds...
+Agent: Here are the requirements for handling customer tickets:
 
-       Based on a 4-hour (240 minute) maximum duration policy, these 
-       outages exceeded the threshold:
-       
-       | Outage ID | Duration (min) | Impact Level |
-       |-----------|----------------|--------------|
-       | OUT011    | 472            | Medium       |
-       | OUT004    | 446            | Low          |
-       | OUT007    | 445            | Low          |
-       | OUT005    | 417            | Medium       |
-       | OUT003    | 411            | Low          |
-       
-       5 outages exceeded the policy maximum duration.
+1. **Ticket Handling Procedures**:
+   - All customer tickets must be acknowledged within **1 hour**.
+   - Closed tickets should provide feedback to clients.
+
+2. **Priority Definitions**:
+   - High priority tickets must be resolved within **4 hours**.
+   - Medium priority tickets should be resolved within **24 hours**.
+   - Low priority tickets should not exceed **72 hours** for resolution.
+
+3. **Compliance and Service Level Agreements (SLAs)**:
+   - Define minimum service quality levels.
+   - For major outages, resolutions must be completed within **4 hours**.
+
+4. **Documentation Requirements**:
+   - All outages and tickets must be documented, including resolution times and customer impacts.
+
+5. **Response Time Expectations**:
+   - Representatives must respond to outage inquiries within **1 hour** during business hours and within **3 hours** outside of business hours.
+
+6. **Ticket Escalation Process**:
+   - All outages and tickets must be documented, including resolution times and customer impacts.
+
+7. **Customer Feedback Mechanism**:
+   - Gather customer feedback through follow-up surveys sent within one week of ticket closure.
+
+These procedures ensure timely communication, accountability, and continuous improvement in customer service.
+
+You: Are we meeting our resolution targets for high priority tickets according to our Ticket Management Policy?
+
+Agent: According to the Ticket Management Policy, high priority tickets must be resolved within 4 hours. Here’s the current status regarding high priority tickets:
+
+- **Total High Priority Tickets:** 4
+- **High Priority Tickets Resolved Within Target (4 hours):** 1
+
+This indicates that we are currently not meeting our resolution target for high priority tickets, as only 1 out of 4 tickets were resolved within the specified timeframe.
 
 You: quit
 ```
