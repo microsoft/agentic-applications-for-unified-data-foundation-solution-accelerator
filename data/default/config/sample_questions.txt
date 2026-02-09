@@ -1,20 +1,20 @@
 === SQL QUESTIONS (Fabric Data) ===
-- How many outages occurred till date?
-- What is the average duration of outages?
-- Which outage caused the most customer impact?
-- How many trouble tickets were created for each outage?
-- What is the average resolution time for tickets?
+1. How many tickets have priority = 'High'?
+2. What is the average score from inspections?
+3. Show tickets grouped by status.
+4. Which ticket has the highest priority?
+5. How does inspection result distribution compare across ticket statuses?
 
 === DOCUMENT QUESTIONS (AI Search) ===
-- What are the policies for notifying customers of outages?
-- How is customer impact classified in our documentation?
-- What is the response time required for outages?
-- What steps must be taken to escalate an outage?
-- How often should outage reports be generated?
+1. What are the requirements for handling customer tickets?
+2. How quickly should high priority tickets be resolved?
+3. What constitutes a failed inspection?
+4. What actions are required for tickets not meeting feedback standards?
+5. How often must failed inspections be reviewed?
 
 === COMBINED INSIGHT QUESTIONS ===
-- Which outages exceeded the maximum duration defined in our policy?
-- What percentage of tickets were resolved in less time than our SLA?
-- How many outages were rated as 'High' impact based on our threshold?
-- Which tickets experienced delays longer than our expected resolution times?
-- What was the average customer impact during the last 30 days compared to policy standards?
+1. Are we meeting our resolution targets for high priority tickets according to our Ticket Management Policy?
+2. Do any inspections violate quality control standards in our Inspection Procedures?
+3. Are there any tickets that require follow-up assessments based on our Inspection Procedures?
+4. What is our average inspection score, and does it meet the minimum standard outlined in our Quality Control Standards?
+5. How many tickets are open and exceeding response targets set in our Ticket Management Policy?

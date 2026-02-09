@@ -1,50 +1,50 @@
 {
     "scenario": "telecommunications",
-    "name": "Network Management",
-    "description": "Tracking outages and managing customer impacts",
+    "name": "Network Operations",
+    "description": "Tracking outages and trouble tickets.",
     "tables": {
-        "network_outages": {
-            "columns": [
-                "outage_id",
-                "outage_start",
-                "duration_minutes",
-                "impact_level"
-            ],
-            "types": {
-                "outage_id": "String",
-                "outage_start": "DateTime",
-                "duration_minutes": "BigInt",
-                "impact_level": "String"
-            },
-            "key": "outage_id",
-            "source_table": "network_outages"
-        },
-        "trouble_tickets": {
+        "tickets": {
             "columns": [
                 "ticket_id",
-                "ticket_created",
-                "resolution_time",
-                "outage_id",
-                "customer_impact"
+                "customer_name",
+                "issue_description",
+                "priority",
+                "status"
             ],
             "types": {
                 "ticket_id": "String",
-                "ticket_created": "Date",
-                "resolution_time": "BigInt",
-                "outage_id": "String",
-                "customer_impact": "String"
+                "customer_name": "String",
+                "issue_description": "String",
+                "priority": "String",
+                "status": "String"
             },
             "key": "ticket_id",
-            "source_table": "trouble_tickets"
+            "source_table": "tickets"
+        },
+        "inspections": {
+            "columns": [
+                "inspection_id",
+                "ticket_id",
+                "result",
+                "score"
+            ],
+            "types": {
+                "inspection_id": "String",
+                "ticket_id": "String",
+                "result": "String",
+                "score": "BigInt"
+            },
+            "key": "inspection_id",
+            "source_table": "inspections"
         }
     },
     "relationships": [
         {
-            "name": "ticket_outage",
-            "from": "trouble_tickets",
-            "to": "network_outages",
-            "fromKey": "outage_id",
-            "toKey": "outage_id"
+            "name": "ticket_inspection",
+            "from": "inspections",
+            "to": "tickets",
+            "fromKey": "ticket_id",
+            "toKey": "ticket_id"
         }
     ]
 }
