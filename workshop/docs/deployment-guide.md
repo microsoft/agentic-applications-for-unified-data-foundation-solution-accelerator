@@ -4,7 +4,7 @@
 
 - Azure subscription with Contributor access & Role Based Access Control access
 - VS Code, Azure Developer CLI ([aka.ms/azd](https://aka.ms/azd)), Python 3.10+, Git
-- For Fabric deployment: Microsoft Fabric workspace (F2+ capacity) with admin permissions
+- For Fabric deployment: Microsoft Fabric workspace (F4+ capacity) with admin permissions
 
 ## Choose Your Development Environment
 
@@ -15,6 +15,18 @@ Or choose one of the options below:
 [![Open in GitHub Codespaces](https://img.shields.io/badge/GitHub-Codespaces-blue?logo=github)](https://codespaces.new/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator)
 [![Open in VS Code Web](https://img.shields.io/badge/VS%20Code-Open%20in%20Web-blue?logo=visualstudiocode)](https://vscode.dev/azure/?vscode-azure-exp=foundry&agentPayload=eyJiYXNlVXJsIjogImh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9taWNyb3NvZnQvYWdlbnRpYy1hcHBsaWNhdGlvbnMtZm9yLXVuaWZpZWQtZGF0YS1mb3VuZGF0aW9uLXNvbHV0aW9uLWFjY2VsZXJhdG9yL3JlZnMvaGVhZHMvbWFpbi9pbmZyYS92c2NvZGVfd2ViIiwgImluZGV4VXJsIjogIi9pbmRleC5qc29uIiwgInZhcmlhYmxlcyI6IHsiYWdlbnRJZCI6ICIiLCAiY29ubmVjdGlvblN0cmluZyI6ICIiLCAidGhyZWFkSWQiOiAiIiwgInVzZXJNZXNzYWdlIjogIiIsICJwbGF5Z3JvdW5kTmFtZSI6ICIiLCAibG9jYXRpb24iOiAiIiwgInN1YnNjcmlwdGlvbklkIjogIiIsICJyZXNvdXJjZUlkIjogIiIsICJwcm9qZWN0UmVzb3VyY2VJZCI6ICIiLCAiZW5kcG9pbnQiOiAiIn0sICJjb2RlUm91dGUiOiBbImFpLXByb2plY3RzLXNkayIsICJweXRob24iLCAiZGVmYXVsdC1henVyZS1hdXRoIiwgImVuZHBvaW50Il19)
 
+
+---
+
+> Note: Please use this prompt if you would like to use GitHub Copilot to run the workshop: 
+`Can you please follow the step by step in https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/deployment-guide/ and follow Option A for me. My Fabric Workspace id = <YOUR_FABRIC_WORKSPACE_ID>.
+Important instructions:
+Do NOT make any code changes to the repository files. 
+Only follow the deployment guide instructions exactly as documented. 
+Run the commands step by step and wait for each to complete before proceeding.
+If I encounter any errors or issues, help me troubleshoot and resolve them before continuing.
+Explain what each step does before running it.
+If a step fails, suggest solutions based on the error message. `
 
 ---
 
@@ -57,7 +69,17 @@ azd auth login
 azd up
 ```
 
-*Choose environment name and region. Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
+
+When you start the deployment, you will need to set the following parameters: 
+
+| **Setting**                                 | **Description**                                                                                           | **Default value**      |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
+| **Environment Name**                        | A unique **3–20 character alphanumeric value** used to prefix resources, preventing conflicts with others.            | env\_name              |
+| **AI Model Location**                        | The region where AI model will be created            | *(empty)              |
+
+*Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
+
 
 
 ### 4. Setup Python environment

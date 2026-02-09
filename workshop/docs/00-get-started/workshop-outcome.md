@@ -10,7 +10,7 @@ After completing the workshop, you will have a working Fabric data agent that ca
 - View the underlying GQL (Graph Query Language) queries that the agent uses to retrieve data
 This demonstrates how AI can bridge the gap between business questions and technical data sources, making your data more accessible and actionable.
 
-<!-- ![Microsoft Foundry Agent Portal](../assets/MicrosoftFoundryAgentPortal.png) -->
+![UI Application](../assets/UI_Application.png)
 
 ## 2. Foundry Agent in Foundry Portal
 
@@ -22,13 +22,13 @@ You will see the Foundry agent in the Microsoft Foundry portal, where Foundry IQ
 
 You will be able to run scripts that interact with the Foundry agents and observe the output directly. This will show you how to automate interactions with the agents, integrate it into workflows, and analyze the results programmatically. You will see the agent's responses and data processing in a script-driven context.
 
-![Microsoft Foundry Agent Portal](../assets/MicrosoftFoundryAgentPortal.png)
+![Microsoft Foundry Agent Portal](../assets/MicrosoftFoundryAgentScript.png)
 
 ## 4. Chat Application
 
 You will have access to a chat application that provides a user-friendly interface for interacting with your agents. After the workshop, you will be able to hold conversations with the agent, ask questions, and receive answers in real time. The chat application demonstrates how conversational AI can be embedded into business solutions for enhanced productivity and engagement.
 
-<!-- ![Microsoft Foundry Agent Portal](../assets/MicrosoftFoundryAgentScript.png) -->
+![Microsoft Fabric Agent](../assets/DateAgentPortal.png)
 
 ---
 
