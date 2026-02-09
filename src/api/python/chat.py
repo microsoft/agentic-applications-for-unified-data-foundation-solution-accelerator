@@ -270,10 +270,9 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
                 db_connection = await get_fabric_db_connection()
 
             if not db_connection:
-                logger.error("Failed to establish database connection")
-                raise Exception("Database connection failed")
+                logger.warning("Failed to establish database connection")
 
-            custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
+            custom_tool = SqlQueryTool(pyodbc_conn=db_connection) if db_connection else None
 
             openai_client = project_client.get_openai_client()
 
@@ -351,7 +350,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
                     if func_name == "execute_sql":
                         sql_query = func_args.get("sql_query", "")
                         logger.info("Executing SQL query: %s", sql_query[:100])
-                        result = await custom_tool.run_sql_query(sql_query=sql_query)
+                        result = await custom_tool.run_sql_query(sql_query=sql_query) if custom_tool else []
                         logger.info("SQL query completed")
                         # Convert result to string - it's a list of dicts from run_sql_query
                         if result is None:
