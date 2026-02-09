@@ -6,6 +6,8 @@ using CsApi.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Text.Json;
 using Xunit;
@@ -34,7 +36,8 @@ public class ChatControllerTests
         _controller = new ChatController(
             _mockUserContext.Object,
             _mockRepo.Object,
-            _mockConfiguration.Object);
+            _mockConfiguration.Object,
+            NullLogger<ChatController>.Instance);
 
         // Setup default HttpContext
         var httpContext = new DefaultHttpContext();
