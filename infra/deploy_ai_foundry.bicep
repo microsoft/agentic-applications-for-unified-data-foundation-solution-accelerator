@@ -551,6 +551,7 @@ output aiSearchTarget string = isWorkshop ? 'https://${aiSearch.name}.search.win
 output aiSearchService string = isWorkshop ? aiSearch.name : ''
 output aiProjectName string = !empty(existingAIProjectName) ? existingAIProjectName : aiProject.name
 output aiSearchConnectionName string = isWorkshop ? aiSearchConnectionName : ''
+output aiSearchConnectionId string = (isWorkshop && empty(azureExistingAIProjectResourceId)) ? searchConnection.id : ''
 
 output applicationInsightsId string = applicationInsights.id
 output logAnalyticsWorkspaceResourceName string = useExisting ? existingLogAnalyticsWorkspace.name : logAnalytics.name

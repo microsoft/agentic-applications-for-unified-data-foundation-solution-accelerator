@@ -55,10 +55,21 @@ credential = DefaultAzureCredential()
 # Helper functions
 # ============================================================================
 
-def get_fabric_headers():
-    """Get fresh headers with Fabric API token."""
-    token = credential.get_token("https://api.fabric.microsoft.com/.default").token
-    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+def get_fabric_headers(max_retries=3, retry_delay=5):
+    """Get fresh headers with Fabric API token. Retries with exponential backoff on failure."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            token = credential.get_token("https://api.fabric.microsoft.com/.default").token
+            return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        except Exception as e:
+            if attempt < max_retries:
+                wait = retry_delay * (2 ** (attempt - 1))
+                print(f"  [RETRY] Token acquisition attempt {attempt}/{max_retries} failed: {e}")
+                print(f"  Retrying in {wait} seconds...")
+                time.sleep(wait)
+            else:
+                print(f"  [FAIL] Token acquisition failed after {max_retries} attempts: {e}")
+                raise
 
 
 def fabric_request(method, url, **kwargs):
@@ -551,6 +562,9 @@ else:
 # Always assign Cosmos DB role and update agent names in App Service
 assign_cosmos_role()
 update_agent_app_settings()
+
+# Wait for 30 seconds as APP service restarts to ensure new permissions are in effect before any API calls are made
+time.sleep(30)
 
 # ============================================================================
 # Summary

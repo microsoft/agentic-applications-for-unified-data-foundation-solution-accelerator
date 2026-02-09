@@ -247,6 +247,7 @@ project_client = AIProjectClient(
 
 # Get OpenAI client from project
 openai_client = project_client.get_openai_client()
+conversation = openai_client.conversations.create()
 
 print("-" * 60)
 
@@ -324,12 +325,18 @@ def show_help():
 # Chat Loop
 # ============================================================================
 
-def chat(user_message: str):
-    """Send a message to the agent and handle function calls."""
+def chat(user_message: str, conversation_id: str):
+    """Send a message to the agent and handle function calls.
+    
+    Args:
+        user_message: The user's input message
+        conversation_id: The conversation ID to maintain context across turns
+    """
     
     try:
-        # Initial request to the agent
+        # Initial request to the agent (using persistent conversation)
         response = openai_client.responses.create(
+            conversation=conversation_id,
             input=user_message,
             extra_body={"agent": {"name": CHAT_AGENT_NAME, "type": "agent_reference"}}
         )
@@ -433,12 +440,12 @@ def chat(user_message: str):
                     "output": result
                 })
             
-            # Submit tool outputs and get next response
+            # Submit tool outputs and get next response (conversation maintains context)
             response = openai_client.responses.create(
+                conversation=conversation_id,
                 input=tool_outputs,
                 extra_body={
-                    "agent": {"name": CHAT_AGENT_NAME, "type": "agent_reference"},
-                    "previous_response_id": response.id
+                    "agent": {"name": CHAT_AGENT_NAME, "type": "agent_reference"}
                 }
             )
         
@@ -475,7 +482,8 @@ while True:
                 user_input = sample_questions[idx]
                 print(f"  → {user_input}")
         
-        chat(user_input)
+        # Pass the persistent conversation ID to maintain context
+        chat(user_input, conversation.id)
         
     except KeyboardInterrupt:
         print("\n\nGoodbye!")
@@ -483,3 +491,10 @@ while True:
     except EOFError:
         print("\nGoodbye!")
         break
+
+# Cleanup conversation when done
+try:
+    openai_client.conversations.delete(conversation_id=conversation.id)
+    print("\nConversation cleaned up.")
+except Exception:
+    pass  # Ignore cleanup errors

@@ -1,5 +1,5 @@
 === SQL QUESTIONS (Fabric Data) ===
-- How many outages occurred last month?
+- How many outages occurred till date?
 - What is the average duration of outages?
 - Which outage caused the most customer impact?
 - How many trouble tickets were created for each outage?
