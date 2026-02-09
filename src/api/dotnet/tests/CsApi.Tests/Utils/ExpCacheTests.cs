@@ -1,5 +1,7 @@
 using CsApi.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -8,6 +10,7 @@ namespace CsApi.Tests.Utils;
 public class ExpCacheTests
 {
     private readonly Mock<IConfiguration> _mockConfiguration;
+    private readonly ILogger _logger = NullLogger.Instance;
 
     public ExpCacheTests()
     {
@@ -19,7 +22,7 @@ public class ExpCacheTests
     public void Constructor_CreatesEmptyCache()
     {
         // Arrange & Act
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
 
         // Assert
         Assert.Equal(0, cache.Count);
@@ -29,7 +32,7 @@ public class ExpCacheTests
     public void Set_AddsItemToCache()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
 
         // Act
         cache.Set("key1", "value1");
@@ -42,7 +45,7 @@ public class ExpCacheTests
     public void TryGet_ExistingItem_ReturnsTrue()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
         cache.Set("key1", "value1");
 
         // Act
@@ -57,7 +60,7 @@ public class ExpCacheTests
     public void TryGet_NonExistingItem_ReturnsFalse()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
 
         // Act
         var found = cache.TryGet("nonexistent", out var value);
@@ -71,7 +74,7 @@ public class ExpCacheTests
     public void TryGet_ExpiredItem_ReturnsFalse()
     {
         // Arrange - Very short TTL
-        using var cache = new ExpCache<string, string>(100, 0.001, _mockConfiguration.Object); // 1 millisecond TTL
+        using var cache = new ExpCache<string, string>(100, 0.001, _mockConfiguration.Object, _logger); // 1 millisecond TTL
         cache.Set("key1", "value1");
         
         // Wait for expiration
@@ -88,7 +91,7 @@ public class ExpCacheTests
     public void Set_OverwritesExistingItem()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
         cache.Set("key1", "value1");
 
         // Act
@@ -104,7 +107,7 @@ public class ExpCacheTests
     public void Set_MultipleItems_AddsAll()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
 
         // Act
         cache.Set("key1", "value1");
@@ -119,7 +122,7 @@ public class ExpCacheTests
     public void Remove_ExistingItem_ReturnsTrue()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
         cache.Set("key1", "value1");
 
         // Act
@@ -134,7 +137,7 @@ public class ExpCacheTests
     public void Remove_NonExistingItem_ReturnsFalse()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
 
         // Act
         var removed = cache.Remove("nonexistent");
@@ -147,7 +150,7 @@ public class ExpCacheTests
     public void Clear_RemovesAllItems()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
         cache.Set("key1", "value1");
         cache.Set("key2", "value2");
 
@@ -162,7 +165,7 @@ public class ExpCacheTests
     public void Set_ExceedsMaxSize_RemovesOldestItems()
     {
         // Arrange - Max size of 2
-        using var cache = new ExpCache<string, string>(2, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(2, 3600, _mockConfiguration.Object, _logger);
         cache.Set("key1", "value1");
         cache.Set("key2", "value2");
 
@@ -177,7 +180,7 @@ public class ExpCacheTests
     public void Count_ReturnsCorrectNumber()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
 
         // Act & Assert
         Assert.Equal(0, cache.Count);
@@ -196,7 +199,7 @@ public class ExpCacheTests
     public async Task ForceCleanupAsync_RemovesExpiredItems()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 0.001, _mockConfiguration.Object); // 1ms TTL
+        using var cache = new ExpCache<string, string>(100, 0.001, _mockConfiguration.Object, _logger); // 1ms TTL
         cache.Set("key1", "value1");
         
         // Wait for expiration
@@ -213,7 +216,7 @@ public class ExpCacheTests
     public async Task ForceCleanupAsync_KeepsNonExpiredItems()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
         cache.Set("key1", "value1");
 
         // Act
@@ -227,7 +230,7 @@ public class ExpCacheTests
     public void Dispose_CanBeCalledMultipleTimes()
     {
         // Arrange
-        var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
         cache.Set("key1", "value1");
 
         // Act & Assert (should not throw)
@@ -239,7 +242,7 @@ public class ExpCacheTests
     public void TryGet_AfterRemove_ReturnsFalse()
     {
         // Arrange
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger);
         cache.Set("key1", "value1");
         cache.Remove("key1");
 
@@ -254,7 +257,7 @@ public class ExpCacheTests
     public void Set_WithIntegerKey_Works()
     {
         // Arrange
-        using var cache = new ExpCache<int, string>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<int, string>(100, 3600, _mockConfiguration.Object, _logger);
 
         // Act
         cache.Set(123, "value123");
@@ -268,7 +271,7 @@ public class ExpCacheTests
     public void Constructor_WithAzureEndpoint_SetsEndpoint()
     {
         // Arrange & Act
-        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, "https://custom.azure.com");
+        using var cache = new ExpCache<string, string>(100, 3600, _mockConfiguration.Object, _logger, "https://custom.azure.com");
 
         // Assert
         Assert.Equal(0, cache.Count); // Just verify it was created without error
@@ -278,7 +281,7 @@ public class ExpCacheTests
     public void Set_WithNullValue_AddsItem()
     {
         // Arrange
-        using var cache = new ExpCache<string, string?>(100, 3600, _mockConfiguration.Object);
+        using var cache = new ExpCache<string, string?>(100, 3600, _mockConfiguration.Object, _logger);
 
         // Act
         cache.Set("key1", null);
