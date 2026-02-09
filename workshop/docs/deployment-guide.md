@@ -102,9 +102,13 @@ pip install uv && uv pip install -r scripts/requirements.txt
 az login
 ```
 
+> **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
+
 ```bash
 python scripts/00_build_solution.py --from 02
 ```
+
+> **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
 ### 6. Test the agent
 
@@ -154,6 +158,9 @@ azd up
 ```bash
 python scripts/00_build_solution.py --from 09
 ```
+
+> **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
+
 After the agent configuration & API permission set up completes, open the app URL shown in the output.
 
 ### 10. Customize for Your Industry (Optional)
@@ -217,9 +224,13 @@ cp .env.example .env # or: copy .env.example .env
 az login
 ```
 
+> **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
+
 ```bash
 python scripts/00_build_solution.py --from 04
 ```
+
+> **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
 ### 6. Test the agent
 
@@ -249,6 +260,8 @@ azd up
 ```bash
 python scripts/00_build_solution.py --from 09
 ```
+
+> **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
 After the agent configuration & API permission set up completes, open the app URL shown in the output. 
 
