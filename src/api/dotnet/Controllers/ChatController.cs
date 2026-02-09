@@ -113,6 +113,10 @@ public class ChatController : ControllerBase
             var errorEnvelope = new { error = ex.Message };
             await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
         }
+        catch (OperationCanceledException)
+        {
+            // Client disconnected or request was cancelled - no need to write response
+        }
         catch (Exception ex)
         {
             var errorEnvelope = new { error = ex.Message };

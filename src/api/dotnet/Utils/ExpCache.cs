@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Azure;
 using Microsoft.Agents.AI;
 using CsApi.Auth;
 using Azure.AI.Projects;
@@ -164,9 +165,17 @@ namespace CsApi.Utils
                         Console.WriteLine($"ExpCache: AgentThread is not ChatClientAgentThread, actual type: {agentThread.GetType().Name}");
                     }
                 }
+                catch (InvalidOperationException ex)
+                {
+                    Console.WriteLine($"ExpCache: Configuration error deleting thread: {ex.Message}");
+                }
+                catch (RequestFailedException ex)
+                {
+                    Console.WriteLine($"ExpCache: Azure API error deleting thread: {ex.Message}");
+                }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"ExpCache: Failed to delete thread: {ex.Message}");
+                    Console.WriteLine($"ExpCache: Unexpected error deleting thread: {ex.Message}");
                 }
             }
         }

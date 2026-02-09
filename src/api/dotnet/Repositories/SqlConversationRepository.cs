@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using CsApi.Models;
 using CsApi.Auth;
@@ -249,9 +250,25 @@ public class SqlConversationRepository : ISqlConversationRepository
             //     Console.WriteLine($"  - {conv.ConversationId}: '{conv.Title}' (user: {conv.UserId}) [created: {conv.CreatedAt}, updated: {conv.UpdatedAt}]");
             // }
         }
+        catch (SqlException ex)
+        {
+            _logger.LogError(ex, "SQL error listing conversations for user {UserId}", userId);
+        }
+        catch (DbException ex)
+        {
+            _logger.LogError(ex, "Database error listing conversations for user {UserId}", userId);
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Timeout listing conversations for user {UserId}", userId);
+        }
+        catch (OperationCanceledException)
+        {
+            // Request was cancelled, no logging needed
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error listing conversations for user {UserId}", userId);
+            _logger.LogError(ex, "Unexpected error listing conversations for user {UserId}", userId);
         }
         return list;
     }
@@ -293,7 +310,7 @@ public class SqlConversationRepository : ISqlConversationRepository
                         // Try to deserialize content as JSON first
                         content = JsonSerializer.Deserialize<JsonElement>(contentRaw);
                     } 
-                    catch 
+                    catch (JsonException)
                     { 
                         // If parsing fails, treat as string
                         content = JsonSerializer.SerializeToElement(contentRaw);
@@ -308,7 +325,7 @@ public class SqlConversationRepository : ISqlConversationRepository
                     { 
                         citations = JsonSerializer.Deserialize<JsonElement>(citationsStr);
                     } 
-                    catch 
+                    catch (JsonException)
                     { 
                         // If parsing fails, treat as null
                         citations = null;
@@ -442,66 +459,59 @@ public class SqlConversationRepository : ISqlConversationRepository
     public async Task<string> ExecuteChatQuery(string query, CancellationToken ct)
     {
         var results = new List<Dictionary<string, object>>();
-        try
+        using var conn = await CreateConnectionAsync();
+        using var cmd = new SqlCommand(query, (SqlConnection)conn);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
         {
-            using var conn = await CreateConnectionAsync();
-            using var cmd = new SqlCommand(query, (SqlConnection)conn);
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
+            var row = new Dictionary<string, object>();
+            for (int i = 0; i < reader.FieldCount; i++)
             {
-                var row = new Dictionary<string, object>();
-                for (int i = 0; i < reader.FieldCount; i++)
+                var colName = reader.GetName(i);
+                var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                
+                // Handle data type conversions to match Python SqlQueryTool behavior
+                if (value != null)
                 {
-                    var colName = reader.GetName(i);
-                    var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                    
-                    // Handle data type conversions to match Python SqlQueryTool behavior
-                    if (value != null)
+                    // Convert DateTime, DateOnly, and TimeOnly to ISO format string like Python
+                    if (value is DateTime dateTime)
                     {
-                        // Convert DateTime, DateOnly, and TimeOnly to ISO format string like Python
-                        if (value is DateTime dateTime)
-                        {
-                            row[colName] = dateTime.ToString("O"); // ISO 8601 format (matches Python .isoformat())
-                        }
-                        else if (value is DateOnly dateOnly)
-                        {
-                            row[colName] = dateOnly.ToString("yyyy-MM-dd"); // ISO date format
-                        }
-                        else if (value is TimeOnly timeOnly)
-                        {
-                            row[colName] = timeOnly.ToString("HH:mm:ss"); // ISO time format
-                        }
-                        // Convert Decimal to double like Python converts to float
-                        else if (value is decimal decimalValue)
-                        {
-                            row[colName] = (double)decimalValue;
-                        }
-                        // Handle other numeric types consistently
-                        else if (value is float floatValue)
-                        {
-                            row[colName] = (double)floatValue;
-                        }
-                        // Handle GUID as string for JSON serialization
-                        else if (value is Guid guidValue)
-                        {
-                            row[colName] = guidValue.ToString();
-                        }
-                        else
-                        {
-                            row[colName] = value;
-                        }
+                        row[colName] = dateTime.ToString("O"); // ISO 8601 format (matches Python .isoformat())
+                    }
+                    else if (value is DateOnly dateOnly)
+                    {
+                        row[colName] = dateOnly.ToString("yyyy-MM-dd"); // ISO date format
+                    }
+                    else if (value is TimeOnly timeOnly)
+                    {
+                        row[colName] = timeOnly.ToString("HH:mm:ss"); // ISO time format
+                    }
+                    // Convert Decimal to double like Python converts to float
+                    else if (value is decimal decimalValue)
+                    {
+                        row[colName] = (double)decimalValue;
+                    }
+                    // Handle other numeric types consistently
+                    else if (value is float floatValue)
+                    {
+                        row[colName] = (double)floatValue;
+                    }
+                    // Handle GUID as string for JSON serialization
+                    else if (value is Guid guidValue)
+                    {
+                        row[colName] = guidValue.ToString();
                     }
                     else
                     {
-                        row[colName] = null;
+                        row[colName] = value;
                     }
                 }
-                results.Add(row);
+                else
+                {
+                    row[colName] = null;
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error executing chat query");
+            results.Add(row);
         }
         return JsonSerializer.Serialize(results);
     }

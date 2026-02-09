@@ -263,6 +263,11 @@ public class HistoryFabController : ControllerBase
         {
             return Forbid();
         }
+        catch (OperationCanceledException)
+        {
+            // Client disconnected or request was cancelled
+            return StatusCode(499);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating conversation {ConversationId}", req.Conversation_Id);
