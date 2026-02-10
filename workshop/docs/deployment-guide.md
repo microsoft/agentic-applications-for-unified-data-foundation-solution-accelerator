@@ -121,9 +121,17 @@ python scripts/08_test_agent.py
 - "How many tickets have priority = 'High'?"
 - "What is the average score from inspections?"
 - "What are the requirements for handling customer tickets?"
-- "Are we meeting our resolution targets for high priority tickets according to our Ticket Management Policy?"
+- "Do any inspections violate quality control standards in our Inspection Procedures?"
 
-### 7. Test the Fabric Data Agent
+### 7. Create the Ontology
+
+Follow the step-by-step guide to create an Ontology in Microsoft Fabric for your scenario:
+
+👉 [Create Ontology Guide](./01-deploy/05-ontology-creation.md)
+
+This sets up entity types (Tickets, Inspections), data bindings from your Lakehouse tables, and relationships between them.
+
+### 8. Test the Fabric Data Agent
 
 1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
 2. Select "New item" → Search for "Data Agent" → select data agent, provide a name and click create
@@ -143,7 +151,7 @@ python scripts/08_test_agent.py
 - "What is the average score from inspections?"
 - Show tickets grouped by status.
 
-### 8. Deploy and launch the application
+### 9. Deploy and launch the application
 
 ```bash
 azd env set AZURE_ENV_DEPLOY_APP true
@@ -153,7 +161,7 @@ azd env set AZURE_ENV_DEPLOY_APP true
 azd up
 ```
 
-### 9. Set up app permissions
+### 10. Set up app permissions
 
 ```bash
 python scripts/00_build_solution.py --from 09
@@ -163,7 +171,7 @@ python scripts/00_build_solution.py --from 09
 
 After the agent configuration & API permission set up completes, open the app URL shown in the output.
 
-### 10. Customize for Your Industry (Optional)
+### 11. Customize for Your Industry (Optional)
 
 Follow steps in this page to  [Customize for your use case](./02-customize/index.md).
 

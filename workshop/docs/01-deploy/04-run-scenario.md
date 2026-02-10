@@ -47,6 +47,14 @@ Next: python scripts/08_test_agent.py
 
 ```
 
+## Create the Ontology
+
+Before testing the Fabric Data Agent, set up an Ontology in Microsoft Fabric for your scenario.
+
+Follow the step-by-step guide: **[Create Ontology](05-ontology-creation.md)** to set up the default use case.
+
+This sets up entity types (Tickets, Inspections), data bindings from your Lakehouse tables, and relationships between them.
+
 ## Test the Fabric Data Agent
 1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
 2. Select "New item" 
@@ -117,14 +125,9 @@ Agent: Here are the requirements for handling customer tickets:
 
 These procedures ensure timely communication, accountability, and continuous improvement in customer service.
 
-You: Are we meeting our resolution targets for high priority tickets according to our Ticket Management Policy?
+You: Do any inspections violate quality control standards in our Inspection Procedures?
 
-Agent: According to the Ticket Management Policy, high priority tickets must be resolved within 4 hours. Here’s the current status regarding high priority tickets:
-
-- **Total High Priority Tickets:** 4
-- **High Priority Tickets Resolved Within Target (4 hours):** 1
-
-This indicates that we are currently not meeting our resolution target for high priority tickets, as only 1 out of 4 tickets were resolved within the specified timeframe.
+Agent: Yes, there are 22 inspections that violate the quality control standards, as they scored below the minimum requirement of 80.
 
 You: quit
 ```
