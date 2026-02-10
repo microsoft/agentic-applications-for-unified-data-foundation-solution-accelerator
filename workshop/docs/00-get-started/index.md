@@ -4,7 +4,7 @@
 
 - Azure subscription with Contributor access
 - Azure OpenAI model quota of at least 150K TPM for gpt-4o-mini and 80K TPM for text-embedding-ada-002
-- Microsoft Fabric workspace (for Fabric IQ features)
+- Microsoft Fabric workspace (F8+ capacity) with admin permissions (for Fabric IQ features)
 
 - [Visual Studio Code](https://code.visualstudio.com/download)
 - [Azure Developer CLI (azd)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)
