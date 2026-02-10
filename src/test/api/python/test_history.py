@@ -606,7 +606,7 @@ class TestCosmosClient:
             )
             
             result = await client.delete_messages("conv123", "user123")
-            assert result is None
+            assert result == []
     
     @pytest.mark.asyncio
     async def test_update_message_feedback(self):
