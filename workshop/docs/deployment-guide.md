@@ -134,7 +134,7 @@ Follow the step-by-step guide to create an Ontology in Microsoft Fabric for your
 
 This sets up entity types (Tickets, Inspections), data bindings from your Lakehouse tables, and relationships between them. -->
 
-### 8. Test the Fabric Data Agent
+### 7. Test the Fabric Data Agent
 
 1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
 2. Select "New item" → Search for "Data Agent" → select data agent, provide a name and click create
@@ -154,7 +154,7 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 - "What is the average score from inspections?"
 - Show tickets grouped by status.
 
-### 9. Deploy and launch the application
+### 8. Deploy and launch the application
 
 ```bash
 azd env set AZURE_ENV_DEPLOY_APP true
@@ -164,7 +164,7 @@ azd env set AZURE_ENV_DEPLOY_APP true
 azd up
 ```
 
-### 10. Set up app permissions
+### 9. Set up app permissions
 
 ```bash
 python scripts/00_build_solution.py --from 09
@@ -174,7 +174,7 @@ python scripts/00_build_solution.py --from 09
 
 After the agent configuration & API permission set up completes, open the app URL shown in the output.
 
-### 11. Customize for Your Industry (Optional)
+### 10. Customize for Your Industry (Optional)
 
 Follow steps in this page to  [Customize for your use case](./02-customize/index.md).
 

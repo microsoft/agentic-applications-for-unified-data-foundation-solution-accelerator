@@ -1,4 +1,4 @@
-# Creating an Ontology in Microsoft Fabric (Preview)
+# [Optional] Creating an Ontology in Microsoft Fabric (Preview)
 
 This guide walks you through creating an **Ontology (preview)** item in Microsoft Fabric, using the **Build directly from OneLake** approach. The ontology represents the **Network Operations** scenario (telecommunications), tracking outages and trouble tickets.
 
