@@ -240,6 +240,50 @@ else:
     time.sleep(30)
 
 # ============================================================================
+# Step 4: Trigger Ontology Materialization
+# ============================================================================
+# The ontology was created in script 02 before tables existed, so Fabric
+# couldn't validate the data bindings. Now that data is loaded, we call
+# updateDefinition to trigger Fabric to re-process and materialize.
+
+ONTOLOGY_ID = fabric_ids.get("ontology_id")
+ontology_def_path = os.path.join(config_dir, "ontology_definition_parts.json")
+
+if ONTOLOGY_ID and os.path.exists(ontology_def_path):
+    print(f"\n[4/4] Publishing ontology (triggering materialization)...")
+
+    with open(ontology_def_path) as f:
+        definition_parts = json.load(f)
+
+    update_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/ontologies/{ONTOLOGY_ID}/updateDefinition"
+    update_payload = {
+        "definition": {
+            "parts": definition_parts
+        }
+    }
+    update_resp = make_request("POST", update_url, json=update_payload)
+
+    if update_resp.status_code == 200:
+        print(f"  [OK] Ontology materialization triggered")
+    elif update_resp.status_code == 202:
+        operation_url = update_resp.headers.get("Location")
+        if operation_url:
+            wait_for_lro(operation_url, "Ontology materialization")
+        else:
+            print("  Waiting for ontology to process...")
+            time.sleep(30)
+        print(f"  [OK] Ontology materialization triggered (async)")
+    else:
+        print(f"  [WARN] updateDefinition returned {update_resp.status_code}: {update_resp.text}")
+        print(f"  You may need to open the ontology in Fabric portal, edit any entity, and save.")
+else:
+    if not ONTOLOGY_ID:
+        print(f"\n[4/4] Skipping ontology publish (no ontology_id in fabric_ids.json)")
+    else:
+        print(f"\n[4/4] Skipping ontology publish (no saved definition parts found)")
+        print(f"  You may need to open the ontology in Fabric portal, edit any entity, and save.")
+
+# ============================================================================
 # Summary
 # ============================================================================
 
