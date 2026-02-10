@@ -6,9 +6,9 @@
 5. How does inspection result distribution compare across ticket statuses?
 
 === DOCUMENT QUESTIONS (AI Search) ===
-1. What are the requirements for handling customer tickets?
-2. How quickly should high priority tickets be resolved?
-3. What constitutes a failed inspection?
+1. What constitutes a failed inspection?
+2. What are the requirements for handling customer tickets?
+3. How quickly should high priority tickets be resolved?
 4. What actions are required for tickets not meeting feedback standards?
 5. How often must failed inspections be reviewed?
 

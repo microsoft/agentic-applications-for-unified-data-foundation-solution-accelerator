@@ -120,7 +120,7 @@ python scripts/08_test_agent.py
 
 - "How many tickets have priority = 'High'?"
 - "What is the average score from inspections?"
-- "What are the requirements for handling customer tickets?"
+- "What constitutes a failed inspection?"
 - "Do any inspections violate quality control standards in our Inspection Procedures?"
 
 ### 7. Create the Ontology
