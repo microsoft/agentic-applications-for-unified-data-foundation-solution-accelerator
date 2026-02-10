@@ -23,29 +23,33 @@ This uses the `data/default` folder and runs all setup steps:
 
 | Step | What Happens | Time |
 |------|--------------|------|
-| 02 | Setup Fabric workspace | ~30s |
+| 02 | Create Fabric Lakehouse | ~30s |
 | 03 | Load data into Fabric | ~1min |
-| 04 | Generate NL2SQL prompt | ~5s |
-| 05 | Create Fabric Data Agent | ~30s |
+| 04 | Generate Agent Prompt | ~5s |
 | 06 | Upload documents to AI Search | ~1min |
-| 07a | Create Orchestrator Agent | ~10s |
+| 07 | Create Foundry Agent | ~10s |
 
 ## Expected Output
 
 ```
-> [02] Create Fabric Items... [OK]
-> [03] Load Data into Fabric... [OK]
-> [04] Generate Agent Prompt... [OK]
-> [05] Create Fabric Data Agent... [OK]
-> [06] Upload to AI Search... [OK]
-> [07] Create Foundry Agent... [OK]
+> [02] Create Fabric Lakehouse... OK
+> [03] Load Data into Fabric... OK
+> [04] Generate Agent Prompt... OK
+> [06] Upload to AI Search... OK
+> [07] Create Foundry Agent... OK
 
-------------------------------------------------------------
-[OK] Pipeline completed successfully!
-
+Done! 5/5 steps completed
 Next: python scripts/08_test_agent.py
 
 ```
+
+## Create the Ontology
+
+Before testing the Fabric Data Agent, set up an Ontology in Microsoft Fabric for your scenario.
+
+Follow the step-by-step guide: **[Create Ontology](05-ontology-creation.md)** to set up the default use case.
+
+This sets up entity types (Tickets, Inspections), data bindings from your Lakehouse tables, and relationships between them.
 
 ## Test the Fabric Data Agent
 1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
@@ -86,45 +90,45 @@ You: What is the average score from inspections?
 
 Agent: The average score from inspections is **77**.
 
-You: What are the requirements for handling customer tickets?
+You: What constitutes a failed inspection?
 
-Agent: Here are the requirements for handling customer tickets:
+Agent: A failed inspection is defined by the following criteria:
 
-1. **Ticket Handling Procedures**:
-   - All customer tickets must be acknowledged within **1 hour**.
-   - Closed tickets should provide feedback to clients.
+1. **Score Requirement**: All inspections must achieve a minimum score of 80 out of 100.
+2. **Follow-up Actions**: Inspections falling below this threshold will require immediate review and corrective action, along with follow-up assessments within 48 hours.
 
-2. **Priority Definitions**:
-   - High priority tickets must be resolved within **4 hours**.
-   - Medium priority tickets should be resolved within **24 hours**.
-   - Low priority tickets should not exceed **72 hours** for resolution.
+Teams must document all corrective actions taken.
 
-3. **Compliance and Service Level Agreements (SLAs)**:
-   - Define minimum service quality levels.
-   - For major outages, resolutions must be completed within **4 hours**.
+You: Do any inspections violate quality control standards in our Inspection Procedures?
 
-4. **Documentation Requirements**:
-   - All outages and tickets must be documented, including resolution times and customer impacts.
+Agent: Yes, there are several inspections that violate the quality control standards as they scored below the required minimum of 80. Here are the details:
 
-5. **Response Time Expectations**:
-   - Representatives must respond to outage inquiries within **1 hour** during business hours and within **3 hours** outside of business hours.
+| Inspection ID  | Customer Name | Result | Score |
+|----------------|---------------|--------|-------|
+| INSPECTION002  | Customer 4    | Pass   | 65    |
+| INSPECTION009  | Customer 10   | Pass   | 60    |
+| INSPECTION010  | Customer 5    | Pass   | 71    |
+| INSPECTION011  | Customer 6    | Pass   | 74    |
+| INSPECTION012  | Customer 1    | Fail   | 69    |
+| INSPECTION013  | Customer 15   | Pass   | 69    |
+| INSPECTION016  | Customer 10   | Pass   | 64    |
+| INSPECTION019  | Customer 11   | Pass   | 73    |
+| INSPECTION020  | Customer 6    | Pass   | 72    |
+| INSPECTION022  | Customer 2    | Pass   | 62    |
+| INSPECTION024  | Customer 7    | Fail   | 70    |
+| INSPECTION026  | Customer 3    | Pass   | 67    |
+| INSPECTION027  | Customer 5    | Pass   | 69    |
+| INSPECTION028  | Customer 8    | Pass   | 62    |
+| INSPECTION029  | Customer 10   | Pass   | 75    |
+| INSPECTION030  | Customer 11   | Pass   | 60    |
+| INSPECTION031  | Customer 8    | Pass   | 60    |
+| INSPECTION032  | Customer 3    | Pass   | 62    |
+| INSPECTION033  | Customer 2    | Pass   | 68    |
+| INSPECTION036  | Customer 15   | Pass   | 62    |
+| INSPECTION037  | Customer 3    | Pass   | 67    |
+| INSPECTION040  | Customer 4    | Pass   | 74    |
 
-6. **Ticket Escalation Process**:
-   - All outages and tickets must be documented, including resolution times and customer impacts.
-
-7. **Customer Feedback Mechanism**:
-   - Gather customer feedback through follow-up surveys sent within one week of ticket closure.
-
-These procedures ensure timely communication, accountability, and continuous improvement in customer service.
-
-You: Are we meeting our resolution targets for high priority tickets according to our Ticket Management Policy?
-
-Agent: According to the Ticket Management Policy, high priority tickets must be resolved within 4 hours. Here’s the current status regarding high priority tickets:
-
-- **Total High Priority Tickets:** 4
-- **High Priority Tickets Resolved Within Target (4 hours):** 1
-
-This indicates that we are currently not meeting our resolution target for high priority tickets, as only 1 out of 4 tickets were resolved within the specified timeframe.
+These inspections need to be reviewed and may require corrective actions.
 
 You: quit
 ```
