@@ -186,7 +186,7 @@ After creating all entity types and relationships:
 ---
 ## Step 5: Entity Type Overview
 
-After saving, the ontology takes a few minutes to sync and materialize the data. Once ready, you can view the entity type overview for each entity.
+After saving, the ontology takes 10 to 20  minutes to sync and materialize the data. Once ready, you can view the entity type overview for each entity.
 
 1. Select the **Tickets** entity type and then click on Entity type overview.
    ![Tickets entity type overview](../assets/ontology/ticket-entity-type-overview.png)
@@ -197,7 +197,7 @@ After saving, the ontology takes a few minutes to sync and materialize the data.
 4. View the dashboard.
    ![Inspections entity dashboard](../assets/ontology/inspections-dashboard.png)
 
-> **Note**: If the overview still shows "Setting up", wait a few minutes and refresh the page. The ontology needs time to process the data bindings against the Lakehouse tables.
+> **Note**: If the overview still shows "Setting up", wait a 15 to 20 minutes and refresh the page. The ontology needs time to process the data bindings against the Lakehouse tables.
 
 ---
 
