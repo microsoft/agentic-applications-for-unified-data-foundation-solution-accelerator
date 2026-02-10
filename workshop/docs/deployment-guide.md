@@ -5,6 +5,7 @@
 - Azure subscription with Contributor access & Role Based Access Control access
 - VS Code, Azure Developer CLI ([aka.ms/azd](https://aka.ms/azd)), Python 3.10+, Git
 - For Fabric deployment: Microsoft Fabric workspace (F4+ capacity) with admin permissions
+- [Microsoft ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver16)
 
 ## Choose Your Development Environment
 
@@ -18,15 +19,17 @@ Or choose one of the options below:
 
 ---
 
-> Note: Please use this prompt if you would like to use GitHub Copilot to run the workshop: 
-`Can you please follow the step by step in https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/deployment-guide/ and follow Option A for me. My Fabric Workspace id = <YOUR_FABRIC_WORKSPACE_ID>.
+> Note: Please use this optional prompt if you would like to use GitHub Copilot to run the workshop: 
+```
+Can you please follow the step by step in https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/deployment-guide/ and follow Option A for me. My Fabric Workspace id = <YOUR_FABRIC_WORKSPACE_ID>.
 Important instructions:
 Do NOT make any code changes to the repository files. 
 Only follow the deployment guide instructions exactly as documented. 
 Run the commands step by step and wait for each to complete before proceeding.
 If I encounter any errors or issues, help me troubleshoot and resolve them before continuing.
 Explain what each step does before running it.
-If a step fails, suggest solutions based on the error message. `
+If a step fails, suggest solutions based on the error message. 
+```
 
 ---
 
