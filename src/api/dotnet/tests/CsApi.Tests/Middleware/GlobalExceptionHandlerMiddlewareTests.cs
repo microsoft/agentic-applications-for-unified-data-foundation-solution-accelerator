@@ -192,7 +192,7 @@ public class GlobalExceptionHandlerMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_TaskCanceledException_Returns408()
+    public async Task InvokeAsync_TaskCanceledException_Returns499()
     {
         // Arrange
         RequestDelegate next = context => throw new TaskCanceledException();
@@ -204,7 +204,7 @@ public class GlobalExceptionHandlerMiddlewareTests
         await middleware.InvokeAsync(httpContext);
 
         // Assert
-        Assert.Equal(408, httpContext.Response.StatusCode);
+        Assert.Equal(499, httpContext.Response.StatusCode);
     }
 
     [Fact]
