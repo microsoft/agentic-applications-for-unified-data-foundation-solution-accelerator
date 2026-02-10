@@ -4,7 +4,7 @@
 
 - Azure subscription with Contributor access & Role Based Access Control access
 - VS Code, Azure Developer CLI ([aka.ms/azd](https://aka.ms/azd)), Python 3.10+, Git
-- For Fabric deployment: Microsoft Fabric workspace (F4+ capacity) with admin permissions
+- For Fabric deployment: Microsoft Fabric workspace (F8+ capacity) with admin permissions
 
 ## Choose Your Development Environment
 
