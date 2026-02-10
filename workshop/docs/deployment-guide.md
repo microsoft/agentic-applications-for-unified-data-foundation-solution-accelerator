@@ -121,7 +121,7 @@ python scripts/08_test_agent.py
 
 **Sample questions to try:**
 
-- "How many tickets have priority = 'High'?"
+- "How many tickets are high priority"
 - "What is the average score from inspections?"
 - "What constitutes a failed inspection?"
 - "Do any inspections violate quality control standards in our Inspection Procedures?"
@@ -150,7 +150,7 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 
 **Sample questions to try:**
 
-- "How many tickets have priority = 'High'?"
+- "How many tickets are high priority"
 - "What is the average score from inspections?"
 - Show tickets grouped by status.
 
