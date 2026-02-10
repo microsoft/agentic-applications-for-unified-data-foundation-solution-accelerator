@@ -82,7 +82,7 @@ Type 'quit' to exit, 'help' for sample questions
 
 ------------------------------------------------------------
 
-You: How many tickets have priority = 'High'?
+You: How many tickets are high priority
 
 Agent: There are **4 tickets** with priority **High**.
 

@@ -1,5 +1,5 @@
 === SQL QUESTIONS (Fabric Data) ===
-1. How many tickets have priority = 'High'?
+1. How many tickets are high priority?
 2. What is the average score from inspections?
 3. Show tickets grouped by status.
 4. Which ticket has the highest priority?
