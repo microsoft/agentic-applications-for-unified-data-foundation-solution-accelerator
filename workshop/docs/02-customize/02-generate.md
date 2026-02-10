@@ -1,6 +1,10 @@
 # Generate Custom Data
 
 ## Run the AI Generator
+```bash
+az login
+```
+
 Override `.env` settings directly from the command line:
 ```bash
 python scripts/00_build_solution.py --clean --industry "Insurance" --usecase "Property insurance with claims processing and policy management"

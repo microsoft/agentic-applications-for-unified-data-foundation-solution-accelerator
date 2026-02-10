@@ -126,13 +126,13 @@ python scripts/08_test_agent.py
 - "What constitutes a failed inspection?"
 - "Do any inspections violate quality control standards in our Inspection Procedures?"
 
-### 7. Create the Ontology
+<!-- ### 7. Create the Ontology
 
 Follow the step-by-step guide to create an Ontology in Microsoft Fabric for your scenario:
 
 👉 [Create Ontology Guide](./01-deploy/05-ontology-creation.md)
 
-This sets up entity types (Tickets, Inspections), data bindings from your Lakehouse tables, and relationships between them.
+This sets up entity types (Tickets, Inspections), data bindings from your Lakehouse tables, and relationships between them. -->
 
 ### 8. Test the Fabric Data Agent
 
