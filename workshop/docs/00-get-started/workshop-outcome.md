@@ -10,7 +10,7 @@ After completing the workshop, you will have a working Fabric data agent that ca
 - View the underlying GQL (Graph Query Language) queries that the agent uses to retrieve data
 This demonstrates how AI can bridge the gap between business questions and technical data sources, making your data more accessible and actionable.
 
-![UI Application](../assets/UI_Application.png)
+![Data Agent](../assets/DateAgentPortal.png)
 
 ## 2. Foundry Agent in Foundry Portal
 
@@ -28,7 +28,7 @@ You will be able to run scripts that interact with the Foundry agents and observ
 
 You will have access to a chat application that provides a user-friendly interface for interacting with your agents. After the workshop, you will be able to hold conversations with the agent, ask questions, and receive answers in real time. The chat application demonstrates how conversational AI can be embedded into business solutions for enhanced productivity and engagement.
 
-![Microsoft Fabric Agent](../assets/DateAgentPortal.png)
+![Microsoft Fabric Agent](../assets/UI_Application.png)
 
 ---
 
