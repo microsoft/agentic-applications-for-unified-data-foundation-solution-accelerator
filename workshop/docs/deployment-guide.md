@@ -152,8 +152,7 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 
 - "How many tickets are high priority"
 - "What is the average score from inspections?"
-- "What constitutes a failed inspection?"
-- "Do any inspections violate quality control standards in our Inspection Procedures?"
+- Show tickets grouped by status.
 
 ### 9. Deploy and launch the application
 
