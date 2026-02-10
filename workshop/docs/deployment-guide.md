@@ -121,7 +121,7 @@ python scripts/08_test_agent.py
 
 **Sample questions to try:**
 
-- "How many tickets have priority = 'High'?"
+- "How many tickets have priority are High?"
 - "What is the average score from inspections?"
 - "What are the requirements for handling customer tickets?"
 - "Are we meeting our resolution targets for high priority tickets according to our Ticket Management Policy?"
