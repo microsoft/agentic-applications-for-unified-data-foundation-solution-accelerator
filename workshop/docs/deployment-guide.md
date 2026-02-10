@@ -251,10 +251,10 @@ python scripts/08_test_agent.py
 
 **Sample questions to try:**
 
-- "How many outages occurred last month?"
-- "What's the average resolution time?"
-- "What are the policies for notifying customers of outages?"
-- "Which outages exceeded the maximum duration defined in our policy?"
+- "How many tickets are high priority"
+- "What is the average score from inspections?"
+- "What constitutes a failed inspection?"
+- "Do any inspections violate quality control standards in our Inspection Procedures?"
 
 ### 7. Deploy the application
 
