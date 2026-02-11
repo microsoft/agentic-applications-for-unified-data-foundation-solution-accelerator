@@ -83,9 +83,6 @@ Type 'quit' to exit, 'help' for sample questions
 
 ------------------------------------------------------------
 
-You: How many tickets are high priority
-
-Agent: There are **4 tickets** with priority **High**.
 
 You: What is the average score from inspections?
 
