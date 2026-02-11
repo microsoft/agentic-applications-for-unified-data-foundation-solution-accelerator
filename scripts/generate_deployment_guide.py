@@ -118,15 +118,15 @@ def create_guide():
         'azd auth login\nazd up',
         'Choose environment name and region (eastus2 or westus2 recommended). If needed: azd auth login --tenant-id <tenant-id>')
     
-    pdf.step(4, 'Configure Fabric workspace',
-        'cp .env.example .env',
-        'Edit .env: Set FABRIC_WORKSPACE_ID from app.fabric.microsoft.com URL (skip if using Azure-only mode)')
+    pdf.step(4, 'Note your Fabric workspace ID',
+        'Find your workspace ID in your Fabric URL: https://app.fabric.microsoft.com/groups/{workspace-id}/...',
+        'You will pass this as --fabric-workspace-id when running the build script (skip if using Azure-only mode)')
     
     pdf.step(5, 'Setup Python environment',
         'python -m venv .venv\n.venv\\Scripts\\activate   # or: source .venv/bin/activate\npip install uv && uv pip install -r scripts/requirements.txt')
     
     pdf.step(6, 'Build the solution (~5 min)',
-        'python scripts/00_build_solution.py --from 02',
+        'python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>',
         'Azure-only mode? Use: python scripts/00_build_solution.py --from 04')
     
     pdf.step(7, 'Test the agent',

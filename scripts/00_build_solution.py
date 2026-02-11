@@ -67,6 +67,7 @@ Examples:
   python scripts/00_build_solution.py                # Full Fabric mode or SQL mode
   python scripts/00_build_solution.py --from 06      # Start from step 06
   python scripts/00_build_solution.py --only 07      # Run only specific steps
+  python scripts/00_build_solution.py --fabric-workspace-id <id>  # Pass Fabric workspace ID
 """
 )
 parser.add_argument("--industry", type=str, 
@@ -75,6 +76,8 @@ parser.add_argument("--usecase", type=str,
                     help="Use case for data generation (overrides .env)")
 parser.add_argument("--size", choices=["small", "medium", "large"],
                     help="Data size for generation (overrides .env)")
+parser.add_argument("--fabric-workspace-id", type=str,
+                    help="Fabric workspace ID (overrides FABRIC_WORKSPACE_ID in .env)")
 parser.add_argument("--clean", action="store_true",
                     help="Clean and recreate artifacts")
 
@@ -140,6 +143,32 @@ for step in pipeline:
     if not os.path.exists(script_path):
         print(f"ERROR: Script not found: {STEPS[step]['script']}")
         sys.exit(1)
+
+# ============================================================================
+# Interactive Prompt for Fabric Workspace ID (Fabric mode only)
+# ============================================================================
+
+if not azure_only:
+    fabric_workspace_id = args.fabric_workspace_id or os.getenv("FABRIC_WORKSPACE_ID", "").strip()
+    if not fabric_workspace_id:
+        print("\n" + "="*60)
+        print("Fabric Workspace Configuration")
+        print("="*60)
+        print("\nFabric mode requires a Workspace ID.")
+        print("You can find it in your Fabric URL: https://app.fabric.microsoft.com/groups/<workspace-id>")
+        fabric_workspace_id = input("\nFabric Workspace ID: ").strip()
+        if not fabric_workspace_id:
+            print("ERROR: Fabric Workspace ID is required in Fabric mode.")
+            print("       Pass --fabric-workspace-id <id> or set FABRIC_WORKSPACE_ID in .env")
+            print("       Or use AZURE_ENV_ONLY=true for Azure SQL mode.")
+            sys.exit(1)
+    # Make it available to downstream scripts
+    os.environ["FABRIC_WORKSPACE_ID"] = fabric_workspace_id
+    # Persist to project root .env so subsequent runs don't need to re-enter it
+    from dotenv import set_key
+    project_root = os.path.dirname(script_dir)
+    env_path = os.path.join(project_root, ".env")
+    set_key(env_path, "FABRIC_WORKSPACE_ID", fabric_workspace_id)
 
 # ============================================================================
 # Interactive Prompts for Data Generation
