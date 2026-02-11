@@ -106,7 +106,8 @@ az login
 python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
 ```
 
-> **Note:** If you omit `--fabric-workspace-id`, the script will prompt you for it interactively. Press **Enter** key to start or **Ctrl+C** to cancel the process.
+> **Note:** If you omit `--fabric-workspace-id`, the script will prompt you for it interactively. 
+> Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
 ### 6. Test the agent
 
@@ -141,7 +142,7 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
     ```
 5. Click Publish from the top menu and select Publish. 
 
-> Note: The Ontology set up may take a few minutes so retry after some time if you don't see good responses. 
+> Note: The Ontology set up may take up to 15 minutes so retry after some time if you don't see good responses. 
 
 **Sample questions to try:**
 
