@@ -1,17 +1,6 @@
 name: Deploy-Test-Cleanup (v2) Windows
 
 on:
-  # pull_request:
-  #   branches:
-  #     - main
-  # workflow_run:
-  #   workflows: ["Build Docker and Optional Push - Agentic Applications for Unified Data Foundation"]
-  #   types:
-  #     - completed
-  #   branches:
-  #     - main
-  #     - dev
-  #     - demo
   workflow_dispatch:
     inputs:
       azure_location:

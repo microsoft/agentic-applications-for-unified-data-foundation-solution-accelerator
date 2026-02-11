@@ -7,7 +7,10 @@ on:
       - dev
       - demo
     paths:
-      - 'src/App/**'
+      - 'src/App/src/**'
+      - 'src/App/public/**'
+      - 'src/App/package.json'
+      - 'src/App/WebApp.Dockerfile'
       - 'src/api/**'
       - '.github/workflows/docker-build.yml'
   pull_request:
@@ -21,7 +24,10 @@ on:
       - dev
       - demo
     paths:
-      - 'src/App/**'
+      - 'src/App/src/**'
+      - 'src/App/public/**'
+      - 'src/App/package.json'
+      - 'src/App/WebApp.Dockerfile'
       - 'src/api/**'
       - '.github/workflows/docker-build.yml'
   workflow_dispatch:
