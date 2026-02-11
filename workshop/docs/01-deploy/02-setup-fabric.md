@@ -8,7 +8,6 @@ Create and configure your Microsoft Fabric workspace for Fabric IQ.
 ## Prerequisites
 
 - An active Azure subscription with permissions to create resources
-- [Microsoft Fabric capacity (F8 or higher recommended)](https://learn.microsoft.com/en-us/fabric/admin/capacity-settings?tabs=fabric-capacity#create-a-new-capacity)
 - Workspace admin permissions
 - [Fabric IQ enabled on your tenant](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings)
 
@@ -22,11 +21,11 @@ If you already have a Fabric capacity, skip to [Step 2](#step-2-create-a-fabric-
 
 2. Search for **Microsoft Fabric** in the top search bar and select **Microsoft Fabric** from the results.
 
-    <!-- ![Search for Microsoft Fabric in the Azure Portal](../images/fabric/01-search-fabric.png) -->
+    ![Search for Microsoft Fabric in the Azure Portal](../assets/fabric/01-search-fabric.png)
 
 3. Click **+ Create** to start creating a new Fabric capacity.
 
-    <!-- ![Click Create on the Microsoft Fabric page](../images/fabric/02-create-fabric.png) -->
+    ![Click Create on the Microsoft Fabric page](../assets/fabric/02-create-fabric.png)
 
 4. Fill in the required details on the **Basics** tab:
 
@@ -36,39 +35,32 @@ If you already have a Fabric capacity, skip to [Step 2](#step-2-create-a-fabric-
     | **Resource group** | Select an existing resource group or create a new one |
     | **Capacity name** | Enter a unique name (e.g., `fabriccap-workshop`) |
     | **Region** | Select a region close to your other Azure resources |
-    | **Size** | Select **F8** or higher (F8 is recommended for this workshop) |
+    | **Size** | Click Change Size & Select **F8** or higher (F8 is recommended for this workshop) |
+    | **Fabric capacity administrator** | This should be the user account that will manage the workspace. |
 
-    <!-- ![Fill in the Fabric capacity basics](../images/fabric/03-capacity-basics.png) -->
 
-5. Assign a **Fabric capacity administrator**. This should be the user account that will manage the workspace.
+    ![Fill in the Fabric capacity basics](../assets/fabric/03-capacity-basics.png)
 
-    <!-- ![Assign Fabric capacity administrator](../images/fabric/04-capacity-admin.png) -->
+5. Click **Review + create**, verify the settings, and then click **Create**.
 
-6. Click **Review + create**, verify the settings, and then click **Create**.
-
-    <!-- ![Review and create the Fabric capacity](../images/fabric/05-review-create.png) -->
+    ![Review and create the Fabric capacity](../assets/fabric/05-review-create.png)
 
 7. Wait for the deployment to complete. This typically takes 1–2 minutes.
 
-    <!-- ![Deployment in progress](../images/fabric/06-deployment-complete.png) -->
+    ![Deployment in progress](../assets/fabric/06-deployment-complete.png)
 
 ---
 
 ## Step 2 — Create a Fabric workspace
-
 1. Navigate to [Microsoft Fabric](https://app.fabric.microsoft.com/) and sign in with your Azure account.
-
-2. Click on the **Data Engineering** experience from the experience switcher at the bottom-left corner.
-
-    <!-- ![Select Data Engineering experience](../images/fabric/07-data-engineering.png) -->
 
 3. Click **Workspaces** in the left navigation panel.
 
-    <!-- ![Click Workspaces](../images/fabric/08-workspaces-nav.png) -->
+    ![Click Workspaces](../assets/fabric/08-workspaces-nav.png)
 
 4. Click **+ New workspace**.
 
-    <!-- ![Click New workspace](../images/fabric/09-new-workspace.png) -->
+    ![Click New workspace](../assets/fabric/09-new-workspace.png)
 
 5. Fill in the workspace details:
 
@@ -77,35 +69,35 @@ If you already have a Fabric capacity, skip to [Step 2](#step-2-create-a-fabric-
     | **Name** | Enter a name (e.g., `iq-workshop`) |
     | **Description** | *(Optional)* A short description of the workspace |
 
-    <!-- ![Enter workspace name and description](../images/fabric/10-workspace-name.png) -->
+    ![Enter workspace name and description](../assets/fabric/10-workspace-name.png)
 
 6. Expand the **Advanced** section and configure the license:
 
     - Under **License mode**, select **Fabric capacity**.
-    - Under **Capacity**, select the Fabric capacity you created in [Step 1](#step-1-create-a-fabric-capacity-in-azure) (or an existing one).
+    - Under **Capacity**, select the Fabric capacity you created in [Step 1](#step-1-create-a-fabric-capacity-in-azure) (or an existing one if you have it already).
 
-    <!-- ![Configure workspace license and capacity](../images/fabric/11-workspace-license.png) -->
+    ![Configure workspace license and capacity](../assets/fabric/11-workspace-license.png)
 
 7. Click **Apply** to create the workspace.
 
-    <!-- ![Click Apply to create workspace](../images/fabric/12-apply-workspace.png) -->
+    ![Click Apply to create workspace](../assets/fabric/12-apply-workspace.png)
 
 ---
 
 ## Step 3 — Verify workspace settings
 
-1. Open your newly created workspace.
+1. Open your newly created workspace or an existing workspace.
 
 2. Click the **Workspace settings** gear icon (⚙️) in the top-right area.
 
-    <!-- ![Open workspace settings](../images/fabric/13-workspace-settings.png) -->
+    ![Open workspace settings](../assets/fabric/13-workspace-settings.png)
 
 3. Go to **License info** and verify:
 
     - [x] The workspace is assigned to a **Fabric capacity**
     - [x] The capacity SKU is **F8** or higher
 
-    <!-- ![Verify license info](../images/fabric/14-license-info.png) -->
+    ![Verify license info](../assets/fabric/14-license-info.png)
 
 ---
 
@@ -121,7 +113,7 @@ You will need the workspace ID to configure the solution in the next step.
     https://app.fabric.microsoft.com/groups/{workspace-id}/...
     ```
 
-    <!-- ![Copy workspace ID from URL](../images/fabric/15-workspace-id.png) -->
+    ![Copy workspace ID from URL](../assets/fabric/15-workspace-id.png)
 
 3. Copy the workspace ID and save it for later. You'll use it in the [Configure dev environment](03-configure.md) step.
 
@@ -134,11 +126,11 @@ You will need the workspace ID to configure the solution in the next step.
 
 You should now have:
 
-| Item | Status |
-|------|--------|
-| Fabric capacity created in Azure (F8+) | :white_check_mark: |
-| Fabric workspace created and linked to capacity | :white_check_mark: |
-| Workspace ID copied for configuration | :white_check_mark: |
+| Item |
+|------|
+| Fabric capacity created in Azure (F8+) |
+| Fabric workspace created and linked to capacity |
+| Workspace ID copied for configuration |
 
 !!! success "Ready to Continue"
     You have your Fabric workspace ready. Proceed to configure your dev environment.
