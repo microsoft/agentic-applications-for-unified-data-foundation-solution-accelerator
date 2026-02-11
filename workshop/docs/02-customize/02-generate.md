@@ -5,6 +5,8 @@
 az login
 ```
 
+> **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
+
 Override `.env` settings directly from the command line:
 ```bash
 python scripts/00_build_solution.py --clean --industry "Insurance" --usecase "Property insurance with claims processing and policy management"

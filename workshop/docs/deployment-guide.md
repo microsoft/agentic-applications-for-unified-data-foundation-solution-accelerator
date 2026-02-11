@@ -5,7 +5,6 @@
 - Azure subscription with Contributor access & Role Based Access Control access
 - VS Code, Azure Developer CLI ([aka.ms/azd](https://aka.ms/azd)), Python 3.10+, Git
 - For Fabric deployment: Microsoft Fabric workspace (F8+ capacity) with admin permissions
-- For Fabric deployment: [Fabric IQ enabled on your tenant](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings)
 - [Microsoft ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver16)
 
 ## Choose Your Development Environment
@@ -38,8 +37,40 @@ If a step fails, suggest solutions based on the error message.
 
 ### 1. Configure Fabric workspace
 
-Create a new [Fabric workspace](./01-deploy/02-setup-fabric.md).
+#### 1a. Create a Fabric capacity in Azure
 
+!!! tip "Already have a Fabric capacity?"
+    If you already have a Fabric capacity (F8+), you can **skip this step** and use your existing capacity.
+
+Follow the instructions here:
+**[Create a Fabric capacity in Azure →](./01-deploy/02a-create-fabric-capacity.md)**
+
+#### 1b. Create a Fabric workspace
+
+!!! tip "Already have a Fabric workspace?"
+    If you already have a Fabric workspace linked to a Fabric capacity, you can **skip this step** and use your existing workspace.
+
+Follow the instructions here:
+**[Create a Fabric workspace →](./01-deploy/02b-create-fabric-workspace.md)**
+
+#### 1c. Verify workspace settings
+
+!!! warning "Fabric IQ must be enabled"
+    Ensure that Fabric IQ is enabled on your tenant before proceeding. This setting is configured in the **Fabric Admin Portal**.
+    
+    1. Go to [Fabric Admin Portal](https://app.fabric.microsoft.com/admin-portal) → **Tenant settings**.
+    2. Search for and enable both of the following preview features:
+        - **Ontology (preview)**
+        - **Graph (preview)**
+    3. These settings may take a upto 15 minutes to take effect.
+    
+    For detailed instructions, refer to the official documentation: [Fabric IQ Tenant Settings](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings).
+
+1. Open your newly created workspace or an existing workspace.
+2. Click the **Workspace settings** gear icon (⚙️) in the top-right area.
+3. Go to **License info** and verify:
+    - [x] The workspace is assigned to a **Fabric capacity**
+    - [x] The capacity SKU is **F8** or higher
 
 ### 2. Clone the repository
 
@@ -51,17 +82,22 @@ git clone https://github.com/microsoft/agentic-applications-for-unified-data-fou
 cd agentic-applications-for-unified-data-foundation-solution-accelerator
 ```
 
-### 2.1 Get Fabric workspace Id
-Note your **Fabric Workspace ID** from [Microsoft Fabric](https://app.fabric.microsoft.com) — you'll pass it as a parameter when building the solution.
-
-| Setting | Where to find it |
-|---------|------------------|
-| Workspace ID | URL after `/groups/` in `https://app.fabric.microsoft.com/groups/{workspace-id}/...` |
-
 ### 3. Deploy Azure resources
 
 ```bash
 azd auth login
+```
+
+```bash
+az login
+```
+
+> **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
+
+Register the Microsoft Cognitive Services resource provider (required if not already registered on your subscription):
+
+```bash
+az provider register --namespace Microsoft.CognitiveServices
 ```
 
 ```bash
@@ -73,8 +109,9 @@ When you start the deployment, you will need to set the following parameters:
 
 | **Setting**                                 | **Description**                                                                                           | **Default value**      |
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
-| **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
 | **Environment Name**                        | A unique **3–20 character alphanumeric value** used to prefix resources, preventing conflicts with others.            | env\_name              |
+| **Azure Subscription**                      | The Azure subscription to deploy resources into. Only prompted if you have multiple subscriptions.        | *(auto-selected if only one)* |
+| **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
 | **AI Model Location**                        | The region where AI model will be created            | *(empty)              |
 
 *Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
@@ -96,6 +133,26 @@ pip install uv && uv pip install -r scripts/requirements.txt
 ```
 
 ### 5. Build the solution
+
+#### Retrieve your Fabric workspace ID
+
+You will need your workspace ID to pass as a parameter when building the solution.
+
+1. Open your workspace in [Microsoft Fabric](https://app.fabric.microsoft.com/).
+2. Look at the URL — the workspace ID is the GUID that appears after `/groups/`:
+
+    ```
+    https://app.fabric.microsoft.com/groups/{workspace-id}/...
+    ```
+
+    ![Copy workspace ID from URL](./01-deploy/../assets/fabric/15-workspace-id.png)
+
+3. Copy the workspace ID.
+
+!!! tip "Finding the workspace ID"
+    For more details, refer to the Microsoft documentation: [Identify your workspace ID](https://learn.microsoft.com/en-us/fabric/admin/portal-workspace#identify-your-workspace-id).
+
+#### Run the build
 
 ```bash
 az login
@@ -191,6 +248,8 @@ cd agentic-applications-for-unified-data-foundation-solution-accelerator
 
 ### 2. Enable Azure-only mode
 
+When prompted for an environment name, enter a unique **3–20 character alphanumeric value** (this is used to prefix resources and prevent conflicts).
+
 ```bash
 azd env set AZURE_ENV_ONLY true
 ```
@@ -202,10 +261,30 @@ azd auth login
 ```
 
 ```bash
+az login
+```
+
+> **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
+
+Register the Microsoft Cognitive Services resource provider (required if not already registered on your subscription):
+
+```bash
+az provider register --namespace Microsoft.CognitiveServices
+```
+
+```bash
 azd up
 ```
 
-*Choose environment name and region. Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
+When you start the deployment, you will need to set the following parameters: 
+
+| **Setting**                                 | **Description**                                                                                           | **Default value**      |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **Azure Subscription**                      | The Azure subscription to deploy resources into. Only prompted if you have multiple subscriptions.        | *(auto-selected if only one)* |
+| **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
+| **AI Model Location**                        | The region where AI model will be created            | *(empty)              |
+
+*Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
 
 ### 4. Setup Python environment
 
