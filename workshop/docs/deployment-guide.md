@@ -56,7 +56,15 @@ Follow the instructions here:
 #### 1c. Verify workspace settings
 
 !!! warning "Fabric IQ must be enabled"
-    Ensure that [Fabric IQ is enabled on your tenant](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings) before proceeding.
+    Ensure that Fabric IQ is enabled on your tenant before proceeding. This setting is configured in the **Fabric Admin Portal**.
+    
+    1. Go to [Fabric Admin Portal](https://app.fabric.microsoft.com/admin-portal) → **Tenant settings**.
+    2. Search for and enable both of the following preview features:
+        - **Ontology (preview)**
+        - **Graph (preview)**
+    3. These settings may take a upto 15 minutes to take effect.
+    
+    For detailed instructions, refer to the official documentation: [Fabric IQ Tenant Settings](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings).
 
 1. Open your newly created workspace or an existing workspace.
 2. Click the **Workspace settings** gear icon (⚙️) in the top-right area.
@@ -103,7 +111,7 @@ When you start the deployment, you will need to set the following parameters:
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
 | **Environment Name**                        | A unique **3–20 character alphanumeric value** used to prefix resources, preventing conflicts with others.            | env\_name              |
 | **Azure Subscription**                      | The Azure subscription to deploy resources into. Only prompted if you have multiple subscriptions.        | *(auto-selected if only one)* |
-| **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
+| **Azure Region**                            | The region where resources will be created. **Avoid East US** region | *(empty)*              |
 | **AI Model Location**                        | The region where AI model will be created            | *(empty)              |
 
 *Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
@@ -240,6 +248,8 @@ cd agentic-applications-for-unified-data-foundation-solution-accelerator
 
 ### 2. Enable Azure-only mode
 
+When prompted for an environment name, enter a unique **3–20 character alphanumeric value** (this is used to prefix resources and prevent conflicts).
+
 ```bash
 azd env set AZURE_ENV_ONLY true
 ```
@@ -266,7 +276,16 @@ az provider register --namespace Microsoft.CognitiveServices
 azd up
 ```
 
-*Choose environment name and region. Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
+When you start the deployment, you will need to set the following parameters: 
+
+| **Setting**                                 | **Description**                                                                                           | **Default value**      |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **Environment Name**                        | A unique **3–20 character alphanumeric value** used to prefix resources, preventing conflicts with others.            | env\_name              |
+| **Azure Subscription**                      | The Azure subscription to deploy resources into. Only prompted if you have multiple subscriptions.        | *(auto-selected if only one)* |
+| **Azure Region**                            | The region where resources will be created. **Avoid East US** region | *(empty)*              |
+| **AI Model Location**                        | The region where AI model will be created            | *(empty)              |
+
+*Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
 
 ### 4. Setup Python environment
 

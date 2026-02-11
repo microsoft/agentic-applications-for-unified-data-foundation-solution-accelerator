@@ -44,6 +44,8 @@ Register the Microsoft Cognitive Services resource provider (required if not alr
 az login
 ```
 
+> **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
+
 ```bash
 az provider register --namespace Microsoft.CognitiveServices
 ```
