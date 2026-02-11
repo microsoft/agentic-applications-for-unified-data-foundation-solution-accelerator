@@ -26,7 +26,7 @@ Set up a Microsoft Fabric capacity resource in your Azure subscription.
     |-------|-------|
     | **Subscription** | Select your Azure subscription |
     | **Resource group** | Select an existing resource group or create a new one |
-    | **Capacity name** | Enter a unique name (e.g., `fabriccap-workshop`) |
+    | **Capacity name** | Enter a unique name (e.g., `fabriccapworkshop`) |
     | **Region** | Select a region close to your other Azure resources |
     | **Size** | Click Change Size & Select **F8** or higher (F8 is recommended for this workshop) |
     | **Fabric capacity administrator** | This should be the user account that will manage the workspace. |
