@@ -9,82 +9,33 @@ Create and configure your Microsoft Fabric workspace for Fabric IQ.
 
 - An active Azure subscription with permissions to create resources
 - Workspace admin permissions
-- [Fabric IQ enabled on your tenant](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings)
 
 ---
 
 ## Step 1 — Create a Fabric capacity in Azure
 
-If you already have a Fabric capacity, skip to [Step 2](#step-2-create-a-fabric-workspace).
+!!! tip "Already have a Fabric capacity?"
+    If you already have a Fabric capacity (F8+), you can **skip this step** and use your existing capacity. Proceed to [Step 2](#step-2-create-a-fabric-workspace).
 
-1. Sign in to the [Azure Portal](https://portal.azure.com/).
-
-2. Search for **Microsoft Fabric** in the top search bar and select **Microsoft Fabric** from the results.
-
-    ![Search for Microsoft Fabric in the Azure Portal](../assets/fabric/01-search-fabric.png)
-
-3. Click **+ Create** to start creating a new Fabric capacity.
-
-    ![Click Create on the Microsoft Fabric page](../assets/fabric/02-create-fabric.png)
-
-4. Fill in the required details on the **Basics** tab:
-
-    | Field | Value |
-    |-------|-------|
-    | **Subscription** | Select your Azure subscription |
-    | **Resource group** | Select an existing resource group or create a new one |
-    | **Capacity name** | Enter a unique name (e.g., `fabriccap-workshop`) |
-    | **Region** | Select a region close to your other Azure resources |
-    | **Size** | Click Change Size & Select **F8** or higher (F8 is recommended for this workshop) |
-    | **Fabric capacity administrator** | This should be the user account that will manage the workspace. |
-
-
-    ![Fill in the Fabric capacity basics](../assets/fabric/03-capacity-basics.png)
-
-5. Click **Review + create**, verify the settings, and then click **Create**.
-
-    ![Review and create the Fabric capacity](../assets/fabric/05-review-create.png)
-
-7. Wait for the deployment to complete. This typically takes 1–2 minutes.
-
-    ![Deployment in progress](../assets/fabric/06-deployment-complete.png)
+If you need to create a new Fabric capacity, follow the instructions here:
+**[Create a Fabric capacity in Azure →](02a-create-fabric-capacity.md)**
 
 ---
 
 ## Step 2 — Create a Fabric workspace
-1. Navigate to [Microsoft Fabric](https://app.fabric.microsoft.com/) and sign in with your Azure account.
 
-3. Click **Workspaces** in the left navigation panel.
+!!! tip "Already have a Fabric workspace?"
+    If you already have a Fabric workspace linked to a Fabric capacity, you can **skip this step** and use your existing workspace. Proceed to [Step 3](#step-3-verify-workspace-settings).
 
-    ![Click Workspaces](../assets/fabric/08-workspaces-nav.png)
-
-4. Click **+ New workspace**.
-
-    ![Click New workspace](../assets/fabric/09-new-workspace.png)
-
-5. Fill in the workspace details:
-
-    | Field | Value |
-    |-------|-------|
-    | **Name** | Enter a name (e.g., `iq-workshop`) |
-    | **Description** | *(Optional)* A short description of the workspace |
-
-    ![Enter workspace name and description](../assets/fabric/10-workspace-name.png)
-
-6. Expand the **Advanced** section and configure the license:
-
-    - Under **License mode**, select **Fabric capacity**.
-    - Under **Capacity**, select the Fabric capacity you created in [Step 1](#step-1-create-a-fabric-capacity-in-azure) (or an existing one if you have it already).
-
-    ![Configure workspace license and capacity](../assets/fabric/11-workspace-license.png)
-
-7. Click **Apply** to create the workspace.
-
-    ![Click Apply to create workspace](../assets/fabric/12-apply-workspace.png)
+If you need to create a new Fabric workspace, follow the instructions here:
+**[Create a Fabric workspace →](02b-create-fabric-workspace.md)**
 
 ---
 
 ## Step 3 — Verify workspace settings
+
+!!! warning "Fabric IQ must be enabled"
+    Ensure that [Fabric IQ is enabled on your tenant](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings) before proceeding.
 
 1. Open your newly created workspace or an existing workspace.
 

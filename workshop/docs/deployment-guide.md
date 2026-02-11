@@ -5,7 +5,6 @@
 - Azure subscription with Contributor access & Role Based Access Control access
 - VS Code, Azure Developer CLI ([aka.ms/azd](https://aka.ms/azd)), Python 3.10+, Git
 - For Fabric deployment: Microsoft Fabric workspace (F8+ capacity) with admin permissions
-- For Fabric deployment: [Fabric IQ enabled on your tenant](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings)
 - [Microsoft ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver16)
 
 ## Choose Your Development Environment
@@ -38,7 +37,32 @@ If a step fails, suggest solutions based on the error message.
 
 ### 1. Configure Fabric workspace
 
-Create a new [Fabric workspace](./01-deploy/02-setup-fabric.md).
+#### 1a. Create a Fabric capacity in Azure
+
+!!! tip "Already have a Fabric capacity?"
+    If you already have a Fabric capacity (F8+), you can **skip this step** and use your existing capacity.
+
+If you need to create a new Fabric capacity, follow the instructions here:
+**[Create a Fabric capacity in Azure →](./01-deploy/02a-create-fabric-capacity.md)**
+
+#### 1b. Create a Fabric workspace
+
+!!! tip "Already have a Fabric workspace?"
+    If you already have a Fabric workspace linked to a Fabric capacity, you can **skip this step** and use your existing workspace.
+
+If you need to create a new Fabric workspace, follow the instructions here:
+**[Create a Fabric workspace →](./01-deploy/02b-create-fabric-workspace.md)**
+
+#### 1c. Verify workspace settings
+
+!!! warning "Fabric IQ must be enabled"
+    Ensure that [Fabric IQ is enabled on your tenant](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings) before proceeding.
+
+1. Open your newly created workspace or an existing workspace.
+2. Click the **Workspace settings** gear icon (⚙️) in the top-right area.
+3. Go to **License info** and verify:
+    - [x] The workspace is assigned to a **Fabric capacity**
+    - [x] The capacity SKU is **F8** or higher
 
 
 ### 2. Clone the repository
@@ -62,6 +86,16 @@ Note your **Fabric Workspace ID** from [Microsoft Fabric](https://app.fabric.mic
 
 ```bash
 azd auth login
+```
+
+```bash
+az login
+```
+
+Register the Microsoft Cognitive Services resource provider (required if not already registered on your subscription):
+
+```bash
+az provider register --namespace Microsoft.CognitiveServices
 ```
 
 ```bash
@@ -199,6 +233,16 @@ azd env set AZURE_ENV_ONLY true
 
 ```bash
 azd auth login
+```
+
+```bash
+az login
+```
+
+Register the Microsoft Cognitive Services resource provider (required if not already registered on your subscription):
+
+```bash
+az provider register --namespace Microsoft.CognitiveServices
 ```
 
 ```bash

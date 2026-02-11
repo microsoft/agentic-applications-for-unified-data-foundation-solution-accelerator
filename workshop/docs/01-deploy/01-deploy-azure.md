@@ -38,6 +38,16 @@ az login --tenant <tenant-id>
     
     When prompted, enter a unique environment name. This deploys Azure SQL Database instead of Fabric SQL, allowing you to run the workshop without a Fabric workspace.
 
+Register the Microsoft Cognitive Services resource provider (required if not already registered on your subscription):
+
+```bash
+az login
+```
+
+```bash
+az provider register --namespace Microsoft.CognitiveServices
+```
+
 ```bash
 azd up
 ```
