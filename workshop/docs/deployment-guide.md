@@ -50,10 +50,6 @@ git clone https://github.com/microsoft/agentic-applications-for-unified-data-fou
 cd agentic-applications-for-unified-data-foundation-solution-accelerator
 ```
 
-```bash
-cp .env.example .env # or: copy .env.example .env
-```
-
 ### 2.1 Get Fabric workspace Id
 Note your **Fabric Workspace ID** from [Microsoft Fabric](https://app.fabric.microsoft.com) — you'll pass it as a parameter when building the solution.
 
@@ -222,11 +218,6 @@ python -m venv .venv
 ```bash
 pip install uv && uv pip install -r scripts/requirements.txt
 ```
-
-```bash
-cp .env.example .env # or: copy .env.example .env
-```
-
 
 ### 5. Build the solution
 
