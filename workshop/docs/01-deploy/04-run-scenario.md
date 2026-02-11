@@ -7,10 +7,10 @@ One command builds the solution including data processing and agent creation:
 Fabric Workspace Mode
 
 ```bash
-python scripts/00_build_solution.py --from 02
+python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
 ```
 
-> **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
+> **Note:** If you omit `--fabric-workspace-id`, the script will prompt you for it interactively. Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
 Azure Only Mode (if you ran `azd env set AZURE_ENV_ONLY true` before deploying)
 ```bash

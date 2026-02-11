@@ -21,7 +21,7 @@ Or choose one of the options below:
 
 > Note: Please use this optional prompt if you would like to use GitHub Copilot to run the workshop: 
 ```
-Can you please follow the step by step in https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/deployment-guide/ and follow Option A for me. My Fabric Workspace id = <YOUR_FABRIC_WORKSPACE_ID>.
+Can you please follow the step by step in https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/deployment-guide/ and follow Option A for me. My Fabric Workspace id = <YOUR_FABRIC_WORKSPACE_ID>. Pass it using the --fabric-workspace-id parameter when running the build solution script.
 Important instructions:
 Do NOT make any code changes to the repository files. 
 Only follow the deployment guide instructions exactly as documented. 
@@ -55,12 +55,11 @@ cp .env.example .env # or: copy .env.example .env
 ```
 
 ### 2.1 Get Fabric workspace Id
-Open `.env` and set `FABRIC_WORKSPACE_ID` from [Microsoft Fabric](https://app.fabric.microsoft.com) URL
+Note your **Fabric Workspace ID** from [Microsoft Fabric](https://app.fabric.microsoft.com) — you'll pass it as a parameter when building the solution.
 
 | Setting | Where to find it |
 |---------|------------------|
-| Workspace ID | URL after `/groups/` |
-| Workspace name | Workspace settings |
+| Workspace ID | URL after `/groups/` in `https://app.fabric.microsoft.com/groups/{workspace-id}/...` |
 
 ### 3. Deploy Azure resources
 
@@ -108,10 +107,10 @@ az login
 > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
 ```bash
-python scripts/00_build_solution.py --from 02
+python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
 ```
 
-> **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
+> **Note:** If you omit `--fabric-workspace-id`, the script will prompt you for it interactively. Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
 ### 6. Test the agent
 
