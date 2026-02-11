@@ -62,6 +62,8 @@ Follow the instructions here:
     2. Search for and enable both of the following preview features:
         - **Ontology (preview)**
         - **Graph (preview)**
+        - **Data agent item types (preview)**
+        - **Copilot and Azure OpenAI Service**
     3. These settings may take a upto 15 minutes to take effect.
     
     For detailed instructions, refer to the official documentation: [Fabric IQ Tenant Settings](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings).
@@ -175,10 +177,10 @@ python scripts/08_test_agent.py
 
 **Sample questions to try:**
 
-- "How many tickets are high priority"
 - "What is the average score from inspections?"
 - "What constitutes a failed inspection?"
 - "Do any inspections violate quality control standards in our Inspection Procedures?"
+
 
 <!-- ### 7. Create the Ontology
 
