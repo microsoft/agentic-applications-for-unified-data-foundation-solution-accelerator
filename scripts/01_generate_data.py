@@ -874,7 +874,7 @@ Next steps:
 # Update .env with data folder path
 # ============================================================================
 
-env_path = os.path.join(script_dir, "..", ".env")
+env_path = os.path.join(script_dir, ".env")
 project_root = os.path.abspath(os.path.join(script_dir, ".."))
 
 # Use relative path for .env (relative to project root)
