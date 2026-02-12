@@ -3,7 +3,6 @@ import logging
 import time
 
 from pages.HomePage import HomePage
-from config.constants import URL
 from tests.test_utils import log_test_summary, log_test_failure
 
 logger = logging.getLogger(__name__)
@@ -80,6 +79,6 @@ def test_validate_gp(login_logout, request):
             ("call", "log", f"Total execution time: {total_duration:.2f}s")
         )
     except Exception as e:
-        total_duration = log_test_failure(start_time, e)
+        log_test_failure(start_time, e)
         raise
 
