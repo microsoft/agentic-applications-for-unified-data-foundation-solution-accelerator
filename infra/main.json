@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "15246189512269241745"
+      "templateHash": "98840041685845293"
     }
   },
   "parameters": {
@@ -117,16 +117,6 @@
       "metadata": {
         "description": "Capacity of the GPT deployment:"
       }
-    },
-    "tags": {
-      "type": "object",
-      "metadata": {
-        "__bicep_resource_derived_type!": {
-          "source": "Microsoft.Resources/resourceGroups@2025-04-01#properties/tags"
-        },
-        "description": "Optional. The tags to apply to all deployed Azure resources."
-      },
-      "defaultValue": {}
     },
     "embeddingModel": {
       "type": "string",
@@ -450,11 +440,12 @@
   },
   "resources": [
     {
+      "condition": "[not(parameters('isWorkshop'))]",
       "type": "Microsoft.Resources/tags",
       "apiVersion": "2021-04-01",
       "name": "default",
       "properties": {
-        "tags": "[union(coalesce(reference(resourceGroup().id, '2021-04-01', 'Full').tags, createObject()), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy')), parameters('tags'))]"
+        "tags": "[shallowMerge(createArray(resourceGroup().tags, createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name)))]"
       }
     },
     {
@@ -485,7 +476,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "17660023401180440052"
+              "templateHash": "14624816695106884169"
             }
           },
           "parameters": {
@@ -515,11 +506,7 @@
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "apiVersion": "2023-01-31",
               "name": "[parameters('miName')]",
-              "location": "[parameters('solutionLocation')]",
-              "tags": {
-                "app": "[parameters('solutionName')]",
-                "location": "[parameters('solutionLocation')]"
-              }
+              "location": "[parameters('solutionLocation')]"
             },
             {
               "type": "Microsoft.Authorization/roleAssignments",
@@ -538,11 +525,7 @@
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "apiVersion": "2023-01-31",
               "name": "[format('{0}-backend-app-mi', parameters('solutionName'))]",
-              "location": "[parameters('solutionLocation')]",
-              "tags": {
-                "app": "[parameters('solutionName')]",
-                "location": "[parameters('solutionLocation')]"
-              }
+              "location": "[parameters('solutionLocation')]"
             }
           ],
           "outputs": {
@@ -629,7 +612,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "5473254064442287214"
+              "templateHash": "13563476904636358611"
             }
           },
           "parameters": {
@@ -1101,9 +1084,6 @@
               "sku": {
                 "name": "basic"
               },
-              "identity": {
-                "type": "SystemAssigned"
-              },
               "properties": {
                 "replicaCount": 1,
                 "partitionCount": 1,
@@ -1200,13 +1180,13 @@
               "scope": "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName'))]",
               "name": "[guid(resourceGroup().id, resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName')), resourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'))]",
               "properties": {
-                "principalId": "[reference(resourceId('Microsoft.Search/searchServices', variables('aiSearchName')), '2024-06-01-preview', 'full').identity.principalId]",
+                "principalId": "[reference(resourceId('Microsoft.Resources/deployments', 'searchServiceIdentity'), '2025-04-01').outputs.principalId.value]",
                 "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')]",
                 "principalType": "ServicePrincipal"
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Search/searchServices', variables('aiSearchName'))]",
-                "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName'))]"
+                "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName'))]",
+                "[resourceId('Microsoft.Resources/deployments', 'searchServiceIdentity')]"
               ]
             },
             {
@@ -1360,12 +1340,13 @@
               "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
               "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), resourceId('Microsoft.Search/searchServices', variables('aiSearchName')), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'))]",
               "properties": {
-                "principalId": "[reference(resourceId('Microsoft.Search/searchServices', variables('aiSearchName')), '2024-06-01-preview', 'full').identity.principalId]",
+                "principalId": "[reference(resourceId('Microsoft.Resources/deployments', 'searchServiceIdentity'), '2025-04-01').outputs.principalId.value]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')]",
                 "principalType": "ServicePrincipal"
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Search/searchServices', variables('aiSearchName'))]",
+                "[resourceId('Microsoft.Resources/deployments', 'searchServiceIdentity')]",
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
               ]
             },
@@ -1575,6 +1556,82 @@
                   }
                 }
               }
+            },
+            {
+              "condition": "[parameters('isWorkshop')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "searchServiceIdentity",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "searchServiceName": {
+                    "value": "[variables('aiSearchName')]"
+                  },
+                  "location": {
+                    "value": "[parameters('searchServiceLocation')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.40.2.10011",
+                      "templateHash": "13137941105799442789"
+                    }
+                  },
+                  "parameters": {
+                    "searchServiceName": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Search/searchServices",
+                      "apiVersion": "2024-06-01-preview",
+                      "name": "[parameters('searchServiceName')]",
+                      "location": "[parameters('location')]",
+                      "sku": {
+                        "name": "basic"
+                      },
+                      "identity": {
+                        "type": "SystemAssigned"
+                      },
+                      "properties": {
+                        "replicaCount": 1,
+                        "partitionCount": 1,
+                        "hostingMode": "default",
+                        "publicNetworkAccess": "enabled",
+                        "networkRuleSet": {
+                          "ipRules": []
+                        },
+                        "encryptionWithCmk": {
+                          "enforcement": "Unspecified"
+                        },
+                        "disableLocalAuth": true,
+                        "semanticSearch": "free"
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "principalId": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.Search/searchServices', parameters('searchServiceName')), '2024-06-01-preview', 'full').identity.principalId]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Search/searchServices', variables('aiSearchName'))]"
+              ]
             },
             {
               "condition": "[not(empty(parameters('azureExistingAIProjectResourceId')))]",
@@ -1840,7 +1897,7 @@
                     "value": "[variables('existingAIProjectName')]"
                   },
                   "principalId": {
-                    "value": "[reference(resourceId('Microsoft.Search/searchServices', variables('aiSearchName')), '2024-06-01-preview', 'full').identity.principalId]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', 'searchServiceIdentity'), '2025-04-01').outputs.principalId.value]"
                   },
                   "enableSystemAssignedIdentity": {
                     "value": true
@@ -2022,7 +2079,8 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Search/searchServices', variables('aiSearchName'))]"
+                "[resourceId('Microsoft.Search/searchServices', variables('aiSearchName'))]",
+                "[resourceId('Microsoft.Resources/deployments', 'searchServiceIdentity')]"
               ]
             }
           ],
