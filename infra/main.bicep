@@ -72,8 +72,8 @@ param azureAiAgentApiVersion string = '2025-05-01'
 // https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits
 param gptDeploymentCapacity int = 150
 
-@description('Optional. The tags to apply to all deployed Azure resources.')
-param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
+// @description('Optional. The tags to apply to all deployed Azure resources.')
+// param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
 
 @minLength(1)
 @description('Name of the Text Embedding model to deploy:')
@@ -146,7 +146,6 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorksh
       TemplateName: 'Unified Data Analysis Agents'
       CreatedBy: createdBy
       DeploymentName: deployment().name
-      ...tags
     }
   }
 }

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "17517701502160352653"
+      "templateHash": "12094994153550821559"
     }
   },
   "parameters": {
@@ -117,16 +117,6 @@
       "metadata": {
         "description": "Capacity of the GPT deployment:"
       }
-    },
-    "tags": {
-      "type": "object",
-      "metadata": {
-        "__bicep_resource_derived_type!": {
-          "source": "Microsoft.Resources/resourceGroups@2025-04-01#properties/tags"
-        },
-        "description": "Optional. The tags to apply to all deployed Azure resources."
-      },
-      "defaultValue": {}
     },
     "embeddingModel": {
       "type": "string",
@@ -455,7 +445,7 @@
       "apiVersion": "2021-04-01",
       "name": "default",
       "properties": {
-        "tags": "[shallowMerge(createArray(resourceGroup().tags, createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name), parameters('tags')))]"
+        "tags": "[shallowMerge(createArray(resourceGroup().tags, createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name)))]"
       }
     },
     {
