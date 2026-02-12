@@ -69,6 +69,8 @@ nav:
     - Create Fabric workspace: 01-deploy/02-setup-fabric.md
     - Configure dev environment: 01-deploy/03-configure.md
     - Build solution: 01-deploy/04-run-scenario.md
+  - Create Fabric capacity: 01-deploy/02a-create-fabric-capacity.md
+  - Create Fabric workspace: 01-deploy/02b-create-fabric-workspace.md
   - Customize for your use case:
     - Overview: 02-customize/index.md
     - Generate & Build: 02-customize/02-generate.md

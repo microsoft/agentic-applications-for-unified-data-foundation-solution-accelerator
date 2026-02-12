@@ -1,6 +1,12 @@
 # Generate Custom Data
 
 ## Run the AI Generator
+```bash
+az login
+```
+
+> **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
+
 Override `.env` settings directly from the command line:
 ```bash
 python scripts/00_build_solution.py --clean --industry "Insurance" --usecase "Property insurance with claims processing and policy management"
@@ -135,7 +141,7 @@ Build complete! Ready for customer PoC.
 
 ### Fabric errors on --clean
 
-- Ensure `FABRIC_WORKSPACE_ID` is correct
+- Ensure `--fabric-workspace-id` was passed correctly (or `FABRIC_WORKSPACE_ID` is set)
 - Check you have Contributor access to the workspace
 - Wait a minute and retry (Fabric operations can be slow)
 

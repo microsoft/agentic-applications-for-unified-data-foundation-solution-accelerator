@@ -72,8 +72,8 @@ param azureAiAgentApiVersion string = '2025-05-01'
 // https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits
 param gptDeploymentCapacity int = 150
 
-@description('Optional. The tags to apply to all deployed Azure resources.')
-param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
+// @description('Optional. The tags to apply to all deployed Azure resources.')
+// param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
 
 @minLength(1)
 @description('Name of the Text Embedding model to deploy:')
@@ -138,21 +138,15 @@ var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
 
 // ========== Resource Group Tag ========== //
-resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
+resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorkshop) {
   name: 'default'
   properties: {
-    tags: union(
-      reference(
-        resourceGroup().id, 
-        '2021-04-01', 
-        'Full'
-      ).tags ?? {},
-      {
-        TemplateName: 'Unified Data Analysis Agents'
-        CreatedBy: createdBy
-      },
-      tags
-    )
+    tags: {
+      ...resourceGroup().tags
+      TemplateName: 'Unified Data Analysis Agents'
+      CreatedBy: createdBy
+      DeploymentName: deployment().name
+    }
   }
 }
 

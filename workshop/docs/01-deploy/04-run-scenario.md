@@ -7,10 +7,10 @@ One command builds the solution including data processing and agent creation:
 Fabric Workspace Mode
 
 ```bash
-python scripts/00_build_solution.py --from 02
+python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
 ```
 
-> **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
+> **Note:** If you omit `--fabric-workspace-id`, the script will prompt you for it interactively. Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
 Azure Only Mode (if you ran `azd env set AZURE_ENV_ONLY true` before deploying)
 ```bash
@@ -43,11 +43,11 @@ Next: python scripts/08_test_agent.py
 
 ```
 
-## Create the Ontology
+<!-- ## Create the Ontology
 
 Before testing the Fabric Data Agent, set up an Ontology in Microsoft Fabric for your scenario.
 
-Follow the step-by-step guide: **[Create Ontology](05-ontology-creation.md)** to set up the default use case.
+Follow the step-by-step guide: **[Create Ontology](05-ontology-creation.md)** to set up the default use case. -->
 
 This sets up entity types (Tickets, Inspections), data bindings from your Lakehouse tables, and relationships between them.
 
@@ -62,12 +62,13 @@ You are a helpful assistant that can answer user questions using data.
 Support group by in GQL.
 ```
 
+> Note: The Ontology set up may take up to 15 minutes so retry after some time if you don't see good responses. 
+
 ## Test the Agent
 
 ```bash
 python scripts/08_test_agent.py
 ```
-
 
 ### Sample Conversation
 
@@ -82,9 +83,6 @@ Type 'quit' to exit, 'help' for sample questions
 
 ------------------------------------------------------------
 
-You: How many tickets are high priority
-
-Agent: There are **4 tickets** with priority **High**.
 
 You: What is the average score from inspections?
 

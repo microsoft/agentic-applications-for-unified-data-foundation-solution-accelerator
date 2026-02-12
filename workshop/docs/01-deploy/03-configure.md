@@ -43,35 +43,18 @@ python -c "import azure.ai.projects; print('Ready')"
 ## Configure Fabric
 
 !!! note "Using Azure-Only Mode?"
-    If you set `AZURE_ENV_ONLY=true` before deployment, **skip this section** and proceed to [Update Environment File](#update-environment-file). Fabric configuration is not required when using Azure SQL.
+    If you set `AZURE_ENV_ONLY=true` before deployment, **skip this section**. Fabric configuration is not required when using Azure SQL.
 
 ### Get Your Workspace ID
 
 1. Go to [Microsoft Fabric](https://app.fabric.microsoft.com/)
 2. Open your workspace
-3. Copy the workspace ID from the URL:
+3. Note the workspace ID from the URL — you'll pass it as a parameter in the next step:
 
 ```
 https://app.fabric.microsoft.com/groups/{workspace-id}/...
 ```
 
-## Update Environment File
-
-Copy `.env.example` to `.env` and update your Fabric settings:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` in the project root:
-
-```env
-# --- Microsoft Fabric (not required for Azure-only mode) ---
-FABRIC_WORKSPACE_ID=your-workspace-id-here
-
-# --- Data Folder (pre-populated with default scenario) ---
-DATA_FOLDER=data/default
-```
 
 ## Checkpoint
 
@@ -80,7 +63,7 @@ Before proceeding:
 - [x] `azd up` completed successfully
 - [x] Python environment activated
 - [x] Dependencies installed
-- [x] Fabric workspace ID configured (skip if using Azure-only mode)
+- [x] Fabric workspace ID noted (skip if using Azure-only mode)
 
 !!! success "Ready to Run"
     Continue to the next step to see it in action.
