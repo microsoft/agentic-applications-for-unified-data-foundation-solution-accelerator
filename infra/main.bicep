@@ -138,23 +138,23 @@ var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
 
 // ========== Resource Group Tag ========== //
-resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
-  name: 'default'
-  properties: {
-    tags: union(
-      reference(
-        resourceGroup().id, 
-        '2021-04-01', 
-        'Full'
-      ).tags ?? {},
-      {
-        TemplateName: 'Unified Data Analysis Agents'
-        CreatedBy: createdBy
-      },
-      tags
-    )
-  }
-}
+// resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
+//   name: 'default'
+//   properties: {
+//     tags: union(
+//       reference(
+//         resourceGroup().id, 
+//         '2021-04-01', 
+//         'Full'
+//       ).tags ?? {},
+//       {
+//         TemplateName: 'Unified Data Analysis Agents'
+//         CreatedBy: createdBy
+//       },
+//       tags
+//     )
+//   }
+// }
 
 // ========== Managed Identity ========== //
 module managedIdentityModule 'deploy_managed_identity.bicep' = {
