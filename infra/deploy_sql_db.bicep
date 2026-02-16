@@ -3,7 +3,8 @@ param solutionLocation string
 param managedIdentityName string
 param serverName string
 param sqlDBName string
-param sqlUsers array = []
+param deployerPrincipalId string = ''
+// param sqlUsers array = []
 
 var location = solutionLocation
 
@@ -21,8 +22,8 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
     restrictOutboundNetworkAccess: 'Disabled'
     minimalTlsVersion: '1.2'
     administrators: {
-      login: managedIdentityName
-      sid: managedIdentity.properties.principalId
+      login: !empty(deployerPrincipalId) ? deployerPrincipalId : managedIdentityName
+      sid: !empty(deployerPrincipalId) ? deployerPrincipalId : managedIdentity.properties.principalId
       tenantId: subscription().tenantId
       administratorType: 'ActiveDirectory'
       azureADOnlyAuthentication: true
@@ -68,20 +69,20 @@ resource sqlDB 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   }
 }
 
-module sqluser 'create-sql-user-and-role.bicep' = [
-  for user in sqlUsers: {
-    name: 'sqluser-${guid(solutionLocation, user.principalId, user.principalName, sqlDB.name, sqlServer.name)}'
-    params: {
-      managedIdentityName: managedIdentityName
-      location: solutionLocation
-      sqlDatabaseName: sqlDB.name
-      sqlServerName: sqlServer.name
-      principalId: user.principalId
-      principalName: user.principalName
-      databaseRoles: user.databaseRoles
-    }
-  }
-]
+// module sqluser 'create-sql-user-and-role.bicep' = [
+//   for user in sqlUsers: {
+//     name: 'sqluser-${guid(solutionLocation, user.principalId, user.principalName, sqlDB.name, sqlServer.name)}'
+//     params: {
+//       managedIdentityName: managedIdentityName
+//       location: solutionLocation
+//       sqlDatabaseName: sqlDB.name
+//       sqlServerName: sqlServer.name
+//       principalId: user.principalId
+//       principalName: user.principalName
+//       databaseRoles: user.databaseRoles
+//     }
+//   }
+// ]
 
 // resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
 //   name: keyVaultName

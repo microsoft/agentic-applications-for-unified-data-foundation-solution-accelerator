@@ -1,0 +1,84 @@
+site_name: Build faster with Solution Accelerators – Foundry IQ + Fabric IQ
+site_description: Hands-on workshop for building AI agents that combine unstructured document knowledge with structured enterprise data
+site_url: https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator
+
+repo_name: GitHub
+repo_url: https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - content.code.copy
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - tables
+  - attr_list
+  - md_in_html
+  - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator
+
+nav:
+  - "🚀 Quick Deploy": deployment-guide.md
+  - Overview: index.md
+  - Get Started:
+    - Prerequisites: 00-get-started/index.md
+    - Workshop Flow: 00-get-started/workshop-flow.md
+    - Workshop Outcome: 00-get-started/workshop-outcome.md
+  - Deploy solution:
+    - Overview: 01-deploy/index.md
+    - Deploy Azure resources: 01-deploy/01-deploy-azure.md
+    - Create Fabric workspace: 01-deploy/02-setup-fabric.md
+    - Configure dev environment: 01-deploy/03-configure.md
+    - Build solution: 01-deploy/04-run-scenario.md
+  - Create Fabric capacity: 01-deploy/02a-create-fabric-capacity.md
+  - Create Fabric workspace: 01-deploy/02b-create-fabric-workspace.md
+  - Customize for your use case:
+    - Overview: 02-customize/index.md
+    - Generate & Build: 02-customize/02-generate.md
+    - Test Your PoC: 02-customize/03-demo.md
+  - Deep dive:
+    - Overview: 03-understand/index.md
+    - "Foundry IQ: Documents": 03-understand/01-foundry-iq.md
+    - "Fabric IQ: Data": 03-understand/02-fabric-iq.md
+  - Cleanup:
+    - Delete resources: 04-cleanup/index.md
+    - Next steps: 04-cleanup/next-steps.md

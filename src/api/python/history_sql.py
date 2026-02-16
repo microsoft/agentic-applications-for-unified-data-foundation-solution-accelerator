@@ -76,9 +76,48 @@ def track_event_if_configured(event_name: str, event_data: dict):
         logging.warning("Skipping track_event for %s as Application Insights is not configured", event_name)
 
 
+async def get_azure_sql_connection():
+    """
+    Get a connection to Azure SQL Server using DefaultAzureCredential.
+
+    Returns:
+        Connection: Database connection object for Azure SQL.
+    """
+    sql_server = os.getenv("SQLDB_SERVER")
+    sql_database = os.getenv("SQLDB_DATABASE")
+    driver18 = "ODBC Driver 18 for SQL Server"
+    driver17 = "ODBC Driver 17 for SQL Server"
+    api_uid = os.getenv("API_UID", "")
+
+    credential = await get_azure_credential_async(client_id=api_uid)
+    token = await credential.get_token("https://database.windows.net/.default")
+    await credential.close()
+
+    token_bytes = token.token.encode("utf-16-LE")
+    token_struct = struct.pack(
+        f"<I{len(token_bytes)}s",
+        len(token_bytes),
+        token_bytes
+    )
+    SQL_COPT_SS_ACCESS_TOKEN = 1256
+
+    try:
+        connection_string = f"DRIVER={{{driver18}}};SERVER={sql_server};DATABASE={sql_database};"
+        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+        return conn
+    except Exception:
+        try:
+            connection_string = f"DRIVER={{{driver17}}};SERVER={sql_server};DATABASE={sql_database};"
+            conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+            return conn
+        except Exception as e:
+            logging.info("AZURE-SQL: Failed to connect to Azure SQL Database: %s", e)
+            return None
+
+
 async def get_fabric_db_connection():
     """
-    Get a connection to the SQL database.
+    Get a connection to the Fabric SQL database.
 
     Returns:
         Connection: Database connection object, or None if connection fails.
@@ -138,6 +177,26 @@ async def get_fabric_db_connection():
         return None
 
 
+async def get_db_connection():
+    """
+    Get a database connection based on deployment mode.
+
+    When IS_WORKSHOP is true, uses Azure SQL Server.
+    When IS_WORKSHOP is false or not set, uses Fabric SQL.
+
+    Returns:
+        Connection: Database connection object, or None if connection fails.
+    """
+    is_workshop = os.getenv("IS_WORKSHOP", "false").lower() == "true"
+
+    if is_workshop:
+        logging.info("Workshop deployment mode: Using Azure SQL Server")
+        return await get_azure_sql_connection()
+    else:
+        logging.info("Standard deployment mode: Using Fabric SQL")
+        return await get_fabric_db_connection()
+
+
 async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     """
     Execute a SQL non-query operation like DELETE, INSERT, or UPDATE.
@@ -149,7 +208,10 @@ async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     Returns:
         bool: True if the operation was successful, False otherwise.
     """
-    conn = await get_fabric_db_connection()
+    conn = await get_db_connection()
+    if conn is None:
+        logging.error("Failed to establish database connection")
+        return False
     cursor = None
     try:
         cursor = conn.cursor()
@@ -162,7 +224,8 @@ async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     finally:
         if cursor:
             cursor.close()
-        conn.close()
+        if conn:
+            conn.close()
 
 
 async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
@@ -177,7 +240,10 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
         list: List of dictionaries containing query results, or None if an error occurs.
     """
     # Connect to the database
-    conn = await get_fabric_db_connection()
+    conn = await get_db_connection()
+    if conn is None:
+        logging.error("Failed to establish database connection")
+        return None
     cursor = None
     try:
         cursor = conn.cursor()
@@ -202,7 +268,8 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
     finally:
         if cursor:
             cursor.close()
-        conn.close()
+        if conn:
+            conn.close()
 
 
 class SqlQueryTool(BaseModel):
