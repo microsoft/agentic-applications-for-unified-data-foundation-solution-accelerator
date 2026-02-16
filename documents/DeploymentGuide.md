@@ -193,6 +193,8 @@ Depending on your subscription quota and capacity, you can [adjust quota setting
 
 Once you've opened the project in [Codespaces](#github-codespaces), [Dev Containers](#vs-code-dev-containers), [Visual Studio Code (WEB)](#visual-studio-code-web), or [locally](#local-environment), you can deploy it to Azure by following these steps:
 
+> **Note**: This solution accelerator now supports two modes (standard and workshop). By default it will run in standard mode. If you want to run the workshop, see the [Workshop Guide](https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/deployment-guide/) for a hands-on, step-by-step walkthrough for building AI agents that combine unstructured document knowledge with structured enterprise data.
+
 1. Login to Azure:
 
     ```shell
@@ -204,8 +206,6 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     ```sh
     azd auth login --tenant-id <tenant-id>
     ```
-
-    > **Note**: This solution accelerator now supports two modes (standard and workshop). By default it will run in standard mode. If you want to run the workshop, see the [Workshop Guide](https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/deployment-guide/) for a hands-on, step-by-step walkthrough for building AI agents that combine unstructured document knowledge with structured enterprise data.
 
 2. Provision and deploy all the resources:
 
