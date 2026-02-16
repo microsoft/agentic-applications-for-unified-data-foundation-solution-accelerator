@@ -164,10 +164,9 @@ if not azure_only:
             sys.exit(1)
     # Make it available to downstream scripts
     os.environ["FABRIC_WORKSPACE_ID"] = fabric_workspace_id
-    # Persist to project root .env so subsequent runs don't need to re-enter it
+    # Persist to scripts/.env so subsequent runs don't need to re-enter it
     from dotenv import set_key
-    project_root = os.path.dirname(script_dir)
-    env_path = os.path.join(project_root, ".env")
+    env_path = os.path.join(script_dir, ".env")
     set_key(env_path, "FABRIC_WORKSPACE_ID", fabric_workspace_id)
 
 # ============================================================================
