@@ -10,9 +10,6 @@ aiFoundryResourceId="$4"
 apiAppName="$5"
 resourceGroup="$6"
 usecase="$7"
-isWorkshopDeployment="$8"
-azureAiSearchConnectionName="$9"
-azureAiSearchIndex="${10}"
 
 # get parameters from azd env, if not provided
 if [ -z "$projectEndpoint" ]; then
@@ -41,18 +38,6 @@ fi
 
 if [ -z "$usecase" ]; then
     usecase=$(azd env get-value USE_CASE)
-fi
-
-if [ -z "$isWorkshopDeployment" ]; then
-    isWorkshopDeployment=$(azd env get-value IS_WORKSHOP 2>/dev/null || echo "false")
-fi
-
-if [ -z "$azureAiSearchConnectionName" ]; then
-    azureAiSearchConnectionName=$(azd env get-value AZURE_AI_SEARCH_CONNECTION_NAME 2>/dev/null || echo "")
-fi
-
-if [ -z "$azureAiSearchIndex" ]; then
-    azureAiSearchIndex=$(azd env get-value AZURE_AI_SEARCH_INDEX 2>/dev/null || echo "")
 fi
 
 # Check if all required arguments are provided
@@ -108,16 +93,7 @@ python -m pip install --quiet -r "$requirementFile"
 
 # Execute the Python scripts
 echo "Running Python agents creation script..."
-echo "  Workshop deployment: $isWorkshopDeployment"
-
-eval $(python infra/scripts/agent_scripts/01_create_agents.py \
-    --ai_project_endpoint="$projectEndpoint" \
-    --solution_name="$solutionName" \
-    --gpt_model_name="$gptModelName" \
-    --usecase="$usecase" \
-    --is_workshop="$isWorkshopDeployment" \
-    --azure_ai_search_connection_name="$azureAiSearchConnectionName" \
-    --azure_ai_search_index="$azureAiSearchIndex")
+eval $(python infra/scripts/agent_scripts/01_create_agents.py --ai_project_endpoint="$projectEndpoint" --solution_name="$solutionName" --gpt_model_name="$gptModelName" --usecase="$usecase")
 
 if [ $? -ne 0 ]; then
     echo "❌ Agents creation script failed."

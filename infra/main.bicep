@@ -20,7 +20,7 @@ param createdBy string = contains(deployer(), 'userPrincipalName')? split(deploy
   'python'
   'dotnet'
 ])
-param backendRuntimeStack string = 'python'
+param backendRuntimeStack string
 
 @minLength(1)
 @description('Industry use case for deployment:')
@@ -28,7 +28,7 @@ param backendRuntimeStack string = 'python'
   'Retail-sales-analysis'
   'Insurance-improve-customer-meetings'
 ])
-param usecase string = 'Retail-sales-analysis'
+param usecase string
 
 // @minLength(1)
 // @description('Location for the Content Understanding service deployment:')
@@ -72,8 +72,8 @@ param azureAiAgentApiVersion string = '2025-05-01'
 // https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits
 param gptDeploymentCapacity int = 150
 
-// @description('Optional. The tags to apply to all deployed Azure resources.')
-// param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
+@description('Optional. The tags to apply to all deployed Azure resources.')
+param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
 
 @minLength(1)
 @description('Name of the Text Embedding model to deploy:')
@@ -92,7 +92,7 @@ param imageTag string = isWorkshop ? 'latest_workshop' : 'latest_v2'
 param deployApp bool = false
 
 @description('Set to true for workshop deployment with sample data and simplified configuration.')
-param isWorkshop bool = true
+param isWorkshop bool = false
 
 @description('Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used.')
 param azureEnvOnly bool = false
@@ -141,12 +141,19 @@ var deployingUserPrincipalId = deployerInfo.objectId
 resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorkshop) {
   name: 'default'
   properties: {
-    tags: {
-      ...resourceGroup().tags
-      TemplateName: 'Unified Data Analysis Agents'
-      CreatedBy: createdBy
-      DeploymentName: deployment().name
-    }
+    tags: union(
+      reference(
+        resourceGroup().id, 
+        '2021-04-01', 
+        'Full'
+      ).tags ?? {},
+      {
+        TemplateName: 'Unified Data Analysis Agents'
+        CreatedBy: createdBy
+        DeploymentName: deployment().name
+      },
+      tags
+    )
   }
 }
 

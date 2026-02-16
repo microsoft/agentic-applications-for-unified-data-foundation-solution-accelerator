@@ -29,6 +29,13 @@ az login --tenant <tenant-id>
 
 ## Deploy Resources
 
+Enable Workshop Mode
+> **Note:** This solution accelerator supports two modes (standard and workshop). By default it will run in standard mode. To run the workshop, set the IS_WORKSHOP flag before deploying:
+
+```bash
+azd env set IS_WORKSHOP true
+```
+
 !!! info "No Microsoft Fabric Access?"
     If you don't have access to Microsoft Fabric or prefer to use Azure SQL instead, set the Azure-only flag before deploying:
     

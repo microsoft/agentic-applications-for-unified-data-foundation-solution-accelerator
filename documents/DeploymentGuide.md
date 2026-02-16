@@ -205,25 +205,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     azd auth login --tenant-id <tenant-id>
     ```
 
-    > **Note**: This solution accelerator now supports two modes (standard and workshop). By default it will run in workshop mode. If you do not want to run the workshop please set IS_WORKSHOP run the below azd command to set the workshop to false. 
-
-      ```sh
-      azd env set IS_WORKSHOP false
-      ```
-    
-      In standard mode, by default the backend API is configured to Python.
-      To use dotnet instead, run the below command.
-
-      ```sh
-      azd env set BACKEND_RUNTIME_STACK dotnet
-      ```
-      
-      In standard mode, by default the use case is set to Retail Sales.
-      To switch to Insurance, run the below command.
-
-      ```sh
-      azd env set AZURE_ENV_USE_CASE Insurance-improve-customer-meetings
-      ```
+    > **Note**: This solution accelerator now supports two modes (standard and workshop). By default it will run in standard mode. If you want to run the workshop, see the [Workshop Guide](https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/deployment-guide/) for a hands-on, step-by-step walkthrough for building AI agents that combine unstructured document knowledge with structured enterprise data.
 
 2. Provision and deploy all the resources:
 
