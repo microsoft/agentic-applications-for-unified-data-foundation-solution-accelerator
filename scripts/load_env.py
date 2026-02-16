@@ -61,12 +61,12 @@ def load_azd_env():
 
 def load_project_env():
     """
-    Load environment variables from project root .env file.
+    Load environment variables from scripts/.env file.
     
     Contains Fabric-specific and project settings.
     """
     script_dir = Path(__file__).parent
-    project_env = script_dir.parent / ".env"
+    project_env = script_dir / ".env"
     
     if project_env.exists():
         load_dotenv(project_env, override=False)  # Don't override azd values
@@ -97,7 +97,7 @@ def reload_env():
     Uses override=True to pick up changes made by scripts.
     """
     script_dir = Path(__file__).parent
-    project_env = script_dir.parent / ".env"
+    project_env = script_dir / ".env"
     
     if project_env.exists():
         load_dotenv(project_env, override=True)
