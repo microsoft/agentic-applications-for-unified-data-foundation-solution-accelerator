@@ -123,8 +123,8 @@ When you start the deployment, you will need to set the following parameters:
 | **Azure Subscription**                      | The Azure subscription to deploy resources into. Only prompted if you have multiple subscriptions.        | *(auto-selected if only one)* |
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
 | **AI Model Location**                       | The region where AI model will be created.                                                                | *(empty)*              |
-| **Backend Runtime Stack**                   | Programming language for backend (python/dotnet). **Note:** Workshop users can press Enter to use default (python). | python (default)       |
-| **Use Case**                                | Industry use case (Retail-sales-analysis/Insurance-improve-customer-meetings). **Note:** Workshop users can press Enter to skip. | *(optional for workshop)* |
+| **Backend Runtime Stack**                   | Programming language for backend (python/dotnet). **Note:** Workshop always uses Python. Press Enter to skip. | python (forced in workshop) |
+| **Use Case**                                | Industry use case (Retail-sales-analysis/Insurance-improve-customer-meetings). **Note:** Not used in workshop mode. Press Enter to skip. | *(not used in workshop)* |
 
 *Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
 
@@ -303,8 +303,8 @@ When you start the deployment, you will need to set the following parameters:
 | **Azure Subscription**                      | The Azure subscription to deploy resources into. Only prompted if you have multiple subscriptions.        | *(auto-selected if only one)* |
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
 | **AI Model Location**                       | The region where AI model will be created.                                                                | *(empty)*              |
-| **Backend Runtime Stack**                   | Programming language for backend (python/dotnet). **Note:** Workshop users can press Enter to use default (python). | python (default)       |
-| **Use Case**                                | Industry use case (Retail-sales-analysis/Insurance-improve-customer-meetings). **Note:** Workshop users can press Enter to skip. | *(optional for workshop)* |
+| **Backend Runtime Stack**                   | Programming language for backend (python/dotnet). **Note:** Workshop always uses Python. Press Enter to skip. | python (forced in workshop) |
+| **Use Case**                                | Industry use case (Retail-sales-analysis/Insurance-improve-customer-meetings). **Note:** Not used in workshop mode. Press Enter to skip. | *(not used in workshop)* |
 
 *Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
 

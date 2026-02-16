@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "17686056258071168085"
+      "templateHash": "15158877312774785599"
     }
   },
   "parameters": {
@@ -439,6 +439,7 @@
     "abbrs": "[variables('$fxv#0')]",
     "contentUnderstandingLocation": "",
     "shouldDeployApp": "[or(not(parameters('isWorkshop')), parameters('deployApp'))]",
+    "resolvedBackendRuntimeStack": "[if(parameters('isWorkshop'), 'python', parameters('backendRuntimeStack'))]",
     "solutionLocation": "[if(empty(parameters('AZURE_LOCATION')), resourceGroup().location, parameters('AZURE_LOCATION'))]",
     "uniqueId": "[toLower(uniqueString(subscription().id, parameters('environmentName'), variables('solutionLocation')))]",
     "solutionPrefix": "[format('da{0}', padLeft(take(variables('uniqueId'), 12), 12, '0'))]",
@@ -2556,7 +2557,7 @@
       }
     },
     {
-      "condition": "[and(variables('shouldDeployApp'), equals(parameters('backendRuntimeStack'), 'python'))]",
+      "condition": "[and(variables('shouldDeployApp'), equals(variables('resolvedBackendRuntimeStack'), 'python'))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "deploy_backend_docker",
@@ -3250,7 +3251,7 @@
       ]
     },
     {
-      "condition": "[and(variables('shouldDeployApp'), equals(parameters('backendRuntimeStack'), 'dotnet'))]",
+      "condition": "[and(variables('shouldDeployApp'), equals(variables('resolvedBackendRuntimeStack'), 'dotnet'))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "deploy_backend_csapi_docker",
@@ -3944,7 +3945,7 @@
           },
           "appSettings": {
             "value": {
-              "APP_API_BASE_URL": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]",
+              "APP_API_BASE_URL": "[if(equals(variables('resolvedBackendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]",
               "CHAT_LANDING_TEXT": "[variables('landingText')]",
               "IS_WORKSHOP": "[if(parameters('isWorkshop'), 'True', 'False')]"
             }
@@ -4236,7 +4237,7 @@
     },
     "APPINSIGHTS_INSTRUMENTATIONKEY": {
       "type": "string",
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value), '')]"
+      "value": "[if(variables('shouldDeployApp'), if(equals(variables('resolvedBackendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value), '')]"
     },
     "AZURE_AI_PROJECT_CONN_STRING": {
       "type": "string",
@@ -4296,7 +4297,7 @@
     },
     "REACT_APP_LAYOUT_CONFIG": {
       "type": "string",
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value), '')]"
+      "value": "[if(variables('shouldDeployApp'), if(equals(variables('resolvedBackendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value), '')]"
     },
     "SQLDB_DATABASE": {
       "type": "string",
@@ -4348,7 +4349,7 @@
     },
     "API_APP_NAME": {
       "type": "string",
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appName.value), '')]"
+      "value": "[if(variables('shouldDeployApp'), if(equals(variables('resolvedBackendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appName.value), '')]"
     },
     "API_PID": {
       "type": "string",
@@ -4360,7 +4361,7 @@
     },
     "API_APP_URL": {
       "type": "string",
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value), '')]"
+      "value": "[if(variables('shouldDeployApp'), if(equals(variables('resolvedBackendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value), '')]"
     },
     "WEB_APP_URL": {
       "type": "string",
@@ -4400,7 +4401,7 @@
     },
     "BACKEND_RUNTIME_STACK": {
       "type": "string",
-      "value": "[parameters('backendRuntimeStack')]"
+      "value": "[variables('resolvedBackendRuntimeStack')]"
     },
     "USE_CASE": {
       "type": "string",
