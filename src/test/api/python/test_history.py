@@ -663,11 +663,12 @@ class TestCosmosClient:
 class TestHelperFunctions:
     """Test helper functions."""
     
-    def test_init_cosmosdb_disabled(self, monkeypatch):
+    @pytest.mark.asyncio
+    async def test_init_cosmosdb_disabled(self, monkeypatch):
         from history import init_cosmosdb_client
         
         monkeypatch.delenv("USE_CHAT_HISTORY_ENABLED", raising=False)
-        result = init_cosmosdb_client()
+        result = await init_cosmosdb_client()
         assert result is None
     
     def test_init_openai_disabled(self, monkeypatch):
@@ -1266,7 +1267,7 @@ class TestRouteHandlers:
             with patch('history.delete_conversation', return_value=True):
                 with patch('history.track_event_if_configured'):
                     client = TestClient(app)
-                    response = client.request("DELETE", "/delete", json={"conversation_id": "conv123"})
+                    response = client.delete("/delete?id=conv123")
                     assert response.status_code == 200
     
     def test_delete_conversation_route_exception(self, monkeypatch):
@@ -1282,7 +1283,7 @@ class TestRouteHandlers:
         with patch('history.get_authenticated_user_details', return_value={"user_principal_id": "user123"}):
             with patch('history.delete_conversation', side_effect=Exception("Delete error")):
                 client = TestClient(app)
-                response = client.request("DELETE", "/delete", json={"conversation_id": "conv123"})
+                response = client.delete("/delete?id=conv123")
                 assert response.status_code == 500
     
     def test_list_conversations_route_success(self, monkeypatch):
@@ -1330,7 +1331,7 @@ class TestRouteHandlers:
             with patch('history.get_conversation_messages', return_value=[{"id": "m1"}]):
                 with patch('history.track_event_if_configured'):
                     client = TestClient(app)
-                    response = client.post("/read", json={"conversation_id": "conv123"})
+                    response = client.get("/read?id=conv123")
                     assert response.status_code == 200
     
     def test_get_conversation_messages_route_exception(self, monkeypatch):
@@ -1346,7 +1347,7 @@ class TestRouteHandlers:
         with patch('history.get_authenticated_user_details', return_value={"user_principal_id": "user123"}):
             with patch('history.get_conversation_messages', side_effect=Exception("Get error")):
                 client = TestClient(app)
-                response = client.post("/read", json={"conversation_id": "conv123"})
+                response = client.get("/read?id=conv123")
                 assert response.status_code == 500
     
     def test_rename_conversation_route_success(self, monkeypatch):
@@ -1623,8 +1624,8 @@ class TestRouteValidation:
         
         with patch('history.get_authenticated_user_details', return_value={"user_principal_id": "user123"}):
             client = TestClient(app)
-            response = client.request("DELETE", "/delete", json={})
-            assert response.status_code in [400, 500]
+            response = client.delete("/delete")
+            assert response.status_code == 422
 
     def test_delete_conversation_success_path(self, monkeypatch):
         """Test DELETE /delete when deletion succeeds."""
@@ -1639,7 +1640,7 @@ class TestRouteValidation:
         with patch('history.delete_conversation', return_value=True):
             with patch('history.get_authenticated_user_details', return_value={"user_principal_id": "user123"}):
                 client = TestClient(app)
-                response = client.request("DELETE", "/delete", json={"conversation_id": "conv123"})
+                response = client.delete("/delete?id=conv123")
                 assert response.status_code == 200
                 assert "Successfully deleted conversation" in response.json()["message"]
 
@@ -1656,11 +1657,11 @@ class TestRouteValidation:
         with patch('history.delete_conversation', return_value=False):
             with patch('history.get_authenticated_user_details', return_value={"user_principal_id": "user123"}):
                 client = TestClient(app)
-                response = client.request("DELETE", "/delete", json={"conversation_id": "conv123"})
+                response = client.delete("/delete?id=conv123")
                 assert response.status_code in [404, 500]
 
     def test_get_messages_missing_conversation_id(self, monkeypatch):
-        """Test POST /read with missing conversation_id."""
+        """Test GET /read with missing conversation_id."""
         from history import router
         from fastapi import FastAPI
         
@@ -1671,8 +1672,8 @@ class TestRouteValidation:
         
         with patch('history.get_authenticated_user_details', return_value={"user_principal_id": "user123"}):
             client = TestClient(app)
-            response = client.post("/read", json={})
-            assert response.status_code in [400, 500]
+            response = client.get("/read")
+            assert response.status_code == 422
 
     def test_rename_missing_title(self, monkeypatch):
         """Test POST /rename with missing title."""
