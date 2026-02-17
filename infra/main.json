@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "98840041685845293"
+      "templateHash": "15158877312774785599"
     }
   },
   "parameters": {
@@ -40,7 +40,6 @@
     },
     "backendRuntimeStack": {
       "type": "string",
-      "defaultValue": "python",
       "allowedValues": [
         "python",
         "dotnet"
@@ -51,7 +50,6 @@
     },
     "usecase": {
       "type": "string",
-      "defaultValue": "Retail-sales-analysis",
       "allowedValues": [
         "Retail-sales-analysis",
         "Insurance-improve-customer-meetings"
@@ -118,6 +116,16 @@
         "description": "Capacity of the GPT deployment:"
       }
     },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "__bicep_resource_derived_type!": {
+          "source": "Microsoft.Resources/resourceGroups@2025-04-01#properties/tags"
+        },
+        "description": "Optional. The tags to apply to all deployed Azure resources."
+      },
+      "defaultValue": {}
+    },
     "embeddingModel": {
       "type": "string",
       "defaultValue": "text-embedding-ada-002",
@@ -150,7 +158,7 @@
     },
     "isWorkshop": {
       "type": "bool",
-      "defaultValue": true,
+      "defaultValue": false,
       "metadata": {
         "description": "Set to true for workshop deployment with sample data and simplified configuration."
       }
@@ -431,6 +439,7 @@
     "abbrs": "[variables('$fxv#0')]",
     "contentUnderstandingLocation": "",
     "shouldDeployApp": "[or(not(parameters('isWorkshop')), parameters('deployApp'))]",
+    "resolvedBackendRuntimeStack": "[if(parameters('isWorkshop'), 'python', parameters('backendRuntimeStack'))]",
     "solutionLocation": "[if(empty(parameters('AZURE_LOCATION')), resourceGroup().location, parameters('AZURE_LOCATION'))]",
     "uniqueId": "[toLower(uniqueString(subscription().id, parameters('environmentName'), variables('solutionLocation')))]",
     "solutionPrefix": "[format('da{0}', padLeft(take(variables('uniqueId'), 12), 12, '0'))]",
@@ -445,7 +454,7 @@
       "apiVersion": "2021-04-01",
       "name": "default",
       "properties": {
-        "tags": "[shallowMerge(createArray(resourceGroup().tags, createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name)))]"
+        "tags": "[union(coalesce(reference(resourceGroup().id, '2021-04-01', 'Full').tags, createObject()), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name), parameters('tags'))]"
       }
     },
     {
@@ -476,7 +485,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "14624816695106884169"
+              "templateHash": "17660023401180440052"
             }
           },
           "parameters": {
@@ -506,7 +515,11 @@
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "apiVersion": "2023-01-31",
               "name": "[parameters('miName')]",
-              "location": "[parameters('solutionLocation')]"
+              "location": "[parameters('solutionLocation')]",
+              "tags": {
+                "app": "[parameters('solutionName')]",
+                "location": "[parameters('solutionLocation')]"
+              }
             },
             {
               "type": "Microsoft.Authorization/roleAssignments",
@@ -525,7 +538,11 @@
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "apiVersion": "2023-01-31",
               "name": "[format('{0}-backend-app-mi', parameters('solutionName'))]",
-              "location": "[parameters('solutionLocation')]"
+              "location": "[parameters('solutionLocation')]",
+              "tags": {
+                "app": "[parameters('solutionName')]",
+                "location": "[parameters('solutionLocation')]"
+              }
             }
           ],
           "outputs": {
@@ -2540,7 +2557,7 @@
       }
     },
     {
-      "condition": "[and(variables('shouldDeployApp'), equals(parameters('backendRuntimeStack'), 'python'))]",
+      "condition": "[and(variables('shouldDeployApp'), equals(variables('resolvedBackendRuntimeStack'), 'python'))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "deploy_backend_docker",
@@ -3234,7 +3251,7 @@
       ]
     },
     {
-      "condition": "[and(variables('shouldDeployApp'), equals(parameters('backendRuntimeStack'), 'dotnet'))]",
+      "condition": "[and(variables('shouldDeployApp'), equals(variables('resolvedBackendRuntimeStack'), 'dotnet'))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "deploy_backend_csapi_docker",
@@ -3928,7 +3945,7 @@
           },
           "appSettings": {
             "value": {
-              "APP_API_BASE_URL": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]",
+              "APP_API_BASE_URL": "[if(equals(variables('resolvedBackendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]",
               "CHAT_LANDING_TEXT": "[variables('landingText')]",
               "IS_WORKSHOP": "[if(parameters('isWorkshop'), 'True', 'False')]"
             }
@@ -4220,7 +4237,7 @@
     },
     "APPINSIGHTS_INSTRUMENTATIONKEY": {
       "type": "string",
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value), '')]"
+      "value": "[if(variables('shouldDeployApp'), if(equals(variables('resolvedBackendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appInsightInstrumentationKey.value), '')]"
     },
     "AZURE_AI_PROJECT_CONN_STRING": {
       "type": "string",
@@ -4280,7 +4297,7 @@
     },
     "REACT_APP_LAYOUT_CONFIG": {
       "type": "string",
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value), '')]"
+      "value": "[if(variables('shouldDeployApp'), if(equals(variables('resolvedBackendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.reactAppLayoutConfig.value), '')]"
     },
     "SQLDB_DATABASE": {
       "type": "string",
@@ -4332,7 +4349,7 @@
     },
     "API_APP_NAME": {
       "type": "string",
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appName.value), '')]"
+      "value": "[if(variables('shouldDeployApp'), if(equals(variables('resolvedBackendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appName.value), '')]"
     },
     "API_PID": {
       "type": "string",
@@ -4344,7 +4361,7 @@
     },
     "API_APP_URL": {
       "type": "string",
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value), '')]"
+      "value": "[if(variables('shouldDeployApp'), if(equals(variables('resolvedBackendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value), '')]"
     },
     "WEB_APP_URL": {
       "type": "string",
@@ -4384,7 +4401,7 @@
     },
     "BACKEND_RUNTIME_STACK": {
       "type": "string",
-      "value": "[parameters('backendRuntimeStack')]"
+      "value": "[variables('resolvedBackendRuntimeStack')]"
     },
     "USE_CASE": {
       "type": "string",

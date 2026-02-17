@@ -20,7 +20,7 @@ param createdBy string = contains(deployer(), 'userPrincipalName')? split(deploy
   'python'
   'dotnet'
 ])
-param backendRuntimeStack string = 'python'
+param backendRuntimeStack string
 
 @minLength(1)
 @description('Industry use case for deployment:')
@@ -28,7 +28,7 @@ param backendRuntimeStack string = 'python'
   'Retail-sales-analysis'
   'Insurance-improve-customer-meetings'
 ])
-param usecase string = 'Retail-sales-analysis'
+param usecase string
 
 // @minLength(1)
 // @description('Location for the Content Understanding service deployment:')
@@ -72,8 +72,8 @@ param azureAiAgentApiVersion string = '2025-05-01'
 // https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits
 param gptDeploymentCapacity int = 150
 
-// @description('Optional. The tags to apply to all deployed Azure resources.')
-// param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
+@description('Optional. The tags to apply to all deployed Azure resources.')
+param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
 
 @minLength(1)
 @description('Name of the Text Embedding model to deploy:')
@@ -92,13 +92,16 @@ param imageTag string = isWorkshop ? 'latest_workshop' : 'latest_v2'
 param deployApp bool = false
 
 @description('Set to true for workshop deployment with sample data and simplified configuration.')
-param isWorkshop bool = true
+param isWorkshop bool = false
 
 @description('Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used.')
 param azureEnvOnly bool = false
 
 // If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
 var shouldDeployApp = !isWorkshop || deployApp
+
+// Workshop mode always uses Python, regardless of user selection
+var resolvedBackendRuntimeStack = isWorkshop ? 'python' : backendRuntimeStack
 
 param AZURE_LOCATION string=''
 var solutionLocation = empty(AZURE_LOCATION) ? resourceGroup().location : AZURE_LOCATION
@@ -141,12 +144,19 @@ var deployingUserPrincipalId = deployerInfo.objectId
 resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorkshop) {
   name: 'default'
   properties: {
-    tags: {
-      ...resourceGroup().tags
-      TemplateName: 'Unified Data Analysis Agents'
-      CreatedBy: createdBy
-      DeploymentName: deployment().name
-    }
+    tags: union(
+      reference(
+        resourceGroup().id, 
+        '2021-04-01', 
+        'Full'
+      ).tags ?? {},
+      {
+        TemplateName: 'Unified Data Analysis Agents'
+        CreatedBy: createdBy
+        DeploymentName: deployment().name
+      },
+      tags
+    )
   }
 }
 
@@ -252,7 +262,7 @@ module hostingplan 'deploy_app_service_plan.bicep' = if (shouldDeployApp) {
 }
 
 // ========== Backend Deployment (Python) ========== //
-module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
+module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && resolvedBackendRuntimeStack == 'python') {
   name: 'deploy_backend_docker'
   params: {
     name: 'api-${solutionPrefix}'
@@ -309,7 +319,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
 }
 
 // ========== Backend Deployment (C#) ========== //
-module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
+module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDeployApp && resolvedBackendRuntimeStack == 'dotnet') {
   name: 'deploy_backend_csapi_docker'
   params: {
     name: 'api-cs-${solutionPrefix}'
@@ -374,7 +384,7 @@ module frontend_docker 'deploy_frontend_docker.bicep' = if (shouldDeployApp) {
     appServicePlanId: hostingplan!.outputs.name
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     appSettings:{
-      APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
+      APP_API_BASE_URL: resolvedBackendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
       CHAT_LANDING_TEXT: landingText
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
     }
@@ -389,7 +399,7 @@ output ENVIRONMENT_NAME string = environmentName
 output AZURE_CONTENT_UNDERSTANDING_LOCATION string = contentUnderstandingLocation
 output AZURE_SECONDARY_LOCATION string = secondaryLocation
 //output APPINSIGHTS_INSTRUMENTATIONKEY string = backend_docker.outputs.appInsightInstrumentationKey
-output APPINSIGHTS_INSTRUMENTATIONKEY string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appInsightInstrumentationKey : backend_csapi_docker!.outputs.appInsightInstrumentationKey) : ''
+output APPINSIGHTS_INSTRUMENTATIONKEY string = shouldDeployApp ? (resolvedBackendRuntimeStack == 'python' ? backend_docker!.outputs.appInsightInstrumentationKey : backend_csapi_docker!.outputs.appInsightInstrumentationKey) : ''
 output AZURE_AI_PROJECT_CONN_STRING string = aifoundry.outputs.projectEndpoint
 output AZURE_AI_AGENT_API_VERSION string = azureAiAgentApiVersion
 output AZURE_AI_PROJECT_NAME string = aifoundry.outputs.aiProjectName
@@ -406,7 +416,7 @@ output AZURE_OPENAI_EMBEDDING_MODEL string = embeddingModel
 output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
 output AZURE_OPENAI_RESOURCE string = aifoundry.outputs.aiServicesName
 //output REACT_APP_LAYOUT_CONFIG string = backend_docker.outputs.reactAppLayoutConfig
-output REACT_APP_LAYOUT_CONFIG string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.reactAppLayoutConfig : backend_csapi_docker!.outputs.reactAppLayoutConfig) : ''
+output REACT_APP_LAYOUT_CONFIG string = shouldDeployApp  ? (resolvedBackendRuntimeStack == 'python' ? backend_docker!.outputs.reactAppLayoutConfig : backend_csapi_docker!.outputs.reactAppLayoutConfig) : ''
 output SQLDB_DATABASE string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
 output SQLDB_SERVER string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
 output SQLDB_USER_MID string = (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
@@ -421,11 +431,11 @@ output AZURE_ENV_IMAGETAG string = imageTag
 
 output AI_SERVICE_NAME string = aifoundry.outputs.aiServicesName
 //output API_APP_NAME string = backend_docker.outputs.appName
-output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appName : backend_csapi_docker!.outputs.appName) : ''
+output API_APP_NAME string = shouldDeployApp ? (resolvedBackendRuntimeStack == 'python' ? backend_docker!.outputs.appName : backend_csapi_docker!.outputs.appName) : ''
 output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.objectId
 output MID_DISPLAY_NAME string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.name
 //output API_APP_URL string = backend_docker.outputs.appUrl
-output API_APP_URL string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl) : ''
+output API_APP_URL string = shouldDeployApp ? (resolvedBackendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl) : ''
 output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : ''
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = aifoundry.outputs.applicationInsightsConnectionString
 output AGENT_NAME_CHAT string = ''
@@ -436,7 +446,7 @@ output FABRIC_SQL_CONNECTION_STRING string = ''
 
 output MANAGED_IDENTITY_CLIENT_ID string = managedIdentityModule.outputs.managedIdentityOutput.clientId
 output AI_FOUNDRY_RESOURCE_ID string = aifoundry.outputs.aiFoundryResourceId
-output BACKEND_RUNTIME_STACK string = backendRuntimeStack
+output BACKEND_RUNTIME_STACK string = resolvedBackendRuntimeStack
 output USE_CASE string = usecase
 output AZURE_AI_SEARCH_ENDPOINT string = isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
 output AZURE_AI_SEARCH_INDEX string = isWorkshop ? 'knowledge_index' : ''

@@ -84,7 +84,15 @@ git clone https://github.com/microsoft/agentic-applications-for-unified-data-fou
 cd agentic-applications-for-unified-data-foundation-solution-accelerator
 ```
 
-### 3. Deploy Azure resources
+### 3. Enable Workshop Mode
+
+> **Note:** This solution accelerator supports two modes (standard and workshop). By default it will run in standard mode. To run the workshop, set the IS_WORKSHOP flag before deploying:
+
+```bash
+azd env set IS_WORKSHOP true
+```
+
+### 4. Deploy Azure resources
 
 ```bash
 azd auth login
@@ -114,13 +122,15 @@ When you start the deployment, you will need to set the following parameters:
 | **Environment Name**                        | A unique **3–20 character alphanumeric value** used to prefix resources, preventing conflicts with others.            | env\_name              |
 | **Azure Subscription**                      | The Azure subscription to deploy resources into. Only prompted if you have multiple subscriptions.        | *(auto-selected if only one)* |
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
-| **AI Model Location**                        | The region where AI model will be created            | *(empty)              |
+| **AI Model Location**                       | The region where AI model will be created.                                                                | *(empty)*              |
+| **Backend Runtime Stack**                   | Programming language for backend (python/dotnet). **Note:** Workshop always uses Python. Press Enter to skip. | python (forced in workshop) |
+| **Use Case**                                | Industry use case (Retail-sales-analysis/Insurance-improve-customer-meetings). **Note:** Not used in workshop mode. Press Enter to skip. | *(not used in workshop)* |
 
 *Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
 
 
 
-### 4. Setup Python environment
+### 5. Setup Python environment
 
 ```bash
 python -m venv .venv
@@ -134,7 +144,7 @@ python -m venv .venv
 pip install uv && uv pip install -r scripts/requirements.txt
 ```
 
-### 5. Build the solution
+### 6. Build the solution
 
 #### Retrieve your Fabric workspace ID
 
@@ -169,7 +179,7 @@ python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-worksp
 > **Note:** If you omit `--fabric-workspace-id`, the script will prompt you for it interactively. 
 > Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
-### 6. Test the agent
+### 7. Test the agent
 
 ```bash
 python scripts/08_test_agent.py
@@ -190,7 +200,7 @@ Follow the step-by-step guide to create an Ontology in Microsoft Fabric for your
 
 This sets up entity types (Tickets, Inspections), data bindings from your Lakehouse tables, and relationships between them. -->
 
-### 7. Test the Fabric Data Agent
+### 8. Test the Fabric Data Agent
 
 1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
 2. Select "New item" → Search for "Data Agent" → select data agent, provide a name and click create
@@ -210,7 +220,7 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 - "What is the average score from inspections?"
 - Show tickets grouped by status.
 
-### 8. Deploy and launch the application
+### 9. Deploy and launch the application
 
 ```bash
 azd env set AZURE_ENV_DEPLOY_APP true
@@ -220,7 +230,7 @@ azd env set AZURE_ENV_DEPLOY_APP true
 azd up
 ```
 
-### 9. Set up app permissions
+### 10. Set up app permissions
 
 ```bash
 python scripts/00_build_solution.py --from 09
@@ -230,7 +240,7 @@ python scripts/00_build_solution.py --from 09
 
 After the agent configuration & API permission set up completes, open the app URL shown in the output.
 
-### 10. Customize for Your Industry (Optional)
+### 11. Customize for Your Industry (Optional)
 
 Follow steps in this page to  [Customize for your use case](./02-customize/index.md).
 
@@ -248,7 +258,15 @@ git clone https://github.com/microsoft/agentic-applications-for-unified-data-fou
 cd agentic-applications-for-unified-data-foundation-solution-accelerator
 ```
 
-### 2. Enable Azure-only mode
+### 2. Enable Workshop Mode
+
+> **Note:** This solution accelerator supports two modes (standard and workshop). By default it will run in standard mode. To run the workshop, set the IS_WORKSHOP flag before deploying:
+
+```bash
+azd env set IS_WORKSHOP true
+```
+
+### 3. Enable Azure-only mode
 
 When prompted for an environment name, enter a unique **3–20 character alphanumeric value** (this is used to prefix resources and prevent conflicts).
 
@@ -256,7 +274,7 @@ When prompted for an environment name, enter a unique **3–20 character alphanu
 azd env set AZURE_ENV_ONLY true
 ```
 
-### 3. Deploy Azure resources
+### 4. Deploy Azure resources
 
 ```bash
 azd auth login
@@ -284,11 +302,13 @@ When you start the deployment, you will need to set the following parameters:
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
 | **Azure Subscription**                      | The Azure subscription to deploy resources into. Only prompted if you have multiple subscriptions.        | *(auto-selected if only one)* |
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
-| **AI Model Location**                        | The region where AI model will be created            | *(empty)              |
+| **AI Model Location**                       | The region where AI model will be created.                                                                | *(empty)*              |
+| **Backend Runtime Stack**                   | Programming language for backend (python/dotnet). **Note:** Workshop always uses Python. Press Enter to skip. | python (forced in workshop) |
+| **Use Case**                                | Industry use case (Retail-sales-analysis/Insurance-improve-customer-meetings). **Note:** Not used in workshop mode. Press Enter to skip. | *(not used in workshop)* |
 
 *Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
 
-### 4. Setup Python environment
+### 5. Setup Python environment
 
 ```bash
 python -m venv .venv
@@ -302,7 +322,7 @@ python -m venv .venv
 pip install uv && uv pip install -r scripts/requirements.txt
 ```
 
-### 5. Build the solution
+### 6. Build the solution
 
 ```bash
 az login
@@ -316,7 +336,7 @@ python scripts/00_build_solution.py --from 04
 
 > **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
-### 6. Test the agent
+### 7. Test the agent
 
 ```bash
 python scripts/08_test_agent.py
@@ -329,7 +349,7 @@ python scripts/08_test_agent.py
 - "What constitutes a failed inspection?"
 - "Do any inspections violate quality control standards in our Inspection Procedures?"
 
-### 7. Deploy the application
+### 8. Deploy the application
 
 ```bash
 azd env set AZURE_ENV_DEPLOY_APP true
@@ -339,7 +359,7 @@ azd env set AZURE_ENV_DEPLOY_APP true
 azd up
 ```
 
-### 8. Set up app permissions
+### 9. Set up app permissions
 
 ```bash
 python scripts/00_build_solution.py --from 09
@@ -349,7 +369,7 @@ python scripts/00_build_solution.py --from 09
 
 After the agent configuration & API permission set up completes, open the app URL shown in the output. 
 
-### 9. Customize for Your Industry (Optional)
+### 10. Customize for Your Industry (Optional)
 
 Follow steps in this page to  [Customize for your use case](./02-customize/index.md).
 
