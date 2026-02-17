@@ -15,7 +15,7 @@ import sys
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from fastapi import Request
+from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
 # Ensure the API Python path is in sys.path
@@ -1094,3 +1094,365 @@ class TestWorkshopMode:
 
             assert len(results) == 1
             assert "cannot answer" in results[0].lower()
+
+    @pytest.mark.asyncio
+    async def test_workshop_mode_empty_query(self, monkeypatch):
+        """Test workshop mode with empty query converts to default."""
+        from chat import stream_openai_text_workshop
+
+        monkeypatch.setenv("AZURE_ENV_ONLY", "true")
+
+        with patch("chat.get_azure_credential_async") as mock_cred, patch(
+            "chat.AIProjectClient"
+        ) as mock_project, patch("history_sql.get_azure_sql_connection") as mock_db, patch(
+            "history_sql.SqlQueryTool"
+        ) as mock_tool, patch(
+            "chat.get_thread_cache"
+        ) as mock_cache:
+
+            mock_credential = AsyncMock()
+            mock_credential.close = AsyncMock()
+            mock_cred.return_value = mock_credential
+
+            mock_proj_inst = AsyncMock()
+            mock_openai = AsyncMock()
+            mock_conv = Mock(id="empty_query_thread")
+            mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+
+            mock_message = Mock()
+            mock_message.type = "message"
+            mock_content = Mock()
+            mock_content.text = "Query received"
+            mock_content.annotations = []
+            type(mock_content).text = property(lambda self: "Query received")
+            mock_message.content = [mock_content]
+            mock_response = Mock()
+            mock_response.output = [mock_message]
+
+            mock_openai.responses.create = AsyncMock(return_value=mock_response)
+            mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
+            mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
+            mock_proj_inst.__aexit__ = AsyncMock()
+            mock_project.return_value = mock_proj_inst
+
+            mock_connection = Mock()
+            mock_connection.close = Mock()
+            mock_db.return_value = mock_connection
+            mock_tool.return_value = Mock()
+            mock_cache.return_value = {}
+
+            results = []
+            async for chunk in stream_openai_text_workshop("conv6", ""):
+                results.append(chunk)
+
+            # Verify the query was converted to default message
+            call_args = mock_openai.responses.create.call_args_list[0]
+            assert call_args[1]["input"] == "Please provide a query."
+
+    @pytest.mark.asyncio
+    async def test_workshop_mode_ai_search(self, monkeypatch):
+        """Test workshop mode with AI Search tool call."""
+        from chat import stream_openai_text_workshop
+
+        monkeypatch.setenv("AZURE_ENV_ONLY", "true")
+
+        with patch("chat.get_azure_credential_async") as mock_cred, patch(
+            "chat.AIProjectClient"
+        ) as mock_project, patch("history_sql.get_azure_sql_connection") as mock_db, patch(
+            "history_sql.SqlQueryTool"
+        ) as mock_tool, patch(
+            "chat.get_thread_cache"
+        ) as mock_cache:
+
+            mock_credential = AsyncMock()
+            mock_credential.close = AsyncMock()
+            mock_cred.return_value = mock_credential
+
+            mock_proj_inst = AsyncMock()
+            mock_openai = AsyncMock()
+            mock_conv = Mock(id="search_thread")
+            mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+
+            # Response includes AI Search calls AND message with text
+            mock_search_call = Mock()
+            mock_search_call.type = "azure_ai_search_call"
+            mock_search_call.arguments = '{"query": "test search"}'
+            mock_search_output = Mock()
+            mock_search_output.type = "azure_ai_search_call_output"
+            
+            # Message with annotations
+            mock_message = Mock()
+            mock_message.type = "message"
+            mock_content = Mock()
+            mock_content.text = "Search results"
+            mock_url_citation = Mock()
+            mock_url_citation.url = "https://example.com"
+            mock_annotation = Mock()
+            mock_annotation.url_citation = mock_url_citation
+            type(mock_annotation).url_citation = property(lambda self: mock_url_citation)
+            mock_content.annotations = [mock_annotation]
+            type(mock_content).text = property(lambda self: "Search results")
+            type(mock_content).annotations = property(lambda self: [mock_annotation])
+            mock_message.content = [mock_content]
+            
+            # All in one response - search call + output + message
+            mock_response = Mock()
+            mock_response.output = [mock_search_call, mock_search_output, mock_message]
+
+            mock_openai.responses.create = AsyncMock(return_value=mock_response)
+            mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
+            mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
+            mock_proj_inst.__aexit__ = AsyncMock()
+            mock_project.return_value = mock_proj_inst
+
+            mock_connection = Mock()
+            mock_connection.close = Mock()
+            mock_db.return_value = mock_connection
+            mock_tool.return_value = Mock()
+            mock_cache.return_value = {}
+
+            results = []
+            async for chunk in stream_openai_text_workshop("conv7", "search query"):
+                results.append(chunk)
+
+            assert len(results) > 0
+            assert "Search results" in results[0]
+
+    @pytest.mark.asyncio
+    async def test_workshop_mode_sql_none_result(self, monkeypatch):
+        """Test workshop mode with SQL query returning None."""
+        from chat import stream_openai_text_workshop
+
+        monkeypatch.setenv("AZURE_ENV_ONLY", "true")
+
+        with patch("chat.get_azure_credential_async") as mock_cred, patch(
+            "chat.AIProjectClient"
+        ) as mock_project, patch("history_sql.get_azure_sql_connection") as mock_db, patch(
+            "history_sql.SqlQueryTool"
+        ) as mock_tool, patch(
+            "chat.get_thread_cache"
+        ) as mock_cache:
+
+            mock_credential = AsyncMock()
+            mock_credential.close = AsyncMock()
+            mock_cred.return_value = mock_credential
+
+            mock_proj_inst = AsyncMock()
+            mock_openai = AsyncMock()
+            mock_conv = Mock(id="none_thread")
+            mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+
+            mock_fc = Mock()
+            mock_fc.type = "function_call"
+            mock_fc.name = "execute_sql"
+            mock_fc.arguments = '{"sql_query": "SELECT NULL"}'
+            mock_fc.call_id = "call_none"
+            mock_resp1 = Mock()
+            mock_resp1.output = [mock_fc]
+
+            mock_message = Mock()
+            mock_message.type = "message"
+            mock_content = Mock()
+            mock_content.text = "No results"
+            mock_content.annotations = []
+            type(mock_content).text = property(lambda self: "No results")
+            mock_message.content = [mock_content]
+            mock_resp2 = Mock()
+            mock_resp2.output = [mock_message]
+
+            mock_openai.responses.create = AsyncMock(side_effect=[mock_resp1, mock_resp2])
+            mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
+            mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
+            mock_proj_inst.__aexit__ = AsyncMock()
+            mock_project.return_value = mock_proj_inst
+
+            mock_connection = Mock()
+            mock_connection.close = Mock()
+            mock_db.return_value = mock_connection
+
+            mock_tool_inst = Mock()
+            mock_tool_inst.run_sql_query = AsyncMock(return_value=None)
+            mock_tool.return_value = mock_tool_inst
+            mock_cache.return_value = {}
+
+            results = []
+            async for chunk in stream_openai_text_workshop("conv8", "query"):
+                results.append(chunk)
+
+            # Check that tool was called and "No results returned" was sent
+            mock_tool_inst.run_sql_query.assert_awaited_once()
+            call_args = mock_openai.responses.create.call_args_list[1]
+            tool_output = call_args[1]["input"][0]["output"]
+            assert "No results returned" in tool_output
+
+    @pytest.mark.asyncio
+    async def test_workshop_mode_unknown_function(self, monkeypatch):
+        """Test workshop mode with unknown function call."""
+        from chat import stream_openai_text_workshop
+
+        monkeypatch.setenv("AZURE_ENV_ONLY", "true")
+
+        with patch("chat.get_azure_credential_async") as mock_cred, patch(
+            "chat.AIProjectClient"
+        ) as mock_project, patch("history_sql.get_azure_sql_connection") as mock_db, patch(
+            "history_sql.SqlQueryTool"
+        ) as mock_tool, patch(
+            "chat.get_thread_cache"
+        ) as mock_cache:
+
+            mock_credential = AsyncMock()
+            mock_credential.close = AsyncMock()
+            mock_cred.return_value = mock_credential
+
+            mock_proj_inst = AsyncMock()
+            mock_openai = AsyncMock()
+            mock_conv = Mock(id="unknown_thread")
+            mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+
+            mock_fc = Mock()
+            mock_fc.type = "function_call"
+            mock_fc.name = "unknown_function"
+            mock_fc.arguments = '{"param": "value"}'
+            mock_fc.call_id = "call_unknown"
+            mock_resp1 = Mock()
+            mock_resp1.output = [mock_fc]
+
+            mock_message = Mock()
+            mock_message.type = "message"
+            mock_content = Mock()
+            mock_content.text = "Function handled"
+            mock_content.annotations = []
+            type(mock_content).text = property(lambda self: "Function handled")
+            mock_message.content = [mock_content]
+            mock_resp2 = Mock()
+            mock_resp2.output = [mock_message]
+
+            mock_openai.responses.create = AsyncMock(side_effect=[mock_resp1, mock_resp2])
+            mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
+            mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
+            mock_proj_inst.__aexit__ = AsyncMock()
+            mock_project.return_value = mock_proj_inst
+
+            mock_connection = Mock()
+            mock_connection.close = Mock()
+            mock_db.return_value = mock_connection
+            mock_tool.return_value = Mock()
+            mock_cache.return_value = {}
+
+            results = []
+            async for chunk in stream_openai_text_workshop("conv9", "query"):
+                results.append(chunk)
+
+            # Check that unknown function warning was sent
+            call_args = mock_openai.responses.create.call_args_list[1]
+            tool_output = call_args[1]["input"][0]["output"]
+            assert "Unknown function" in tool_output
+
+    @pytest.mark.asyncio
+    async def test_workshop_mode_exception_handling(self, monkeypatch):
+        """Test workshop mode handles exceptions gracefully with fallback message."""
+        from chat import stream_openai_text_workshop
+
+        monkeypatch.setenv("AZURE_ENV_ONLY", "true")
+
+        with patch("chat.get_azure_credential_async") as mock_cred, patch(
+            "chat.AIProjectClient"
+        ) as mock_project, patch("history_sql.get_azure_sql_connection") as mock_db, patch(
+            "history_sql.SqlQueryTool"
+        ) as mock_tool, patch(
+            "chat.get_thread_cache"
+        ) as mock_cache:
+
+            mock_credential = AsyncMock()
+            mock_credential.close = AsyncMock()
+            mock_cred.return_value = mock_credential
+
+            mock_proj_inst = AsyncMock()
+            mock_openai = AsyncMock()
+            mock_conv = Mock(id="error_thread")
+            mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+            # Exception during API call
+            mock_openai.responses.create = AsyncMock(side_effect=Exception("API Error"))
+            mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
+            mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
+            mock_proj_inst.__aexit__ = AsyncMock()
+            mock_project.return_value = mock_proj_inst
+
+            mock_connection = Mock()
+            mock_connection.close = Mock()
+            mock_db.return_value = mock_connection
+            mock_tool.return_value = Mock()
+            mock_cache.return_value = {}
+
+            # When exception occurs, function handles it gracefully with fallback message
+            results = []
+            async for chunk in stream_openai_text_workshop("conv10", "query"):
+                results.append(chunk)
+
+            # Verify fallback message is provided
+            assert len(results) == 1
+            assert "cannot answer" in results[0].lower()
+            # Verify connection cleanup
+            mock_connection.close.assert_called_once()
+            mock_credential.close.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_workshop_mode_no_db_connection(self, monkeypatch):
+        """Test workshop mode when database connection fails."""
+        from chat import stream_openai_text_workshop
+
+        monkeypatch.setenv("AZURE_ENV_ONLY", "true")
+
+        with patch("chat.get_azure_credential_async") as mock_cred, patch(
+            "chat.AIProjectClient"
+        ) as mock_project, patch("history_sql.get_azure_sql_connection") as mock_db, patch(
+            "history_sql.SqlQueryTool"
+        ) as mock_tool, patch(
+            "chat.get_thread_cache"
+        ) as mock_cache:
+
+            mock_credential = AsyncMock()
+            mock_credential.close = AsyncMock()
+            mock_cred.return_value = mock_credential
+
+            mock_proj_inst = AsyncMock()
+            mock_openai = AsyncMock()
+            mock_conv = Mock(id="nodb_thread")
+            mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+
+            mock_fc = Mock()
+            mock_fc.type = "function_call"
+            mock_fc.name = "execute_sql"
+            mock_fc.arguments = '{"sql_query": "SELECT 1"}'
+            mock_fc.call_id = "call_nodb"
+            mock_resp1 = Mock()
+            mock_resp1.output = [mock_fc]
+
+            mock_message = Mock()
+            mock_message.type = "message"
+            mock_content = Mock()
+            mock_content.text = "Handled"
+            mock_content.annotations = []
+            type(mock_content).text = property(lambda self: "Handled")
+            mock_message.content = [mock_content]
+            mock_resp2 = Mock()
+            mock_resp2.output = [mock_message]
+
+            mock_openai.responses.create = AsyncMock(side_effect=[mock_resp1, mock_resp2])
+            mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
+            mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
+            mock_proj_inst.__aexit__ = AsyncMock()
+            mock_project.return_value = mock_proj_inst
+
+            # Database connection fails
+            mock_db.return_value = None
+            mock_cache.return_value = {}
+
+            results = []
+            async for chunk in stream_openai_text_workshop("conv11", "query"):
+                results.append(chunk)
+
+            # Should still work but SQL execution returns empty list
+            call_args = mock_openai.responses.create.call_args_list[1]
+            tool_output = call_args[1]["input"][0]["output"]
+            assert tool_output == "[]"  # Empty list converted to JSON
