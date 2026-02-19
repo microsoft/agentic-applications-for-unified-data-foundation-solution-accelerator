@@ -66,7 +66,7 @@ nav:
   - Deploy solution:
     - Overview: 01-deploy/index.md
     - Deploy Azure resources: 01-deploy/01-deploy-azure.md
-    - Create Fabric workspace: 01-deploy/02-setup-fabric.md
+    - Fabric Setup: 01-deploy/02-setup-fabric.md
     - Create Fabric capacity: 01-deploy/02a-create-fabric-capacity.md
     - Create Fabric workspace: 01-deploy/02b-create-fabric-workspace.md
     - Configure dev environment: 01-deploy/03-configure.md

@@ -1,4 +1,4 @@
-# Create Fabric workspace
+# Fabric Setup
 
 Create and configure your Microsoft Fabric workspace for Fabric IQ.
 

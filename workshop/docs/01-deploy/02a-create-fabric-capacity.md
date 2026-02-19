@@ -51,4 +51,4 @@ You should now have a Fabric capacity (F8+) created in your Azure subscription.
 ---
 
 
-[← Create Fabric Workspace](02-setup-fabric.md)
+[← Fabric Setup](02-setup-fabric.md)
