@@ -50,4 +50,4 @@ You should now have a Fabric workspace created and linked to your Fabric capacit
 
 ---
 
-[← Deploy Azure resources](02-setup-fabric.md)
+[← Create Fabric Workspace](02-setup-fabric.md)
