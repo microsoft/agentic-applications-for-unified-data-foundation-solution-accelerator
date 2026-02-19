@@ -136,17 +136,20 @@ param acrName string = isWorkshop ? 'dataagentscontainerregworkshop' : 'dataagen
 //Get the current deployer's information
 var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
+var existingTags = resourceGroup().tags ?? {}
 
 // ========== Resource Group Tag ========== //
 resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorkshop) {
   name: 'default'
   properties: {
-    tags: {
-      ...resourceGroup().tags
-      TemplateName: 'Unified Data Analysis Agents'
-      CreatedBy: createdBy
-      DeploymentName: deployment().name
-    }
+   tags: union(
+      existingTags,
+      {
+        TemplateName: 'Unified Data Analysis Agents'
+        CreatedBy: createdBy
+        DeploymentName: deployment().name
+      }
+    )
   }
 }
 
