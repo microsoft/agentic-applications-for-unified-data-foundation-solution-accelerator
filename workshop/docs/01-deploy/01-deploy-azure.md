@@ -77,4 +77,4 @@ After deployment, Azure endpoints are automatically saved to `.azure/<env>/.env`
 
 ---
 
-[← Overview](index.md) | [Create Fabric workspace →](02-setup-fabric.md)
+[← Overview](index.md) | [Fabric Setup →](02-setup-fabric.md)

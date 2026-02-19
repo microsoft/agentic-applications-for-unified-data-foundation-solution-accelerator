@@ -50,4 +50,4 @@ You should now have a Fabric workspace created and linked to your Fabric capacit
 
 ---
 
-[← Create Fabric Workspace](02-setup-fabric.md)
+[← Fabric Setup](02-setup-fabric.md)
