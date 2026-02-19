@@ -50,17 +50,5 @@ You should now have a Fabric capacity (F8+) created in your Azure subscription.
 
 ---
 
-<script>
-function goBack() {
-  var currentPath = location.pathname;
-  function step() {
-    history.back();
-    setTimeout(function() {
-      if (location.pathname === currentPath) step();
-    }, 100);
-  }
-  step();
-}
-</script>
 
-<a href="javascript:void(0)" onclick="goBack()">← Back to previous page</a>
+[← Deploy Azure resources](02-setup-fabric.md)
