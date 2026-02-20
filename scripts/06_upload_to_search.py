@@ -45,6 +45,15 @@ from azure.search.documents.indexes.models import (
     SemanticField,
     SemanticPrioritizedFields,
     SemanticSearch,
+    # Foundry IQ - Knowledge Base models
+    KnowledgeBase,
+    KnowledgeBaseAzureOpenAIModel,
+    KnowledgeSourceReference,
+    KnowledgeRetrievalOutputMode,
+    KnowledgeRetrievalLowReasoningEffort,
+    SearchIndexKnowledgeSource,
+    SearchIndexKnowledgeSourceParameters,
+    SearchIndexFieldReference,
 )
 from pypdf import PdfReader
 
@@ -363,10 +372,68 @@ def main():
     succeeded = sum(1 for r in result if r.succeeded)
     print(f"[OK] Uploaded {succeeded}/{len(documents)} documents")
     
-    # Save index info
+    # ================================================================
+    # Create Foundry IQ Knowledge Source + Knowledge Base
+    # ================================================================
+
+    KB_NAME = f"{SOLUTION_NAME}-kb"
+    KS_NAME = f"{SOLUTION_NAME}-ks"
+
+    print(f"\nCreating Foundry IQ Knowledge Source '{KS_NAME}'...")
+    try:
+        knowledge_source = SearchIndexKnowledgeSource(
+            name=KS_NAME,
+            description=f"Knowledge source for {SOLUTION_NAME} document search index.",
+            search_index_parameters=SearchIndexKnowledgeSourceParameters(
+                search_index_name=INDEX_NAME,
+                semantic_configuration_name="default-semantic",
+                source_data_fields=[
+                    SearchIndexFieldReference(name="title"),
+                    SearchIndexFieldReference(name="source"),
+                ],
+                search_fields=[
+                    SearchIndexFieldReference(name="content"),
+                ],
+            ),
+        )
+        index_client.create_or_update_knowledge_source(knowledge_source)
+        print(f"[OK] Knowledge source '{KS_NAME}' created")
+    except Exception as e:
+        print(f"[WARN] Could not create knowledge source: {e}")
+        print("       You can create it manually in the Azure portal.")
+
+    print(f"\nCreating Foundry IQ Knowledge Base '{KB_NAME}'...")
+    try:
+        aoai_params = AzureOpenAIVectorizerParameters(
+            resource_url=AZURE_AI_ENDPOINT,
+            deployment_name=os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4o-mini"),
+            model_name=os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4o-mini"),
+        )
+
+        knowledge_base = KnowledgeBase(
+            name=KB_NAME,
+            description=f"Knowledge base for {SOLUTION_NAME} document retrieval with agentic query planning.",
+            retrieval_instructions="Use this knowledge source for questions about policies, guidelines, thresholds, rules, and reference documents.",
+            answer_instructions="Provide a concise and informative answer based on the retrieved documents. Always cite the source document.",
+            output_mode=KnowledgeRetrievalOutputMode.ANSWER_SYNTHESIS,
+            knowledge_sources=[
+                KnowledgeSourceReference(name=KS_NAME),
+            ],
+            models=[KnowledgeBaseAzureOpenAIModel(azure_open_ai_parameters=aoai_params)],
+            retrieval_reasoning_effort=KnowledgeRetrievalLowReasoningEffort,
+        )
+        index_client.create_or_update_knowledge_base(knowledge_base)
+        print(f"[OK] Knowledge base '{KB_NAME}' created")
+    except Exception as e:
+        print(f"[WARN] Could not create knowledge base: {e}")
+        print("       You can create it manually in the Azure portal.")
+
+    # Save index and knowledge base info
     search_ids_path = config_dir / "search_ids.json"
     search_info = {
         "index_name": INDEX_NAME,
+        "knowledge_base_name": KB_NAME,
+        "knowledge_source_name": KS_NAME,
         "document_count": len(documents),
         "pdf_files": [p.name for p in pdf_files]
     }
@@ -379,7 +446,9 @@ def main():
     print(f"{'='*60}")
     print(f"Index: {INDEX_NAME}")
     print(f"Documents: {len(documents)}")
-    print(f"\nYou can now query the index using Azure AI Search.")
+    print(f"Knowledge Source: {KS_NAME}")
+    print(f"Knowledge Base: {KB_NAME}")
+    print(f"\nYou can now query the knowledge base using Foundry IQ.")
 
 if __name__ == "__main__":
     main()

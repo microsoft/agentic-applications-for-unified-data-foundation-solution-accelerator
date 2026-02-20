@@ -48,14 +48,12 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 from load_env import load_all_env, get_data_folder
 load_all_env()
 
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.ai.projects import AIProjectClient
 from azure.ai.projects.models import (
     PromptAgentDefinition,
     FunctionTool,
-    AzureAISearchAgentTool,
-    AzureAISearchToolResource,
-    AISearchIndexResource,
+    MCPTool,
 )
 
 # ============================================================================
@@ -65,7 +63,7 @@ from azure.ai.projects.models import (
 # Azure services - from azd environment
 ENDPOINT = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
 MODEL = os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4o-mini")
-SEARCH_CONNECTION_ID = args.connection_name or os.getenv("AZURE_AI_SEARCH_CONNECTION_ID")
+AZURE_AI_SEARCH_ENDPOINT = os.getenv("AZURE_AI_SEARCH_ENDPOINT")
 
 # SQL Configuration - determine mode
 FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
@@ -96,11 +94,10 @@ except ValueError:
     print("ERROR: DATA_FOLDER not set in .env")
     print("       Run 01_generate_data.py first")
     sys.exit(1)
-    sys.exit(1)
 
-if not SEARCH_CONNECTION_ID:
-    print("ERROR: Azure AI Search connection ID not set")
-    print("       Set AZURE_AI_SEARCH_CONNECTION_NAME in azd env or pass --connection-name")
+if not AZURE_AI_SEARCH_ENDPOINT:
+    print("ERROR: AZURE_AI_SEARCH_ENDPOINT not set")
+    print("       Set AZURE_AI_SEARCH_ENDPOINT in azd env")
     sys.exit(1)
 
 if not USE_FABRIC and (not SQL_SERVER or not SQL_DATABASE):
@@ -164,19 +161,25 @@ if USE_FABRIC:
         print("       Run 02_create_fabric_items.py first, or use --azure-only")
         sys.exit(1)
 
-# Load Search Index: CLI arg > environment variable > search_ids.json
+# Load Search Index and Knowledge Base names
+search_ids_path = os.path.join(config_dir, "search_ids.json")
+search_ids_data = {}
+if os.path.exists(search_ids_path):
+    with open(search_ids_path) as f:
+        search_ids_data = json.load(f)
+
 if args.index_name:
     INDEX_NAME = args.index_name
 elif os.getenv("AZURE_AI_SEARCH_INDEX"):
     INDEX_NAME = os.getenv("AZURE_AI_SEARCH_INDEX")
 else:
-    search_ids_path = os.path.join(config_dir, "search_ids.json")
-    if os.path.exists(search_ids_path):
-        with open(search_ids_path) as f:
-            search_ids = json.load(f)
-        INDEX_NAME = search_ids.get("index_name", f"{SOLUTION_NAME}-documents")
-    else:
-        INDEX_NAME = f"{SOLUTION_NAME}-documents"
+    INDEX_NAME = search_ids_data.get("index_name", f"{SOLUTION_NAME}-documents")
+
+# Knowledge Base name from search_ids.json (created by 06_upload_to_search.py)
+KB_NAME = search_ids_data.get("knowledge_base_name", os.getenv("KNOWLEDGE_BASE_NAME", f"{SOLUTION_NAME}-kb"))
+
+# MCP connection name for the knowledge base (created by Bicep deployment)
+KB_MCP_CONNECTION_NAME = os.getenv("KB_MCP_CONNECTION_NAME", f"{SOLUTION_NAME}-kb-mcp-connection")
 
 # Agent name
 CHAT_AGENT_NAME = f"{SOLUTION_NAME}-ChatAgent"
@@ -203,8 +206,10 @@ else:
     print(f"SQL Mode: Azure SQL Database")
     print(f"SQL Server: {SQL_SERVER}")
     print(f"SQL Database: {SQL_DATABASE}")
-print(f"Search Connection: {SEARCH_CONNECTION_ID}")
+print(f"Search Endpoint: {AZURE_AI_SEARCH_ENDPOINT}")
 print(f"Search Index: {INDEX_NAME}")
+print(f"Knowledge Base: {KB_NAME}")
+print(f"MCP Connection: {KB_MCP_CONNECTION_NAME}")
 
 # ============================================================================
 # Build Agent Instructions
@@ -247,14 +252,16 @@ def build_agent_instructions(config, schema_text, use_fabric, config_dir):
 - Use T-SQL syntax (TOP N, not LIMIT)
 {f"- JOINs: {'; '.join(join_hints)}" if join_hints else ""}
 
-**Azure AI Search** - Search policy and reference documents
+**Knowledge Base (Foundry IQ)** - Search policy and reference documents via knowledge base
 - Contains guidelines, thresholds, rules, requirements, and reference information
+- Automatically plans queries, decomposes into subqueries, and reranks results
+- Always include citations from retrieved sources using the format: 【message_idx:search_idx†source_name】
 
 ## When to Use Each Tool
 
 - **Database queries** (counts, lists, aggregations, filtering records) → execute_sql
-- **Document lookups** (policies, thresholds, rules, guidelines) → Azure AI Search  
-- **Comparisons** (data vs. policy thresholds) → Search first for threshold, then query with that value
+- **Document lookups** (policies, thresholds, rules, guidelines) → Knowledge Base tool
+- **Comparisons** (data vs. policy thresholds) → Search knowledge base first for threshold, then query with that value
 
 {schema_text}
 
@@ -352,19 +359,17 @@ execute_sql_tool = FunctionTool(
 )
 agent_tools.append(execute_sql_tool)
 
-# Azure AI Search Tool (native - always included)
-search_tool = AzureAISearchAgentTool(
-    azure_ai_search=AzureAISearchToolResource(
-        indexes=[
-            AISearchIndexResource(
-                project_connection_id=SEARCH_CONNECTION_ID,
-                index_name=INDEX_NAME,
-                query_type="simple",
-            )
-        ]
-    )
+# Foundry IQ Knowledge Base Tool (MCP-based - always included)
+MCP_ENDPOINT = f"{AZURE_AI_SEARCH_ENDPOINT}/knowledgebases/{KB_NAME}/mcp?api-version=2025-11-01-preview"
+
+mcp_kb_tool = MCPTool(
+    server_label="knowledge-base",
+    server_url=MCP_ENDPOINT,
+    require_approval="never",
+    allowed_tools=["knowledge_base_retrieve"],
+    project_connection_id=KB_MCP_CONNECTION_NAME,
 )
-agent_tools.append(search_tool)
+agent_tools.append(mcp_kb_tool)
 
 # ============================================================================
 # Create the Agent
@@ -383,6 +388,78 @@ except Exception as e:
     print(f"[FAIL] Failed to initialize client: {e}")
     sys.exit(1)
 
+# ============================================================================
+# Create RemoteTool Project Connection for Knowledge Base MCP
+# ============================================================================
+
+def create_kb_mcp_connection():
+    """Create a RemoteTool project connection via the CognitiveServices REST API.
+
+    The Bicep type system doesn't recognise ProjectManagedIdentity as an
+    authType for RemoteTool, but the REST API does accept it – which is
+    exactly what the Azure portal sets when you create the connection from
+    the UI.  We call the REST API directly at deploy-time.
+    """
+    import requests
+
+    subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
+    resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
+    ai_service_name = os.getenv("AI_SERVICE_NAME")
+    project_name = os.getenv("AZURE_AI_PROJECT_NAME")
+
+    if not (subscription_id and resource_group and ai_service_name and project_name):
+        print("[WARN] Cannot build project ARM path – need AZURE_SUBSCRIPTION_ID, "
+              "AZURE_RESOURCE_GROUP, AI_SERVICE_NAME, and AZURE_AI_PROJECT_NAME.")
+        return False
+
+    mcp_endpoint = (
+        f"{AZURE_AI_SEARCH_ENDPOINT}/knowledgebases/{KB_NAME}"
+        f"/mcp?api-version=2025-11-01-preview"
+    )
+
+    token = get_bearer_token_provider(credential, "https://management.azure.com/.default")()
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # CognitiveServices-based project (not hub/ML workspace)
+    url = (
+        f"https://management.azure.com/subscriptions/{subscription_id}"
+        f"/resourceGroups/{resource_group}"
+        f"/providers/Microsoft.CognitiveServices/accounts/{ai_service_name}"
+        f"/projects/{project_name}"
+        f"/connections/{KB_MCP_CONNECTION_NAME}?api-version=2025-04-01-preview"
+    )
+
+    body = {
+        "name": KB_MCP_CONNECTION_NAME,
+        "properties": {
+            "authType": "ProjectManagedIdentity",
+            "category": "RemoteTool",
+            "target": mcp_endpoint,
+            "isSharedToAll": True,
+            "audience": "https://search.azure.com/",
+            "metadata": {"ApiType": "Azure"}
+        }
+    }
+
+    print(f"  Target: {mcp_endpoint}")
+    response = requests.put(url, headers=headers, json=body)
+    if response.status_code in (200, 201):
+        return True
+    else:
+        print(f"[WARN] Connection creation returned {response.status_code}: {response.text[:500]}")
+        return False
+
+print(f"\nCreating MCP project connection '{KB_MCP_CONNECTION_NAME}'...")
+try:
+    if create_kb_mcp_connection():
+        print(f"[OK] MCP connection '{KB_MCP_CONNECTION_NAME}' created")
+    else:
+        print("[WARN] MCP connection creation may have failed.")
+        print("       You can create the connection manually in the Foundry portal.")
+except Exception as e:
+    print(f"[WARN] Could not create MCP connection: {e}")
+    print("       You can create it manually in the Foundry portal.")
+
 try:
     with project_client:
         # Delete existing agent if it exists
@@ -398,7 +475,7 @@ try:
 
         # Create agent
         sql_mode = "Fabric SQL" if USE_FABRIC else "Azure SQL"
-        print(f"\nCreating agent with {sql_mode} + Native AI Search tools...")
+        print(f"\nCreating agent with {sql_mode} + Foundry IQ Knowledge Base tools...")
         agent_definition = PromptAgentDefinition(
             model=MODEL,
             instructions=instructions,
@@ -458,6 +535,9 @@ agent_ids["chat_agent_name"] = chat_agent.name
 agent_ids["title_agent_id"] = title_agent.id
 agent_ids["title_agent_name"] = title_agent.name
 agent_ids["search_index"] = INDEX_NAME
+agent_ids["knowledge_base_name"] = KB_NAME
+agent_ids["mcp_connection_name"] = KB_MCP_CONNECTION_NAME
+agent_ids["search_endpoint"] = AZURE_AI_SEARCH_ENDPOINT
 agent_ids["sql_mode"] = "fabric" if USE_FABRIC else "azure_sql"
 if not USE_FABRIC:
     agent_ids["sql_server"] = SQL_SERVER
@@ -487,7 +567,7 @@ Chat Agent:
   Tables: {', '.join(tables)}
   Tools:
     1. execute_sql - Query {sql_mode}
-    2. Azure AI Search - Document search
+    2. Foundry IQ Knowledge Base - Document search (MCP)
 
 Title Agent:
   Agent ID: {title_agent.id}

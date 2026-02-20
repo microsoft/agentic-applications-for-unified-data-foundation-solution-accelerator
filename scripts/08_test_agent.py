@@ -369,7 +369,7 @@ def chat(user_message: str, conversation_id: str):
                                     search_results.append(ann.url_citation)
                                 elif hasattr(ann, 'file_citation'):
                                     search_results.append(getattr(ann.file_citation, 'file_id', str(ann.file_citation)))
-                # Handle search tool call (request)
+                # Handle search tool call (request) - native Azure AI Search
                 elif item_type == 'azure_ai_search_call':
                     if VERBOSE:
                         # Extract the search query from arguments
@@ -386,15 +386,32 @@ def chat(user_message: str, conversation_id: str):
                         # Native AI Search doesn't expose raw results in API response
                         # The agent uses results internally and includes citations in the answer
                         print(f"   ✓ Search completed (results used internally by agent)")
+                # Handle Foundry IQ MCP tool call (knowledge base retrieval)
+                elif item_type == 'mcp_call':
+                    if VERBOSE:
+                        tool_name = getattr(item, 'name', 'unknown')
+                        args_str = getattr(item, 'arguments', '{}')
+                        print(f"\n📚 Knowledge Base MCP call: {tool_name}")
+                        try:
+                            args = json.loads(args_str) if args_str else {}
+                            if 'query' in args:
+                                print(f"   Query: \"{args['query']}\"")
+                        except:
+                            pass
+                # Handle MCP tool output
+                elif item_type == 'mcp_call_output':
+                    if VERBOSE:
+                        print(f"   ✓ Knowledge base retrieval completed")
                 # Handle other tool result types
                 elif item_type in ['tool_call']:
                     if VERBOSE:
                         print(f"\n🔧 Tool called: {getattr(item, 'name', 'unknown')}")
                         
                 # Catch-all for other tool results
-                elif item_type and 'search' in str(item_type).lower():
-                    print(f"\n🔍 Search result (type: {item_type})")
-                    print(f"   {str(item)[:500]}")
+                elif item_type and ('search' in str(item_type).lower() or 'mcp' in str(item_type).lower()):
+                    if VERBOSE:
+                        print(f"\n🔍 Tool result (type: {item_type})")
+                        print(f"   {str(item)[:500]}")
             
             # Print search citations if any (verbose only)
             if search_results and VERBOSE:
