@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "98840041685845293"
+      "templateHash": "3285835134047245579"
     }
   },
   "parameters": {
@@ -436,6 +436,7 @@
     "solutionPrefix": "[format('da{0}', padLeft(take(variables('uniqueId'), 12), 12, '0'))]",
     "deployerInfo": "[deployer()]",
     "deployingUserPrincipalId": "[variables('deployerInfo').objectId]",
+    "existingTags": "[coalesce(resourceGroup().tags, createObject())]",
     "landingText": "[if(equals(parameters('usecase'), 'Retail-sales-analysis'), 'You can ask questions around sales, products and orders.', 'You can ask questions around customer policies, claims and communications.')]"
   },
   "resources": [
@@ -445,7 +446,7 @@
       "apiVersion": "2021-04-01",
       "name": "default",
       "properties": {
-        "tags": "[shallowMerge(createArray(resourceGroup().tags, createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name)))]"
+        "tags": "[union(variables('existingTags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name))]"
       }
     },
     {

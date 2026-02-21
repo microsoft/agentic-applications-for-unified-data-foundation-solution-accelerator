@@ -496,7 +496,7 @@ class TestAdditionalCoverage:
         with patch('chat.stream_chat_request', return_value=mock_stream()), \
              patch('chat.track_event_if_configured') as mock_track:
             
-            response = await conversation(mock_request)
+            await conversation(mock_request)
             
             # Should call track_event
             mock_track.assert_called_once()

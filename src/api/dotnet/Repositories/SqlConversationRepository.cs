@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using CsApi.Models;
 using CsApi.Auth;
@@ -96,7 +97,6 @@ public class SqlConversationRepository : ISqlConversationRepository
         
         // Check if conversation exists
         const string existsSql = "SELECT userId FROM hst_conversations WHERE conversation_id=@c";
-        string? foundUserId = null;
         using (var check = new SqlCommand(existsSql, (SqlConnection)conn))
         {
             check.Parameters.Add(new SqlParameter("@c", id));
@@ -108,7 +108,6 @@ public class SqlConversationRepository : ISqlConversationRepository
             var result = check.ExecuteScalar();
             if (result != null)
             {
-                foundUserId = result.ToString() ?? string.Empty;
                  return (id, false); // Conversation exists and user has permission
             }
         }
@@ -213,14 +212,9 @@ public class SqlConversationRepository : ISqlConversationRepository
             bool filterByUser = !string.IsNullOrEmpty(userId);
             // REDUNDANT: Detailed user listing logging
             // Console.WriteLine($"Listing conversations for user '{userId}' (filterByUser={filterByUser})");
-            if (filterByUser)
-            {
-                sql = "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations WHERE userId=@userId ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
-            }
-            else
-            {
-                sql = "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
-            }
+            sql = filterByUser
+                ? "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations WHERE userId=@userId ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY"
+                : "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
             using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
             {
                 if (filterByUser)
@@ -256,9 +250,25 @@ public class SqlConversationRepository : ISqlConversationRepository
             //     Console.WriteLine($"  - {conv.ConversationId}: '{conv.Title}' (user: {conv.UserId}) [created: {conv.CreatedAt}, updated: {conv.UpdatedAt}]");
             // }
         }
+        catch (SqlException ex)
+        {
+            _logger.LogError(ex, "SQL error listing conversations for user {UserId}", userId);
+        }
+        catch (DbException ex)
+        {
+            _logger.LogError(ex, "Database error listing conversations for user {UserId}", userId);
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Timeout listing conversations for user {UserId}", userId);
+        }
+        catch (OperationCanceledException)
+        {
+            // Request was cancelled, no logging needed
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error listing conversations for user {UserId}", userId);
+            _logger.LogError(ex, "Unexpected error listing conversations for user {UserId}", userId);
         }
         return list;
     }
@@ -272,16 +282,9 @@ public class SqlConversationRepository : ISqlConversationRepository
         // Console.WriteLine($"Reading messages for user '{userId}' and conversation '{conversationId}' (filterByUser={filterByUser})");
         if (string.IsNullOrEmpty(conversationId))
             return new List<ChatMessage>();
-        if (filterByUser)
-        {
-            sql = $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE userId=@userId AND conversation_id=@conversationId ORDER BY updatedAt {order}";
-        }
-        else
-        {   
-            // REDUNDANT: Filter logic logging
-            // Console.WriteLine("No userId provided, reading messages without user filter.");
-            sql = $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE conversation_id=@conversationId ORDER BY updatedAt {order}";
-        }
+        sql = filterByUser
+            ? $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE userId=@userId AND conversation_id=@conversationId ORDER BY updatedAt {order}"
+            : $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE conversation_id=@conversationId ORDER BY updatedAt {order}";
         var list = new List<ChatMessage>();
         using var conn = await CreateConnectionAsync();
         using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
@@ -307,7 +310,7 @@ public class SqlConversationRepository : ISqlConversationRepository
                         // Try to deserialize content as JSON first
                         content = JsonSerializer.Deserialize<JsonElement>(contentRaw);
                     } 
-                    catch 
+                    catch (JsonException)
                     { 
                         // If parsing fails, treat as string
                         content = JsonSerializer.SerializeToElement(contentRaw);
@@ -322,7 +325,7 @@ public class SqlConversationRepository : ISqlConversationRepository
                     { 
                         citations = JsonSerializer.Deserialize<JsonElement>(citationsStr);
                     } 
-                    catch 
+                    catch (JsonException)
                     { 
                         // If parsing fails, treat as null
                         citations = null;
@@ -364,28 +367,24 @@ public class SqlConversationRepository : ISqlConversationRepository
             return false; // Permission denied
 
         // 3. Delete conversation and messages
-        string deleteMessagesSql, deleteConversationSql;
-        SqlCommand delMsgCmd, delConvCmd;
+        string deleteMessagesSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversation_messages WHERE userId=@u AND conversation_id=@c"
+            : "DELETE FROM hst_conversation_messages WHERE conversation_id=@c";
+        string deleteConversationSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversations WHERE userId=@u AND conversation_id=@c"
+            : "DELETE FROM hst_conversations WHERE conversation_id=@c";
+
+        using var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
+        using var delConvCmd = new SqlCommand(deleteConversationSql, (SqlConnection)conn);
+
         if (!string.IsNullOrEmpty(userId))
         {
-            deleteMessagesSql = "DELETE FROM hst_conversation_messages WHERE userId=@u AND conversation_id=@c";
-            deleteConversationSql = "DELETE FROM hst_conversations WHERE userId=@u AND conversation_id=@c";
-            delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
-            delConvCmd = new SqlCommand(deleteConversationSql, (SqlConnection)conn);
             delMsgCmd.Parameters.AddWithValue("@u", userId);
-            delMsgCmd.Parameters.AddWithValue("@c", conversationId);
             delConvCmd.Parameters.AddWithValue("@u", userId);
-            delConvCmd.Parameters.AddWithValue("@c", conversationId);
         }
-        else
-        {
-            deleteMessagesSql = "DELETE FROM hst_conversation_messages WHERE conversation_id=@c";
-            deleteConversationSql = "DELETE FROM hst_conversations WHERE conversation_id=@c";
-            delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
-            delConvCmd = new SqlCommand(deleteConversationSql, (SqlConnection)conn);
-            delMsgCmd.Parameters.AddWithValue("@c", conversationId);
-            delConvCmd.Parameters.AddWithValue("@c", conversationId);
-        }
+        delMsgCmd.Parameters.AddWithValue("@c", conversationId);
+        delConvCmd.Parameters.AddWithValue("@c", conversationId);
+
         delMsgCmd.ExecuteNonQuery();
         var rows = delConvCmd.ExecuteNonQuery();
         return rows > 0;
@@ -395,32 +394,28 @@ public class SqlConversationRepository : ISqlConversationRepository
     {
         using var conn = await CreateConnectionAsync();
         
-        string deleteMessagesSql, deleteConversationsSql;
-        SqlCommand delMsgCmd, delConvCmd;
-        
         // If userId is provided, delete only that user's conversations
         // If userId is null/empty, allow global delete (all conversations)
+        string deleteMessagesSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversation_messages WHERE userId=@u"
+            : "DELETE FROM hst_conversation_messages";
+        string deleteConversationsSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversations WHERE userId=@u"
+            : "DELETE FROM hst_conversations";
+
+        using var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
+        using var delConvCmd = new SqlCommand(deleteConversationsSql, (SqlConnection)conn);
+
         if (!string.IsNullOrEmpty(userId))
         {
-            deleteMessagesSql = "DELETE FROM hst_conversation_messages WHERE userId=@u";
-            deleteConversationsSql = "DELETE FROM hst_conversations WHERE userId=@u";
-            delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
-            delConvCmd = new SqlCommand(deleteConversationsSql, (SqlConnection)conn);
             delMsgCmd.Parameters.AddWithValue("@u", userId);
             delConvCmd.Parameters.AddWithValue("@u", userId);
         }
-        else
-        {
-            deleteMessagesSql = "DELETE FROM hst_conversation_messages";
-            deleteConversationsSql = "DELETE FROM hst_conversations";
-            delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
-            delConvCmd = new SqlCommand(deleteConversationsSql, (SqlConnection)conn);
-        }
-        
+
         // Delete messages first, then conversations
-        var messagesDeleted = delMsgCmd.ExecuteNonQuery();
+        delMsgCmd.ExecuteNonQuery();
         var conversationsDeleted = delConvCmd.ExecuteNonQuery();
-        
+
         return conversationsDeleted;
     }
 
@@ -444,25 +439,19 @@ public class SqlConversationRepository : ISqlConversationRepository
             return false; // Permission denied
 
         // 3. Update title
-        string updateSql;
-        SqlCommand updateCmd;
+        string updateSql = !string.IsNullOrEmpty(userId)
+            ? "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE userId=@u AND conversation_id=@c"
+            : "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE conversation_id=@c";
+
+        using var updateCmd = new SqlCommand(updateSql, (SqlConnection)conn);
+        updateCmd.Parameters.AddWithValue("@t", title);
+        updateCmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
         if (!string.IsNullOrEmpty(userId))
         {
-            updateSql = "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE userId=@u AND conversation_id=@c";
-            updateCmd = new SqlCommand(updateSql, (SqlConnection)conn);
-            updateCmd.Parameters.AddWithValue("@t", title);
-            updateCmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
             updateCmd.Parameters.AddWithValue("@u", userId);
-            updateCmd.Parameters.AddWithValue("@c", conversationId);
         }
-        else
-        {
-            updateSql = "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE conversation_id=@c";
-            updateCmd = new SqlCommand(updateSql, (SqlConnection)conn);
-            updateCmd.Parameters.AddWithValue("@t", title);
-            updateCmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
-            updateCmd.Parameters.AddWithValue("@c", conversationId);
-        }
+        updateCmd.Parameters.AddWithValue("@c", conversationId);
+
         var rows = updateCmd.ExecuteNonQuery();
         return rows > 0;
     }
@@ -470,66 +459,59 @@ public class SqlConversationRepository : ISqlConversationRepository
     public async Task<string> ExecuteChatQuery(string query, CancellationToken ct)
     {
         var results = new List<Dictionary<string, object>>();
-        try
+        using var conn = await CreateConnectionAsync();
+        using var cmd = new SqlCommand(query, (SqlConnection)conn);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
         {
-            using var conn = await CreateConnectionAsync();
-            using var cmd = new SqlCommand(query, (SqlConnection)conn);
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
+            var row = new Dictionary<string, object>();
+            for (int i = 0; i < reader.FieldCount; i++)
             {
-                var row = new Dictionary<string, object>();
-                for (int i = 0; i < reader.FieldCount; i++)
+                var colName = reader.GetName(i);
+                var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                
+                // Handle data type conversions to match Python SqlQueryTool behavior
+                if (value != null)
                 {
-                    var colName = reader.GetName(i);
-                    var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                    
-                    // Handle data type conversions to match Python SqlQueryTool behavior
-                    if (value != null)
+                    // Convert DateTime, DateOnly, and TimeOnly to ISO format string like Python
+                    if (value is DateTime dateTime)
                     {
-                        // Convert DateTime, DateOnly, and TimeOnly to ISO format string like Python
-                        if (value is DateTime dateTime)
-                        {
-                            row[colName] = dateTime.ToString("O"); // ISO 8601 format (matches Python .isoformat())
-                        }
-                        else if (value is DateOnly dateOnly)
-                        {
-                            row[colName] = dateOnly.ToString("yyyy-MM-dd"); // ISO date format
-                        }
-                        else if (value is TimeOnly timeOnly)
-                        {
-                            row[colName] = timeOnly.ToString("HH:mm:ss"); // ISO time format
-                        }
-                        // Convert Decimal to double like Python converts to float
-                        else if (value is decimal decimalValue)
-                        {
-                            row[colName] = (double)decimalValue;
-                        }
-                        // Handle other numeric types consistently
-                        else if (value is float floatValue)
-                        {
-                            row[colName] = (double)floatValue;
-                        }
-                        // Handle GUID as string for JSON serialization
-                        else if (value is Guid guidValue)
-                        {
-                            row[colName] = guidValue.ToString();
-                        }
-                        else
-                        {
-                            row[colName] = value;
-                        }
+                        row[colName] = dateTime.ToString("O"); // ISO 8601 format (matches Python .isoformat())
+                    }
+                    else if (value is DateOnly dateOnly)
+                    {
+                        row[colName] = dateOnly.ToString("yyyy-MM-dd"); // ISO date format
+                    }
+                    else if (value is TimeOnly timeOnly)
+                    {
+                        row[colName] = timeOnly.ToString("HH:mm:ss"); // ISO time format
+                    }
+                    // Convert Decimal to double like Python converts to float
+                    else if (value is decimal decimalValue)
+                    {
+                        row[colName] = (double)decimalValue;
+                    }
+                    // Handle other numeric types consistently
+                    else if (value is float floatValue)
+                    {
+                        row[colName] = (double)floatValue;
+                    }
+                    // Handle GUID as string for JSON serialization
+                    else if (value is Guid guidValue)
+                    {
+                        row[colName] = guidValue.ToString();
                     }
                     else
                     {
-                        row[colName] = null;
+                        row[colName] = value;
                     }
                 }
-                results.Add(row);
+                else
+                {
+                    row[colName] = null;
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error executing chat query");
+            results.Add(row);
         }
         return JsonSerializer.Serialize(results);
     }
