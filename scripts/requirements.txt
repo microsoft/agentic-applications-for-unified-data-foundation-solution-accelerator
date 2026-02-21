@@ -21,7 +21,7 @@ pandas==2.3.0
 fpdf2==2.8.5
 
 # PDF reading (for AI Search upload)
-pypdf==5.6.0
+pypdf==6.7.1
 
 # Azure AI Search
 azure-search-documents==11.6.0
