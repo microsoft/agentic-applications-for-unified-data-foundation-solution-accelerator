@@ -17,11 +17,10 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 # Azure SDK
+from azure.core.exceptions import HttpResponseError
 from azure.monitor.events.extension import track_event
 from azure.monitor.opentelemetry import configure_azure_monitor
 from azure.ai.projects.aio import AIProjectClient
-
-from agent_framework.exceptions import ServiceResponseException
 
 # Azure Auth
 from auth.azure_credential_utils import get_azure_credential_async
@@ -233,7 +232,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
                     func_args = json.loads(fc.arguments)
                     logger.info("Calling function: %s", func_name)
 
-                    if func_name == "execute_sql":
+                    if func_name == "run_sql_query":
                         sql_query = func_args.get("sql_query", "")
                         logger.info("Executing SQL query: %s", sql_query[:100])
                         result = await custom_tool.run_sql_query(sql_query=sql_query)
@@ -265,14 +264,14 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
                 logger.warning("Max iterations reached for conversation %s", conversation_id)
                 yield "\n\n(Response processing reached maximum iterations)"
 
-    except ServiceResponseException as e:
+    except HttpResponseError as e:
         complete_response = str(e)
-        if "Rate limit is exceeded" in str(e):
+        if "Rate limit is exceeded" in str(e) or e.status_code == 429:
             logger.error("Rate limit error: %s", e)
-            raise ServiceResponseException(f"Rate limit is exceeded. {str(e)}") from e
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=f"Rate limit is exceeded. {str(e)}") from e
         else:
             logger.error("RuntimeError: %s", e)
-            raise ServiceResponseException(f"An unexpected runtime error occurred: {str(e)}") from e
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"An unexpected runtime error occurred: {str(e)}") from e
 
     except Exception as e:
         complete_response = str(e)
@@ -492,17 +491,17 @@ async def stream_chat_request(conversation_id, query):
                     }
                     yield json.dumps(response, ensure_ascii=False) + "\n\n"
 
-        except ServiceResponseException as e:
-            error_message = str(e)
+        except HTTPException as e:
+            error_message = str(e.detail) if hasattr(e, 'detail') else str(e)
             retry_after = "sometime"
-            if "Rate limit is exceeded" in error_message:
+            if "Rate limit is exceeded" in error_message or e.status_code == 429:
                 match = re.search(r"Try again in (\d+) seconds.", error_message)
                 if match:
                     retry_after = f"{match.group(1)} seconds"
                 logger.error("Rate limit error: %s", error_message)
                 yield json.dumps({"error": f"Rate limit is exceeded. Try again in {retry_after}."}) + "\n\n"
             else:
-                logger.error("ServiceResponseException: %s", error_message)
+                logger.error("HttpResponseError: %s", error_message)
                 yield json.dumps({"error": "An error occurred. Please try again later."}) + "\n\n"
 
         except Exception as e:

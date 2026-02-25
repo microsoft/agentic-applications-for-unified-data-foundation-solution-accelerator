@@ -20,9 +20,7 @@ from opentelemetry.trace import Status, StatusCode
 from auth.auth_utils import get_authenticated_user_details
 from auth.azure_credential_utils import get_azure_credential_async
 
-from agent_framework import ChatAgent
-from agent_framework.azure import AzureAIClient
-from agent_framework.exceptions import ServiceResponseException
+from azure.core.exceptions import HttpResponseError
 
 router = APIRouter()
 
@@ -576,22 +574,28 @@ async def generate_title(conversation_messages):
             endpoint=AZURE_AI_AGENT_ENDPOINT,
             credential=await get_azure_credential_async()
         ) as project_client:
-            chat_client = AzureAIClient(
-                project_client=project_client,
-                agent_name=AGENT_NAME_TITLE,
-                use_latest_version=True,
+            openai_client = project_client.get_openai_client()
+            conversation = await openai_client.conversations.create()
+
+            response = await openai_client.responses.create(
+                conversation=conversation.id,
+                input=final_prompt,
+                extra_body={"agent": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
             )
 
-            async with ChatAgent(
-                chat_client=chat_client,
-                tool_choice="none",
-            ) as chat_agent:
-                thread = chat_agent.get_new_thread()
-                result = await chat_agent.run(messages=final_prompt, thread=thread)
-                return str(result).strip() if result is not None else generate_fallback_title(conversation_messages)
+            # Extract text from response output
+            result_text = ""
+            for item in response.output:
+                if getattr(item, 'type', None) == 'message':
+                    if hasattr(item, 'content') and item.content is not None:
+                        for content in item.content:
+                            if hasattr(content, 'text'):
+                                result_text += content.text
 
-    except ServiceResponseException as sre:
-        logger.warning("ServiceResponseException generating title with Azure AI Foundry agent: %s", sre)
+            return result_text.strip() if result_text else generate_fallback_title(conversation_messages)
+
+    except HttpResponseError as sre:
+        logger.warning("HttpResponseError generating title with Azure AI Foundry agent: %s", sre)
         return generate_fallback_title(conversation_messages)
 
     except Exception as e:
