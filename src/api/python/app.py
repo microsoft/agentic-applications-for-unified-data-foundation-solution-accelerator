@@ -41,7 +41,7 @@ logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
 
 # Reduce Azure Monitor internal logs
 logging.getLogger("azure.monitor.opentelemetry").setLevel(logging.ERROR)
-    
+
 # Exclude Azure Monitor settings endpoint from tracing
 os.environ["OTEL_PYTHON_REQUESTS_EXCLUDED_URLS"] = "settings.sdk.monitor.azure.com"
 
