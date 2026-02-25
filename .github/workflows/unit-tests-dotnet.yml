@@ -1,0 +1,165 @@
+name: .NET Unit Tests with Coverage
+
+on:
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'src/api/dotnet/**'
+      - '.github/workflows/unit-tests-dotnet.yml'
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'src/api/dotnet/**'
+      - '.github/workflows/unit-tests-dotnet.yml'
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  COVERAGE_THRESHOLD: 80
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  checks: write
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-quality: 'preview'
+
+      - name: Restore dependencies
+        run: |
+          cd src/api/dotnet
+          dotnet restore
+
+      - name: Build solution
+        run: |
+          cd src/api/dotnet
+          dotnet build --no-restore --configuration Release
+
+      - name: Run unit tests with coverage
+        id: dotnet-test
+        run: |
+          cd src/api/dotnet
+          dotnet test \
+            --no-build \
+            --configuration Release \
+            --settings "tests/CsApi.Tests/coverlet.runsettings" \
+            --collect:"XPlat Code Coverage" \
+            --logger "trx;LogFileName=test-results.trx" \
+            --results-directory ./TestResults \
+            -v normal
+        continue-on-error: true
+
+      - name: Find coverage file
+        id: find-coverage
+        if: always()
+        run: |
+          COVERAGE_FILE=$(find src/api/dotnet/TestResults -name "coverage.cobertura.xml" -type f | head -1)
+          echo "coverage_file=$COVERAGE_FILE" >> $GITHUB_OUTPUT
+          echo "Found coverage file: $COVERAGE_FILE"
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report-dotnet
+          path: |
+            src/api/dotnet/TestResults/
+            ${{ steps.find-coverage.outputs.coverage_file }}
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## 🧪 .NET Unit Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Parse test results from trx file
+          TRX_FILE=$(find src/api/dotnet/TestResults -name "*.trx" -type f | head -1)
+          if [ -f "$TRX_FILE" ]; then
+            echo "### 📊 Test Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Extract test counts from trx file
+            TOTAL=$(grep -oP 'total="\K[0-9]+' "$TRX_FILE" | head -1 || echo "0")
+            PASSED=$(grep -oP 'passed="\K[0-9]+' "$TRX_FILE" | head -1 || echo "0")
+            FAILED=$(grep -oP 'failed="\K[0-9]+' "$TRX_FILE" | head -1 || echo "0")
+            SKIPPED=$(grep -oP 'skipped="\K[0-9]+' "$TRX_FILE" | head -1 || echo "0")
+            
+            echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Total Tests | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+            echo "| ✅ Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
+            echo "| ❌ Failed | $FAILED |" >> $GITHUB_STEP_SUMMARY
+            echo "| ⏭️ Skipped | $SKIPPED |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Parse coverage from coverage.xml
+          COVERAGE_FILE="${{ steps.find-coverage.outputs.coverage_file }}"
+          if [ -f "$COVERAGE_FILE" ]; then
+            echo "### 📈 Code Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            COVERAGE=$(grep -oP 'line-rate="\K[0-9.]+' "$COVERAGE_FILE" | head -1 || echo "0")
+            BRANCH_COVERAGE=$(grep -oP 'branch-rate="\K[0-9.]+' "$COVERAGE_FILE" | head -1 || echo "0")
+            COVERAGE_PCT=$(awk "BEGIN {printf \"%.0f\", $COVERAGE * 100}")
+            BRANCH_PCT=$(awk "BEGIN {printf \"%.0f\", $BRANCH_COVERAGE * 100}")
+            
+            echo "| Coverage Type | Percentage | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|---------------|------------|--------|" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "$COVERAGE_PCT" -ge "${{ env.COVERAGE_THRESHOLD }}" ]; then
+              echo "| Line Coverage | **${COVERAGE_PCT}%** | ✅ Passed (Threshold: ${{ env.COVERAGE_THRESHOLD }}%) |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Line Coverage | **${COVERAGE_PCT}%** | ❌ Failed (Threshold: ${{ env.COVERAGE_THRESHOLD }}%) |" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "| Branch Coverage | **${BRANCH_PCT}%** | ℹ️ Info |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Overall status
+          if [ "${{ steps.dotnet-test.outcome }}" == "success" ]; then
+            echo "### ✅ Overall Status: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "All unit tests passed and coverage threshold met." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Overall Status: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "Unit tests failed or coverage below threshold (${{ env.COVERAGE_THRESHOLD }}%)." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check coverage threshold
+        if: always()
+        run: |
+          COVERAGE_FILE="${{ steps.find-coverage.outputs.coverage_file }}"
+          if [ -f "$COVERAGE_FILE" ]; then
+            COVERAGE=$(grep -oP 'line-rate="\K[0-9.]+' "$COVERAGE_FILE" | head -1 || echo "0")
+            COVERAGE_PCT=$(awk "BEGIN {printf \"%.0f\", $COVERAGE * 100}")
+            
+            if [ "$COVERAGE_PCT" -lt "${{ env.COVERAGE_THRESHOLD }}" ]; then
+              echo "::error::Code coverage ${COVERAGE_PCT}% is below threshold ${{ env.COVERAGE_THRESHOLD }}%"
+              exit 1
+            fi
+          fi
+
+      - name: Fail if tests failed
+        if: steps.dotnet-test.outcome != 'success'
+        run: |
+          echo "::error::Unit tests failed"
+          exit 1
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: src/api/dotnet/TestResults/**/*.trx
+          check_name: .NET Unit Test Results

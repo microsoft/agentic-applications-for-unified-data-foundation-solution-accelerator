@@ -1,0 +1,50 @@
+{
+    "scenario": "telecommunications",
+    "name": "Network Operations",
+    "description": "Tracking outages and trouble tickets.",
+    "tables": {
+        "tickets": {
+            "columns": [
+                "ticket_id",
+                "customer_name",
+                "issue_description",
+                "priority",
+                "status"
+            ],
+            "types": {
+                "ticket_id": "String",
+                "customer_name": "String",
+                "issue_description": "String",
+                "priority": "String",
+                "status": "String"
+            },
+            "key": "ticket_id",
+            "source_table": "tickets"
+        },
+        "inspections": {
+            "columns": [
+                "inspection_id",
+                "ticket_id",
+                "result",
+                "score"
+            ],
+            "types": {
+                "inspection_id": "String",
+                "ticket_id": "String",
+                "result": "String",
+                "score": "BigInt"
+            },
+            "key": "inspection_id",
+            "source_table": "inspections"
+        }
+    },
+    "relationships": [
+        {
+            "name": "ticket_inspection",
+            "from": "inspections",
+            "to": "tickets",
+            "fromKey": "ticket_id",
+            "toKey": "ticket_id"
+        }
+    ]
+}

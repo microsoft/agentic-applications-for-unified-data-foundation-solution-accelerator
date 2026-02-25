@@ -37,7 +37,7 @@ import {
 import { ChatAdd24Regular } from "@fluentui/react-icons";
 import { generateUUIDv4 } from "../../configs/Utils";
 import ChatMessageComponent from "../ChatMessage/ChatMessage";
-import { getChatLandingText } from "../../config";
+import { getChatLandingText, isWorkShopDeployment } from "../../config";
 import {
   parseChartContent,
   isMalformedChartJSON,
@@ -65,7 +65,7 @@ const Chat: React.FC<ChatProps> = ({
   const generatedConversationId = useAppSelector((state) => state.app.generatedConversationId);
   const { isFetchingConvMessages, isHistoryUpdateAPIPending } = useAppSelector((state) => state.chatHistory);
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
-  const [isChartLoading, setIsChartLoading] = useState(false)
+  const [isChartLoading, setIsChartLoading] = useState(false);
   const abortFuncs = useRef([] as AbortController[]);
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   
@@ -91,15 +91,7 @@ const Chat: React.FC<ChatProps> = ({
     if (!convId || !newMessages.length) {
       return;
     }
-    const isNewConversation = reqType !== 'graph' ? !selectedConversationId : false;
-
-    if (false) {  // Disabled: chart display default
-      setIsChartLoading(true);
-      setTimeout(()=>{
-        makeApiRequestForChart('show in a graph by default', convId)
-      },5000)
-
-    }
+    const isNewConversation = !selectedConversationId;
 
     try {
       const result = await dispatch(updateConversation({ conversationId: convId, messages: newMessages })).unwrap();
@@ -462,8 +454,18 @@ const Chat: React.FC<ChatProps> = ({
           updatedMessages = [newMessage, errorMessage];
         } else if (isChartQuery(userMessage)) {
           try {
-            const splitRunningText = runningText.split("}{");
-            const parsedChartResponse = JSON.parse("{" + splitRunningText[splitRunningText.length - 1]);
+            // Workshop mode: single complete response chunk — parse directly
+            // Non-workshop mode: multiple streaming chunks concatenated — split and take last segment
+            let chartTextToParse: string;
+            if (isWorkShopDeployment()) {
+              chartTextToParse = runningText;
+            } else {
+              const splitRunningText = runningText.split("}{");
+              chartTextToParse = splitRunningText.length > 1
+                ? "{" + splitRunningText[splitRunningText.length - 1]
+                : splitRunningText[0];
+            }
+            const parsedChartResponse = JSON.parse(chartTextToParse);
             
             const rawChartContent = parsedChartResponse?.choices[0]?.messages[0]?.content;
             
@@ -508,12 +510,15 @@ const Chat: React.FC<ChatProps> = ({
           } catch {
             // Error parsing chart response
           }
-        } else if (!isChartResponseReceived) {
+        }
+        
+        // If no messages have been added yet but we have streamed content, save it
+        if (updatedMessages.length === 0 && streamMessage.content) {
           updatedMessages = [newMessage, streamMessage];
         }
       }
       
-      if (updatedMessages.length > 0 && updatedMessages[updatedMessages.length - 1]?.role !== ERROR) {
+      if (updatedMessages.length > 0) {
         saveToDB(updatedMessages, conversationId, isChatReq);
       }
     } catch (e) {
