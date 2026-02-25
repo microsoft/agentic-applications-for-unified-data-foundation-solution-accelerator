@@ -179,7 +179,7 @@ else:
         INDEX_NAME = f"{SOLUTION_NAME}-documents"
 
 # Agent name
-CHAT_AGENT_NAME = f"{SOLUTION_NAME}-ChatAgent"
+CHAT_AGENT_NAME = "ChatAgent"
 
 # ============================================================================
 # Print Configuration
@@ -320,7 +320,7 @@ Be descriptive but concise.
 Respond only with the title, no additional commentary.'''
 
 # Title Agent Name
-TITLE_AGENT_NAME = f"{SOLUTION_NAME}-TitleAgent"
+TITLE_AGENT_NAME = "TitleAgent"
 
 # ============================================================================
 # Tool Definitions

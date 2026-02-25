@@ -242,7 +242,7 @@ if is_workshop and azure_ai_search_connection_name and azure_ai_search_index:
 
 with project_client:
     chat_agent = project_client.agents.create_version(
-        agent_name=f"ChatAgent-{solutionName}",
+        agent_name="ChatAgent",
         definition=PromptAgentDefinition(
             model=gptModelName,
             instructions=agent_instructions,
@@ -251,7 +251,7 @@ with project_client:
     )
     
     title_agent = project_client.agents.create_version(
-        agent_name=f"TitleAgent-{solutionName}",
+        agent_name="TitleAgent",
         definition=PromptAgentDefinition(
             model=gptModelName,
             instructions=agent_instructions_title,
