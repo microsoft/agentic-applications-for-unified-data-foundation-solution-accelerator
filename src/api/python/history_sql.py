@@ -11,7 +11,6 @@ from pydantic import BaseModel, ConfigDict
 import pyodbc
 from azure.identity.aio import AzureCliCredential
 from azure.monitor.events.extension import track_event
-from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
@@ -29,19 +28,7 @@ router = APIRouter()
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Check if the Application Insights Instrumentation Key is set in the environment variables
-instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
-if instrumentation_key:
-    # Configure Application Insights if the Instrumentation Key is found
-    configure_azure_monitor(connection_string=instrumentation_key)
-    logging.info("Historyfab API: Application Insights configured with the provided Instrumentation Key")
-else:
-    # Log a warning if the Instrumentation Key is not found
-    logging.warning("Historyfab API: No Application Insights Instrumentation Key found. Skipping configuration")
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 # Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
 logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
@@ -51,7 +38,7 @@ logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
 
 # Suppress info logs from OpenTelemetry exporter
 logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
-    logging.WARNING
+    logging.ERROR
 )
 
 # Azure AI Foundry configuration
@@ -214,6 +201,7 @@ class SqlQueryTool(BaseModel):
         """Execute parameterized SQL query and return results as list of dictionaries."""
         # Connect to the database
         try:
+            logger.info("Chat Agent - Executing SQL query: %s", sql_query)
             cursor = self.pyodbc_conn.cursor()
             cursor.execute(sql_query)
             columns = [desc[0] for desc in cursor.description]
@@ -228,10 +216,10 @@ class SqlQueryTool(BaseModel):
                     else:
                         row_dict[col_name] = value
                 result.append(row_dict)
-
+            logger.info("Chat Agent - Result of SQL query: %s", result)
             return result
         except Exception as e:
-            logging.error("Error executing SQL query: %s", e)
+            logger.error("Chat Agent - Error executing SQL query: %s", e)
             return None
         finally:
             if cursor:
