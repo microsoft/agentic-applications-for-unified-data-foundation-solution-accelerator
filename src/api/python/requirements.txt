@@ -12,28 +12,29 @@ types-requests==2.32.4.20250913
 aiohttp==3.13.3
  
 # Azure Services
-agent-framework-azure-ai==1.0.0b251120
-agent-framework-core==1.0.0b251120
+agent-framework-azure-ai==1.0.0b260114
+agent-framework-core==1.0.0b260114
 azure-identity==1.25.1
 # azure-search-documents==11.6.0  
-azure-ai-projects==2.0.0b2 # azure-ai-projects==1.1.0b2 --pre
+azure-ai-projects==2.0.0b3 # azure-ai-projects==1.1.0b2 --pre
 # azure-ai-agents==1.2.0b1 --pre  
 # azure-ai-inference==1.0.0b9  
 azure-cosmos==4.14.0
  
 # Additional utilities
-openai==2.6.1
+openai==2.8.0
 pyodbc==5.3.0
 pandas==2.3.3
  
-opentelemetry-exporter-otlp-proto-grpc==1.38.0
-opentelemetry-exporter-otlp-proto-http==1.38.0
+opentelemetry-exporter-otlp-proto-grpc==1.39.0
+opentelemetry-exporter-otlp-proto-http==1.39.0
 azure-monitor-events-extension==0.1.0
-opentelemetry-sdk==1.38.0
-opentelemetry-api==1.38.0
-opentelemetry-semantic-conventions==0.59b0
-opentelemetry-instrumentation==0.59b0
-azure-monitor-opentelemetry==1.8.1
+opentelemetry-sdk==1.39.0
+opentelemetry-api==1.39.0
+opentelemetry-semantic-conventions==0.60b0
+opentelemetry-semantic-conventions-ai==0.4.13
+opentelemetry-instrumentation==0.60b0
+azure-monitor-opentelemetry==1.8.6
  
 # Development tools
 pytest==8.4.2
