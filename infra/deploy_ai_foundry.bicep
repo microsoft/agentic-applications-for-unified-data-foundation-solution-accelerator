@@ -38,6 +38,10 @@ param azureExistingAIProjectResourceId string = ''
 @description('The principal ID of the user deploying the solution, used for role assignments.')
 param deployingUserPrincipalId string = ''
 
+@description('The principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC.')
+@allowed(['User', 'ServicePrincipal'])
+param deployingUserPrincipalType string = 'User'
+
 @description('Tags to apply to all resources.')
 param tags object = {}
 
@@ -503,7 +507,7 @@ resource userAIServicesAccess 'Microsoft.Authorization/roleAssignments@2022-04-0
   properties: {
     principalId: deployingUserPrincipalId
     roleDefinitionId: cognitiveServicesUser.id
-    principalType: 'User'
+    principalType: deployingUserPrincipalType
   }
 }
 
@@ -514,7 +518,7 @@ resource userAzureAIAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' 
   properties: {
     principalId: deployingUserPrincipalId
     roleDefinitionId: azureAIUser.id
-    principalType: 'User'
+    principalType: deployingUserPrincipalType
   }
 }
 
@@ -525,7 +529,7 @@ resource userSearchIndexContributor 'Microsoft.Authorization/roleAssignments@202
   properties: {
     principalId: deployingUserPrincipalId
     roleDefinitionId: searchIndexDataContributor.id
-    principalType: 'User'
+    principalType: deployingUserPrincipalType
   }
 }
 
@@ -535,7 +539,7 @@ resource userSearchServiceContributor 'Microsoft.Authorization/roleAssignments@2
   properties: {
     principalId: deployingUserPrincipalId
     roleDefinitionId: searchServiceContributor.id
-    principalType: 'User'
+    principalType: deployingUserPrincipalType
   }
 }
 
@@ -546,7 +550,7 @@ resource userStorageBlobContributor 'Microsoft.Authorization/roleAssignments@202
   properties: {
     principalId: deployingUserPrincipalId
     roleDefinitionId: storageBlobDataContributor.id
-    principalType: 'User'
+    principalType: deployingUserPrincipalType
   }
 }
 

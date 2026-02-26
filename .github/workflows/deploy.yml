@@ -207,6 +207,7 @@ jobs:
             fi
           fi
           azd env set BACKEND_RUNTIME_STACK="${BACKEND_RUNTIME_STACK}"
+          azd env set DEPLOYING_USER_PRINCIPAL_TYPE="ServicePrincipal"
           echo "BACKEND_RUNTIME_STACK set to ${BACKEND_RUNTIME_STACK}"
 
           echo "Environment variables set successfully:"
