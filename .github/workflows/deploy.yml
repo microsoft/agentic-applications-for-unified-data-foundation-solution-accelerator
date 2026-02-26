@@ -33,6 +33,10 @@ env:
   GPT_MIN_CAPACITY: 150
   BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
 
+permissions:
+  contents: read
+  actions: read
+  
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -50,14 +54,14 @@ jobs:
 
       - name: Run Quota Check
         id: quota-check
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          GPT_MIN_CAPACITY: ${{ env.GPT_MIN_CAPACITY }}
+          AZURE_REGIONS: ${{ vars.AZURE_REGIONS }}
         run: |
-          export AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
-          export AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
-          export AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
-          export AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          export GPT_MIN_CAPACITY="${{ env.GPT_MIN_CAPACITY }}"
-          export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
-
           chmod +x infra/scripts/checkquota_agentic_application.sh
           if ! infra/scripts/checkquota_agentic_application.sh; then
             # If quota check fails due to insufficient quota, set the flag
@@ -93,15 +97,8 @@ jobs:
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_ENV
           echo "AZURE_LOCATION=$VALID_REGION" >> $GITHUB_OUTPUT
 
-      - name: Setup Azure CLI
-        run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          az --version  # Verify installation
-
-      - name: Setup Azure Developer CLI
-        run: |
-          curl -fsSL https://aka.ms/install-azd.sh | sudo bash
-          azd version
+      - name: Install azd
+        uses: Azure/setup-azd@v2
 
       - name: Install ODBC Driver 18 for SQL Server
         run: |
@@ -112,7 +109,7 @@ jobs:
           fi
               
           # Download the package to configure the Microsoft repo
-          curl -sSL -O https://packages.microsoft.com/config/ubuntu/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2)/packages-microsoft-prod.deb
+          curl -fsSL -O https://packages.microsoft.com/config/ubuntu/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2)/packages-microsoft-prod.deb || { echo "Failed to download Microsoft packages config"; exit 1; }
           # Install the package
           sudo dpkg -i packages-microsoft-prod.deb
           # Delete the file
@@ -281,15 +278,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Azure CLI
-        run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          az --version  # Verify installation
-
       - name: Setup Azure Developer CLI
-        run: |
-          curl -fsSL https://aka.ms/install-azd.sh | sudo bash
-          azd version
+        uses: azure/setup-azd@v2
 
       - name: Login to Azure
         run: |

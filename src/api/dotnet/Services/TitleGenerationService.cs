@@ -1,3 +1,4 @@
+using Azure;
 using CsApi.Interfaces;
 using CsApi.Auth;
 using Azure.AI.Projects;
@@ -46,6 +47,10 @@ public class TitleGenerationService : ITitleGenerationService
                 _logger.LogDebug("Using configured title agent: {titleAgentName}", _titleAgentName);
                 return await GenerateTitleWithAgentAsync(_titleAgentName, messages, cancellationToken);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -134,9 +139,18 @@ public class TitleGenerationService : ITitleGenerationService
             _logger.LogWarning("Agent {titleAgentName} returned empty or null title, using fallback", titleAgentName);
             return GenerateFallbackTitle(messages);
         }
+        catch (RequestFailedException ex)
+        {
+            _logger.LogError(ex, "Azure API error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
+            _logger.LogError(ex, "Unexpected error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
             return GenerateFallbackTitle(messages);
         }
     }

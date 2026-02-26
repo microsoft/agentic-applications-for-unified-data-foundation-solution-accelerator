@@ -10,33 +10,51 @@ requiredVersions:
   azd: ">= 1.15.0"
 
 metadata:
-  template: agentic-applications-for-unified-data-foundation@1.0
+  template: agentic-applications-for-unified-data-foundation@1.1
 
 hooks:
   postprovision:
     windows:
       run: |
-        Write-Host "Web app URL: "
-        Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
+        $isWorkshop = $env:IS_WORKSHOP
+        $deployApp = $env:AZURE_ENV_DEPLOY_APP
 
-        # Build the exact command string (quoted to survive spaces)
-        Write-Host "`nRun the following 2 commands in the bash terminal to create agents and fabric items respectively:"
-        Write-Host "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
+        if (-not ($isWorkshop -eq "true" -and $deployApp -ne "true")) {
+            Write-Host "Web app URL: "
+            Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
+        }
+        if ($isWorkshop -eq "true") {
+            Write-Host ""
+        } else {
+            Write-Host "`nRun the following commands in the bash terminal:"
+            Write-Host "1. Create agents:"
+            Write-Host "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
 
-        Write-Host "`nbash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
+            Write-Host "`n2. Create Fabric items:"
+            Write-Host "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
+        }
 
       shell: pwsh
       continueOnError: false
       interactive: true
     posix:
       run: |
-        echo "Web app URL: "
-        echo $WEB_APP_URL
-        echo ""
-        echo "Run the following 2 commands in the bash terminal to create agents and fabric items respectively:"
-        echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"
-        echo ""
-        echo "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+        if [ "$IS_WORKSHOP" != "true" ] || [ "$AZURE_ENV_DEPLOY_APP" = "true" ]; then
+            echo "Web app URL: "
+            echo $WEB_APP_URL
+            echo ""
+        fi
+
+        if [ "$IS_WORKSHOP" = "true" ]; then
+            echo ""
+        else
+            echo "Run the following commands in the bash terminal:"
+            echo "1. Create agents:"
+            echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"
+            echo ""
+            echo "2. Create Fabric items:"
+            echo "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+        fi
 
       shell: sh
       continueOnError: false

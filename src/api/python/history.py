@@ -6,7 +6,7 @@ from typing import Optional
 
 from azure.cosmos import exceptions
 from azure.cosmos.aio import CosmosClient
-from azure.identity.aio import get_bearer_token_provider
+from azure.identity import get_bearer_token_provider
 from azure.monitor.events.extension import track_event
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
@@ -16,7 +16,7 @@ from opentelemetry.trace import Status, StatusCode
 
 # from chat import adjust_processed_data_dates
 from auth.auth_utils import get_authenticated_user_details
-from auth.azure_credential_utils import get_azure_credential_async
+from auth.azure_credential_utils import get_azure_credential_async, get_azure_credential
 
 router = APIRouter()
 
@@ -180,7 +180,7 @@ class CosmosConversationClient:
                     item=message["id"], partition_key=user_id
                 )
                 response_list.append(resp)
-            return response_list
+        return response_list
 
     async def get_conversations(self, user_id, limit, sort_order="DESC", offset=0):
         """Get list of conversations for a user with pagination."""
@@ -273,7 +273,7 @@ class CosmosConversationClient:
 
 
 # Helper functions that were previously in HistoryService
-def init_cosmosdb_client():
+async def init_cosmosdb_client():
     """Initialize and return a CosmosDB client."""
     if not CHAT_HISTORY_ENABLED:
         logger.debug("CosmosDB is not enabled in configuration")
@@ -284,7 +284,7 @@ def init_cosmosdb_client():
 
         return CosmosConversationClient(
             cosmosdb_endpoint=cosmos_endpoint,
-            credential=get_azure_credential_async(),
+            credential=await get_azure_credential_async(),
             database_name=AZURE_COSMOSDB_DATABASE,
             container_name=AZURE_COSMOSDB_CONVERSATIONS_CONTAINER,
             enable_message_feedback=AZURE_COSMOSDB_ENABLE_FEEDBACK,
@@ -308,7 +308,7 @@ def init_openai_client():
 
         logger.debug("Using Azure AD authentication for OpenAI")
         ad_token_provider = get_bearer_token_provider(
-            get_azure_credential_async(), "https://cognitiveservices.azure.com/.default")
+            get_azure_credential(), "https://cognitiveservices.azure.com/.default")
 
         if not AZURE_OPENAI_DEPLOYMENT_MODEL:
             raise ValueError("AZURE_OPENAI_MODEL is required")
@@ -359,7 +359,7 @@ async def add_conversation(user_id: str, request_json: dict):
         history_metadata = {}
 
         # make sure cosmos is configured
-        cosmos_conversation_client = init_cosmosdb_client()
+        cosmos_conversation_client = await init_cosmosdb_client()
         if not cosmos_conversation_client:
             raise ValueError("CosmosDB is not configured or unavailable")
 
@@ -394,7 +394,7 @@ async def update_conversation(user_id: str, request_json: dict):
     messages = request_json.get("messages", [])
     if not conversation_id:
         raise ValueError("No conversation_id found")
-    cosmos_conversation_client = init_cosmosdb_client()
+    cosmos_conversation_client = await init_cosmosdb_client()
     # Retrieve or create conversation
     conversation = await cosmos_conversation_client.get_conversation(user_id, conversation_id)
     if not conversation:
@@ -434,7 +434,7 @@ async def update_conversation(user_id: str, request_json: dict):
     # Format the incoming message object in the "chat/completions" messages format
     # then write it to the conversation history in cosmos
     messages = request_json["messages"]
-    if len(messages) > 0 and messages[-1]["role"] == "assistant":
+    if len(messages) > 0 and messages[-1]["role"] in ("assistant", "error"):
         if len(messages) > 1 and messages[-2].get("role", None) == "tool":
             # write the tool message first
             await cosmos_conversation_client.create_message(
@@ -467,7 +467,7 @@ async def rename_conversation(user_id: str, conversation_id, title):
     if not conversation_id:
         raise ValueError("No conversation_id found")
 
-    cosmos_conversation_client = init_cosmosdb_client()
+    cosmos_conversation_client = await init_cosmosdb_client()
     conversation = await cosmos_conversation_client.get_conversation(user_id, conversation_id)
 
     if not conversation:
@@ -491,7 +491,7 @@ async def update_message_feedback(
     try:
         logger.info(
             f"Updating feedback for message_id: {message_id} by user: {user_id}")
-        cosmos_conversation_client = init_cosmosdb_client()
+        cosmos_conversation_client = await init_cosmosdb_client()
         updated_message = await cosmos_conversation_client.update_message_feedback(user_id, message_id, message_feedback)
 
         if updated_message:
@@ -519,7 +519,7 @@ async def delete_conversation(user_id: str, conversation_id: str) -> bool:
         bool: True if the conversation was deleted successfully, False otherwise.
     """
     try:
-        cosmos_conversation_client = init_cosmosdb_client()
+        cosmos_conversation_client = await init_cosmosdb_client()
 
         # Fetch conversation to ensure it exists and belongs to the user
         conversation = await cosmos_conversation_client.get_conversation(user_id, conversation_id)
@@ -558,7 +558,7 @@ async def get_conversations(user_id: str, offset: int, limit: Optional[int]):
         list: A list of conversation objects or an empty list if none exist.
     """
     try:
-        cosmos_conversation_client = init_cosmosdb_client()
+        cosmos_conversation_client = await init_cosmosdb_client()
         if not cosmos_conversation_client:
             raise ValueError("CosmosDB is not configured or unavailable")
 
@@ -582,7 +582,7 @@ async def get_messages(user_id: str, conversation_id: str):
         list: A list of messages in the conversation.
     """
     try:
-        cosmos_conversation_client = init_cosmosdb_client()
+        cosmos_conversation_client = await init_cosmosdb_client()
         if not cosmos_conversation_client:
             raise ValueError("CosmosDB is not configured or unavailable")
 
@@ -614,7 +614,7 @@ async def get_conversation_messages(user_id: str, conversation_id: str):
         dict: The conversation object with messages or None if not found.
     """
     try:
-        cosmos_conversation_client = init_cosmosdb_client()
+        cosmos_conversation_client = await init_cosmosdb_client()
         if not cosmos_conversation_client:
             raise ValueError("CosmosDB is not configured or unavailable")
 
@@ -629,16 +629,25 @@ async def get_conversation_messages(user_id: str, conversation_id: str):
         conversation_messages = await cosmos_conversation_client.get_messages(user_id, conversation_id)
 
         # Format messages for the frontend
-        messages = [
-            {
+        messages = []
+        for msg in conversation_messages:
+            # Extract content - handle both string and object formats
+            content = msg.get("content", "")
+            if isinstance(content, dict):
+                message_content = content.get("content", "")
+                citations = content.get("citations", "")
+            else:
+                message_content = content
+                citations = ""
+
+            messages.append({
                 "id": msg["id"],
                 "role": msg["role"],
-                "content": msg["content"],
+                "content": message_content,
                 "createdAt": msg["createdAt"],
                 "feedback": msg.get("feedback"),
-            }
-            for msg in conversation_messages
-        ]
+                "citations": citations,
+            })
 
         return messages
     except Exception:
@@ -659,7 +668,7 @@ async def clear_messages(user_id: str, conversation_id: str) -> bool:
         bool: True if messages were cleared successfully, False otherwise.
     """
     try:
-        cosmos_conversation_client = init_cosmosdb_client()
+        cosmos_conversation_client = await init_cosmosdb_client()
         if not cosmos_conversation_client:
             raise ValueError("CosmosDB is not configured or unavailable")
 
@@ -690,7 +699,7 @@ async def clear_messages(user_id: str, conversation_id: str) -> bool:
 async def ensure_cosmos():
     """Ensure CosmosDB is properly configured and accessible."""
     try:
-        cosmos_conversation_client = init_cosmosdb_client()
+        cosmos_conversation_client = await init_cosmosdb_client()
         success, err = await cosmos_conversation_client.ensure()
         return success, err
     except Exception as e:
@@ -835,16 +844,15 @@ async def update_message_feedback_route(request: Request):
 
 
 @router.delete("/delete")
-async def delete_conversation_route(request: Request):
+async def delete_conversation_route(request: Request, id: str = Query(...)):
     """Route handler for deleting a conversation."""
     try:
         # Get the user ID from request headers
         authenticated_user = get_authenticated_user_details(
             request_headers=request.headers)
         user_id = authenticated_user["user_principal_id"]
-        # Parse request body
-        request_json = await request.json()
-        conversation_id = request_json.get("conversation_id")
+
+        conversation_id = id
         if not conversation_id:
             track_event_if_configured("DeleteConversationValidationError", {
                 "error": "conversation_id is missing",
@@ -927,17 +935,15 @@ async def list_conversations(
         return JSONResponse(content={"error": "An internal error has occurred!"}, status_code=500)
 
 
-@router.post("/read")
-async def get_conversation_messages_route(request: Request):
+@router.get("/read")
+async def get_conversation_messages_route(request: Request, id: str = Query(...)):
     """Route handler for reading conversation messages."""
     try:
         authenticated_user = get_authenticated_user_details(
             request_headers=request.headers)
         user_id = authenticated_user["user_principal_id"]
 
-        # Parse request body
-        request_json = await request.json()
-        conversation_id = request_json.get("conversation_id")
+        conversation_id = id
 
         if not conversation_id:
             track_event_if_configured("ReadConversationValidationError", {

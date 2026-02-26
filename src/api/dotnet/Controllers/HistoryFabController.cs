@@ -79,7 +79,7 @@ public class HistoryFabController : ControllerBase
                 {
                     var nextMessage = validMessages[j];
                     
-                    if (nextMessage.Role == "assistant")
+                    if (nextMessage.Role == "assistant" || nextMessage.Role == "error")
                     {
                         pairedAssistant = nextMessage;
                         break;
@@ -113,7 +113,7 @@ public class HistoryFabController : ControllerBase
                 }
             }
             // Handle other roles (tool, system, etc.) by adding them as-is
-            else if (currentMessage.Role != "user" && currentMessage.Role != "assistant")
+            else
             {
                 finalMessages.Add(currentMessage);
                 processedMessages.Add(currentMessage.Id);
@@ -145,10 +145,10 @@ public class HistoryFabController : ControllerBase
         if (count == null)
             return Problem(statusCode: 500, title: "Internal Server Error", detail: "Failed to delete conversations");
         
-        if (!string.IsNullOrEmpty(user))
-            return Ok(new { message = $"Deleted all conversations for user {user}", affected = count });
-        else
-            return Ok(new { message = "Deleted all conversations for all users (admin operation)", affected = count });
+        var message = !string.IsNullOrEmpty(user)
+            ? $"Deleted all conversations for user {user}"
+            : "Deleted all conversations for all users (admin operation)";
+        return Ok(new { message, affected = count });
     }
 
     public sealed class RenameRequest { public string Conversation_Id { get; set; } = string.Empty; public string Title { get; set; } = string.Empty; }
@@ -262,6 +262,11 @@ public class HistoryFabController : ControllerBase
         catch (UnauthorizedAccessException)
         {
             return Forbid();
+        }
+        catch (OperationCanceledException)
+        {
+            // Client disconnected or request was cancelled
+            return StatusCode(499);
         }
         catch (Exception ex)
         {

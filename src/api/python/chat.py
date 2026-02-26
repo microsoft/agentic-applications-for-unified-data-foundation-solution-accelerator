@@ -33,6 +33,10 @@ load_dotenv()
 HOST_NAME = "Agentic Applications for Unified Data Foundation"
 HOST_INSTRUCTIONS = "Answer questions about Sales, Products and Orders data."
 
+# Workshop mode configuration
+IS_WORKSHOP = os.getenv("IS_WORKSHOP", "false").lower() == "true"
+AZURE_ENV_ONLY = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
+
 router = APIRouter()
 
 # Configure logging
@@ -155,8 +159,8 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
             cache = get_thread_cache()
             thread_conversation_id = cache.get(conversation_id, None)
 
-            from history_sql import SqlQueryTool, get_fabric_db_connection
-            db_connection = await get_fabric_db_connection()
+            from history_sql import SqlQueryTool, get_db_connection
+            db_connection = await get_db_connection()
             if not db_connection:
                 logger.error("Failed to establish database connection")
                 raise Exception("Database connection failed")
@@ -222,6 +226,174 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
+async def stream_openai_text_workshop(conversation_id: str, query: str) -> StreamingResponse:
+    """
+    Get a streaming text response from OpenAI with workshop mode using responses.create().
+    Handles both SQL function calls and AI Search like 08_test_agent.py.
+    Uses Fabric SQL when AZURE_ENV_ONLY is false, otherwise uses Azure SQL.
+    """
+    complete_response = ""
+    credential = None
+    db_connection = None
+
+    try:
+        if not query:
+            query = "Please provide a query."
+
+        credential = await get_azure_credential_async()
+
+        async with AIProjectClient(
+            endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
+            credential=credential
+        ) as project_client:
+            cache = get_thread_cache()
+            conv_id = cache.get(conversation_id, None)
+
+            # Get database connection based on AZURE_ENV_ONLY flag
+            from history_sql import SqlQueryTool, get_azure_sql_connection, get_fabric_db_connection
+
+            if AZURE_ENV_ONLY:
+                logger.info("Workshop mode: Using Azure SQL Database")
+                db_connection = await get_azure_sql_connection()
+            else:
+                logger.info("Workshop mode: Using Fabric Lakehouse SQL")
+                db_connection = await get_fabric_db_connection()
+
+            if not db_connection:
+                logger.warning("Failed to establish database connection")
+
+            custom_tool = SqlQueryTool(pyodbc_conn=db_connection) if db_connection else None
+
+            openai_client = project_client.get_openai_client()
+
+            # Create or retrieve conversation
+            if not conv_id:
+                conv = await openai_client.conversations.create()
+                conv_id = conv.id
+                cache[conversation_id] = conv_id
+
+            # Initial request to the agent
+            response = await openai_client.responses.create(
+                conversation=conv_id,
+                input=query,
+                extra_body={"agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
+            )
+
+            # Process response - handle function calls and search
+            max_iterations = 10
+            iteration = 0
+
+            while iteration < max_iterations:
+                iteration += 1
+
+                # Check for function calls and tool uses in output
+                function_calls = []
+                text_output = ""
+                search_results = []
+
+                for item in response.output:
+                    item_type = getattr(item, 'type', None)
+
+                    if item_type == 'function_call':
+                        function_calls.append(item)
+                    elif item_type == 'message':
+                        # Type guard: only process if item has content attribute and it's not None
+                        if hasattr(item, 'content') and item.content is not None:
+                            for content in item.content:
+                                if hasattr(content, 'text'):
+                                    text_output += content.text
+                                # Check for annotations (citations from search)
+                                if hasattr(content, 'annotations'):
+                                    for ann in content.annotations:
+                                        if hasattr(ann, 'url_citation'):
+                                            search_results.append(ann.url_citation)
+                                        elif hasattr(ann, 'file_citation'):
+                                            search_results.append(getattr(ann.file_citation, 'file_id', str(ann.file_citation)))
+                    # Handle search tool call (request)
+                    elif item_type == 'azure_ai_search_call':
+                        args_str = getattr(item, 'arguments', '{}')
+                        try:
+                            args = json.loads(args_str) if args_str else {}
+                            query_text = args.get('query', 'unknown')
+                            logger.info("AI Search query: %s", query_text)
+                        except Exception:
+                            logger.info("AI Search called")
+                    # Handle search tool output (result)
+                    elif item_type == 'azure_ai_search_call_output':
+                        logger.info("AI Search completed")
+
+                # If no function calls, we're done
+                if not function_calls:
+                    if text_output:
+                        complete_response += text_output
+                        yield text_output
+                    break
+
+                # Handle function calls
+                tool_outputs = []
+                for fc in function_calls:
+                    func_name = fc.name
+                    func_args = json.loads(fc.arguments)
+
+                    logger.info("Calling function: %s", func_name)
+
+                    if func_name == "execute_sql":
+                        sql_query = func_args.get("sql_query", "")
+                        logger.info("Executing SQL query: %s", sql_query[:100])
+                        result = await custom_tool.run_sql_query(sql_query=sql_query) if custom_tool else []
+                        logger.info("SQL query completed")
+                        # Convert result to string - it's a list of dicts from run_sql_query
+                        if result is None:
+                            result_str = "No results returned"
+                        elif isinstance(result, (list, dict)):
+                            result_str = json.dumps(result, ensure_ascii=False)
+                        else:
+                            result_str = str(result)
+                    else:
+                        result_str = f"Unknown function: {func_name}"
+                        logger.warning("Unknown function called: %s", func_name)
+
+                    tool_outputs.append({
+                        "type": "function_call_output",
+                        "call_id": fc.call_id,
+                        "output": result_str
+                    })
+
+                # Submit tool outputs and get next response
+                # Note: Don't include 'conversation' when using 'previous_response_id'
+                response = await openai_client.responses.create(
+                    conversation=conv_id,
+                    input=tool_outputs,
+                    extra_body={
+                        "agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}
+                    }
+                )
+
+            if iteration >= max_iterations:
+                logger.warning("Max iterations reached in workshop mode")
+                yield "\n\n(Response processing reached maximum iterations)"
+
+    except Exception as e:
+        complete_response = str(e)
+        logger.error("Error in stream_openai_text_workshop: %s", e)
+        cache = get_thread_cache()
+        conv_id = cache.pop(conversation_id, None)
+        if conv_id is not None:
+            corrupt_key = f"{conversation_id}_corrupt_{random.randint(1000, 9999)}"
+            cache[corrupt_key] = conv_id
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error streaming OpenAI text") from e
+
+    finally:
+        if db_connection:
+            db_connection.close()
+        if credential is not None:
+            await credential.close()
+        # Provide a fallback response when no data is received from OpenAI.
+        if complete_response == "":
+            logger.info("No response received from OpenAI.")
+            yield "I cannot answer this question with the current data. Please rephrase or add more details."
+
+
 async def stream_chat_request(conversation_id, query):
     """
     Handles streaming chat requests.
@@ -229,7 +401,9 @@ async def stream_chat_request(conversation_id, query):
     async def generate():
         try:
             assistant_content = ""
-            async for chunk in stream_openai_text(conversation_id, query):
+            # Use workshop function if IS_WORKSHOP is enabled
+            stream_func = stream_openai_text_workshop if IS_WORKSHOP else stream_openai_text
+            async for chunk in stream_func(conversation_id, query):
                 if isinstance(chunk, dict):
                     chunk = json.dumps(chunk)  # Convert dict to JSON string
                 assistant_content += str(chunk)

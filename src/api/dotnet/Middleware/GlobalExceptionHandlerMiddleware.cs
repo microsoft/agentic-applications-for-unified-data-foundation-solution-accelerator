@@ -29,6 +29,11 @@ public class GlobalExceptionHandlerMiddleware
         {
             await _next(context);
         }
+        catch (OperationCanceledException)
+        {
+            // Client disconnected - don't log as error, don't try to write response
+            context.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
+        }
         catch (Exception ex)
         {
             await HandleExceptionAsync(context, ex);
@@ -118,14 +123,11 @@ public class GlobalExceptionHandlerMiddleware
             HttpRequestException httpEx when httpEx.Message.Contains("timeout") => 
                 (StatusCodes.Status408RequestTimeout, "Request Timeout", "External service request timed out."),
             
-            HttpRequestException httpEx => 
+            HttpRequestException _ => 
                 (StatusCodes.Status502BadGateway, "Bad Gateway", "External service error."),
             
             TaskCanceledException => 
                 (StatusCodes.Status408RequestTimeout, "Request Timeout", "The operation was cancelled due to timeout."),
-            
-            OperationCanceledException => 
-                (StatusCodes.Status499ClientClosedRequest, "Client Closed Request", "The operation was cancelled."),
             
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred.")
         };

@@ -2,6 +2,7 @@ import atexit
 import io
 import logging
 import os
+from datetime import datetime
 
 
 from bs4 import BeautifulSoup
@@ -12,15 +13,29 @@ from playwright.sync_api import sync_playwright
 
 import pytest
 
+# Create screenshots directory if it doesn't exist
+SCREENSHOTS_DIR = os.path.join(os.path.dirname(__file__), "screenshots")
+os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
+
 
 @pytest.fixture(scope="session")
 def login_logout():
     # perform login and browser close once in a session
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, args=["--start-maximized"])
-        context = browser.new_context(no_viewport=True)
+        # Create context with cleared cache - no storage state is persisted
+        context = browser.new_context(
+            no_viewport=True,
+            storage_state=None  # Ensures fresh start with no cached data
+        )
         context.set_default_timeout(80000)
         page = context.new_page()
+        
+        # Clear browser cache and cookies using CDP
+        client = context.new_cdp_session(page)
+        client.send("Network.clearBrowserCache")
+        client.send("Network.clearBrowserCookies")
+        
         # Navigate to the login URL
         page.goto(URL, wait_until="domcontentloaded")
 
@@ -179,14 +194,3 @@ def rename_duration_column():
 
 # Register this function to run after everything is done
 atexit.register(rename_duration_column)
-
-
-# Add logs and docstring to report
-# @pytest.hookimpl(hookwrapper=True)
-# def pytest_runtest_makereport(item, call):
-#     outcome = yield
-#     report = outcome.get_result()
-#     report.description = str(item.function.__doc__)
-#     os.makedirs("logs", exist_ok=True)
-#     extra = getattr(report, "extra", [])
-#     report.extra = extra
