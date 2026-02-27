@@ -200,6 +200,7 @@ class SqlQueryTool(BaseModel):
     async def run_sql_query(self, sql_query):
         """Execute parameterized SQL query and return results as list of dictionaries."""
         # Connect to the database
+        cursor = None
         try:
             logger.info("Chat Agent - Executing SQL query: %s", sql_query)
             cursor = self.pyodbc_conn.cursor()
@@ -220,7 +221,7 @@ class SqlQueryTool(BaseModel):
             return result
         except Exception as e:
             logger.error("Chat Agent - Error executing SQL query: %s", e)
-            return None
+            return f"SQL query failed with error: {str(e)}. Please fix the query and try again."
         finally:
             if cursor:
                 cursor.close()
