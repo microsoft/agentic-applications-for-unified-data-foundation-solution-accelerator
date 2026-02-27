@@ -56,12 +56,10 @@ on:
         type: string
         default: ''
 
-permissions:
-  contents: read
-  actions: read
 jobs:
   cleanup-deployment:
     runs-on: ${{ inputs.runner_os }}
+    environment: production
     continue-on-error: true
     env:
       RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
@@ -79,12 +77,17 @@ jobs:
       - name: Install azd
         uses: Azure/setup-azd@v2
 
-      - name: Login to Azure
+      - name: Login to Azure using OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to AZD
         shell: bash
         run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --federated-credential-provider "github" --tenant-id ${{ secrets.AZURE_TENANT_ID }}
           azd config set defaults.subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Select Environment

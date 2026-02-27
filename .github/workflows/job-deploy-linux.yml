@@ -48,14 +48,11 @@ on:
       API_PID:
         description: "API PID"
         value: ${{ jobs.deploy-linux.outputs.API_PID }}
-        
-permissions:
-  contents: read
-  actions: read
 
 jobs:
   deploy-linux:
     runs-on: ubuntu-latest
+    environment: production
     env:
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
     outputs:
@@ -235,13 +232,17 @@ jobs:
       - name: Install azd
         uses: Azure/setup-azd@v2
           
-      - name: Login to AZD
+      - name: Login to Azure using OIDC
         id: login-azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to AZD
         shell: bash
-        run: |
-          az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --client-secret ${{ secrets.AZURE_CLIENT_SECRET }} --tenant-id ${{ secrets.AZURE_TENANT_ID }}
+        run: azd auth login --client-id ${{ secrets.AZURE_CLIENT_ID }} --federated-credential-provider "github" --tenant-id ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Deploy using azd up and extract values (Linux)
         id: get_output_linux
@@ -276,11 +277,13 @@ jobs:
           azd env set AZURE_ENV_IMAGETAG="$IMAGE_TAG"
           azd env set BACKEND_RUNTIME_STACK="$BACKEND_RUNTIME_STACK"
           azd env set AZURE_ENV_USE_CASE="$AZURE_ENV_USE_CASE"
+          azd env set DEPLOYING_USER_PRINCIPAL_TYPE="ServicePrincipal"
+          azd env set IS_WORKSHOP false
           
           # Set ACR name only when building Docker image
           if [[ "$BUILD_DOCKER_IMAGE" == "true" ]]; then
             # Extract ACR name from login server and set as environment variable
-            ACR_NAME=$(echo "${{ secrets.ACR_TEST_USERNAME }}")
+            ACR_NAME=$(echo "${{ secrets.ACR_TEST_LOGIN_SERVER }}" | cut -d'.' -f1)
             azd env set AZURE_ENV_ACR_NAME="$ACR_NAME"
             echo "Set ACR name to: $ACR_NAME"
           else
@@ -327,6 +330,13 @@ jobs:
           API_PID=$(azd env get-value API_PID)
           echo "API_PID=${API_PID}" >> $GITHUB_ENV
           echo "API_PID=${API_PID}" >> $GITHUB_OUTPUT
+
+      - name: Re-authenticate with Azure (refresh OIDC token)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           
       - name: Run Post-Deployment Scripts
         env:
@@ -339,7 +349,6 @@ jobs:
           bash infra/scripts/fabric_scripts/run_fabric_items_scripts.sh \
             "${{ secrets.FABRIC_WORKSPACE_ID }}"
             
-
       - name: Generate Deploy Job Summary
         if: always()
         env:

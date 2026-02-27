@@ -137,6 +137,10 @@ param acrName string = isWorkshop ? 'dataagentscontainerregworkshop' : 'dataagen
 var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
 
+@description('The principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC.')
+@allowed(['User', 'ServicePrincipal'])
+param deployingUserPrincipalType string = 'User'
+
 // ========== Resource Group Tag ========== //
 resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorkshop) {
   name: 'default'
@@ -189,6 +193,7 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
     deployingUserPrincipalId: deployingUserPrincipalId
+    deployingUserPrincipalType: deployingUserPrincipalType
     isWorkshop: isWorkshop
     searchServiceLocation: searchServiceLocation
   }
