@@ -137,6 +137,9 @@ async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
         bool: True if the operation was successful, False otherwise.
     """
     conn = await get_fabric_db_connection()
+    if not conn:
+        logging.error("Database connection failed in run_nonquery_params")
+        return False
     cursor = None
     try:
         cursor = conn.cursor()
@@ -165,6 +168,9 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
     """
     # Connect to the database
     conn = await get_fabric_db_connection()
+    if not conn:
+        logging.error("Database connection failed in run_query_params")
+        return None
     cursor = None
     try:
         cursor = conn.cursor()
