@@ -174,7 +174,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
             async with ChatAgent(
                 chat_client=chat_client,
                 tools=my_tools,
-                default_options={"tool_choice": "auto"},
+                default_options={"tool_choice": "auto", "store": False},
             ) as chat_agent:
 
                 if thread_conversation_id:
