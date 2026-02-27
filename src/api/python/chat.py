@@ -179,7 +179,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
 
                 if thread_conversation_id:
                     thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
-                
+
                 if not thread_conversation_id or thread is None:
                     thread = chat_agent.get_new_thread()
 
@@ -286,7 +286,7 @@ async def conversation(request: Request):
             )
 
         logger.info("Chat request received - query: %s, conversation_id: %s", query, conversation_id)
-        
+
         result = await stream_chat_request(conversation_id, query)
         track_event_if_configured(
             "ChatStreamSuccess",
