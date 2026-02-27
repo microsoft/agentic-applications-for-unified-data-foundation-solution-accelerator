@@ -98,6 +98,18 @@ if should_mock_azure_sdk():
     mock_ai_agents_models = MagicMock()
     mock_ai_agents.models = mock_ai_agents_models
     
+    # Mock Azure Monitor OpenTelemetry to prevent LogData import error
+    mock_azure_monitor_otel = MagicMock()
+    mock_azure_monitor_otel.configure_azure_monitor = MagicMock()
+    sys.modules['azure.monitor.opentelemetry'] = mock_azure_monitor_otel
+    sys.modules['azure.monitor.opentelemetry._configure'] = MagicMock()
+    sys.modules['azure.monitor.opentelemetry._constants'] = MagicMock()
+    sys.modules['azure.monitor.opentelemetry.exporter'] = MagicMock()
+    sys.modules['azure.monitor.opentelemetry.exporter.export'] = MagicMock()
+    sys.modules['azure.monitor.opentelemetry.exporter.export.logs'] = MagicMock()
+    sys.modules['azure.monitor.opentelemetry.exporter.export.logs._exporter'] = MagicMock()
+    sys.modules['azure.monitor.opentelemetry.exporter._constants'] = MagicMock()
+    
     # Mock specific classes that are imported
     mock_ai_agents_models.TruncationObject = MagicMock()
     
