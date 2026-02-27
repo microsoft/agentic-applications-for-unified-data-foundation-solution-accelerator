@@ -156,9 +156,17 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
             thread_conversation_id = cache.get(conversation_id, None)
 
             from history_sql import SqlQueryTool, get_fabric_db_connection
-            db_connection = await get_fabric_db_connection()
+            db_connection = None
+            max_retries = 3
+            for attempt in range(1, max_retries + 1):
+                db_connection = await get_fabric_db_connection()
+                if db_connection:
+                    break
+                logger.warning("Database connection attempt %d/%d failed", attempt, max_retries)
+                if attempt < max_retries:
+                    await asyncio.sleep(2 ** attempt)  # Exponential backoff: 2s, 4s
             if not db_connection:
-                logger.error("Failed to establish database connection")
+                logger.error("Failed to establish database connection after %d attempts", max_retries)
                 raise Exception("Database connection failed")
 
             custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
