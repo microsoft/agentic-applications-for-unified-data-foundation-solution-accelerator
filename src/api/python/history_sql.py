@@ -44,6 +44,7 @@ logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
 # Azure AI Foundry configuration
 AZURE_AI_AGENT_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
 AGENT_NAME_TITLE = os.getenv("AGENT_NAME_TITLE")
+AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME = os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME")
 
 # Database configuration
 
@@ -175,8 +176,9 @@ async def get_db_connection():
         Connection: Database connection object, or None if connection fails.
     """
     is_workshop = os.getenv("IS_WORKSHOP", "false").lower() == "true"
+    is_azure_only = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
 
-    if is_workshop:
+    if is_workshop and is_azure_only:
         logging.info("Workshop deployment mode: Using Azure SQL Server")
         return await get_azure_sql_connection()
     else:
@@ -262,15 +264,16 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
 class SqlQueryTool(BaseModel):
     """SQL query tool for executing database queries using Agent Framework."""
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    pyodbc_conn: pyodbc.Connection
 
     async def run_sql_query(self, sql_query):
         """Execute parameterized SQL query and return results as list of dictionaries."""
+        conn = None
         # Connect to the database
         cursor = None
         try:
             logger.info("Chat Agent - Executing SQL query: %s", sql_query)
-            cursor = self.pyodbc_conn.cursor()
+            conn = await get_db_connection()
+            cursor = conn.cursor()
             cursor.execute(sql_query)
             columns = [desc[0] for desc in cursor.description]
             result = []
@@ -292,6 +295,8 @@ class SqlQueryTool(BaseModel):
         finally:
             if cursor:
                 cursor.close()
+            if conn:
+                conn.close()
 
 
 # Configuration variable
@@ -569,6 +574,7 @@ async def generate_title(conversation_messages):
                 project_client=project_client,
                 agent_name=AGENT_NAME_TITLE,
                 use_latest_version=True,
+                model_deployment_name=AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME,
             )
 
             async with ChatAgent(

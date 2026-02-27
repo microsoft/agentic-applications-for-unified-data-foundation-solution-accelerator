@@ -143,7 +143,6 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
     thread = None
     complete_response = ""
     credential = None
-    db_connection = None
 
     try:
         if not query:
@@ -159,13 +158,8 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
             cache = get_thread_cache()
             thread_conversation_id = cache.get(conversation_id, None)
 
-            from history_sql import SqlQueryTool, get_db_connection
-            db_connection = await get_db_connection()
-            if not db_connection:
-                logger.error("Failed to establish database connection")
-                raise Exception("Database connection failed")
-
-            custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
+            from history_sql import SqlQueryTool
+            custom_tool = SqlQueryTool()
             my_tools = [custom_tool.run_sql_query]
 
             # Create chat client with existing agent
@@ -173,6 +167,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
                 project_client=project_client,
                 agent_name=os.getenv("AGENT_NAME_CHAT"),
                 use_latest_version=True,
+                model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME"),
             )
 
             async with ChatAgent(
@@ -216,8 +211,6 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error streaming OpenAI text") from e
 
     finally:
-        if db_connection:
-            db_connection.close()
         if credential is not None:
             await credential.close()
         # Provide a fallback response when no data is received from OpenAI.
@@ -234,7 +227,6 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
     """
     complete_response = ""
     credential = None
-    db_connection = None
 
     try:
         if not query:
@@ -250,20 +242,8 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
             conv_id = cache.get(conversation_id, None)
 
             # Get database connection based on AZURE_ENV_ONLY flag
-            from history_sql import SqlQueryTool, get_azure_sql_connection, get_fabric_db_connection
-
-            if AZURE_ENV_ONLY:
-                logger.info("Workshop mode: Using Azure SQL Database")
-                db_connection = await get_azure_sql_connection()
-            else:
-                logger.info("Workshop mode: Using Fabric Lakehouse SQL")
-                db_connection = await get_fabric_db_connection()
-
-            if not db_connection:
-                logger.warning("Failed to establish database connection")
-
-            custom_tool = SqlQueryTool(pyodbc_conn=db_connection) if db_connection else None
-
+            from history_sql import SqlQueryTool
+            custom_tool = SqlQueryTool()
             openai_client = project_client.get_openai_client()
 
             # Create or retrieve conversation
@@ -384,8 +364,6 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error streaming OpenAI text") from e
 
     finally:
-        if db_connection:
-            db_connection.close()
         if credential is not None:
             await credential.close()
         # Provide a fallback response when no data is received from OpenAI.
