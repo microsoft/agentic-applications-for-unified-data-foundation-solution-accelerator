@@ -176,8 +176,9 @@ async def get_db_connection():
         Connection: Database connection object, or None if connection fails.
     """
     is_workshop = os.getenv("IS_WORKSHOP", "false").lower() == "true"
+    is_azure_only = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
 
-    if is_workshop:
+    if is_workshop and is_azure_only:
         logging.info("Workshop deployment mode: Using Azure SQL Server")
         return await get_azure_sql_connection()
     else:
@@ -263,7 +264,6 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
 class SqlQueryTool(BaseModel):
     """SQL query tool for executing database queries using Agent Framework."""
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    connection_string: str
 
     async def run_sql_query(self, sql_query):
         """Execute parameterized SQL query and return results as list of dictionaries."""

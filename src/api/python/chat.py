@@ -156,14 +156,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
             truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
 
             from history_sql import SqlQueryTool
-            if IS_WORKSHOP:
-                connection_string = os.getenv("SQLDB_CONNECTION_STRING")
-            else:
-                connection_string = os.getenv("FABRIC_SQL_CONNECTION_STRING")
-            if not connection_string:
-                logger.error("Database connection string not set in environment variables.")
-                raise Exception("Database connection string not set")
-            custom_tool = SqlQueryTool(connection_string=connection_string)
+            custom_tool = SqlQueryTool()
             my_tools = [custom_tool.run_sql_query]
 
             # Create chat client with existing agent
@@ -249,18 +242,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
 
             # Get database connection based on AZURE_ENV_ONLY flag
             from history_sql import SqlQueryTool
-            if AZURE_ENV_ONLY:
-                logger.info("Workshop mode: Using Azure SQL Database")
-                connection_string = os.getenv("SQLDB_CONNECTION_STRING")
-            else:
-                logger.info("Workshop mode: Using Fabric Lakehouse SQL")
-                connection_string = os.getenv("FABRIC_SQL_CONNECTION_STRING")
-            if not connection_string:
-                logger.warning("Failed to fetch database connection string")
-                custom_tool = None
-            else:
-                custom_tool = SqlQueryTool(connection_string=connection_string)
-
+            custom_tool = SqlQueryTool()
             openai_client = project_client.get_openai_client()
 
             # Create or retrieve conversation
