@@ -180,7 +180,10 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
                     thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
 
                 if not thread_conversation_id or thread is None:
-                    thread = chat_agent.get_new_thread()
+                    openai_client = project_client.get_openai_client()
+                    conversation = await openai_client.conversations.create()
+                    thread_conversation_id = conversation.id
+                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
 
                 async for chunk in chat_agent.run_stream(messages=query, thread=thread):
                     if chunk is not None and chunk.text != "":
@@ -188,7 +191,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
                         yield chunk.text
 
                 # Cache the service thread ID after streaming completes
-                if thread.service_thread_id and thread.service_thread_id != thread_conversation_id:
+                if thread and thread.service_thread_id:
                     cache[conversation_id] = thread.service_thread_id
 
     except ServiceResponseException as e:
