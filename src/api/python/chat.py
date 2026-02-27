@@ -17,7 +17,6 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 # Azure SDK
-from azure.ai.agents.models import TruncationObject
 from azure.monitor.events.extension import track_event
 from azure.ai.projects.aio import AIProjectClient
 
@@ -43,6 +42,7 @@ router = APIRouter()
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
 logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
@@ -94,6 +94,10 @@ class ExpCache(TTLCache):
         credential = None
         try:
             if thread_conversation_id:
+                # Response IDs (resp_xxx) don't need explicit deletion - they're managed by the API
+                if thread_conversation_id.startswith("resp_"):
+                    logger.info("Skipping deletion for response ID: %s", thread_conversation_id)
+                    return
                 # Get credential and use async context managers to ensure proper cleanup
                 credential = await get_azure_credential_async()
                 async with AIProjectClient(
@@ -153,7 +157,6 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
 
             cache = get_thread_cache()
             thread_conversation_id = cache.get(conversation_id, None)
-            truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
 
             from history_sql import SqlQueryTool
             custom_tool = SqlQueryTool()
@@ -170,25 +173,23 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
             async with ChatAgent(
                 chat_client=chat_client,
                 tools=my_tools,
-                tool_choice="auto",
-                store=True,
+                default_options={"tool_choice": "auto"},
             ) as chat_agent:
 
                 if thread_conversation_id:
                     thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
-                    assert thread.is_initialized
-                else:
-                    # Create a conversation using openAI client
-                    openai_client = project_client.get_openai_client()
-                    conversation = await openai_client.conversations.create()
-                    thread_conversation_id = conversation.id
-                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
-                    cache[conversation_id] = thread_conversation_id
 
-                async for chunk in chat_agent.run_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
+                if not thread_conversation_id or thread is None:
+                    thread = chat_agent.get_new_thread()
+
+                async for chunk in chat_agent.run_stream(messages=query, thread=thread):
                     if chunk is not None and chunk.text != "":
                         complete_response += chunk.text
                         yield chunk.text
+
+                # Cache the service thread ID after streaming completes
+                if thread.service_thread_id and thread.service_thread_id != thread_conversation_id:
+                    cache[conversation_id] = thread.service_thread_id
 
     except ServiceResponseException as e:
         complete_response = str(e)
@@ -435,6 +436,8 @@ async def conversation(request: Request):
                 content={"error": "Conversation ID is required"},
                 status_code=400
             )
+
+        logger.info("Chat request received - query: %s, conversation_id: %s", query, conversation_id)
 
         result = await stream_chat_request(conversation_id, query)
         track_event_if_configured(
