@@ -68,7 +68,7 @@ def test_validate_greeting_prompts(login_logout, request):
             ("call", "log", f"Total execution time: {total_duration:.2f}s")
         )
     except Exception as e:
-        total_duration = log_test_failure(start_time, e)
+        log_test_failure(start_time, e)
         raise
 
 
@@ -131,7 +131,7 @@ def test_validate_rai_response(login_logout, request):
             ("call", "log", f"Total execution time: {total_duration:.2f}s")
         )
     except Exception as e:
-        total_duration = log_test_failure(start_time, e)
+        log_test_failure(start_time, e)
         raise
 
 
@@ -193,7 +193,7 @@ def test_validate_out_of_scope_response(login_logout, request):
             ("call", "log", f"Total execution time: {total_duration:.2f}s")
         )
     except Exception as e:
-        total_duration = log_test_failure(start_time, e)
+        log_test_failure(start_time, e)
         raise
 
 
@@ -255,7 +255,7 @@ def test_validate_show_hide_chat_history_panel(login_logout, request):
             ("call", "log", f"Total execution time: {total_duration:.2f}s")
         )
     except Exception as e:
-        total_duration = log_test_failure(start_time, e)
+        log_test_failure(start_time, e)
         raise
 
 
@@ -332,7 +332,7 @@ def test_verify_new_conversation_button(login_logout, request):
             ("call", "log", f"Total execution time: {total_duration:.2f}s")
         )
     except Exception as e:
-        total_duration = log_test_failure(start_time, e)
+        log_test_failure(start_time, e)
         raise
 
 
@@ -395,7 +395,7 @@ def test_validate_empty_string_prompt(login_logout, request):
             ("call", "log", f"Total execution time: {total_duration:.2f}s")
         )
     except Exception as e:
-        total_duration = log_test_failure(start_time, e)
+        log_test_failure(start_time, e)
         raise
 
 def test_validate_chat_history_operations(login_logout, request):
@@ -515,7 +515,7 @@ def test_validate_chat_history_operations(login_logout, request):
             ("call", "log", f"Total execution time: {total_duration:.2f}s")
         )
     except Exception as e:
-        total_duration = log_test_failure(start_time, e)
+        log_test_failure(start_time, e)
         raise
 
 
@@ -623,7 +623,7 @@ def test_validate_empty_string_chat_history_edit(login_logout, request):
             ("call", "log", f"Total execution time: {total_duration:.2f}s")
         )
     except Exception as e:
-        total_duration = log_test_failure(start_time, e)
+        log_test_failure(start_time, e)
         raise
 
 
@@ -728,5 +728,5 @@ def test_validate_delete_all_chat_history(login_logout, request):
             ("call", "log", f"Total execution time: {total_duration:.2f}s")
         )
     except Exception as e:
-        total_duration = log_test_failure(start_time, e)
+        log_test_failure(start_time, e)
         raise

@@ -35,7 +35,6 @@ if usecase == 'retail-sales-analysis':
 else: 
     usecase = 'insurance'
 
-import json
 # Use the location of tables.json in infra/scripts/fabric_scripts/sql_files/tables.json
 file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'data', 'tables.json'))
 if not os.path.isfile(file_path):
@@ -57,14 +56,12 @@ insr_str = ''
 tables_str = ''
 if usecase == 'retail':
     for table in data['tables']:
-
-        tables_str += f"\n {counter}.Table:dbo.{table['tablename']}\n        Columns: " + ', '.join(table['columns'])
+        tables_str += f"\n    {counter}. Table: dbo.{table['tablename']}\n       Columns: " + ', '.join(table['columns'])
         counter += 1
     # print(tables_str)
 else: 
     for table in data['tables']:
-
-        tables_str += f"\n {counter}. Table: dbo.{table['tablename']}\n        Columns: " + ', '.join([f"{column['name']} ({column['title']})" for column in table['columns']])
+        tables_str += f"\n    {counter}. Table: dbo.{table['tablename']}\n       Columns: " + ', '.join([f"{column['name']} ({column['title']})" for column in table['columns']])
         counter += 1
 
     # print(tables_str)
@@ -72,7 +69,11 @@ else:
 # Original agent instructions for non-workshop deployment (Fabric SQL only)
 agent_instructions_fabric = '''You are a helpful assistant.
 
-Generate a valid T-SQL query for SQL database in Fabric for the user's request using these tables:''' + tables_str + ''' Use accurate and semantically appropriate T-SQL expressions, data types, functions, aliases, and conversions based strictly on the column definitions and the explicit or implicit intent of the user query.
+Generate a valid T-SQL query for SQL database in Fabric for the user's request using these tables:''' + tables_str + '''
+
+**CRITICAL: Use table and column names EXACTLY as listed above.** Do NOT alter, pluralize, or singularize names.
+
+Use accurate and semantically appropriate T-SQL expressions, data types, functions, aliases, and conversions based strictly on the column definitions and the explicit or implicit intent of the user query.
 Avoid assumptions or defaults not grounded in schema or context.
 Ensure all aggregations, filters, grouping logic, and time-based calculations are precise, logically consistent, and reflect the user's intent without ambiguity.
 Be SQL Server compatible: 

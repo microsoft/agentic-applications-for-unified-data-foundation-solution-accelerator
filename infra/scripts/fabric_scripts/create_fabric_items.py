@@ -137,17 +137,13 @@ try:
             sqldb_id = sqldb['id']
             FABRIC_SQL_DATABASE = '{' + sqldb['properties']['databaseName'] + '}'
             FABRIC_SQL_SERVER = sqldb['properties']['serverFqdn'].replace(',1433','')
-            odbc_driver = "{ODBC Driver 18 for SQL Server}"
-            FABRIC_SQL_CONNECTION_STRING = f"DRIVER={odbc_driver};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"
     # print(sqldb_id)
-except: 
+except Exception: 
     for sqldb in sqlsdbs_res['value']:
         if sqldb['displayName'] == sqldb_name:
             sqldb_id = sqldb['id']
             FABRIC_SQL_DATABASE = '{' + sqldb['properties']['databaseName'] + '}'
             FABRIC_SQL_SERVER = sqldb['properties']['serverFqdn'].replace(',1433','')
-            odbc_driver = "{ODBC Driver 17 for SQL Server}"
-            FABRIC_SQL_CONNECTION_STRING = f"DRIVER={odbc_driver};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"
     # print(sqldb_id)
 
 
@@ -181,7 +177,7 @@ def get_fabric_db_connection():
                 connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};"  
                 conn = pyodbc.connect( connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})      
                 print('connected to fabric sql db')        
-            except:
+            except Exception:
                 SQL_COPT_SS_ACCESS_TOKEN = 1256
                 driver = "{ODBC Driver 17 for SQL Server}"
                 connection_string = f"DRIVER={driver};SERVER={server};DATABASE={database};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"  
@@ -189,11 +185,13 @@ def get_fabric_db_connection():
                 print('connected to fabric sql db')     
  
         return conn
-    except :
-        print("Failed to connect to Fabric SQL Database")
-        pass
+    except Exception as e:
+        print("Failed to connect to Fabric SQL Database: ", str(e))
+        return None
 
 conn = get_fabric_db_connection()
+if conn is None:
+    raise SystemExit("Cannot proceed without a connection to Fabric SQL Database.")
 cursor = conn.cursor()
 print(cursor)
 sql_filename = 'infra/scripts/fabric_scripts/sql_files/data_sql.sql'
@@ -282,7 +280,6 @@ else:
         cursor.execute(sql_script)  
     cursor.commit()
 
-import json
 
 file_path = "infra/scripts/fabric_scripts/data/tables.json"
 
@@ -304,10 +301,10 @@ for table in data['tables']:
             }
         }
     }
-    shortcut_res = requests.post(fabric_shortcuts_url, headers=fabric_headers, json=shortcut_lh)
+    requests.post(fabric_shortcuts_url, headers=fabric_headers, json=shortcut_lh)
     # print('shortcut: ',shortcut_res.json())
 
-from datetime import datetime, timedelta
+from datetime import datetime
 if usecase == "retail":
     # Adjust dates to current date
     today = datetime.today()

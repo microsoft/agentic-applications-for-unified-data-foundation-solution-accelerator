@@ -136,6 +136,7 @@ param acrName string = isWorkshop ? 'dataagentscontainerregworkshop' : 'dataagen
 //Get the current deployer's information
 var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
+var existingTags = resourceGroup().tags ?? {}
 
 @description('The principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC.')
 @allowed(['User', 'ServicePrincipal'])
@@ -145,12 +146,14 @@ param deployingUserPrincipalType string = 'User'
 resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorkshop) {
   name: 'default'
   properties: {
-    tags: {
-      ...resourceGroup().tags
-      TemplateName: 'Unified Data Analysis Agents'
-      CreatedBy: createdBy
-      DeploymentName: deployment().name
-    }
+   tags: union(
+      existingTags,
+      {
+        TemplateName: 'Unified Data Analysis Agents'
+        CreatedBy: createdBy
+        DeploymentName: deployment().name
+      }
+    )
   }
 }
 

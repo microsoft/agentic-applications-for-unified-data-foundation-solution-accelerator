@@ -186,10 +186,9 @@ class TestRunNonQueryParams:
         """Test non-query when connection fails."""
         from history_sql import run_nonquery_params
         
-        with patch('history_sql.get_fabric_db_connection', return_value=None):
-            # Should raise AttributeError when connection is None
-            with pytest.raises(AttributeError):
-                await run_nonquery_params("DELETE FROM test")
+        with patch('history_sql.get_db_connection', new_callable=AsyncMock, return_value=None):
+            result = await run_nonquery_params("DELETE FROM test")
+            assert result is False
 
     @pytest.mark.asyncio
     async def test_run_nonquery_with_params(self, mock_db_connection):
@@ -1673,22 +1672,18 @@ class TestDatabaseConnectionEdgeCases:
         """Test run_query_params when connection fails."""
         from history_sql import run_query_params
         
-        with patch('history_sql.get_fabric_db_connection', new_callable=AsyncMock) as mock_conn:
-            mock_conn.return_value = None
-            # When connection is None, the function tries to call cursor() on None
-            # This causes AttributeError in finally block when trying conn.close()
-            with pytest.raises(AttributeError):
-                await run_query_params("SELECT * FROM test", ())
+        with patch('history_sql.get_db_connection', new_callable=AsyncMock, return_value=None):
+            result = await run_query_params("SELECT * FROM test", ())
+            assert result is None
     
     @pytest.mark.asyncio
     async def test_run_nonquery_params_connection_failure(self):
         """Test run_nonquery_params when connection fails."""
         from history_sql import run_nonquery_params
         
-        with patch('history_sql.get_fabric_db_connection', new_callable=AsyncMock) as mock_conn:
-            mock_conn.return_value = None
-            with pytest.raises(AttributeError):  # Trying to call cursor() on None
-                await run_nonquery_params("INSERT INTO test VALUES (?)", ("value",))
+        with patch('history_sql.get_db_connection', new_callable=AsyncMock, return_value=None):
+            result = await run_nonquery_params("INSERT INTO test VALUES (?)", ("value",))
+            assert result is False
     
     @pytest.mark.asyncio
     async def test_get_fabric_db_connection_driver_17_fallback_succeeds(self):

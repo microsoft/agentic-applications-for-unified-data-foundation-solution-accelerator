@@ -1,5 +1,5 @@
 azure-identity==1.23.0
 pyodbc==5.2.0
 azure-storage-file-datalake==12.21.0
-requests==2.32.3
+requests==2.32.4
 pandas==2.3.0

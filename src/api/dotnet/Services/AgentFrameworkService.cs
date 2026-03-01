@@ -3,7 +3,9 @@ using Azure.AI.Projects.OpenAI;
 using CsApi.Auth;
 using CsApi.Repositories;
 using Microsoft.Agents.AI;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.AI;
+using System.Data.Common;
 
 namespace CsApi.Services
 {
@@ -81,10 +83,29 @@ namespace CsApi.Services
 
                 return answer;
             }
-            catch (Exception ex)
+            catch (SqlException ex)
             {
                 _logger.LogError(ex, "SQL query execution error");
-                return "Error executing SQL query. Please check the query syntax and try again.";
+                return $"SQL Error: {ex.Message}. Please check the query syntax.";
+            }
+            catch (DbException ex)
+            {
+                _logger.LogError(ex, "Database query execution error");
+                return $"Database Error: {ex.Message}";
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogWarning(ex, "SQL query timeout");
+                return "Query timed out. Please simplify the query or add filters.";
+            }
+            catch (OperationCanceledException)
+            {
+                return "Query was cancelled.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected SQL query execution error");
+                return "Error executing SQL query. Please try again.";
             }
         }
 

@@ -17,7 +17,6 @@ const Citations = memo(({ answer, index }: Props) => {
     const dispatch = useAppDispatch();
     const selectedConversationId = useAppSelector((state) => state.app.selectedConversationId);
     const parsedAnswer = useMemo(() => parseAnswer(answer), [answer]);
-    const filePathTruncationLimit = 50;
     const createCitationFilepath = (
         citation: Citation,
         index: number,
