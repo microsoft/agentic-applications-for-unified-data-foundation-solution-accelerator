@@ -490,57 +490,60 @@ public class SqlConversationRepository : ISqlConversationRepository
         var results = new List<Dictionary<string, object>>();
         using var conn = await CreateConnectionAsync();
         using var cmd = new SqlCommand(query, (SqlConnection)conn);
-        using var reader = cmd.ExecuteReader();
-        while (reader.Read())
+        try
         {
-            var row = new Dictionary<string, object>();
-            for (int i = 0; i < reader.FieldCount; i++)
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
             {
-                var colName = reader.GetName(i);
-                var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                
-                // Handle data type conversions to match Python SqlQueryTool behavior
-                if (value != null)
+                var row = new Dictionary<string, object>();
+                for (int i = 0; i < reader.FieldCount; i++)
                 {
-                    // Convert DateTime, DateOnly, and TimeOnly to ISO format string like Python
-                    if (value is DateTime dateTime)
+                    var colName = reader.GetName(i);
+                    var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                
+                    // Handle data type conversions to match Python SqlQueryTool behavior
+                    if (value != null)
                     {
-                        row[colName] = dateTime.ToString("O"); // ISO 8601 format (matches Python .isoformat())
-                    }
-                    else if (value is DateOnly dateOnly)
-                    {
-                        row[colName] = dateOnly.ToString("yyyy-MM-dd"); // ISO date format
-                    }
-                    else if (value is TimeOnly timeOnly)
-                    {
-                        row[colName] = timeOnly.ToString("HH:mm:ss"); // ISO time format
-                    }
-                    // Convert Decimal to double like Python converts to float
-                    else if (value is decimal decimalValue)
-                    {
-                        row[colName] = (double)decimalValue;
-                    }
-                    // Handle other numeric types consistently
-                    else if (value is float floatValue)
-                    {
-                        row[colName] = (double)floatValue;
-                    }
-                    // Handle GUID as string for JSON serialization
-                    else if (value is Guid guidValue)
-                    {
-                        row[colName] = guidValue.ToString();
+                        // Convert DateTime, DateOnly, and TimeOnly to ISO format string like Python
+                        if (value is DateTime dateTime)
+                        {
+                            row[colName] = dateTime.ToString("O"); // ISO 8601 format (matches Python .isoformat())
+                        }
+                        else if (value is DateOnly dateOnly)
+                        {
+                            row[colName] = dateOnly.ToString("yyyy-MM-dd"); // ISO date format
+                        }
+                        else if (value is TimeOnly timeOnly)
+                        {
+                            row[colName] = timeOnly.ToString("HH:mm:ss"); // ISO time format
+                        }
+                        // Convert Decimal to double like Python converts to float
+                        else if (value is decimal decimalValue)
+                        {
+                            row[colName] = (double)decimalValue;
+                        }
+                        // Handle other numeric types consistently
+                        else if (value is float floatValue)
+                        {
+                            row[colName] = (double)floatValue;
+                        }
+                        // Handle GUID as string for JSON serialization
+                        else if (value is Guid guidValue)
+                        {
+                            row[colName] = guidValue.ToString();
+                        }
+                        else
+                        {
+                            row[colName] = value;
+                        }
                     }
                     else
                     {
-                        row[colName] = value;
+                        row[colName] = null;
                     }
                 }
-                else
-                {
-                    row[colName] = null;
-                }
+                results.Add(row);
             }
-            results.Add(row);
         }
         catch (Exception ex)
         {
