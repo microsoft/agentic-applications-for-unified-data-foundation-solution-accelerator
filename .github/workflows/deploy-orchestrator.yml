@@ -22,6 +22,11 @@ on:
         type: 'string'
         required: false
         default: 'python'
+      AZURE_ENV_USE_CASE:
+        description: 'Specify use cases to deploy'
+        type: 'string'
+        required: false
+        default: 'Retail-sales-analysis'
       EXP:
         description: 'Enable EXP'
         required: false
@@ -65,6 +70,10 @@ on:
 env:
   AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
 
+permissions:
+  contents: read
+  actions: read
+  
 jobs:
   docker-build:
     uses: ./.github/workflows/job-docker-build.yml
@@ -75,7 +84,7 @@ jobs:
     secrets: inherit
 
   deploy:
-    if: "!cancelled() && (inputs.trigger_type != 'workflow_dispatch' || inputs.existing_webapp_url == '' || inputs.existing_webapp_url == null)"
+    if: "!cancelled() && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') && (inputs.trigger_type != 'workflow_dispatch' || inputs.existing_webapp_url == '' || inputs.existing_webapp_url == null)"    
     needs: docker-build
     uses: ./.github/workflows/job-deploy.yml
     with:
@@ -84,6 +93,7 @@ jobs:
       azure_location: ${{ inputs.azure_location }}
       resource_group_name: ${{ inputs.resource_group_name }}
       BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
+      AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
       EXP: ${{ inputs.EXP }}
       build_docker_image: ${{ inputs.build_docker_image }}
       existing_webapp_url: ${{ inputs.existing_webapp_url }}
@@ -101,6 +111,7 @@ jobs:
     with:
       TEST_URL: ${{ needs.deploy.outputs.WEB_APPURL || inputs.existing_webapp_url }}
       TEST_SUITE: ${{ inputs.trigger_type == 'workflow_dispatch' && inputs.run_e2e_tests || 'GoldenPath-Testing' }}
+      AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
     secrets: inherit
 
   send-notification:

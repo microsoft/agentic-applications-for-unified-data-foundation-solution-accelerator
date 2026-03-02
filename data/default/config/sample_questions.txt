@@ -1,0 +1,19 @@
+=== SQL QUESTIONS (Fabric Data) ===
+1. How many tickets are high priority?
+2. What is the average score from inspections?
+3. Show tickets grouped by status.
+4. Which ticket has the highest priority?
+5. How does inspection result distribution compare across ticket statuses?
+
+=== DOCUMENT QUESTIONS (AI Search) ===
+1. What constitutes a failed inspection?
+2. What are the requirements for handling customer tickets?
+3. How quickly should high priority tickets be resolved?
+4. What actions are required for tickets not meeting feedback standards?
+5. How often must failed inspections be reviewed?
+
+=== COMBINED INSIGHT QUESTIONS ===
+1. Do any inspections violate quality control standards in our Inspection Procedures?
+2. Are there any tickets that require follow-up assessments based on our Inspection Procedures?
+3. What is our average inspection score, and does it meet the minimum standard outlined in our Quality Control Standards?
+4. How many tickets are open and exceeding response targets set in our Ticket Management Policy?

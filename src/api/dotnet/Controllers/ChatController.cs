@@ -36,7 +36,7 @@ public class ChatController : ControllerBase
         if (_threadCache == null)
         {
             var endpoint = configuration["AZURE_AI_AGENT_ENDPOINT"] ?? string.Empty;
-            _threadCache = new ExpCache<string, AgentThread>(maxSize: 1000, ttlSeconds: 3600.0, configuration, azureAIEndpoint: endpoint);
+            _threadCache = new ExpCache<string, AgentThread>(maxSize: 1000, ttlSeconds: 3600.0, configuration, logger, azureAIEndpoint: endpoint);
         }
     }
 
@@ -118,6 +118,10 @@ public class ChatController : ControllerBase
         {
             var errorEnvelope = new { error = ex.Message };
             await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // Client disconnected or request was cancelled - no need to write response
         }
         catch (Exception ex)
         {

@@ -1,0 +1,12 @@
+=== DATABASE SCHEMA ===
+
+tickets(ticket_id*:str, customer_name:str, issue_description:str, priority:str, status:str)
+inspections(inspection_id*:str, ticket_id:str, result:str, score:int)
+
+JOINS:
+  inspections.ticket_id -> tickets.ticket_id
+
+RULES:
+- Use T-SQL syntax
+- Key columns marked with *
+- Types: str=string, int=integer, num=decimal

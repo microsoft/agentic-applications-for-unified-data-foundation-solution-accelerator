@@ -1,0 +1,141 @@
+name: Unit Tests with Coverage
+
+on:
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'src/api/python/**'
+      - 'src/test/api/python/**'
+      - 'src/api/python/requirements.txt'
+      - 'pytest.ini'
+      - '.github/workflows/unit-tests.yml'
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'src/api/python/**'
+      - 'src/test/api/python/**'
+      - 'src/api/python/requirements.txt'
+      - 'pytest.ini'
+      - '.github/workflows/unit-tests.yml'
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+  COVERAGE_THRESHOLD: 80
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  checks: write
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r src/api/python/requirements.txt
+          pip install pytest pytest-cov pytest-asyncio
+
+      - name: Run unit tests with coverage
+        id: pytest
+        run: |
+          pytest src/test/api/python \
+            --cov=src/api/python \
+            --cov-report=term-missing \
+            --cov-report=html \
+            --cov-report=xml \
+            --cov-fail-under=${{ env.COVERAGE_THRESHOLD }} \
+            -v \
+            --junitxml=test-results.xml
+        continue-on-error: true
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            htmlcov/
+            coverage.xml
+            test-results.xml
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## 🧪 Unit Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Parse test results from pytest output
+          if [ -f test-results.xml ]; then
+            echo "### 📊 Test Statistics" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Extract test counts (basic parsing)
+            TESTS=$(grep -oP 'tests="\K[0-9]+' test-results.xml | head -1 || echo "0")
+            FAILURES=$(grep -oP 'failures="\K[0-9]+' test-results.xml | head -1 || echo "0")
+            ERRORS=$(grep -oP 'errors="\K[0-9]+' test-results.xml | head -1 || echo "0")
+            SKIPPED=$(grep -oP 'skipped="\K[0-9]+' test-results.xml | head -1 || echo "0")
+            
+            echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Total Tests | $TESTS |" >> $GITHUB_STEP_SUMMARY
+            echo "| ✅ Passed | $((TESTS - FAILURES - ERRORS - SKIPPED)) |" >> $GITHUB_STEP_SUMMARY
+            echo "| ❌ Failed | $FAILURES |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🚫 Errors | $ERRORS |" >> $GITHUB_STEP_SUMMARY
+            echo "| ⏭️ Skipped | $SKIPPED |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Parse coverage from coverage.xml
+          if [ -f coverage.xml ]; then
+            echo "### 📈 Code Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            COVERAGE=$(grep -oP 'line-rate="\K[0-9.]+' coverage.xml | head -1 || echo "0")
+            COVERAGE_PCT=$(awk "BEGIN {printf \"%.0f\", $COVERAGE * 100}")
+            
+            echo "| Coverage | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "$COVERAGE_PCT" -ge "${{ env.COVERAGE_THRESHOLD }}" ]; then
+              echo "| **${COVERAGE_PCT}%** | ✅ Passed (Threshold: ${{ env.COVERAGE_THRESHOLD }}%) |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| **${COVERAGE_PCT}%** | ❌ Failed (Threshold: ${{ env.COVERAGE_THRESHOLD }}%) |" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Overall status
+          if [ "${{ steps.pytest.outcome }}" == "success" ]; then
+            echo "### ✅ Overall Status: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "All unit tests passed and coverage threshold met." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Overall Status: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "Unit tests failed or coverage below threshold (${{ env.COVERAGE_THRESHOLD }}%)." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if coverage below threshold
+        if: steps.pytest.outcome != 'success'
+        run: |
+          echo "::error::Unit tests failed or coverage below ${{ env.COVERAGE_THRESHOLD }}% threshold"
+          exit 1
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: test-results.xml
+          check_name: Unit Test Results

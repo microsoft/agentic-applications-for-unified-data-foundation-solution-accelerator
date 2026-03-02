@@ -46,21 +46,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'python' ]
+        language: [ 'python', 'javascript-typescript', 'csharp' ]
         # CodeQL supports [ 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift' ]
         # Use only 'java-kotlin' to analyze code written in Java, Kotlin or both
         # Use only 'javascript-typescript' to analyze code written in JavaScript, TypeScript or both
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
-        dot-version: ['3.1.x']
+        dotnet-version: ['8.0.x']
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     # Installing DotNet version
-    - uses: actions/checkout@v4
     - name: Setup dotnet ${{ matrix.dotnet-version }}
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: ${{ matrix.dotnet-version }}
     # You can test your matrix by printing the current dotnet version
@@ -69,7 +68,7 @@ jobs:
     
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
         # If you wish to specify custom queries, you can do so here or in a config file.
@@ -95,7 +94,14 @@ jobs:
     #     echo "Run, Build Application using script"
     #     ./location_of_script_within_repo/buildscript.sh
 
+    # Build C# project
+    - name: Build C# project
+      if: matrix.language == 'csharp'
+      run: |
+        dotnet restore src/api/dotnet/CsApi.csproj
+        dotnet build src/api/dotnet/CsApi.csproj --configuration Release --no-restore
+
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
