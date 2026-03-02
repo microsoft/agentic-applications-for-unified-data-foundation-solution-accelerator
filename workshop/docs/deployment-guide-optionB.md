@@ -21,7 +21,7 @@ Or choose one of the options below:
 
 > Note: Please use this optional prompt if you would like to use GitHub Copilot to run the workshop: 
 ```
-Can you please follow the step by step in https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/deployment-guide/ and follow Option A for me. My Fabric Workspace id = <YOUR_FABRIC_WORKSPACE_ID>. Pass it using the --fabric-workspace-id parameter when running the build solution script.
+Can you please follow the step by step in https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/deployment-guide-optionB/ for me. My Fabric Workspace id = <YOUR_FABRIC_WORKSPACE_ID>. Pass it using the --fabric-workspace-id parameter when running the build solution script.
 Important instructions:
 Do NOT make any code changes to the repository files. 
 Only follow the deployment guide instructions exactly as documented. 
