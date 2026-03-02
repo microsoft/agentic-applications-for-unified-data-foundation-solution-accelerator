@@ -148,6 +148,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorksh
         TemplateName: 'Unified Data Analysis Agents'
         CreatedBy: createdBy
         DeploymentName: deployment().name
+        Type: 'Non-WAF'
       }
     )
   }
