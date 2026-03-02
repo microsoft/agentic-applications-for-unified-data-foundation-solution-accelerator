@@ -6,7 +6,6 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>1591;SKEXP0110;CA2252</NoWarn>
     <EnablePreviewFeatures>true</EnablePreviewFeatures>
-    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
   
   <!-- Exclude test project files from compilation -->
