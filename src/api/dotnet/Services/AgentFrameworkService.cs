@@ -86,6 +86,25 @@ namespace CsApi.Services
             catch (SqlException ex)
             {
                 _logger.LogError(ex, "SQL query execution error");
+                return $"SQL Error: {ex.Message}. Please check the query syntax.";
+            }
+            catch (DbException ex)
+            {
+                _logger.LogError(ex, "Database query execution error");
+                return $"Database Error: {ex.Message}";
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogWarning(ex, "SQL query timeout");
+                return "Query timed out. Please simplify the query or add filters.";
+            }
+            catch (OperationCanceledException)
+            {
+                return "Query was cancelled.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected SQL query execution error");
                 return $"SQL query failed with error: {ex.Message}. Please fix the query and try again.";
             }
         }
