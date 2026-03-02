@@ -6,6 +6,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>1591;SKEXP0110;CA2252</NoWarn>
     <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Azure.AI.Projects.OpenAI" Version="1.0.0-beta.4" />

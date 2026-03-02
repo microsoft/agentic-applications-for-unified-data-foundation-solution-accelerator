@@ -36,6 +36,34 @@ public class SqlConversationRepository : ISqlConversationRepository
 
     private async Task<IDbConnection> CreateConnectionAsync()
     {
+        const int maxRetries = 3;
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                return await CreateConnectionCoreAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Database connection attempt {Attempt}/{MaxRetries} failed: {Error}", attempt, maxRetries, ex.Message);
+                if (attempt < maxRetries)
+                {
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt)); // Exponential backoff: 2s, 4s
+                    await Task.Delay(delay);
+                }
+                else
+                {
+                    _logger.LogError(ex, "Failed to establish database connection after {MaxRetries} attempts", maxRetries);
+                    throw;
+                }
+            }
+        }
+        // Should never reach here, but satisfies compiler
+        throw new InvalidOperationException("Failed to establish database connection.");
+    }
+
+    private async Task<IDbConnection> CreateConnectionCoreAsync()
+    {
         var appEnv = (_config["APP_ENV"] ?? "prod").ToLower();
 
         // In prod, fall back to connection string from config (if needed)
@@ -469,6 +497,7 @@ public class SqlConversationRepository : ISqlConversationRepository
 
     public async Task<string> ExecuteChatQuery(string query, CancellationToken ct)
     {
+        _logger.LogInformation("Chat Agent - Executing SQL query: {Query}", query);
         var results = new List<Dictionary<string, object>>();
         try
         {
@@ -529,9 +558,17 @@ public class SqlConversationRepository : ISqlConversationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error executing chat query");
+            _logger.LogError(ex, "Chat Agent - Error executing SQL query: {Query}", query);
+            throw;
         }
-        return JsonSerializer.Serialize(results);
+        if (results.Count == 0)
+        {
+            _logger.LogInformation("Chat Agent - SQL query returned no results.");
+            return "No results found.";
+        }
+        var json = JsonSerializer.Serialize(results);
+        _logger.LogInformation("Chat Agent - Result of SQL query: {Result}", json);
+        return json;
     }
 
     /// <summary>
