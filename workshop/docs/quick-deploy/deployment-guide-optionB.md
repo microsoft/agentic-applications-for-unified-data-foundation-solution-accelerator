@@ -150,7 +150,7 @@ After the agent configuration & API permission set up completes, open the app UR
 
 ### 9. Customize for Your Industry (Optional)
 
-Follow steps in this page to  [Customize for your use case](./02-customize/index.md).
+Follow steps in this page to  [Customize for your use case](../02-customize/index.md).
 
 
 ----------

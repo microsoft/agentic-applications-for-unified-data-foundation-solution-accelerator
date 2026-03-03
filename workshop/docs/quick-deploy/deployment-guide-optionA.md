@@ -45,7 +45,7 @@ If a step fails, suggest solutions based on the error message.
     If you already have a Fabric capacity (F8+), you can **skip this step** and use your existing capacity.
 
 Follow the instructions here:
-**[Create a Fabric capacity in Azure →](./01-deploy/02a-create-fabric-capacity.md)**
+**[Create a Fabric capacity in Azure →](../01-deploy/02a-create-fabric-capacity.md)**
 
 #### 1b. Create a Fabric workspace
 
@@ -53,7 +53,7 @@ Follow the instructions here:
     If you already have a Fabric workspace linked to a Fabric capacity, you can **skip this step** and use your existing workspace.
 
 Follow the instructions here:
-**[Create a Fabric workspace →](./01-deploy/02b-create-fabric-workspace.md)**
+**[Create a Fabric workspace →](../01-deploy/02b-create-fabric-workspace.md)**
 
 #### 1c. Verify workspace settings
 
@@ -149,7 +149,7 @@ You will need your workspace ID to pass as a parameter when building the solutio
     https://app.fabric.microsoft.com/groups/{workspace-id}/...
     ```
 
-    ![Copy workspace ID from URL](./01-deploy/../assets/fabric/15-workspace-id.png)
+    ![Copy workspace ID from URL](../assets/fabric/15-workspace-id.png)
 
 3. Copy the workspace ID.
 
@@ -234,7 +234,7 @@ After the agent configuration & API permission set up completes, open the app UR
 
 ### 10. Customize for Your Industry (Optional)
 
-Follow steps in this page to  [Customize for your use case](./02-customize/index.md).
+Follow steps in this page to  [Customize for your use case](../02-customize/index.md).
 
 
 ----------
