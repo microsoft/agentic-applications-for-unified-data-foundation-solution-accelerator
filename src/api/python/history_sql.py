@@ -224,7 +224,7 @@ class SqlQueryTool(BaseModel):
                         row_dict[col_name] = value
                 result.append(row_dict)
             logger.info("Chat Agent - Result of SQL query: %s", result)
-            return json.dumps(result, default=str) if result else "No results found."
+            return json.dumps(result, default=str) if result and len(result) > 0 else "No results found."
         except Exception as e:
             logger.error("Chat Agent - Error executing SQL query: %s", e)
             return f"SQL query failed with error: {str(e)}. Please fix the query and try again."
