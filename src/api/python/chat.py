@@ -263,6 +263,8 @@ async def stream_chat_request(conversation_id, query):
                     }
                     yield json.dumps(response, ensure_ascii=False) + "\n\n"
 
+            logger.info("Chat API response max 200 chars: %s, conversation_id: %s", assistant_content[:200], conversation_id)
+
         except ServiceResponseException as e:
             error_message = str(e)
             retry_after = "sometime"
