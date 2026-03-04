@@ -20,11 +20,10 @@ public class ChatController : ControllerBase
     private readonly IUserContextAccessor _userContextAccessor;
     private readonly ISqlConversationRepository _sqlRepo;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<ChatController> _logger;
 
     // Thread cache to maintain conversation context like Python ExpCache  
     private static ExpCache<string, AgentThread>? _threadCache;
-
-    private readonly ILogger<ChatController> _logger;
 
     public ChatController(IUserContextAccessor userContextAccessor, ISqlConversationRepository sqlRepo, IConfiguration configuration, ILogger<ChatController> logger)
     { 
@@ -61,6 +60,8 @@ public class ChatController : ControllerBase
         var userId = user.UserPrincipalId;
         
         var (convId, _) = await _sqlRepo.EnsureConversationAsync(userId ?? string.Empty, request.ConversationId, title: string.Empty, ct);
+
+        _logger.LogInformation("Chat request received - query: {Query}, conversation_id: {ConversationId}", request.Query, convId);
         
         // Use Agent Framework AIAgent for RAG/AI response with function tools  
         AIAgent agent = agentService.Agent;
@@ -70,7 +71,9 @@ public class ChatController : ControllerBase
         {
             thread = cachedThread;
         }
-        else
+
+        // If no cached thread or cached thread was null, create a new one
+        if (thread == null)
         {
             var chatClientAgent = agent as ChatClientAgent 
                 ?? throw new InvalidOperationException("Agent must be a ChatClientAgent to create conversation threads.");

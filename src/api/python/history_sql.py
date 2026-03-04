@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -272,7 +273,18 @@ class SqlQueryTool(BaseModel):
         cursor = None
         try:
             logger.info("Chat Agent - Executing SQL query: %s", sql_query)
-            conn = await get_db_connection()
+            conn = None
+            max_retries = 3
+            for attempt in range(1, max_retries + 1):
+                conn = await get_db_connection()
+                if conn:
+                    break
+                logger.warning("Database connection attempt %d/%d failed", attempt, max_retries)
+                if attempt < max_retries:
+                    await asyncio.sleep(2 ** attempt)  # Exponential backoff: 2s, 4s
+            if not conn:
+                logger.error("Failed to establish database connection after %d attempts", max_retries)
+                raise Exception("Database connection failed")
             cursor = conn.cursor()
             cursor.execute(sql_query)
             columns = [desc[0] for desc in cursor.description]
@@ -288,7 +300,7 @@ class SqlQueryTool(BaseModel):
                         row_dict[col_name] = value
                 result.append(row_dict)
             logger.info("Chat Agent - Result of SQL query: %s", result)
-            return result
+            return json.dumps(result, default=str) if result else "No results found."
         except Exception as e:
             logger.error("Chat Agent - Error executing SQL query: %s", e)
             return f"SQL query failed with error: {str(e)}. Please fix the query and try again."
