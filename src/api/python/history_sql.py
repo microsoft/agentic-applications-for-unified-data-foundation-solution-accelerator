@@ -500,23 +500,27 @@ async def generate_title(conversation_messages):
             logger.warning("Azure AI Agent endpoint not configured, using fallback title generation")
             return generate_fallback_title(conversation_messages)
 
-        async with AIProjectClient(
-            endpoint=AZURE_AI_AGENT_ENDPOINT,
-            credential=await get_azure_credential_async()
-        ) as project_client:
-            chat_client = AzureAIClient(
-                project_client=project_client,
-                agent_name=AGENT_NAME_TITLE,
-                use_latest_version=True,
-            )
+        credential = await get_azure_credential_async()
+        try:
+            async with AIProjectClient(
+                endpoint=AZURE_AI_AGENT_ENDPOINT,
+                credential=credential
+            ) as project_client:
+                chat_client = AzureAIClient(
+                    project_client=project_client,
+                    agent_name=AGENT_NAME_TITLE,
+                    use_latest_version=True,
+                )
 
-            async with ChatAgent(
-                chat_client=chat_client,
-                tool_choice="none",
-            ) as chat_agent:
-                thread = chat_agent.get_new_thread()
-                result = await chat_agent.run(messages=final_prompt, thread=thread)
-                return str(result).strip() if result is not None else generate_fallback_title(conversation_messages)
+                async with ChatAgent(
+                    chat_client=chat_client,
+                    tool_choice="none",
+                ) as chat_agent:
+                    thread = chat_agent.get_new_thread()
+                    result = await chat_agent.run(messages=final_prompt, thread=thread)
+                    return str(result).strip() if result is not None else generate_fallback_title(conversation_messages)
+        finally:
+            await credential.close()
 
     except ServiceResponseException as sre:
         logger.warning("ServiceResponseException generating title with Azure AI Foundry agent: %s", sre)
