@@ -36,10 +36,10 @@ from azure.identity import DefaultAzureCredential
 # ============================================================================
 
 # Azure services - from azd environment
-FOUNDRY_ENDPOINT = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
+FOUNDRY_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
 
 if not FOUNDRY_ENDPOINT:
-    print("ERROR: AZURE_AI_PROJECT_ENDPOINT not set")
+    print("ERROR: AZURE_AI_AGENT_ENDPOINT not set")
     print("       Run 'azd up' to deploy Azure resources")
     sys.exit(1)
 

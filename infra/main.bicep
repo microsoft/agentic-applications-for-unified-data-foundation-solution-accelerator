@@ -225,6 +225,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
     enableCosmosDb: shouldDeployApp && isWorkshop
     appSettings: {
       AZURE_OPENAI_DEPLOYMENT_MODEL: gptModelName
+      AZURE_OPENAI_EMBEDDING_MODEL: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_RESOURCE: aifoundry.outputs.aiServicesName
@@ -279,6 +280,7 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
     appSettings: {
       AZURE_OPENAI_DEPLOYMENT_MODEL: gptModelName
+      AZURE_OPENAI_EMBEDDING_MODEL: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
       AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_RESOURCE: aifoundry.outputs.aiServicesName

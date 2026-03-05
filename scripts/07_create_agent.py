@@ -18,7 +18,7 @@ Prerequisites:
     - For Azure SQL mode: Run 06a_upload_to_sql.py
 
 Environment Variables (from azd):
-    - AZURE_AI_PROJECT_ENDPOINT: Azure AI Project endpoint
+    - AZURE_AI_AGENT_ENDPOINT: Azure AI Project endpoint
     - AZURE_CHAT_MODEL: Model deployment name
     - AZURE_AI_SEARCH_CONNECTION_NAME: AI Search connection name
     - AZURE_AI_SEARCH_INDEX: AI Search index name
@@ -63,9 +63,9 @@ from azure.ai.projects.models import (
 # ============================================================================
 
 # Azure services - from azd environment
-ENDPOINT = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
+ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
 MODEL = os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4.1-mini")
-SEARCH_CONNECTION_ID = args.connection_name or os.getenv("AZURE_AI_SEARCH_CONNECTION_ID")
+SEARCH_CONNECTION_ID = args.connection_name or os.getenv("AZURE_AI_SEARCH_CONNECTION_NAME")
 
 # SQL Configuration - determine mode
 FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
@@ -85,7 +85,7 @@ SOLUTION_NAME = os.getenv("SOLUTION_NAME") or os.getenv("AZURE_ENV_NAME", "demo"
 
 # Validation
 if not ENDPOINT:
-    print("ERROR: AZURE_AI_PROJECT_ENDPOINT not set")
+    print("ERROR: AZURE_AI_AGENT_ENDPOINT not set")
     print("       Run 'azd up' to deploy Azure resources")
     sys.exit(1)
 

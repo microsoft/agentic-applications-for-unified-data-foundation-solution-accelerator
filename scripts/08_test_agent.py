@@ -42,7 +42,7 @@ import requests
 # Configuration
 # ============================================================================
 
-ENDPOINT = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
+ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
 
 # SQL Configuration
 FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
@@ -50,7 +50,7 @@ SQL_SERVER = os.getenv("SQLDB_SERVER")
 SQL_DATABASE = os.getenv("SQLDB_DATABASE")
 
 if not ENDPOINT:
-    print("ERROR: AZURE_AI_PROJECT_ENDPOINT not set")
+    print("ERROR: AZURE_AI_AGENT_ENDPOINT not set")
     sys.exit(1)
 
 # Get data folder with proper path resolution
