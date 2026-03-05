@@ -147,7 +147,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
     complete_response = ""
     credential = None
     chat_client = None
-    
+
     try:
         if not query:
             query = "Please provide a query."
