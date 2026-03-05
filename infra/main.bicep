@@ -333,63 +333,102 @@ module frontend_docker 'deploy_frontend_docker.bicep' = if (shouldDeployApp) {
   scope: resourceGroup(resourceGroup().name)
 }
 
+// ============================================================================
+// Outputs
+// ============================================================================
+
+@description('Solution prefix used for naming resources')
 output SOLUTION_NAME string = solutionPrefix
+
+@description('Name of the deployed resource group')
 output RESOURCE_GROUP_NAME string = resourceGroup().name
-output RESOURCE_GROUP_LOCATION string = solutionLocation
-output ENVIRONMENT_NAME string = environmentName
-output AZURE_SECONDARY_LOCATION string = secondaryLocation
-output APPINSIGHTS_INSTRUMENTATIONKEY string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appInsightInstrumentationKey : backend_csapi_docker!.outputs.appInsightInstrumentationKey) : ''
-output AZURE_AI_PROJECT_CONN_STRING string = aifoundry.outputs.projectEndpoint
-output AZURE_AI_AGENT_API_VERSION string = azureAiAgentApiVersion
-output AZURE_AI_PROJECT_NAME string = aifoundry.outputs.aiProjectName
+
+@description('Cosmos DB account name for conversation history storage')
 output AZURE_COSMOSDB_ACCOUNT string = shouldDeployApp && isWorkshop ? cosmosDBModule!.outputs.cosmosAccountName : ''
+
+@description('Cosmos DB container name for storing conversations')
 output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = isWorkshop ? 'conversations' : ''
+
+@description('Cosmos DB database name for conversation history')
 output AZURE_COSMOSDB_DATABASE string = isWorkshop ? 'db_conversation_history' : ''
-output AZURE_COSMOSDB_ENABLE_FEEDBACK string = isWorkshop ? 'True' : ''
+
+@description('GPT model deployment name (e.g., gpt-4o-mini)')
 output AZURE_OPENAI_DEPLOYMENT_MODEL string = gptModelName
-output AZURE_OPENAI_DEPLOYMENT_MODEL_CAPACITY int = gptDeploymentCapacity
+
+@description('Azure OpenAI service endpoint URL')
 output AZURE_OPENAI_ENDPOINT string = aifoundry.outputs.aiServicesTarget
-output AZURE_OPENAI_MODEL_DEPLOYMENT_TYPE string = deploymentType
+
+@description('Embedding model deployment name for vector search')
 output AZURE_OPENAI_EMBEDDING_MODEL string = embeddingModel
-output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
-output AZURE_OPENAI_RESOURCE string = aifoundry.outputs.aiServicesName
-output REACT_APP_LAYOUT_CONFIG string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.reactAppLayoutConfig : backend_csapi_docker!.outputs.reactAppLayoutConfig) : ''
+
+@description('Azure SQL database name (Azure-only mode)')
 output SQLDB_DATABASE string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
+
+@description('Azure SQL server fully qualified domain name (Azure-only mode)')
 output SQLDB_SERVER string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
+
+@description('Managed identity client ID for SQL authentication (Azure-only mode)')
 output SQLDB_USER_MID string = (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
+
+@description('Backend API managed identity client ID')
 output API_UID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-output USE_AI_PROJECT_CLIENT string = 'False'
-output USE_CHAT_HISTORY_ENABLED string = 'True'
-output DISPLAY_CHART_DEFAULT string = 'False'
+
+@description('Azure AI Agent service endpoint URL')
 output AZURE_AI_AGENT_ENDPOINT string = aifoundry.outputs.projectEndpoint
+
+@description('Model deployment name used by Azure AI Agent')
 output AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME string = gptModelName
-output ACR_NAME string = acrName
-output AZURE_ENV_IMAGETAG string = imageTag
 
-output AI_SERVICE_NAME string = aifoundry.outputs.aiServicesName
+@description('Backend API App Service name')
 output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appName : backend_csapi_docker!.outputs.appName) : ''
-output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.objectId
-output MID_DISPLAY_NAME string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.name
-output API_APP_URL string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl) : ''
-output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : ''
-output APPLICATIONINSIGHTS_CONNECTION_STRING string = aifoundry.outputs.applicationInsightsConnectionString
-output AGENT_NAME_CHAT string = ''
-output AGENT_NAME_TITLE string = ''
-output FABRIC_SQL_DATABASE string = ''
-output FABRIC_SQL_SERVER string = ''
-output FABRIC_SQL_CONNECTION_STRING string = ''
 
-output MANAGED_IDENTITY_CLIENT_ID string = managedIdentityModule.outputs.managedIdentityOutput.clientId
-output AI_FOUNDRY_RESOURCE_ID string = aifoundry.outputs.aiFoundryResourceId
-output BACKEND_RUNTIME_STACK string = backendRuntimeStack
+@description('Backend API managed identity object/principal ID')
+output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.objectId
+
+@description('Backend API managed identity display name')
+output MID_DISPLAY_NAME string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.name
+
+@description('Frontend web application URL')
+output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : ''
+
+@description('Deployed use case identifier (e.g., Retail-sales-analysis)')
 output USE_CASE string = usecase
+
+@description('Azure AI Search service endpoint URL')
 output AZURE_AI_SEARCH_ENDPOINT string = isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
+
+@description('Azure AI Search index name for document search')
 output AZURE_AI_SEARCH_INDEX string = isWorkshop ? 'knowledge_index' : ''
+
+@description('Azure AI Search service resource name')
 output AZURE_AI_SEARCH_NAME string = isWorkshop ? aifoundry.outputs.aiSearchName : ''
+
+@description('Local path to documents folder for search indexing')
 output SEARCH_DATA_FOLDER string = isWorkshop ? 'data/default/documents' : ''
+
+@description('AI Foundry connection name for Azure AI Search')
 output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
+
+@description('AI Foundry connection ID for Azure AI Search')
 output AZURE_AI_SEARCH_CONNECTION_ID string = isWorkshop ? aifoundry.outputs.aiSearchConnectionId : ''
+
+@description('Azure AI Foundry project endpoint URL')
 output AZURE_AI_PROJECT_ENDPOINT string = aifoundry.outputs.projectEndpoint
+
+@description('Azure AI Foundry resource ID for role assignments')
+output AI_FOUNDRY_RESOURCE_ID string = aifoundry.outputs.aiFoundryResourceId
+
+@description('Azure AI Services resource name')
+output AI_SERVICE_NAME string = aifoundry.outputs.aiServicesName
+
+@description('Backend runtime stack (python or dotnet)')
+output BACKEND_RUNTIME_STACK string = backendRuntimeStack
+
+@description('Flag indicating workshop deployment mode')
 output IS_WORKSHOP bool = isWorkshop
+
+@description('Flag indicating whether to deploy App Service')
 output AZURE_ENV_DEPLOY_APP bool = deployApp
+
+@description('Flag indicating Azure-only mode (no Fabric)')
 output AZURE_ENV_ONLY bool = azureEnvOnly
