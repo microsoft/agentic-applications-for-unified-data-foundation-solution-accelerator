@@ -1,10 +1,17 @@
+@description('The Azure region where the SQL Server and database will be deployed.')
 param solutionLocation string
-// param keyVaultName string
+
+@description('The name of the managed identity used for SQL Server administration.')
 param managedIdentityName string
+
+@description('The name of the SQL Server.')
 param serverName string
+
+@description('The name of the SQL database.')
 param sqlDBName string
+
+@description('The principal ID of the deployer for SQL Server admin access.')
 param deployerPrincipalId string = ''
-// param sqlUsers array = []
 
 var location = solutionLocation
 
@@ -69,40 +76,8 @@ resource sqlDB 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   }
 }
 
-// module sqluser 'create-sql-user-and-role.bicep' = [
-//   for user in sqlUsers: {
-//     name: 'sqluser-${guid(solutionLocation, user.principalId, user.principalName, sqlDB.name, sqlServer.name)}'
-//     params: {
-//       managedIdentityName: managedIdentityName
-//       location: solutionLocation
-//       sqlDatabaseName: sqlDB.name
-//       sqlServerName: sqlServer.name
-//       principalId: user.principalId
-//       principalName: user.principalName
-//       databaseRoles: user.databaseRoles
-//     }
-//   }
-// ]
-
-// resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
-//   name: keyVaultName
-// }
-
-// resource sqldbServerEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-//   parent: keyVault
-//   name: 'SQLDB-SERVER'
-//   properties: {
-//     value: '${serverName}${environment().suffixes.sqlServerHostname}'
-//   }
-// }
-
-// resource sqldbDatabaseEntry 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-//   parent: keyVault
-//   name: 'SQLDB-DATABASE'
-//   properties: {
-//     value: sqlDBName
-//   }
-// }
-
+@description('The fully qualified domain name of the SQL Server.')
 output sqlServerName string = '${serverName}.database.windows.net'
+
+@description('The name of the SQL database.')
 output sqlDbName string = sqlDBName

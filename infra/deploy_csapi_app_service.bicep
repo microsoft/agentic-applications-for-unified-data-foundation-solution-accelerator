@@ -1,3 +1,4 @@
+@description('The Azure region where resources will be deployed.')
 param location string = resourceGroup().location
 
 @minLength(1)
@@ -23,6 +24,7 @@ param openAiSecretValue string = ''
 @description('Optional: SQL connection string value to create in Key Vault')
 param sqlSecretValue string = ''
 
+@description('The pricing tier SKU name for the App Service Plan.')
 @minLength(1)
 param skuName string = 'P1v2'
 
@@ -152,6 +154,11 @@ resource webConfig 'Microsoft.Web/sites/config@2022-03-01' = {
   ]
 }
 
+@description('The name of the deployed Web App.')
 output webAppName string = webApp.name
+
+@description('The default hostname of the Web App.')
 output defaultHostName string = webApp.properties.defaultHostName
+
+@description('The Application Insights connection string.')
 output appInsightsConnectionString string = appInsights.properties.ConnectionString

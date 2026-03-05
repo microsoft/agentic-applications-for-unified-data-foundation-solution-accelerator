@@ -30,17 +30,6 @@ param backendRuntimeStack string = 'python'
 ])
 param usecase string = 'Retail-sales-analysis'
 
-// @minLength(1)
-// @description('Location for the Content Understanding service deployment:')
-// @allowed(['swedencentral', 'australiaeast'])
-// @metadata({
-//   azd: {
-//     type: 'location'
-//   }
-// })
-// param contentUnderstandingLocation string = 'swedencentral'
-var contentUnderstandingLocation = ''
-
 @minLength(1)
 @description('Secondary location for databases creation(example:eastus2):')
 param secondaryLocation string = 'eastus2'
@@ -57,10 +46,10 @@ param searchServiceLocation string = resourceGroup().location
 param deploymentType string = 'GlobalStandard'
 
 @description('Name of the GPT model to deploy:')
-param gptModelName string = 'gpt-4o-mini'
+param gptModelName string = 'gpt-4.1-mini'
 
 @description('Version of the GPT model to deploy:')
-param gptModelVersion string = '2024-07-18'
+param gptModelVersion string = '2025-04-14'
 
 param azureOpenAIApiVersion string = '2025-01-01-preview'
 
@@ -78,9 +67,9 @@ param gptDeploymentCapacity int = 150
 @minLength(1)
 @description('Name of the Text Embedding model to deploy:')
 @allowed([
-  'text-embedding-ada-002'
+  'text-embedding-3-small'
 ])
-param embeddingModel string = 'text-embedding-ada-002'
+param embeddingModel string = 'text-embedding-3-small'
 
 @minValue(10)
 @description('Capacity of the Embedding Model deployment')
@@ -120,8 +109,8 @@ var uniqueId = toLower(uniqueString(subscription().id, environmentName, solution
   azd:{
     type: 'location'
     usageName: [
-      'OpenAI.GlobalStandard.gpt-4o-mini,150'
-      'OpenAI.GlobalStandard.text-embedding-ada-002,80'
+      'OpenAI.GlobalStandard.gpt-4.1-mini,100'
+      'OpenAI.GlobalStandard.text-embedding-3-small,80'
     ]
   }
 })
@@ -165,17 +154,6 @@ module managedIdentityModule 'deploy_managed_identity.bicep' = {
   scope: resourceGroup(resourceGroup().name)
 }
 
-// ==========Key Vault Module ========== //
-// module kvault 'deploy_keyvault.bicep' = {
-//   name: 'deploy_keyvault'
-//   params: {
-//     keyvaultName: '${abbrs.security.keyVault}${solutionPrefix}'
-//     solutionLocation: solutionLocation
-//     managedIdentityObjectId:managedIdentityModule.outputs.managedIdentityOutput.objectId
-//   }
-//   scope: resourceGroup(resourceGroup().name)
-// }
-
 // ==========AI Foundry and related resources ========== //
 module aifoundry 'deploy_ai_foundry.bicep' = {
   name: 'deploy_ai_foundry'
@@ -185,7 +163,6 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
     deploymentType: deploymentType
     gptModelName: gptModelName
     gptModelVersion: gptModelVersion
-    // azureOpenAIApiVersion: azureOpenAIApiVersion
     gptDeploymentCapacity: gptDeploymentCapacity
     embeddingModel: embeddingModel
     embeddingDeploymentCapacity: embeddingDeploymentCapacity
@@ -200,29 +177,12 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
   scope: resourceGroup(resourceGroup().name)
 }
 
-// ==========CS API Module ========== //
-// module csapi 'deploy_csapi_app_service.bicep' = {
-//    name: 'deployCsApiModule'
-//   params: {
-//     location: resourceGroup().location
-//     siteName: '${environmentName}-csapi-${uniqueString(resourceGroup().id)}'
-//     keyVaultName: '${environmentName}-csapi-${uniqueString(resourceGroup().id)}-kv'
-//     openAiSecretName: 'AZURE_OPENAI_KEY'
-//     sqlSecretName: 'FABRIC_SQL_CONNECTION_STRING'
-//     openAiSecretValue: ''
-//     sqlSecretValue: ''
-//     skuName: 'P1v2'
-//   }
-// }
-
-
 // ========== Cosmos DB module ========== //
 module cosmosDBModule 'deploy_cosmos_db.bicep' = if (isWorkshop && deployApp) {
   name: 'deploy_cosmos_db'
   params: {
     accountName: '${abbrs.databases.cosmosDBDatabase}${solutionPrefix}'
     solutionLocation: secondaryLocation
-    // keyVaultName: kvault.outputs.keyvaultName
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -234,16 +194,8 @@ module sqlDBModule 'deploy_sql_db.bicep' = if(isWorkshop && azureEnvOnly) {
     serverName: '${abbrs.databases.sqlDatabaseServer}${solutionPrefix}'
     sqlDBName: '${abbrs.databases.sqlDatabase}${solutionPrefix}'
     solutionLocation: secondaryLocation
-    //keyVaultName: kvault.outputs.keyvaultName
     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
     deployerPrincipalId: deployingUserPrincipalId
-    // sqlUsers: [
-    //   {
-    //     principalId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-    //     principalName: managedIdentityModule.outputs.managedIdentityBackendAppOutput.name
-    //     databaseRoles: ['db_datareader', 'db_datawriter']
-    //   }
-    // ]
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -271,7 +223,6 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
     aiServicesName: aifoundry.outputs.aiServicesName
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
     enableCosmosDb: shouldDeployApp && isWorkshop
-    // aiSearchName: aifoundry.outputs.aiSearchName 
     appSettings: {
       AZURE_OPENAI_DEPLOYMENT_MODEL: gptModelName
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
@@ -324,10 +275,8 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
     appServicePlanId: hostingplan!.outputs.name
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
-    // keyVaultName: kvault.outputs.keyvaultName
     aiServicesName: aifoundry.outputs.aiServicesName
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
-    // aiSearchName: aifoundry.outputs.aiSearchName 
     appSettings: {
       AZURE_OPENAI_DEPLOYMENT_MODEL: gptModelName
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
@@ -341,9 +290,6 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: isWorkshop ? cosmosDBModule!.outputs.cosmosContainerName : ''
       AZURE_COSMOSDB_DATABASE: isWorkshop ? cosmosDBModule!.outputs.cosmosDatabaseName : ''
       AZURE_COSMOSDB_ENABLE_FEEDBACK: isWorkshop ? 'True' : ''
-      // SQLDB_DATABASE: '' //sqlDBModule.outputs.sqlDbName
-      // SQLDB_SERVER: '' //sqlDBModule.outputs.sqlServerName
-      // SQLDB_USER_MID: '' //managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'call_transcripts_index' : ''
@@ -391,9 +337,7 @@ output SOLUTION_NAME string = solutionPrefix
 output RESOURCE_GROUP_NAME string = resourceGroup().name
 output RESOURCE_GROUP_LOCATION string = solutionLocation
 output ENVIRONMENT_NAME string = environmentName
-output AZURE_CONTENT_UNDERSTANDING_LOCATION string = contentUnderstandingLocation
 output AZURE_SECONDARY_LOCATION string = secondaryLocation
-//output APPINSIGHTS_INSTRUMENTATIONKEY string = backend_docker.outputs.appInsightInstrumentationKey
 output APPINSIGHTS_INSTRUMENTATIONKEY string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appInsightInstrumentationKey : backend_csapi_docker!.outputs.appInsightInstrumentationKey) : ''
 output AZURE_AI_PROJECT_CONN_STRING string = aifoundry.outputs.projectEndpoint
 output AZURE_AI_AGENT_API_VERSION string = azureAiAgentApiVersion
@@ -407,10 +351,8 @@ output AZURE_OPENAI_DEPLOYMENT_MODEL_CAPACITY int = gptDeploymentCapacity
 output AZURE_OPENAI_ENDPOINT string = aifoundry.outputs.aiServicesTarget
 output AZURE_OPENAI_MODEL_DEPLOYMENT_TYPE string = deploymentType
 output AZURE_OPENAI_EMBEDDING_MODEL string = embeddingModel
-// output AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY int = embeddingDeploymentCapacity
 output AZURE_OPENAI_API_VERSION string = azureOpenAIApiVersion
 output AZURE_OPENAI_RESOURCE string = aifoundry.outputs.aiServicesName
-//output REACT_APP_LAYOUT_CONFIG string = backend_docker.outputs.reactAppLayoutConfig
 output REACT_APP_LAYOUT_CONFIG string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.reactAppLayoutConfig : backend_csapi_docker!.outputs.reactAppLayoutConfig) : ''
 output SQLDB_DATABASE string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
 output SQLDB_SERVER string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
@@ -425,11 +367,9 @@ output ACR_NAME string = acrName
 output AZURE_ENV_IMAGETAG string = imageTag
 
 output AI_SERVICE_NAME string = aifoundry.outputs.aiServicesName
-//output API_APP_NAME string = backend_docker.outputs.appName
 output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appName : backend_csapi_docker!.outputs.appName) : ''
 output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.objectId
 output MID_DISPLAY_NAME string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.name
-//output API_APP_URL string = backend_docker.outputs.appUrl
 output API_APP_URL string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl) : ''
 output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : ''
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = aifoundry.outputs.applicationInsightsConnectionString

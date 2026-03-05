@@ -1,4 +1,7 @@
+@description('The name of the AI Search service to enable managed identity on.')
 param searchServiceName string
+
+@description('The Azure region where the search service is deployed.')
 param location string
 
 resource aiSearchWithManagedIdentity 'Microsoft.Search/searchServices@2024-06-01-preview' = {
@@ -26,4 +29,5 @@ resource aiSearchWithManagedIdentity 'Microsoft.Search/searchServices@2024-06-01
   }
 }
 
+@description('The principal ID of the search service system-assigned managed identity.')
 output principalId string = aiSearchWithManagedIdentity.identity.principalId
