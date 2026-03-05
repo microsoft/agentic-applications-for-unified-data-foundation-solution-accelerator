@@ -109,7 +109,7 @@ var uniqueId = toLower(uniqueString(subscription().id, environmentName, solution
   azd:{
     type: 'location'
     usageName: [
-      'OpenAI.GlobalStandard.gpt-4.1-mini,100'
+      'OpenAI.GlobalStandard.gpt4.1-mini,100'
       'OpenAI.GlobalStandard.text-embedding-3-small,80'
     ]
   }
