@@ -279,8 +279,21 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     ```
     If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
     ```Shell
-    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group>
+    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <ai-project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group> <usecase> [<is-workshop>]
     ```
+
+    **Step 10 Parameter Reference:**
+
+    | Parameter | azd env Variable | Format / Example |
+    |---|---|---|
+    | `<ai-project-endpoint>` | `AZURE_AI_PROJECT_ENDPOINT` | URL starting with `https://` (e.g., `https://<ai-service>.services.ai.azure.com/api/projects/<project>`) |
+    | `<solution-name>` | `SOLUTION_NAME` | Alphanumeric string (e.g., `da5fi6dninkrjn`) |
+    | `<gpt-model-name>` | `AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME` | Model name (e.g., `gpt-4o-mini`, `gpt-4o`, `gpt-4`) |
+    | `<ai-foundry-resource-id>` | `AI_FOUNDRY_RESOURCE_ID` | Full resource ID starting with `/subscriptions/...` |
+    | `<api-app-name>` | `API_APP_NAME` | App Service name (e.g., `api-cs-<solutionname>`) |
+    | `<resource-group>` | `AZURE_RESOURCE_GROUP` | Resource group name (e.g., `rg-<envname>`) |
+    | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
+    | `<is-workshop>` | `IS_WORKSHOP` | `true` or `false` (defaults to `false`) |
 
 11. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
     ```Shell
@@ -289,8 +302,21 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
     If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
     ```Shell
-    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup>
+    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup> <usecase>
     ```
+
+    **Step 11 Parameter Reference:**
+
+    | Parameter | azd env Variable | Format / Example |
+    |---|---|---|
+    | `<fabric-workspaceId>` | *(user-provided)* | GUID (e.g., `5bxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxx246`) |
+    | `<solutionname>` | `SOLUTION_NAME` | Alphanumeric string (e.g., `da5fi6dninkrjn`) |
+    | `<ai-foundry-name>` | `AI_SERVICE_NAME` | AI Foundry account name (e.g., `aisa-<solutionname>`) |
+    | `<backend-api-mid-principal>` | `API_PID` | Managed identity Principal (Object) ID — GUID |
+    | `<backend-api-mid-client>` | `API_UID` | Managed identity Client ID — GUID |
+    | `<api-app-name>` | `API_APP_NAME` | App Service name (e.g., `api-cs-<solutionname>`) |
+    | `<resourcegroup>` | `RESOURCE_GROUP_NAME` | Resource group name (e.g., `rg-<envname>`) |
+    | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
 
 12. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
