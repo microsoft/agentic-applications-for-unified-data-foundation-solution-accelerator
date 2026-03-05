@@ -67,11 +67,26 @@ az login
 
 > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
-Register the Microsoft Cognitive Services resource provider (required if not already registered on your subscription):
+Register the required resource providers (if not already registered on your subscription):
 
+**Register Microsoft Cognitive Services:**
 ```bash
 az provider register --namespace Microsoft.CognitiveServices
 ```
+
+**Register Microsoft App:**
+```bash
+az provider register --namespace Microsoft.App
+```
+
+**Register Microsoft App Configuration:**
+```bash
+az provider register --namespace Microsoft.AppConfiguration
+```
+
+**Run the deployment:**
+
+Run the following command to provision all required Azure resources:
 
 ```bash
 azd up

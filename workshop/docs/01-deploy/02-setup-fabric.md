@@ -43,12 +43,12 @@ If you need to create a new Fabric workspace, follow the instructions here:
 
     ![Open workspace settings](../assets/fabric/13-workspace-settings.png)
 
-3. Go to **License info** and verify:
+3. Go to **Workspace type** and verify:
 
     - [x] The workspace is assigned to a **Fabric capacity**
     - [x] The capacity SKU is **F8** or higher
 
-    ![Verify license info](../assets/fabric/14-license-info.png)
+    ![Verify Workspace type](../assets/fabric/14-license-info.png)
 
 ---
 
