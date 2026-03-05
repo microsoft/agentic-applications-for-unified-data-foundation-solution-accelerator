@@ -105,8 +105,11 @@ class ExpCache(TTLCache):
                     credential=credential
                 ) as project_client:
                     openai_client = project_client.get_openai_client()
-                    await openai_client.conversations.delete(conversation_id=thread_conversation_id)
-                    logger.info("Thread deleted successfully: %s", thread_conversation_id)
+                    try:
+                        await openai_client.conversations.delete(conversation_id=thread_conversation_id)
+                        logger.info("Thread deleted successfully: %s", thread_conversation_id)
+                    finally:
+                        await openai_client.close()
         except Exception as e:
             logger.error("Failed to delete thread %s: %s", thread_conversation_id, e)
         finally:
@@ -143,7 +146,8 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
     thread = None
     complete_response = ""
     credential = None
-
+    chat_client = None
+    
     try:
         if not query:
             query = "Please provide a query."
@@ -170,30 +174,38 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
                 model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME"),
             )
 
-            async with ChatAgent(
-                chat_client=chat_client,
-                tools=my_tools,
-                default_options={"tool_choice": "auto", "store": False},
-            ) as chat_agent:
+            try:
+                async with ChatAgent(
+                    chat_client=chat_client,
+                    tools=my_tools,
+                    default_options={"tool_choice": "auto", "store": True},
+                ) as chat_agent:
 
-                if thread_conversation_id:
-                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
+                    if thread_conversation_id:
+                        thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
 
-                if not thread_conversation_id or thread is None:
-                    openai_client = project_client.get_openai_client()
-                    conversation = await openai_client.conversations.create()
-                    thread_conversation_id = conversation.id
-                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
+                    if not thread_conversation_id or thread is None:
+                        openai_client = project_client.get_openai_client()
+                        conversation = await openai_client.conversations.create()
+                        thread_conversation_id = conversation.id
+                        thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
 
-                async for chunk in chat_agent.run_stream(messages=query, thread=thread):
-                    if chunk is not None and chunk.text != "":
-                        complete_response += chunk.text
-                        yield chunk.text
+                    async for chunk in chat_agent.run_stream(messages=query, thread=thread):
+                        if chunk is not None and chunk.text != "":
+                            complete_response += chunk.text
+                            yield chunk.text
 
-                # Cache the service thread ID after streaming completes
-                if thread and thread.service_thread_id:
-                    cache[conversation_id] = thread.service_thread_id
-
+                    # Cache the service thread ID after streaming completes
+                    if thread and thread.service_thread_id:
+                        cache[conversation_id] = thread.service_thread_id
+            finally:
+                # Close the AsyncOpenAI client created by AzureAIClient.initialize_client()
+                # AzureAIClient.close() does NOT close this - it only handles project_client
+                if chat_client is not None and getattr(chat_client, 'client', None) is not None:
+                    try:
+                        await chat_client.client.close()
+                    except Exception as e:
+                        logger.warning("Chat agent - Failed to close openai client: %s", e)
     except ServiceResponseException as e:
         complete_response = str(e)
         if "Rate limit is exceeded" in str(e):
@@ -397,6 +409,7 @@ async def stream_chat_request(conversation_id, query):
                     }
                     yield json.dumps(response, ensure_ascii=False) + "\n\n"
 
+            logger.info("Chat API response max 200 chars: %s, conversation_id: %s", assistant_content[:200], conversation_id)
         except ServiceResponseException as e:
             error_message = str(e)
             retry_after = "sometime"

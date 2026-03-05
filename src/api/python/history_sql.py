@@ -300,7 +300,7 @@ class SqlQueryTool(BaseModel):
                         row_dict[col_name] = value
                 result.append(row_dict)
             logger.info("Chat Agent - Result of SQL query: %s", result)
-            return json.dumps(result, default=str) if result else "No results found."
+            return json.dumps(result, default=str) if result and len(result) > 0 else "No results found."
         except Exception as e:
             logger.error("Chat Agent - Error executing SQL query: %s", e)
             return f"SQL query failed with error: {str(e)}. Please fix the query and try again."
@@ -578,25 +578,28 @@ async def generate_title(conversation_messages):
             logger.warning("Azure AI Agent endpoint not configured, using fallback title generation")
             return generate_fallback_title(conversation_messages)
 
-        async with AIProjectClient(
-            endpoint=AZURE_AI_AGENT_ENDPOINT,
-            credential=await get_azure_credential_async()
-        ) as project_client:
-            chat_client = AzureAIClient(
-                project_client=project_client,
-                agent_name=AGENT_NAME_TITLE,
-                use_latest_version=True,
-                model_deployment_name=AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME,
-            )
+        credential = await get_azure_credential_async()
+        try:
+            async with AIProjectClient(
+                endpoint=AZURE_AI_AGENT_ENDPOINT,
+                credential=credential
+            ) as project_client:
+                chat_client = AzureAIClient(
+                    project_client=project_client,
+                    agent_name=AGENT_NAME_TITLE,
+                    use_latest_version=True,
+                    model_deployment_name=AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME,
+                )
 
-            async with ChatAgent(
-                chat_client=chat_client,
-                tool_choice="none",
-            ) as chat_agent:
-                thread = chat_agent.get_new_thread()
-                result = await chat_agent.run(messages=final_prompt, thread=thread)
-                return str(result).strip() if result is not None else generate_fallback_title(conversation_messages)
-
+                async with ChatAgent(
+                    chat_client=chat_client,
+                    tool_choice="none",
+                ) as chat_agent:
+                    thread = chat_agent.get_new_thread()
+                    result = await chat_agent.run(messages=final_prompt, thread=thread)
+                    return str(result).strip() if result is not None else generate_fallback_title(conversation_messages)
+        finally:
+            await credential.close()
     except ServiceResponseException as sre:
         logger.warning("ServiceResponseException generating title with Azure AI Foundry agent: %s", sre)
         return generate_fallback_title(conversation_messages)
