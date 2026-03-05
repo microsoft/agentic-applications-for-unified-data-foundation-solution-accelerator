@@ -340,6 +340,9 @@ module frontend_docker 'deploy_frontend_docker.bicep' = if (shouldDeployApp) {
 @description('Solution prefix used for naming resources')
 output SOLUTION_NAME string = solutionPrefix
 
+@description('Azure subscription ID')
+output AZURE_SUBSCRIPTION_ID string = subscription().id
+
 @description('Name of the deployed resource group')
 output RESOURCE_GROUP_NAME string = resourceGroup().name
 

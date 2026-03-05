@@ -64,7 +64,7 @@ from azure.ai.projects.models import (
 
 # Azure services - from azd environment
 ENDPOINT = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
-MODEL = os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4o-mini")
+MODEL = os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4.1-mini")
 SEARCH_CONNECTION_ID = args.connection_name or os.getenv("AZURE_AI_SEARCH_CONNECTION_ID")
 
 # SQL Configuration - determine mode

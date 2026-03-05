@@ -114,7 +114,7 @@ credential = DefaultAzureCredential()
 from azure.ai.projects import AIProjectClient
 project_client = AIProjectClient(endpoint=FOUNDRY_ENDPOINT, credential=credential)
 client = project_client.get_openai_client()
-model = os.getenv("AZURE_CHAT_MODEL") or os.getenv("MODEL_DEPLOYMENT", "gpt-4o-mini")
+model = os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4.1-mini")
 
 print("[OK] AI client initialized")
 
