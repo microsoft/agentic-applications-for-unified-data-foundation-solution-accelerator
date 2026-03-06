@@ -202,8 +202,13 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
                             yield chunk.text
 
                     # Cache the service thread ID after streaming completes
-                    if thread.service_thread_id and thread.service_thread_id != thread_conversation_id:
-                        cache[conversation_id] = thread.service_thread_id
+                    if thread and thread.service_thread_id:
+                        if thread.service_thread_id.startswith("conv_"):
+                            cache[conversation_id] = thread.service_thread_id
+                        elif thread_conversation_id and thread_conversation_id.startswith("conv_"):
+                            cache[conversation_id] = thread_conversation_id
+                        else:
+                            cache[conversation_id] = thread.service_thread_id
             finally:
                 # Close the AsyncOpenAI client created by AzureAIClient.initialize_client()
                 # AzureAIClient.close() does NOT close this - it only handles project_client
