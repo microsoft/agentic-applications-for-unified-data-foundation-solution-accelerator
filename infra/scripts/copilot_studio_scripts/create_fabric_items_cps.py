@@ -2,7 +2,6 @@ import requests
 import time
 import json
 import base64
-import os
 from azure.identity import AzureCliCredential
 
 def get_fabric_headers():
@@ -20,7 +19,6 @@ workspaceId = ""
 
 lakehouse_name = 'lakehouse_' + solutionname
 sqldb_name = 'sqldatabase_' + solutionname
-pipeline_name = 'data_pipeline_' + solutionname
 
 # print("workspace id: " ,workspaceId)
 
@@ -45,9 +43,9 @@ environmentId = env_res.json()['id']
 # upload yml file
 url = f"https://api.fabric.microsoft.com/v1/workspaces/{workspaceId}/environments/{environmentId}/staging/libraries"
 file_path='environment.yml'
-files = {'file': open(file_path, 'rb')}
-
-response = requests.post(url=url, files=files, headers=fabric_headers)
+with open(file_path, 'rb') as f:
+    files = {'file': f}
+    response = requests.post(url=url, files=files, headers=fabric_headers)
 print(response.status_code)
 print(response.json())
 
@@ -165,7 +163,7 @@ import struct
 def get_fabric_db_connection():
     server = FABRIC_SQL_SERVER
     database = FABRIC_SQL_DATABASE
-    driver = "{ODBC Driver 17 for SQL Server}"
+    driver = odbc_driver
     
     try:
         conn=None
@@ -187,11 +185,13 @@ def get_fabric_db_connection():
             print('connected to fabric sql db')        
  
         return conn
-    except :
-        print("Failed to connect to Fabric SQL Database")
-        pass
+    except Exception as e:
+        print("Failed to connect to Fabric SQL Database: ", str(e))
+        return None
 
 conn = get_fabric_db_connection()
+if conn is None:
+    raise SystemExit("Cannot proceed without a connection to Fabric SQL Database.")
 cursor = conn.cursor()
 print(cursor)
 sql_filename = '../fabric_scripts/sql_files/data_sql.sql'
@@ -200,8 +200,6 @@ with open(sql_filename, 'r', encoding='utf-8') as f:
     cursor.execute(sql_script)
 cursor.commit()
 conn.close()
-
-import json
 
 
 file_path = "../fabric_scripts/sql_files/tables.json"
@@ -227,7 +225,7 @@ for table in data['tables']:
         }
         shortcut_res = requests.post(fabric_shortcuts_url, headers=fabric_headers, json=shortcut_lh)
         print('shortcut: ',shortcut_res.json())
-    except: 
+    except Exception: 
         time.sleep(30)
         fabric_shortcuts_url = f"https://api.fabric.microsoft.com/v1/workspaces/{workspaceId}/items/{lakehouseId}/shortcuts?shortcutConflictPolicy=CreateOrOverwrite"
         shortcut_lh ={
@@ -269,15 +267,15 @@ for notebook_name in notebook_names:
         notebook_json['metadata']['dependencies']['lakehouse']['default_lakehouse_name'] = lakehouse_res.json()['displayName']
         notebook_json['metadata']['dependencies']['lakehouse']['default_lakehouse_workspace_id'] = lakehouse_res.json()['workspaceId']
         print('lakehouse name: ', notebook_json['metadata']['dependencies']['lakehouse']['default_lakehouse_name'] )
-    except:
-        pass
+    except Exception as e:
+        print(f"Error setting lakehouse in notebook metadata: {str(e)}")
     
     if environmentId != '':
         try:
             notebook_json['metadata']['dependencies']['environment']['environmentId'] = environmentId
             notebook_json['metadata']['dependencies']['environment']['workspaceId'] = lakehouse_res.json()['workspaceId']
-        except:
-            pass
+        except Exception as e:
+            print(f"Error setting environment in notebook metadata: {str(e)}")
 
 
     notebook_base64 = base64.b64encode(json.dumps(notebook_json).encode('utf-8'))
@@ -297,7 +295,7 @@ for notebook_name in notebook_names:
         }
     }
     
-    fabric_response = requests.post(fabric_items_url, headers=fabric_headers, json=notebook_data)
+    requests.post(fabric_items_url, headers=fabric_headers, json=notebook_data)
     
 time.sleep(120)
 fabric_notebooks_url = f"https://api.fabric.microsoft.com/v1/workspaces/{workspaceId}/notebooks"
@@ -318,31 +316,6 @@ print("pipeline_notebook_id: ", pipeline_notebook_id)
 
 pipeline_name = 'notebook_pipeline' + solutionname
 # create pipeline item
-pipeline_json = {
-    "name": pipeline_name,
-    "properties": {
-        "activities": [
-            {
-                "name": "create_dataagent",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": "false",
-                    "secureInput": "false"
-                },
-                "typeProperties": {
-                    "notebookId": pipeline_notebook_id,
-                    "workspaceId": workspaceId
-                }
-            }
-        ]
-    }
-}
-
-
 pipeline_json = {
     "name": pipeline_name,
     "properties": {
@@ -442,8 +415,6 @@ if job_response.status_code == 202:
         status = retry_response.json()['status']
         print(status)
         attempt += 1
-        # if attempt % 2 == 0:
-        #     fabric_headers = get_fabric_headers()
 
     print('pipeline run completed',retry_response.json()['status'])
 

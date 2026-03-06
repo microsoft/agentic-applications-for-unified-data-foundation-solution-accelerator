@@ -17,9 +17,7 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 # Azure SDK
-from azure.ai.agents.models import TruncationObject
 from azure.monitor.events.extension import track_event
-from azure.monitor.opentelemetry import configure_azure_monitor
 from azure.ai.projects.aio import AIProjectClient
 
 from agent_framework import ChatAgent
@@ -44,19 +42,7 @@ router = APIRouter()
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Check if the Application Insights Instrumentation Key is set in the environment variables
-instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
-if instrumentation_key:
-    # Configure Application Insights if the Instrumentation Key is found
-    configure_azure_monitor(connection_string=instrumentation_key)
-    logging.info("Application Insights configured with the provided Instrumentation Key")
-else:
-    # Log a warning if the Instrumentation Key is not found
-    logging.warning("No Application Insights Instrumentation Key found. Skipping configuration")
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.INFO)
 
 # Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
 logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
@@ -64,9 +50,12 @@ logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
 )
 logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
 
+# Reduce Azure Monitor internal logs
+logging.getLogger("azure.monitor.opentelemetry").setLevel(logging.ERROR)
+
 # Suppress info logs from OpenTelemetry exporter
 logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
-    logging.WARNING
+    logging.ERROR
 )
 
 
@@ -105,6 +94,10 @@ class ExpCache(TTLCache):
         credential = None
         try:
             if thread_conversation_id:
+                # Response IDs (resp_xxx) don't need explicit deletion - they're managed by the API
+                if thread_conversation_id.startswith("resp_"):
+                    logger.info("Skipping deletion for response ID: %s", thread_conversation_id)
+                    return
                 # Get credential and use async context managers to ensure proper cleanup
                 credential = await get_azure_credential_async()
                 async with AIProjectClient(
@@ -112,8 +105,11 @@ class ExpCache(TTLCache):
                     credential=credential
                 ) as project_client:
                     openai_client = project_client.get_openai_client()
-                    await openai_client.conversations.delete(conversation_id=thread_conversation_id)
-                    logger.info("Thread deleted successfully: %s", thread_conversation_id)
+                    try:
+                        await openai_client.conversations.delete(conversation_id=thread_conversation_id)
+                        logger.info("Thread deleted successfully: %s", thread_conversation_id)
+                    finally:
+                        await openai_client.close()
         except Exception as e:
             logger.error("Failed to delete thread %s: %s", thread_conversation_id, e)
         finally:
@@ -150,7 +146,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
     thread = None
     complete_response = ""
     credential = None
-    db_connection = None
+    chat_client = None
 
     try:
         if not query:
@@ -165,15 +161,9 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
 
             cache = get_thread_cache()
             thread_conversation_id = cache.get(conversation_id, None)
-            truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
 
-            from history_sql import SqlQueryTool, get_db_connection
-            db_connection = await get_db_connection()
-            if not db_connection:
-                logger.error("Failed to establish database connection")
-                raise Exception("Database connection failed")
-
-            custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
+            from history_sql import SqlQueryTool
+            custom_tool = SqlQueryTool()
             my_tools = [custom_tool.run_sql_query]
 
             # Create chat client with existing agent
@@ -181,31 +171,46 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
                 project_client=project_client,
                 agent_name=os.getenv("AGENT_NAME_CHAT"),
                 use_latest_version=True,
+                model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME"),
             )
 
-            async with ChatAgent(
-                chat_client=chat_client,
-                tools=my_tools,
-                tool_choice="auto",
-                store=True,
-            ) as chat_agent:
+            try:
+                async with ChatAgent(
+                    chat_client=chat_client,
+                    tools=my_tools,
+                    default_options={"tool_choice": "auto", "store": True},
+                ) as chat_agent:
 
-                if thread_conversation_id:
-                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
-                    assert thread.is_initialized
-                else:
-                    # Create a conversation using openAI client
-                    openai_client = project_client.get_openai_client()
-                    conversation = await openai_client.conversations.create()
-                    thread_conversation_id = conversation.id
-                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
-                    cache[conversation_id] = thread_conversation_id
+                    if thread_conversation_id:
+                        thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
 
-                async for chunk in chat_agent.run_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
-                    if chunk is not None and chunk.text != "":
-                        complete_response += chunk.text
-                        yield chunk.text
+                    if not thread_conversation_id or thread is None:
+                        openai_client = project_client.get_openai_client()
+                        conversation = await openai_client.conversations.create()
+                        thread_conversation_id = conversation.id
+                        thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
 
+                    async for chunk in chat_agent.run_stream(messages=query, thread=thread):
+                        if chunk is not None and chunk.text != "":
+                            complete_response += chunk.text
+                            yield chunk.text
+
+                    # Cache the service thread ID after streaming completes
+                    if thread and thread.service_thread_id:
+                        if thread.service_thread_id.startswith("conv_"):
+                            cache[conversation_id] = thread.service_thread_id
+                        elif thread_conversation_id and thread_conversation_id.startswith("conv_"):
+                            cache[conversation_id] = thread_conversation_id
+                        else:
+                            cache[conversation_id] = thread.service_thread_id
+            finally:
+                # Close the AsyncOpenAI client created by AzureAIClient.initialize_client()
+                # AzureAIClient.close() does NOT close this - it only handles project_client
+                if chat_client is not None and getattr(chat_client, 'client', None) is not None:
+                    try:
+                        await chat_client.client.close()
+                    except Exception as e:
+                        logger.warning("Chat agent - Failed to close openai client: %s", e)
     except ServiceResponseException as e:
         complete_response = str(e)
         if "Rate limit is exceeded" in str(e):
@@ -226,8 +231,6 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error streaming OpenAI text") from e
 
     finally:
-        if db_connection:
-            db_connection.close()
         if credential is not None:
             await credential.close()
         # Provide a fallback response when no data is received from OpenAI.
@@ -244,7 +247,6 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
     """
     complete_response = ""
     credential = None
-    db_connection = None
 
     try:
         if not query:
@@ -260,20 +262,8 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
             conv_id = cache.get(conversation_id, None)
 
             # Get database connection based on AZURE_ENV_ONLY flag
-            from history_sql import SqlQueryTool, get_azure_sql_connection, get_fabric_db_connection
-
-            if AZURE_ENV_ONLY:
-                logger.info("Workshop mode: Using Azure SQL Database")
-                db_connection = await get_azure_sql_connection()
-            else:
-                logger.info("Workshop mode: Using Fabric Lakehouse SQL")
-                db_connection = await get_fabric_db_connection()
-
-            if not db_connection:
-                logger.warning("Failed to establish database connection")
-
-            custom_tool = SqlQueryTool(pyodbc_conn=db_connection) if db_connection else None
-
+            from history_sql import SqlQueryTool
+            custom_tool = SqlQueryTool()
             openai_client = project_client.get_openai_client()
 
             # Create or retrieve conversation
@@ -394,8 +384,6 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error streaming OpenAI text") from e
 
     finally:
-        if db_connection:
-            db_connection.close()
         if credential is not None:
             await credential.close()
         # Provide a fallback response when no data is received from OpenAI.
@@ -426,6 +414,7 @@ async def stream_chat_request(conversation_id, query):
                     }
                     yield json.dumps(response, ensure_ascii=False) + "\n\n"
 
+            logger.info("Chat API response max 200 chars: %s, conversation_id: %s", assistant_content[:200], conversation_id)
         except ServiceResponseException as e:
             error_message = str(e)
             retry_after = "sometime"
@@ -468,6 +457,8 @@ async def conversation(request: Request):
                 content={"error": "Conversation ID is required"},
                 status_code=400
             )
+
+        logger.info("Chat request received - query: %s, conversation_id: %s", query, conversation_id)
 
         result = await stream_chat_request(conversation_id, query)
         track_event_if_configured(

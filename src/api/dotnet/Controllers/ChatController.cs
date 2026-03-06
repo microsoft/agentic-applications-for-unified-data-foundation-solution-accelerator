@@ -20,21 +20,23 @@ public class ChatController : ControllerBase
     private readonly IUserContextAccessor _userContextAccessor;
     private readonly ISqlConversationRepository _sqlRepo;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<ChatController> _logger;
 
     // Thread cache to maintain conversation context like Python ExpCache  
     private static ExpCache<string, AgentThread>? _threadCache;
 
-    public ChatController(IUserContextAccessor userContextAccessor, ISqlConversationRepository sqlRepo, IConfiguration configuration)
+    public ChatController(IUserContextAccessor userContextAccessor, ISqlConversationRepository sqlRepo, IConfiguration configuration, ILogger<ChatController> logger)
     { 
         _userContextAccessor = userContextAccessor; 
         _sqlRepo = sqlRepo;
         _configuration = configuration;
+        _logger = logger;
         
         // Initialize thread cache with Azure AI endpoint if not already initialized
         if (_threadCache == null)
         {
             var endpoint = configuration["AZURE_AI_AGENT_ENDPOINT"] ?? string.Empty;
-            _threadCache = new ExpCache<string, AgentThread>(maxSize: 1000, ttlSeconds: 3600.0, configuration, azureAIEndpoint: endpoint);
+            _threadCache = new ExpCache<string, AgentThread>(maxSize: 1000, ttlSeconds: 3600.0, configuration, logger, azureAIEndpoint: endpoint);
         }
     }
 
@@ -58,6 +60,8 @@ public class ChatController : ControllerBase
         var userId = user.UserPrincipalId;
         
         var (convId, _) = await _sqlRepo.EnsureConversationAsync(userId ?? string.Empty, request.ConversationId, title: string.Empty, ct);
+
+        _logger.LogInformation("Chat request received - query: {Query}, conversation_id: {ConversationId}", request.Query, convId);
         
         // Use Agent Framework AIAgent for RAG/AI response with function tools  
         AIAgent agent = agentService.Agent;
@@ -67,7 +71,9 @@ public class ChatController : ControllerBase
         {
             thread = cachedThread;
         }
-        else
+
+        // If no cached thread or cached thread was null, create a new one
+        if (thread == null)
         {
             var chatClientAgent = agent as ChatClientAgent 
                 ?? throw new InvalidOperationException("Agent must be a ChatClientAgent to create conversation threads.");
@@ -112,6 +118,10 @@ public class ChatController : ControllerBase
         {
             var errorEnvelope = new { error = ex.Message };
             await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // Client disconnected or request was cancelled - no need to write response
         }
         catch (Exception ex)
         {
