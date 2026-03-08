@@ -363,6 +363,13 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
                 lines.append(f"API_PID={api_pid}")
                 print(f"  Found API_PID: {api_pid}")
     
+    # Derive MID_DISPLAY_NAME from managed identity if not present
+    if "MID_DISPLAY_NAME" not in settings:
+        mid_name, _, _ = get_managed_identity(resource_group)
+        if mid_name:
+            lines.append(f"MID_DISPLAY_NAME={mid_name}")
+            print(f"  Found MID_DISPLAY_NAME: {mid_name}")
+    
     # Add any other AZURE_* or relevant vars we might have missed
     for key, value in sorted(settings.items()):
         if key not in important_vars:
