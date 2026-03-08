@@ -493,7 +493,7 @@ def get_default_env_content() -> str:
         "FABRIC_WORKSPACE_ID=",
         "DATA_FOLDER=data/default",
         "INDUSTRY=Telecommunications",
-        "DATA_SIZE=small",
+        "DATA_SIZE=large",
         "SEARCH_DATA_FOLDER=data/default/documents",
         "",
         "# --- Agent IDs (auto-populated by scripts) ---",
