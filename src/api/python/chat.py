@@ -17,14 +17,10 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 # Azure SDK
-from azure.ai.agents.models import TruncationObject
+from azure.core.exceptions import HttpResponseError
 from azure.monitor.events.extension import track_event
 from azure.monitor.opentelemetry import configure_azure_monitor
 from azure.ai.projects.aio import AIProjectClient
-
-from agent_framework import ChatAgent
-from agent_framework.azure import AzureAIClient
-from agent_framework.exceptions import ServiceResponseException
 
 # Azure Auth
 from auth.azure_credential_utils import get_azure_credential_async
@@ -145,9 +141,9 @@ def get_thread_cache():
 
 async def stream_openai_text(conversation_id: str, query: str) -> StreamingResponse:
     """
-    Get a streaming text response from OpenAI.
+    Get a streaming text response from OpenAI using azure-ai-projects SDK.
+    Uses responses.create() with conversation caching for chat history continuity.
     """
-    thread = None
     complete_response = ""
     credential = None
     db_connection = None
@@ -165,8 +161,8 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
 
             cache = get_thread_cache()
             thread_conversation_id = cache.get(conversation_id, None)
-            truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
 
+            # Get database connection
             from history_sql import SqlQueryTool, get_db_connection
             db_connection = await get_db_connection()
             if not db_connection:
@@ -174,46 +170,108 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
                 raise Exception("Database connection failed")
 
             custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
-            my_tools = [custom_tool.run_sql_query]
 
-            # Create chat client with existing agent
-            chat_client = AzureAIClient(
-                project_client=project_client,
-                agent_name=os.getenv("AGENT_NAME_CHAT"),
-                use_latest_version=True,
+            openai_client = project_client.get_openai_client()
+
+            # Create or reuse conversation for chat history continuity
+            if not thread_conversation_id:
+                conversation = await openai_client.conversations.create()
+                thread_conversation_id = conversation.id
+                cache[conversation_id] = thread_conversation_id
+
+            # Initial request to the agent
+            response = await openai_client.responses.create(
+                conversation=thread_conversation_id,
+                input=query,
+                extra_body={"agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
             )
 
-            async with ChatAgent(
-                chat_client=chat_client,
-                tools=my_tools,
-                tool_choice="auto",
-                store=True,
-            ) as chat_agent:
+            # Process response - handle function calls iteratively
+            max_iterations = 10
+            iteration = 0
 
-                if thread_conversation_id:
-                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
-                    assert thread.is_initialized
-                else:
-                    # Create a conversation using openAI client
-                    openai_client = project_client.get_openai_client()
-                    conversation = await openai_client.conversations.create()
-                    thread_conversation_id = conversation.id
-                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
-                    cache[conversation_id] = thread_conversation_id
+            while iteration < max_iterations:
+                iteration += 1
 
-                async for chunk in chat_agent.run_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
-                    if chunk is not None and chunk.text != "":
-                        complete_response += chunk.text
-                        yield chunk.text
+                function_calls = []
+                text_output = ""
 
-    except ServiceResponseException as e:
+                for item in response.output:
+                    item_type = getattr(item, 'type', None)
+
+                    if item_type == 'function_call':
+                        function_calls.append(item)
+                    elif item_type == 'message':
+                        if hasattr(item, 'content') and item.content is not None:
+                            for content in item.content:
+                                if hasattr(content, 'text'):
+                                    text_output += content.text
+                    elif item_type == 'azure_ai_search_call':
+                        args_str = getattr(item, 'arguments', '{}')
+                        try:
+                            args = json.loads(args_str) if args_str else {}
+                            logger.info("AI Search query: %s", args.get('query', 'unknown'))
+                        except Exception:
+                            logger.info("AI Search called")
+                    elif item_type in ('azure_ai_search_call_output', 'mcp_call_output'):
+                        logger.info("Search/knowledge base retrieval completed")
+                    elif item_type == 'mcp_call':
+                        logger.info("Knowledge Base MCP call: %s", getattr(item, 'name', 'unknown'))
+
+                # If no function calls, yield text and break
+                if not function_calls:
+                    if text_output:
+                        complete_response += text_output
+                        yield text_output
+                    break
+
+                # Handle function calls
+                tool_outputs = []
+                for fc in function_calls:
+                    func_name = fc.name
+                    func_args = json.loads(fc.arguments)
+                    logger.info("Calling function: %s", func_name)
+
+                    if func_name == "run_sql_query":
+                        sql_query = func_args.get("sql_query", "")
+                        logger.info("Executing SQL query: %s", sql_query[:100])
+                        result = await custom_tool.run_sql_query(sql_query=sql_query)
+                        logger.info("SQL query completed")
+                        if result is None:
+                            result_str = "No results returned"
+                        elif isinstance(result, (list, dict)):
+                            result_str = json.dumps(result, ensure_ascii=False)
+                        else:
+                            result_str = str(result)
+                    else:
+                        result_str = f"Unknown function: {func_name}"
+                        logger.warning("Unknown function called: %s", func_name)
+
+                    tool_outputs.append({
+                        "type": "function_call_output",
+                        "call_id": fc.call_id,
+                        "output": result_str
+                    })
+
+                # Submit tool outputs and get next response
+                response = await openai_client.responses.create(
+                    conversation=thread_conversation_id,
+                    input=tool_outputs,
+                    extra_body={"agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
+                )
+
+            if iteration >= max_iterations:
+                logger.warning("Max iterations reached for conversation %s", conversation_id)
+                yield "\n\n(Response processing reached maximum iterations)"
+
+    except HttpResponseError as e:
         complete_response = str(e)
-        if "Rate limit is exceeded" in str(e):
+        if "Rate limit is exceeded" in str(e) or e.status_code == 429:
             logger.error("Rate limit error: %s", e)
-            raise ServiceResponseException(f"Rate limit is exceeded. {str(e)}") from e
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=f"Rate limit is exceeded. {str(e)}") from e
         else:
             logger.error("RuntimeError: %s", e)
-            raise ServiceResponseException(f"An unexpected runtime error occurred: {str(e)}") from e
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"An unexpected runtime error occurred: {str(e)}") from e
 
     except Exception as e:
         complete_response = str(e)
@@ -319,7 +377,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
                                             search_results.append(ann.url_citation)
                                         elif hasattr(ann, 'file_citation'):
                                             search_results.append(getattr(ann.file_citation, 'file_id', str(ann.file_citation)))
-                    # Handle search tool call (request)
+                    # Handle search tool call (request) - native Azure AI Search
                     elif item_type == 'azure_ai_search_call':
                         args_str = getattr(item, 'arguments', '{}')
                         try:
@@ -331,6 +389,13 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
                     # Handle search tool output (result)
                     elif item_type == 'azure_ai_search_call_output':
                         logger.info("AI Search completed")
+                    # Handle Foundry IQ MCP tool call (knowledge base retrieval)
+                    elif item_type == 'mcp_call':
+                        tool_name = getattr(item, 'name', 'unknown')
+                        logger.info("Knowledge Base MCP call: %s", tool_name)
+                    # Handle MCP tool output
+                    elif item_type == 'mcp_call_output':
+                        logger.info("Knowledge base retrieval completed")
 
                 # If no function calls, we're done
                 if not function_calls:
@@ -426,17 +491,17 @@ async def stream_chat_request(conversation_id, query):
                     }
                     yield json.dumps(response, ensure_ascii=False) + "\n\n"
 
-        except ServiceResponseException as e:
-            error_message = str(e)
+        except HTTPException as e:
+            error_message = str(e.detail) if hasattr(e, 'detail') else str(e)
             retry_after = "sometime"
-            if "Rate limit is exceeded" in error_message:
+            if "Rate limit is exceeded" in error_message or e.status_code == 429:
                 match = re.search(r"Try again in (\d+) seconds.", error_message)
                 if match:
                     retry_after = f"{match.group(1)} seconds"
                 logger.error("Rate limit error: %s", error_message)
                 yield json.dumps({"error": f"Rate limit is exceeded. Try again in {retry_after}."}) + "\n\n"
             else:
-                logger.error("ServiceResponseException: %s", error_message)
+                logger.error("HttpResponseError: %s", error_message)
                 yield json.dumps({"error": "An error occurred. Please try again later."}) + "\n\n"
 
         except Exception as e:
