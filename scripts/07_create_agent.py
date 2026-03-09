@@ -182,7 +182,7 @@ KB_NAME = search_ids_data.get("knowledge_base_name", os.getenv("KNOWLEDGE_BASE_N
 KB_MCP_CONNECTION_NAME = os.getenv("KB_MCP_CONNECTION_NAME", f"{SOLUTION_NAME}-kb-mcp-connection")
 
 # Agent name
-CHAT_AGENT_NAME = f"{SOLUTION_NAME}-ChatAgent"
+CHAT_AGENT_NAME = f"ChatAgent"
 
 # ============================================================================
 # Print Configuration
@@ -250,6 +250,7 @@ def build_agent_instructions(config, schema_text, use_fabric, config_dir):
 - Tables: {', '.join(table_names)}
 - {table_format}
 - Use T-SQL syntax (TOP N, not LIMIT)
+- For string comparisons in WHERE clauses, use LOWER() on both sides for case-insensitive matching
 {f"- JOINs: {'; '.join(join_hints)}" if join_hints else ""}
 
 **Knowledge Base (Foundry IQ)** - Search policy and reference documents via knowledge base
@@ -327,7 +328,7 @@ Be descriptive but concise.
 Respond only with the title, no additional commentary.'''
 
 # Title Agent Name
-TITLE_AGENT_NAME = f"{SOLUTION_NAME}-TitleAgent"
+TITLE_AGENT_NAME = f"TitleAgent"
 
 # ============================================================================
 # Tool Definitions
