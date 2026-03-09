@@ -102,7 +102,7 @@
                 },  
                 {  
                     "name": "AdditionalNotes",  
-                    "title": "Notes regarding payment history or issues."  
+                    "title": "Notes regarding payment status, history, missed payments, and policy issues."  
                 }  
             ]  
         },  
