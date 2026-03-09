@@ -67,6 +67,7 @@ Examples:
   python scripts/00_build_solution.py                # Full Fabric mode or SQL mode
   python scripts/00_build_solution.py --from 06      # Start from step 06
   python scripts/00_build_solution.py --only 07      # Run only specific steps
+  python scripts/00_build_solution.py -g rg-myproject-dev  # Pre-provisioned infra
   python scripts/00_build_solution.py --fabric-workspace-id <id>  # Pass Fabric workspace ID
 """
 )
@@ -78,6 +79,8 @@ parser.add_argument("--size", choices=["small", "medium", "large"],
                     help="Data size for generation (overrides .env)")
 parser.add_argument("--fabric-workspace-id", type=str,
                     help="Fabric workspace ID (overrides FABRIC_WORKSPACE_ID in .env)")
+parser.add_argument("--resource-group", "-g", type=str,
+                    help="Azure resource group to fetch env settings from (for pre-provisioned infra)")
 parser.add_argument("--clean", action="store_true",
                     help="Clean and recreate artifacts")
 
@@ -100,7 +103,51 @@ args.quiet = not args.verbose
 
 # Load environment from azd + project .env
 from load_env import load_all_env
-load_all_env()
+azd_loaded, project_loaded = load_all_env()
+
+# ============================================================================
+# Generate .env from Azure if needed
+# ============================================================================
+
+def check_azure_env_configured():
+    """Check if required Azure environment variables are set."""
+    required_vars = [
+        "AZURE_OPENAI_ENDPOINT",
+        "AZURE_AI_SEARCH_ENDPOINT", 
+        "AZURE_AI_AGENT_ENDPOINT",
+    ]
+    return all(os.getenv(var) for var in required_vars)
+
+# Only run env generation if not already configured
+# (even if --resource-group is passed, skip if env is already set up)
+if not check_azure_env_configured():
+    print("\n⚠️  Azure environment not configured.")
+    
+    resource_group = args.resource_group or input("Enter Azure Resource Group name (or Enter to skip): ").strip()
+    
+    if resource_group:
+        print(f"Fetching settings from: {resource_group}")
+        generate_script = os.path.join(script_dir, "generate_env_from_azure.py")
+        
+        result = subprocess.run(
+            [sys.executable, generate_script, "--resource-group", resource_group],
+            cwd=script_dir
+        )
+        
+        if result.returncode == 0:
+            print("✓ Environment configured.")
+            # Reload environment with new values
+            from load_env import reload_env
+            reload_env()
+            load_all_env()
+        else:
+            print("Failed. Edit scripts/.env manually or retry with: python scripts/generate_env_from_azure.py -g <rg>")
+            sys.exit(1)
+    else:
+        print("Skipped. Configure later: python scripts/generate_env_from_azure.py -g <resource-group>")
+        response = input("Continue anyway? (y/N): ").strip().lower()
+        if response != 'y':
+            sys.exit(0)
 
 # Get azure_only from environment variable (set AZURE_ENV_ONLY=true to use Azure SQL mode)
 azure_only = os.getenv("AZURE_ENV_ONLY", "false").lower() in ("true", "1", "yes")

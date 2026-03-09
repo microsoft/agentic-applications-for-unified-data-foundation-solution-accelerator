@@ -62,9 +62,9 @@ from pypdf import PdfReader
 # ============================================================================
 
 # Azure services - from azd environment
-AZURE_AI_ENDPOINT = os.getenv("AZURE_AI_ENDPOINT") or os.getenv("AZURE_AI_PROJECT_ENDPOINT", "").split("/api/projects")[0]
+AZURE_AI_ENDPOINT = os.getenv("AZURE_AI_ENDPOINT") or os.getenv("AZURE_AI_AGENT_ENDPOINT", "").split("/api/projects")[0]
 AZURE_AI_SEARCH_ENDPOINT = os.getenv("AZURE_AI_SEARCH_ENDPOINT")
-EMBEDDING_MODEL = os.getenv("AZURE_EMBEDDING_MODEL") or os.getenv("EMBEDDING_MODEL", "text-embedding-ada-002")
+EMBEDDING_MODEL = os.getenv("AZURE_OPENAI_EMBEDDING_MODEL") or os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
 
 # Project settings - from .env
 SOLUTION_NAME = os.getenv("SOLUTION_NAME") or os.getenv("SOLUTION_PREFIX") or os.getenv("AZURE_ENV_NAME", "demo")
@@ -116,7 +116,7 @@ print(f"Data Folder: {data_dir}")
 def get_openai_client():
     """Create Azure OpenAI client using AI endpoint."""
     if not AZURE_AI_ENDPOINT:
-        raise ValueError("AZURE_AI_PROJECT_ENDPOINT not set")
+        raise ValueError("AZURE_AI_AGENT_ENDPOINT not set")
     
     credential = DefaultAzureCredential()
     token = credential.get_token("https://cognitiveservices.azure.com/.default")

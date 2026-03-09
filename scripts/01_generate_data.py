@@ -36,10 +36,10 @@ from azure.identity import DefaultAzureCredential
 # ============================================================================
 
 # Azure services - from azd environment
-FOUNDRY_ENDPOINT = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
+FOUNDRY_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
 
 if not FOUNDRY_ENDPOINT:
-    print("ERROR: AZURE_AI_PROJECT_ENDPOINT not set")
+    print("ERROR: AZURE_AI_AGENT_ENDPOINT not set")
     print("       Run 'azd up' to deploy Azure resources")
     sys.exit(1)
 
@@ -114,7 +114,7 @@ credential = DefaultAzureCredential()
 from azure.ai.projects import AIProjectClient
 project_client = AIProjectClient(endpoint=FOUNDRY_ENDPOINT, credential=credential)
 client = project_client.get_openai_client()
-model = os.getenv("AZURE_CHAT_MODEL") or os.getenv("MODEL_DEPLOYMENT", "gpt-4o-mini")
+model = os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4.1-mini")
 
 print("[OK] AI client initialized")
 

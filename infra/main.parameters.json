@@ -54,13 +54,16 @@
       "value": "${AZURE_ENV_SEARCH_SERVICE_LOCATION}"
     },
     "deployApp": {
-      "value": "${AZURE_ENV_DEPLOY_APP=false}"
+      "value": "${AZURE_ENV_DEPLOY_APP=true}"
     },
     "isWorkshop": {
       "value": "${IS_WORKSHOP=true}"
     },
     "azureEnvOnly": {
       "value": "${AZURE_ENV_ONLY=false}"
+    },
+    "deployingUserPrincipalType": {
+      "value": "${DEPLOYING_USER_PRINCIPAL_TYPE=User}"
     }
   }
 }

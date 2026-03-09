@@ -57,7 +57,10 @@ extra:
       link: https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator
 
 nav:
-  - "🚀 Quick Deploy": deployment-guide.md
+  - "🚀 Quick Deploy": 
+    - "Overview": quick-deploy/index.md
+    - "[Option A] Quick Deploy for Azure + Fabric": quick-deploy/deployment-guide-optionA.md
+    - "[Option B] Quick deploy for Azure": quick-deploy/deployment-guide-optionB.md
   - Overview: index.md
   - Get Started:
     - Prerequisites: 00-get-started/index.md

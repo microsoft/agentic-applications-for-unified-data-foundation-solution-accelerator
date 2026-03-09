@@ -1,0 +1,201 @@
+technician_id,name,department,hire_date
+TECH0001,Jessica Brown,Installation,2021-04-16
+TECH0002,William Davis,Repair,2023-01-13
+TECH0003,William Jones,Maintenance,2020-08-11
+TECH0004,Jessica Davis,Network Support,2022-03-29
+TECH0005,David Smith,Customer Service,2018-12-19
+TECH0006,Richard Garcia,Installation,2020-12-19
+TECH0007,William Brown,Repair,2015-08-22
+TECH0008,Mary Smith,Maintenance,2021-08-17
+TECH0009,Linda Miller,Network Support,2023-04-15
+TECH0010,William Jones,Customer Service,2018-05-08
+TECH0011,Michael Brown,Installation,2018-02-05
+TECH0012,Susan Davis,Repair,2018-11-19
+TECH0013,John Garcia,Maintenance,2022-03-31
+TECH0014,William Garcia,Network Support,2020-09-10
+TECH0015,William Davis,Customer Service,2023-04-24
+TECH0016,Robert Davis,Installation,2019-03-23
+TECH0017,Jessica Brown,Repair,2019-01-22
+TECH0018,Linda Smith,Maintenance,2017-07-08
+TECH0019,Michael Johnson,Network Support,2017-09-03
+TECH0020,Linda Smith,Customer Service,2016-09-15
+TECH0021,Richard Smith,Installation,2016-05-30
+TECH0022,Michael Brown,Repair,2015-11-16
+TECH0023,James Jones,Maintenance,2017-10-02
+TECH0024,Susan Smith,Network Support,2018-05-06
+TECH0025,Robert Williams,Customer Service,2021-03-10
+TECH0026,Robert Williams,Installation,2022-06-03
+TECH0027,William Miller,Repair,2019-01-03
+TECH0028,Mary Davis,Maintenance,2015-03-30
+TECH0029,David Miller,Network Support,2020-11-03
+TECH0030,Barbara Williams,Customer Service,2021-04-27
+TECH0031,Patricia Smith,Installation,2016-07-15
+TECH0032,William Davis,Repair,2020-07-27
+TECH0033,David Brown,Maintenance,2017-07-31
+TECH0034,Susan Williams,Network Support,2015-03-30
+TECH0035,James Williams,Customer Service,2016-07-27
+TECH0036,John Jones,Installation,2015-04-30
+TECH0037,Patricia Miller,Repair,2023-02-10
+TECH0038,William Smith,Maintenance,2020-11-15
+TECH0039,James Williams,Network Support,2021-12-13
+TECH0040,David Davis,Customer Service,2019-05-09
+TECH0041,David Davis,Installation,2022-06-03
+TECH0042,Jessica Williams,Repair,2015-01-12
+TECH0043,Michael Davis,Maintenance,2021-10-09
+TECH0044,James Smith,Network Support,2020-08-24
+TECH0045,Patricia Davis,Customer Service,2021-05-06
+TECH0046,John Jones,Installation,2015-01-17
+TECH0047,Robert Brown,Repair,2017-01-30
+TECH0048,John Miller,Maintenance,2017-07-26
+TECH0049,James Miller,Network Support,2021-10-21
+TECH0050,James Davis,Customer Service,2020-05-12
+TECH0051,Patricia Johnson,Installation,2015-12-05
+TECH0052,John Brown,Repair,2017-10-14
+TECH0053,Linda Williams,Maintenance,2022-07-25
+TECH0054,Robert Williams,Network Support,2018-03-05
+TECH0055,Linda Johnson,Customer Service,2019-05-05
+TECH0056,Richard Jones,Installation,2021-11-18
+TECH0057,Michael Garcia,Repair,2021-01-08
+TECH0058,Jennifer Smith,Maintenance,2017-11-04
+TECH0059,John Brown,Network Support,2020-12-05
+TECH0060,Jennifer Smith,Customer Service,2015-09-15
+TECH0061,Barbara Smith,Installation,2018-04-03
+TECH0062,Richard Jones,Repair,2019-03-20
+TECH0063,Linda Smith,Maintenance,2018-03-24
+TECH0064,Joseph Miller,Network Support,2017-03-11
+TECH0065,Robert Williams,Customer Service,2017-02-25
+TECH0066,Elizabeth Jones,Installation,2019-02-06
+TECH0067,Elizabeth Smith,Repair,2022-10-19
+TECH0068,Jennifer Johnson,Maintenance,2015-07-10
+TECH0069,Patricia Smith,Network Support,2015-11-30
+TECH0070,Elizabeth Brown,Customer Service,2016-08-09
+TECH0071,David Brown,Installation,2021-10-31
+TECH0072,James Smith,Repair,2015-06-14
+TECH0073,Linda Jones,Maintenance,2017-11-25
+TECH0074,John Davis,Network Support,2017-08-23
+TECH0075,Susan Smith,Customer Service,2019-09-23
+TECH0076,Jennifer Miller,Installation,2022-05-24
+TECH0077,Jessica Smith,Repair,2020-02-15
+TECH0078,Elizabeth Smith,Maintenance,2021-05-12
+TECH0079,John Jones,Network Support,2017-10-10
+TECH0080,Robert Johnson,Customer Service,2015-02-23
+TECH0081,Robert Johnson,Installation,2015-10-23
+TECH0082,Michael Smith,Repair,2019-06-07
+TECH0083,Mary Williams,Maintenance,2019-10-30
+TECH0084,Robert Smith,Network Support,2019-08-31
+TECH0085,William Garcia,Customer Service,2017-04-22
+TECH0086,John Smith,Installation,2016-12-13
+TECH0087,Mary Garcia,Repair,2015-02-21
+TECH0088,Joseph Davis,Maintenance,2022-02-08
+TECH0089,John Jones,Network Support,2022-09-30
+TECH0090,Patricia Johnson,Customer Service,2023-05-01
+TECH0091,James Williams,Installation,2016-03-06
+TECH0092,James Davis,Repair,2022-01-19
+TECH0093,Linda Davis,Maintenance,2015-12-15
+TECH0094,Robert Brown,Network Support,2023-01-16
+TECH0095,Susan Jones,Customer Service,2015-10-24
+TECH0096,Richard Garcia,Installation,2015-11-15
+TECH0097,John Williams,Repair,2018-10-17
+TECH0098,Jennifer Jones,Maintenance,2015-06-17
+TECH0099,Robert Brown,Network Support,2020-08-24
+TECH0100,Richard Garcia,Customer Service,2022-12-15
+TECH0101,Richard Williams,Installation,2019-07-01
+TECH0102,Joseph Miller,Repair,2015-04-07
+TECH0103,Elizabeth Smith,Maintenance,2020-11-28
+TECH0104,William Garcia,Network Support,2017-01-20
+TECH0105,David Miller,Customer Service,2020-04-03
+TECH0106,Jessica Smith,Installation,2015-05-05
+TECH0107,Jennifer Davis,Repair,2022-01-02
+TECH0108,Robert Miller,Maintenance,2018-05-17
+TECH0109,Patricia Miller,Network Support,2020-09-26
+TECH0110,Richard Garcia,Customer Service,2017-01-16
+TECH0111,Mary Garcia,Installation,2015-08-11
+TECH0112,William Davis,Repair,2022-12-27
+TECH0113,Mary Davis,Maintenance,2018-12-19
+TECH0114,Richard Johnson,Network Support,2022-09-05
+TECH0115,Robert Jones,Customer Service,2016-10-01
+TECH0116,John Brown,Installation,2021-03-22
+TECH0117,Elizabeth Johnson,Repair,2016-02-29
+TECH0118,John Jones,Maintenance,2020-04-27
+TECH0119,Jennifer Brown,Network Support,2019-09-03
+TECH0120,Barbara Davis,Customer Service,2022-05-17
+TECH0121,John Johnson,Installation,2021-07-24
+TECH0122,Jennifer Garcia,Repair,2020-08-14
+TECH0123,William Miller,Maintenance,2016-07-13
+TECH0124,Jessica Garcia,Network Support,2018-04-14
+TECH0125,Michael Jones,Customer Service,2017-11-11
+TECH0126,Susan Johnson,Installation,2020-06-29
+TECH0127,William Jones,Repair,2019-08-29
+TECH0128,William Smith,Maintenance,2019-09-21
+TECH0129,Robert Smith,Network Support,2020-09-06
+TECH0130,David Smith,Customer Service,2019-09-04
+TECH0131,Elizabeth Jones,Installation,2015-11-12
+TECH0132,Richard Garcia,Repair,2019-10-19
+TECH0133,Linda Garcia,Maintenance,2019-07-27
+TECH0134,Linda Smith,Network Support,2021-08-19
+TECH0135,David Brown,Customer Service,2020-11-02
+TECH0136,William Davis,Installation,2016-11-27
+TECH0137,Joseph Jones,Repair,2023-04-30
+TECH0138,Linda Williams,Maintenance,2018-11-07
+TECH0139,Barbara Garcia,Network Support,2015-11-30
+TECH0140,Barbara Jones,Customer Service,2020-02-08
+TECH0141,Jessica Smith,Installation,2022-12-12
+TECH0142,William Miller,Repair,2020-10-02
+TECH0143,Elizabeth Johnson,Maintenance,2020-12-26
+TECH0144,David Davis,Network Support,2016-02-08
+TECH0145,Linda Davis,Customer Service,2016-04-15
+TECH0146,David Johnson,Installation,2015-04-16
+TECH0147,Linda Brown,Repair,2019-08-09
+TECH0148,William Johnson,Maintenance,2022-01-17
+TECH0149,Linda Smith,Network Support,2017-11-15
+TECH0150,James Williams,Customer Service,2016-07-14
+TECH0151,Jennifer Miller,Installation,2023-05-26
+TECH0152,Barbara Johnson,Repair,2015-10-27
+TECH0153,William Davis,Maintenance,2018-08-11
+TECH0154,Barbara Johnson,Network Support,2021-11-10
+TECH0155,Robert Garcia,Customer Service,2021-05-04
+TECH0156,Robert Miller,Installation,2015-10-23
+TECH0157,David Johnson,Repair,2022-08-08
+TECH0158,Jennifer Davis,Maintenance,2020-02-04
+TECH0159,Mary Davis,Network Support,2021-10-31
+TECH0160,Richard Williams,Customer Service,2019-11-25
+TECH0161,Susan Smith,Installation,2015-12-05
+TECH0162,Elizabeth Davis,Repair,2021-06-19
+TECH0163,Robert Johnson,Maintenance,2018-09-18
+TECH0164,Robert Johnson,Network Support,2016-12-02
+TECH0165,Jennifer Garcia,Customer Service,2018-12-28
+TECH0166,Mary Smith,Installation,2015-03-25
+TECH0167,Michael Miller,Repair,2022-05-30
+TECH0168,James Smith,Maintenance,2020-03-11
+TECH0169,Joseph Davis,Network Support,2019-08-17
+TECH0170,John Davis,Customer Service,2017-01-19
+TECH0171,Robert Garcia,Installation,2017-03-06
+TECH0172,William Davis,Repair,2021-02-11
+TECH0173,Patricia Johnson,Maintenance,2018-03-28
+TECH0174,William Brown,Network Support,2020-01-19
+TECH0175,Joseph Williams,Customer Service,2017-04-26
+TECH0176,David Brown,Installation,2016-02-06
+TECH0177,Michael Garcia,Repair,2021-03-04
+TECH0178,Linda Jones,Maintenance,2022-06-29
+TECH0179,Jennifer Smith,Network Support,2020-11-21
+TECH0180,John Garcia,Customer Service,2020-02-18
+TECH0181,David Williams,Installation,2017-10-30
+TECH0182,Barbara Garcia,Repair,2017-05-15
+TECH0183,William Garcia,Maintenance,2022-02-26
+TECH0184,William Jones,Network Support,2015-11-14
+TECH0185,Elizabeth Williams,Customer Service,2018-07-22
+TECH0186,Michael Brown,Installation,2020-04-04
+TECH0187,Robert Johnson,Repair,2021-12-23
+TECH0188,Elizabeth Johnson,Maintenance,2015-07-06
+TECH0189,Jennifer Johnson,Network Support,2021-09-09
+TECH0190,James Brown,Customer Service,2022-07-14
+TECH0191,Elizabeth Jones,Installation,2020-07-03
+TECH0192,Barbara Davis,Repair,2021-07-21
+TECH0193,Susan Johnson,Maintenance,2016-12-05
+TECH0194,Michael Williams,Network Support,2019-04-30
+TECH0195,Barbara Miller,Customer Service,2022-02-12
+TECH0196,Barbara Brown,Installation,2019-08-13
+TECH0197,Linda Smith,Repair,2022-01-28
+TECH0198,Linda Johnson,Maintenance,2019-03-09
+TECH0199,Michael Williams,Network Support,2021-06-26
+TECH0200,Patricia Smith,Customer Service,2018-02-10

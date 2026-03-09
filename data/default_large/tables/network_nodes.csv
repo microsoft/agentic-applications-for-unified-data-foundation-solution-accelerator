@@ -1,0 +1,201 @@
+node_id,node_type,location,status,last_maintenance_date
+NODE0001,Router,Central,Active,2024-02-16
+NODE0002,Switch,East,Inactive,2023-02-15
+NODE0003,Hub,North,Under Maintenance,2023-09-15
+NODE0004,Fiber Node,South,Active,2023-09-11
+NODE0005,Wireless Access Point,South,Inactive,2024-01-26
+NODE0006,Router,South,Under Maintenance,2023-08-02
+NODE0007,Switch,South,Active,2023-06-07
+NODE0008,Hub,South,Inactive,2023-12-28
+NODE0009,Fiber Node,North,Under Maintenance,2023-10-01
+NODE0010,Wireless Access Point,Central,Active,2023-04-16
+NODE0011,Router,South,Inactive,2024-02-01
+NODE0012,Switch,West,Under Maintenance,2023-11-04
+NODE0013,Hub,South,Active,2023-06-13
+NODE0014,Fiber Node,East,Inactive,2024-03-06
+NODE0015,Wireless Access Point,East,Under Maintenance,2024-01-04
+NODE0016,Router,North,Active,2023-11-03
+NODE0017,Switch,South,Inactive,2023-11-26
+NODE0018,Hub,East,Under Maintenance,2023-11-01
+NODE0019,Fiber Node,West,Active,2024-02-08
+NODE0020,Wireless Access Point,South,Inactive,2023-03-14
+NODE0021,Router,South,Under Maintenance,2023-08-14
+NODE0022,Switch,North,Active,2023-08-21
+NODE0023,Hub,North,Inactive,2023-01-26
+NODE0024,Fiber Node,East,Under Maintenance,2023-12-29
+NODE0025,Wireless Access Point,West,Active,2023-12-17
+NODE0026,Router,East,Inactive,2023-04-06
+NODE0027,Switch,West,Under Maintenance,2023-06-09
+NODE0028,Hub,West,Active,2024-01-25
+NODE0029,Fiber Node,Central,Inactive,2023-09-07
+NODE0030,Wireless Access Point,East,Under Maintenance,2023-05-06
+NODE0031,Router,Central,Active,2023-05-26
+NODE0032,Switch,North,Inactive,2023-03-04
+NODE0033,Hub,Central,Under Maintenance,2024-02-17
+NODE0034,Fiber Node,North,Active,2023-09-05
+NODE0035,Wireless Access Point,South,Inactive,2023-11-20
+NODE0036,Router,East,Under Maintenance,2023-06-02
+NODE0037,Switch,North,Active,2024-01-07
+NODE0038,Hub,East,Inactive,2023-03-28
+NODE0039,Fiber Node,South,Under Maintenance,2023-07-24
+NODE0040,Wireless Access Point,South,Active,2023-01-22
+NODE0041,Router,North,Inactive,2023-11-19
+NODE0042,Switch,Central,Under Maintenance,2023-12-10
+NODE0043,Hub,East,Active,2023-12-25
+NODE0044,Fiber Node,South,Inactive,2024-02-21
+NODE0045,Wireless Access Point,East,Under Maintenance,2023-12-08
+NODE0046,Router,South,Active,2023-03-14
+NODE0047,Switch,South,Inactive,2023-11-07
+NODE0048,Hub,North,Under Maintenance,2023-01-12
+NODE0049,Fiber Node,East,Active,2023-06-15
+NODE0050,Wireless Access Point,West,Inactive,2023-06-28
+NODE0051,Router,Central,Under Maintenance,2023-11-26
+NODE0052,Switch,South,Active,2024-03-07
+NODE0053,Hub,Central,Inactive,2023-05-21
+NODE0054,Fiber Node,West,Under Maintenance,2023-05-17
+NODE0055,Wireless Access Point,North,Active,2023-10-28
+NODE0056,Router,Central,Inactive,2023-09-17
+NODE0057,Switch,East,Under Maintenance,2023-01-01
+NODE0058,Hub,South,Active,2023-01-03
+NODE0059,Fiber Node,West,Inactive,2023-12-01
+NODE0060,Wireless Access Point,South,Under Maintenance,2023-10-29
+NODE0061,Router,East,Active,2023-12-19
+NODE0062,Switch,North,Inactive,2023-02-26
+NODE0063,Hub,West,Under Maintenance,2023-02-08
+NODE0064,Fiber Node,East,Active,2023-07-05
+NODE0065,Wireless Access Point,West,Inactive,2023-08-26
+NODE0066,Router,South,Under Maintenance,2024-01-14
+NODE0067,Switch,East,Active,2023-04-16
+NODE0068,Hub,Central,Inactive,2023-01-13
+NODE0069,Fiber Node,Central,Under Maintenance,2024-03-09
+NODE0070,Wireless Access Point,South,Active,2023-11-03
+NODE0071,Router,North,Inactive,2023-08-05
+NODE0072,Switch,Central,Under Maintenance,2023-02-10
+NODE0073,Hub,South,Active,2024-03-06
+NODE0074,Fiber Node,South,Inactive,2023-01-26
+NODE0075,Wireless Access Point,East,Under Maintenance,2023-12-24
+NODE0076,Router,West,Active,2023-07-21
+NODE0077,Switch,North,Inactive,2023-06-18
+NODE0078,Hub,East,Under Maintenance,2023-11-28
+NODE0079,Fiber Node,South,Active,2023-12-11
+NODE0080,Wireless Access Point,West,Inactive,2023-10-25
+NODE0081,Router,East,Under Maintenance,2023-02-07
+NODE0082,Switch,East,Active,2023-08-27
+NODE0083,Hub,East,Inactive,2023-11-16
+NODE0084,Fiber Node,West,Under Maintenance,2024-02-10
+NODE0085,Wireless Access Point,West,Active,2024-02-03
+NODE0086,Router,West,Inactive,2023-05-27
+NODE0087,Switch,West,Under Maintenance,2023-03-25
+NODE0088,Hub,West,Active,2023-11-19
+NODE0089,Fiber Node,Central,Inactive,2024-01-04
+NODE0090,Wireless Access Point,Central,Under Maintenance,2024-01-10
+NODE0091,Router,South,Active,2023-07-16
+NODE0092,Switch,South,Inactive,2023-10-03
+NODE0093,Hub,North,Under Maintenance,2023-03-19
+NODE0094,Fiber Node,North,Active,2023-01-05
+NODE0095,Wireless Access Point,East,Inactive,2023-04-19
+NODE0096,Router,Central,Under Maintenance,2023-08-01
+NODE0097,Switch,Central,Active,2023-12-17
+NODE0098,Hub,West,Inactive,2023-01-11
+NODE0099,Fiber Node,South,Under Maintenance,2024-02-20
+NODE0100,Wireless Access Point,North,Active,2023-05-24
+NODE0101,Router,East,Inactive,2023-11-22
+NODE0102,Switch,West,Under Maintenance,2023-05-06
+NODE0103,Hub,East,Active,2023-02-02
+NODE0104,Fiber Node,West,Inactive,2024-02-22
+NODE0105,Wireless Access Point,North,Under Maintenance,2023-10-14
+NODE0106,Router,Central,Active,2023-02-22
+NODE0107,Switch,East,Inactive,2023-05-30
+NODE0108,Hub,West,Under Maintenance,2024-02-21
+NODE0109,Fiber Node,East,Active,2023-08-09
+NODE0110,Wireless Access Point,East,Inactive,2023-05-17
+NODE0111,Router,Central,Under Maintenance,2023-02-24
+NODE0112,Switch,North,Active,2023-09-30
+NODE0113,Hub,West,Inactive,2023-02-02
+NODE0114,Fiber Node,Central,Under Maintenance,2023-03-13
+NODE0115,Wireless Access Point,Central,Active,2023-07-22
+NODE0116,Router,North,Inactive,2023-01-19
+NODE0117,Switch,Central,Under Maintenance,2023-02-21
+NODE0118,Hub,West,Active,2023-02-22
+NODE0119,Fiber Node,North,Inactive,2024-02-10
+NODE0120,Wireless Access Point,Central,Under Maintenance,2023-07-06
+NODE0121,Router,South,Active,2023-01-08
+NODE0122,Switch,East,Inactive,2023-03-09
+NODE0123,Hub,South,Under Maintenance,2023-05-22
+NODE0124,Fiber Node,East,Active,2023-02-10
+NODE0125,Wireless Access Point,North,Inactive,2023-10-26
+NODE0126,Router,Central,Under Maintenance,2023-08-29
+NODE0127,Switch,South,Active,2024-03-10
+NODE0128,Hub,West,Inactive,2023-07-10
+NODE0129,Fiber Node,Central,Under Maintenance,2024-03-14
+NODE0130,Wireless Access Point,South,Active,2023-01-15
+NODE0131,Router,North,Inactive,2024-03-01
+NODE0132,Switch,East,Under Maintenance,2023-02-01
+NODE0133,Hub,East,Active,2023-05-02
+NODE0134,Fiber Node,Central,Inactive,2024-02-03
+NODE0135,Wireless Access Point,North,Under Maintenance,2023-04-03
+NODE0136,Router,West,Active,2023-03-08
+NODE0137,Switch,Central,Inactive,2023-01-09
+NODE0138,Hub,West,Under Maintenance,2023-09-07
+NODE0139,Fiber Node,East,Active,2023-09-04
+NODE0140,Wireless Access Point,East,Inactive,2024-03-13
+NODE0141,Router,North,Under Maintenance,2023-10-01
+NODE0142,Switch,North,Active,2023-09-17
+NODE0143,Hub,North,Inactive,2024-01-06
+NODE0144,Fiber Node,South,Under Maintenance,2023-03-14
+NODE0145,Wireless Access Point,North,Active,2023-05-01
+NODE0146,Router,Central,Inactive,2023-03-07
+NODE0147,Switch,West,Under Maintenance,2023-02-25
+NODE0148,Hub,East,Active,2023-08-20
+NODE0149,Fiber Node,Central,Inactive,2023-09-10
+NODE0150,Wireless Access Point,East,Under Maintenance,2023-03-15
+NODE0151,Router,West,Active,2023-01-04
+NODE0152,Switch,West,Inactive,2023-08-24
+NODE0153,Hub,South,Under Maintenance,2023-01-23
+NODE0154,Fiber Node,West,Active,2023-10-31
+NODE0155,Wireless Access Point,Central,Inactive,2023-05-04
+NODE0156,Router,West,Under Maintenance,2024-01-26
+NODE0157,Switch,Central,Active,2023-06-30
+NODE0158,Hub,North,Inactive,2023-10-24
+NODE0159,Fiber Node,North,Under Maintenance,2023-05-02
+NODE0160,Wireless Access Point,West,Active,2023-11-15
+NODE0161,Router,Central,Inactive,2023-02-13
+NODE0162,Switch,East,Under Maintenance,2023-08-15
+NODE0163,Hub,East,Active,2024-02-18
+NODE0164,Fiber Node,East,Inactive,2023-07-31
+NODE0165,Wireless Access Point,West,Under Maintenance,2023-05-08
+NODE0166,Router,East,Active,2023-01-21
+NODE0167,Switch,Central,Inactive,2023-07-29
+NODE0168,Hub,West,Under Maintenance,2023-01-27
+NODE0169,Fiber Node,North,Active,2023-09-12
+NODE0170,Wireless Access Point,North,Inactive,2023-12-24
+NODE0171,Router,Central,Under Maintenance,2023-03-06
+NODE0172,Switch,South,Active,2023-06-04
+NODE0173,Hub,West,Inactive,2023-07-07
+NODE0174,Fiber Node,Central,Under Maintenance,2023-02-17
+NODE0175,Wireless Access Point,North,Active,2023-12-03
+NODE0176,Router,South,Inactive,2023-09-06
+NODE0177,Switch,Central,Under Maintenance,2023-10-08
+NODE0178,Hub,North,Active,2023-09-12
+NODE0179,Fiber Node,East,Inactive,2024-02-07
+NODE0180,Wireless Access Point,West,Under Maintenance,2023-08-15
+NODE0181,Router,North,Active,2023-04-13
+NODE0182,Switch,South,Inactive,2023-06-03
+NODE0183,Hub,South,Under Maintenance,2023-07-21
+NODE0184,Fiber Node,West,Active,2023-10-08
+NODE0185,Wireless Access Point,East,Inactive,2023-06-26
+NODE0186,Router,North,Under Maintenance,2023-04-30
+NODE0187,Switch,West,Active,2023-03-01
+NODE0188,Hub,East,Inactive,2023-07-08
+NODE0189,Fiber Node,North,Under Maintenance,2024-01-16
+NODE0190,Wireless Access Point,South,Active,2024-02-09
+NODE0191,Router,West,Inactive,2023-01-31
+NODE0192,Switch,East,Under Maintenance,2023-05-31
+NODE0193,Hub,East,Active,2023-10-29
+NODE0194,Fiber Node,West,Inactive,2023-12-28
+NODE0195,Wireless Access Point,South,Under Maintenance,2023-02-26
+NODE0196,Router,North,Active,2023-07-15
+NODE0197,Switch,West,Inactive,2023-07-10
+NODE0198,Hub,East,Under Maintenance,2023-03-24
+NODE0199,Fiber Node,South,Active,2023-10-29
+NODE0200,Wireless Access Point,Central,Inactive,2023-01-24
