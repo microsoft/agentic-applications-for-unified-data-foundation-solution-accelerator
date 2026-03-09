@@ -318,7 +318,7 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
         "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT_MODEL", "AZURE_CHAT_MODEL",
         "AZURE_OPENAI_EMBEDDING_MODEL", "AZURE_EMBEDDING_MODEL",
         # AI Foundry
-        "AZURE_AI_AGENT_ENDPOINT", "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME",
+        "AZURE_AI_AGENT_ENDPOINT", "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "AZURE_AI_PROJECT_NAME",
         # AI Search
         "AZURE_AI_SEARCH_ENDPOINT", "AZURE_AI_SEARCH_NAME", "AZURE_AI_SEARCH_INDEX",
         "AZURE_AI_SEARCH_CONNECTION_NAME", "AZURE_AI_SEARCH_CONNECTION_ID",
@@ -369,6 +369,15 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
         if mid_name:
             lines.append(f"MID_DISPLAY_NAME={mid_name}")
             print(f"  Found MID_DISPLAY_NAME: {mid_name}")
+    
+    # Derive AZURE_AI_PROJECT_NAME from AZURE_AI_AGENT_ENDPOINT if not present
+    if "AZURE_AI_PROJECT_NAME" not in settings:
+        agent_endpoint = settings.get("AZURE_AI_AGENT_ENDPOINT", "")
+        if agent_endpoint and "/projects/" in agent_endpoint:
+            project_name = agent_endpoint.split("/projects/")[-1].rstrip("/")
+            if project_name:
+                lines.append(f"AZURE_AI_PROJECT_NAME={project_name}")
+                print(f"  Found AZURE_AI_PROJECT_NAME: {project_name}")
     
     # Add any other AZURE_* or relevant vars we might have missed
     for key, value in sorted(settings.items()):
@@ -452,12 +461,13 @@ def generate_env_content(resource_group: str) -> str:
         "# --- Azure AI Foundry ---",
         f"AZURE_AI_AGENT_ENDPOINT={project_endpoint}",
         f"AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME={chat_model}",
+        f"AZURE_AI_PROJECT_NAME={project_name}",
         "",
         "# --- Azure AI Search ---",
         f"AZURE_AI_SEARCH_ENDPOINT={search_endpoint}",
         f"AZURE_AI_SEARCH_NAME={search_name}",
         f"AZURE_AI_SEARCH_INDEX=knowledge_index",
-        f"SEARCH_DATA_FOLDER=data/default/documents",
+        f"SEARCH_DATA_FOLDER=data/default_large/documents",
         "",
         "# --- Azure CosmosDB ---",
         f"AZURE_COSMOSDB_ACCOUNT={cosmos_account}",
@@ -491,10 +501,10 @@ def get_default_env_content() -> str:
         "",
         "# --- Fabric Settings (fill in manually) ---",
         "FABRIC_WORKSPACE_ID=",
-        "DATA_FOLDER=data/default",
+        "DATA_FOLDER=data/default_large",
         "INDUSTRY=Telecommunications",
         "DATA_SIZE=large",
-        "SEARCH_DATA_FOLDER=data/default/documents",
+        "SEARCH_DATA_FOLDER=data/default_large/documents",
         "",
         "# --- Agent IDs (auto-populated by scripts) ---",
         "FABRIC_AGENT_ID=",

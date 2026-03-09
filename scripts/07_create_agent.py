@@ -404,7 +404,7 @@ def create_kb_mcp_connection():
 
     subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
     resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
-    ai_service_name = os.getenv("AI_SERVICE_NAME")
+    ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
     project_name = os.getenv("AZURE_AI_PROJECT_NAME")
 
     if not (subscription_id and resource_group and ai_service_name and project_name):
