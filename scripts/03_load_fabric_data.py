@@ -21,6 +21,7 @@ import os
 import sys
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Load environment from azd + project .env
 from load_env import load_all_env, get_data_folder
@@ -171,27 +172,59 @@ file_system_client = service_client.get_file_system_client(workspace_name)
 data_path = f"{LAKEHOUSE_NAME}.Lakehouse/Files"
 directory_client = file_system_client.get_directory_client(data_path)
 
-uploaded_files = []
-for table_name in ontology_config["tables"].keys():
+# Chunk size for large file uploads (4MB chunks)
+CHUNK_SIZE = 4 * 1024 * 1024
+
+def upload_file(table_name):
+    """Upload a single CSV file to OneLake with chunked upload for large files."""
     csv_file = f"{table_name}.csv"
     csv_path = os.path.join(tables_dir, csv_file)
     
     if not os.path.exists(csv_path):
-        print(f"  [FAIL] CSV not found: {csv_file}")
-        continue
+        return (table_name, False, f"CSV not found: {csv_file}")
     
     try:
-        print(f"  Uploading {csv_file}...")
         file_client = directory_client.get_file_client(csv_file)
-        with open(csv_path, "rb") as f:
-            file_client.upload_data(f, overwrite=True)
-        
         file_size = os.path.getsize(csv_path)
-        print(f"  [OK] {csv_file} uploaded ({file_size:,} bytes)")
-        uploaded_files.append(csv_file)
+        
+        # Use chunked upload for large files (>4MB)
+        if file_size > CHUNK_SIZE:
+            file_client.create_file()
+            with open(csv_path, "rb") as f:
+                offset = 0
+                while True:
+                    chunk = f.read(CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    file_client.append_data(chunk, offset=offset, length=len(chunk))
+                    offset += len(chunk)
+                file_client.flush_data(offset)
+        else:
+            with open(csv_path, "rb") as f:
+                file_client.upload_data(f, overwrite=True)
+        
+        return (table_name, True, f"{csv_file} ({file_size:,} bytes)")
     except Exception as e:
-        print(f"  [FAIL] Failed to upload {csv_file}: {e}")
-        sys.exit(1)
+        return (table_name, False, str(e))
+
+# Upload files in parallel (up to 4 concurrent uploads)
+uploaded_files = []
+table_names = list(ontology_config["tables"].keys())
+max_workers = min(4, len(table_names))
+
+print(f"  Uploading {len(table_names)} files (max {max_workers} parallel)...")
+
+with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    futures = {executor.submit(upload_file, name): name for name in table_names}
+    
+    for future in as_completed(futures):
+        table_name, success, message = future.result()
+        if success:
+            print(f"  [OK] {message}")
+            uploaded_files.append(f"{table_name}.csv")
+        else:
+            print(f"  [FAIL] {table_name}: {message}")
+            sys.exit(1)
 
 # Wait for files to be available in OneLake
 print("  Waiting for files to be available...")
@@ -208,10 +241,9 @@ else:
     
     tables_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/lakehouses/{LAKEHOUSE_ID}/tables"
     
-    for table_name in ontology_config["tables"].keys():
+    def trigger_table_load(table_name):
+        """Trigger table load for a single table, return operation info."""
         csv_file = f"{table_name}.csv"
-        print(f"  Loading {csv_file} as table '{table_name}'...")
-        
         load_table_url = f"{tables_url}/{table_name}/load"
         load_payload = {
             "relativePath": f"Files/{csv_file}",
@@ -227,13 +259,38 @@ else:
         resp = make_request("POST", load_table_url, json=load_payload)
         
         if resp.status_code == 200:
-            print(f"  [OK] Table '{table_name}' loaded successfully")
+            return (table_name, "completed", None)
         elif resp.status_code == 202:
             operation_url = resp.headers.get("Location")
-            wait_for_lro(operation_url, f"Table '{table_name}' loading")
+            return (table_name, "pending", operation_url)
         else:
-            print(f"  ⚠ Table loading returned status: {resp.status_code}")
-            print(f"    Response: {resp.text}")
+            return (table_name, "failed", resp.text)
+    
+    # Trigger all table loads in parallel
+    pending_operations = []
+    table_names = list(ontology_config["tables"].keys())
+    
+    print(f"  Triggering {len(table_names)} table loads in parallel...")
+    
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {executor.submit(trigger_table_load, name): name for name in table_names}
+        
+        for future in as_completed(futures):
+            table_name, status, data = future.result()
+            if status == "completed":
+                print(f"  [OK] Table '{table_name}' loaded immediately")
+            elif status == "pending":
+                pending_operations.append((table_name, data))
+                print(f"  [..] Table '{table_name}' loading async...")
+            else:
+                print(f"  [WARN] Table '{table_name}' failed: {data}")
+    
+    # Wait for all pending operations to complete
+    if pending_operations:
+        print(f"  Waiting for {len(pending_operations)} async operations...")
+        for table_name, operation_url in pending_operations:
+            if operation_url:
+                wait_for_lro(operation_url, f"Table '{table_name}' loading")
     
     # Wait for tables to be indexed
     print("  Waiting for tables to be indexed...")
