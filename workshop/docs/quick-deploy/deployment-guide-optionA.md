@@ -98,11 +98,26 @@ az login
 
 > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
-Register the Microsoft Cognitive Services resource provider (required if not already registered on your subscription):
+Register the required resource providers (if not already registered on your subscription):
 
+**Register Microsoft Cognitive Services:**
 ```bash
 az provider register --namespace Microsoft.CognitiveServices
 ```
+
+**Register Microsoft App:**
+```bash
+az provider register --namespace Microsoft.App
+```
+
+**Register Microsoft App Configuration:**
+```bash
+az provider register --namespace Microsoft.AppConfiguration
+```
+
+**Run the deployment:**
+
+Run the following command to provision all required Azure resources:
 
 ```bash
 azd up
@@ -195,9 +210,10 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 ### 7. Test the Fabric Data Agent
 
 1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
-2. Select "New item" → Search for "Data Agent" → select data agent, provide a name and click create
-3. Add data source → Select your Ontology resource for this workshop
-4. Click Agent instructions from top menu and add the below agent instructions:
+2. Copy the Ontology name from your workspace
+3. Select "New item" → Search for "Data Agent" → select data agent, provide a name and click create
+4. Add data source → Search & select your Ontology resource for this workshop
+5. Click Agent instructions from top menu and add the below agent instructions:
     ```
     You are a helpful assistant that can answer user questions using data.
     Support group by in GQL.
