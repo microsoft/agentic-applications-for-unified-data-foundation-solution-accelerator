@@ -53,10 +53,11 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 
 ## Test the Fabric Data Agent
 1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
-2. Select "New item" 
-3. Search for and select "Data Agent" 
-4. Select add data source and select your Ontology resource created in the previous step. 
-5. Select Agent instructions and paste the below instructions. 
+2. Copy the Ontology name from your workspace
+3. Select "New item" 
+4. Search for and select "Data Agent" 
+5. Select add data source and search & select your Ontology resource created in the previous step. 
+6. Select Agent instructions and paste the below instructions. 
 ``` 
 You are a helpful assistant that can answer user questions using data.
 Support group by in GQL.

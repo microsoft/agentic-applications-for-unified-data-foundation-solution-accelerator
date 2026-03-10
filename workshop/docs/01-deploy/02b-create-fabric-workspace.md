@@ -33,8 +33,8 @@ Create a Microsoft Fabric workspace and link it to your Fabric capacity.
 
 6. Expand the **Advanced** section and configure the license:
 
-    - Under **License mode**, select **Fabric capacity**.
-    - Under **Capacity**, select the Fabric capacity you created (or an existing one).
+    - Under **Fabric and Power BI workspace types**, select **Fabric capacity**.
+    - Under **Details**, select the Fabric capacity you created (or an existing one).
 
     ![Configure workspace license and capacity](../assets/fabric/11-workspace-license.png)
 
