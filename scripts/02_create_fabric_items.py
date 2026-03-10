@@ -219,8 +219,8 @@ else:
 with open(suffix_file, "w") as f:
     f.write(str(new_suffix))
 
-lakehouse_name = f"{SOLUTION_NAME}_lakehouse_{new_suffix}"
-ontology_name = f"{SOLUTION_NAME}_ontology_{new_suffix}"
+lakehouse_name = f"lakehouse_{SOLUTION_NAME}_{new_suffix}"
+ontology_name = f"ontology_{SOLUTION_NAME}_{new_suffix}"
 
 # ============================================================================
 # Step 1: Create Lakehouse
