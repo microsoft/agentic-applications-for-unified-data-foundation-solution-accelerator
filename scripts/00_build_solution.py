@@ -106,48 +106,29 @@ from load_env import load_all_env
 azd_loaded, project_loaded = load_all_env()
 
 # ============================================================================
-# Generate .env from Azure if needed
+# Generate .env from Azure if resource group provided
 # ============================================================================
 
-def check_azure_env_configured():
-    """Check if required Azure environment variables are set."""
-    required_vars = [
-        "AZURE_OPENAI_ENDPOINT",
-        "AZURE_AI_SEARCH_ENDPOINT", 
-        "AZURE_AI_AGENT_ENDPOINT",
-    ]
-    return all(os.getenv(var) for var in required_vars)
-
-# Only run env generation if not already configured
-# (even if --resource-group is passed, skip if env is already set up)
-if not check_azure_env_configured():
-    print("\n⚠️  Azure environment not configured.")
+# If --resource-group is passed, generate/update .env from Azure
+# Otherwise, use existing .env file as-is
+if args.resource_group:
+    print(f"\nFetching settings from resource group: {args.resource_group}")
+    generate_script = os.path.join(script_dir, "generate_env_from_azure.py")
     
-    resource_group = args.resource_group or input("Enter Azure Resource Group name (or Enter to skip): ").strip()
+    result = subprocess.run(
+        [sys.executable, generate_script, "--resource-group", args.resource_group],
+        cwd=script_dir
+    )
     
-    if resource_group:
-        print(f"Fetching settings from: {resource_group}")
-        generate_script = os.path.join(script_dir, "generate_env_from_azure.py")
-        
-        result = subprocess.run(
-            [sys.executable, generate_script, "--resource-group", resource_group],
-            cwd=script_dir
-        )
-        
-        if result.returncode == 0:
-            print("✓ Environment configured.")
-            # Reload environment with new values
-            from load_env import reload_env
-            reload_env()
-            load_all_env()
-        else:
-            print("Failed. Edit scripts/.env manually or retry with: python scripts/generate_env_from_azure.py -g <rg>")
-            sys.exit(1)
+    if result.returncode == 0:
+        print("✓ Environment configured from Azure.")
+        # Reload environment with new values
+        from load_env import reload_env
+        reload_env()
+        load_all_env()
     else:
-        print("Skipped. Configure later: python scripts/generate_env_from_azure.py -g <resource-group>")
-        response = input("Continue anyway? (y/N): ").strip().lower()
-        if response != 'y':
-            sys.exit(0)
+        print("Failed. Edit scripts/.env manually or retry with: python scripts/generate_env_from_azure.py -g <rg>")
+        sys.exit(1)
 
 # Get azure_only from environment variable (set AZURE_ENV_ONLY=true to use Azure SQL mode)
 azure_only = os.getenv("AZURE_ENV_ONLY", "false").lower() in ("true", "1", "yes")
