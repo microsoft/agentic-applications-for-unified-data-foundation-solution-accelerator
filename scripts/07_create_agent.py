@@ -276,8 +276,7 @@ def build_agent_instructions(config, schema_text, use_fabric, config_dir, use_kn
     if use_knowledge_base:
         search_tool_name = "Knowledge Base (Foundry IQ)"
         search_tool_desc = """- Contains guidelines, thresholds, rules, requirements, and reference information
-- Automatically plans queries, decomposes into subqueries, and reranks results
-- Always include citations from retrieved sources using the format: \u3010message_idx:search_idx\u2020source_name\u3011"""
+- Automatically plans queries, decomposes into subqueries, and reranks results"""
         search_tool_ref = "Knowledge Base tool"
         search_action = "Search knowledge base first"
     else:
@@ -296,6 +295,7 @@ def build_agent_instructions(config, schema_text, use_fabric, config_dir, use_kn
 - Tables: {', '.join(table_names)}
 - {table_format}
 - Use T-SQL syntax (TOP N, not LIMIT)
+- For string comparisons in WHERE clauses, use LOWER() on both sides for case-insensitive matching
 {f"- JOINs: {'; '.join(join_hints)}" if join_hints else ""}
 
 **{search_tool_name}** - Search policy and reference documents
@@ -303,9 +303,9 @@ def build_agent_instructions(config, schema_text, use_fabric, config_dir, use_kn
 
 ## When to Use Each Tool
 
-- **Database queries** (counts, lists, aggregations, filtering records) \u2192 execute_sql
-- **Document lookups** (policies, thresholds, rules, guidelines) \u2192 {search_tool_ref}  
-- **Comparisons** (data vs. policy thresholds) \u2192 {search_action} for threshold, then query with that value
+- **Database queries** (counts, lists, aggregations, filtering records) → execute_sql
+- **Document lookups** (policies, thresholds, rules, guidelines) → {search_tool_ref}  
+- **Comparisons** (data vs. policy thresholds) → {search_action} for threshold, then query with that value
 
 {schema_text}
 
@@ -460,7 +460,7 @@ if USE_KNOWLEDGE_BASE:
         project_name = os.getenv("AZURE_AI_PROJECT_NAME")
 
         if not (subscription_id and resource_group and ai_service_name and project_name):
-            print("[WARN] Cannot build project ARM path \u2013 need AZURE_SUBSCRIPTION_ID, "
+            print("[WARN] Cannot build project ARM path need AZURE_SUBSCRIPTION_ID, "
                   "AZURE_RESOURCE_GROUP, AI_SERVICE_NAME, and AZURE_AI_PROJECT_NAME.")
             return False
 
