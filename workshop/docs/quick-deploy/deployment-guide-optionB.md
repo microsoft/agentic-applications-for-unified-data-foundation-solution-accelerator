@@ -143,27 +143,11 @@ python scripts/08_test_agent.py
 - "What constitutes a failed inspection?"
 - "Do any inspections violate quality control standards in our Inspection Procedures?"
 
-### 7. Deploy the application
+### 7. Launch the application
 
-```bash
-azd env set AZURE_ENV_DEPLOY_APP true
-```
+The web application is already deployed during the initial `azd up` deployment. Open the app URL shown in the deployment output in your browser.
 
-```bash
-azd up
-```
-
-### 8. Set up app permissions
-
-```bash
-python scripts/00_build_solution.py --from 09
-```
-
-> **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
-
-After the agent configuration & API permission set up completes, open the app URL shown in the output. 
-
-### 9. Customize for Your Industry (Optional)
+### 8. Customize for Your Industry (Optional)
 
 Follow steps in this page to  [Customize for your use case](../02-customize/index.md).
 
