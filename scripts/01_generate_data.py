@@ -333,17 +333,21 @@ Before completing your script, mentally verify:
 7. CATEGORIES: Use 3-6 distinct values for category columns (good for charts)
 8. SAVE ALL TABLES: Every DataFrame must be saved with .to_csv()
 
-DATES - Must have realistic variety:
+DATES - CRITICAL: Must be CURRENT and distributed!
+All transactional/event dates MUST be anchored to TODAY (datetime.now()), NOT to a hardcoded
+year like 2024 or 2023.  Users will ask "last month", "last week", "this quarter" — stale
+dates produce zero results.
 ```python
 import random
 from datetime import datetime, timedelta
 
-# GOOD - varied dates over a year
-base_date = datetime(2024, 1, 1)
-dates = [(base_date + timedelta(days=random.randint(0, 365))).strftime('%Y-%m-%d') for _ in range(NUM_ROWS)]
+# GOOD - varied dates over the PAST YEAR (relative to current date)
+today = datetime.now()
+dates = [(today - timedelta(days=random.randint(0, 365))).strftime('%Y-%m-%d') for _ in range(NUM_ROWS)]
 
 # GOOD - varied birth dates (ages 20-80)
-birth_years = [random.randint(1945, 2005) for _ in range(NUM_PATIENTS)]
+current_year = datetime.now().year
+birth_years = [random.randint(current_year - 80, current_year - 20) for _ in range(NUM_PATIENTS)]
 dobs = [f"{{y}}-{{random.randint(1,12):02d}}-{{random.randint(1,28):02d}}" for y in birth_years]
 
 # BAD - all same date
