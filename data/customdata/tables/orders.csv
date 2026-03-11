@@ -1,0 +1,26 @@
+order_id,customer_id,order_date,shipping_address_city,shipping_address_state,order_total,shipping_cost,discount_applied,payment_method,order_status,fulfillment_date
+ORD10001,CUST002,2026-01-05,Portland,OR,389.97,0.0,15.0,Credit Card,Delivered,2026-01-07
+ORD10002,CUST008,2025-11-24,New York,NY,129.99,7.99,0.0,PayPal,Delivered,2025-11-27
+ORD10003,CUST005,2025-12-07,Denver,CO,59.98,5.99,0.0,Debit Card,Delivered,2025-12-10
+ORD10004,CUST012,2026-01-07,San Diego,CA,499.98,0.0,25.0,Credit Card,Delivered,2026-01-09
+ORD10005,CUST001,2025-10-17,Seattle,WA,174.98,0.0,8.75,Credit Card,Delivered,2025-10-19
+ORD10006,CUST019,2026-01-26,San Jose,CA,249.99,0.0,0.0,Credit Card,Delivered,2026-01-28
+ORD10007,CUST003,2025-12-09,San Francisco,CA,84.98,5.99,0.0,PayPal,Delivered,2025-12-12
+ORD10008,CUST006,2025-09-26,Chicago,IL,539.96,0.0,27.0,Credit Card,Delivered,2025-09-28
+ORD10009,CUST014,2025-09-12,Atlanta,GA,45.99,5.99,0.0,Debit Card,Delivered,2025-09-15
+ORD10010,CUST011,2026-02-03,Nashville,TN,309.97,0.0,15.5,Credit Card,Shipped,2026-02-06
+ORD10011,CUST007,2026-02-03,Austin,TX,199.99,7.99,0.0,PayPal,Shipped,2026-02-06
+ORD10012,CUST002,2026-02-12,Portland,OR,154.98,0.0,7.75,Credit Card,Shipped,2026-02-13
+ORD10013,CUST015,2026-02-26,Boston,MA,94.94,5.99,0.0,Credit Card,Processing,
+ORD10014,CUST004,2026-02-25,Los Angeles,CA,359.98,0.0,18.0,Debit Card,Processing,
+ORD10015,CUST010,2026-02-27,Miami,FL,24.99,5.99,0.0,PayPal,Processing,
+ORD10016,CUST018,2026-03-01,Dallas,TX,179.99,0.0,0.0,Credit Card,Processing,
+ORD10017,CUST006,2026-03-03,Chicago,IL,89.95,7.99,0.0,Credit Card,Pending,
+ORD10018,CUST020,2026-03-01,Raleigh,NC,119.98,5.99,6.0,Debit Card,Pending,
+ORD10019,CUST009,2026-03-02,Phoenix,AZ,67.98,5.99,0.0,PayPal,Pending,
+ORD10020,CUST001,2026-03-02,Seattle,WA,284.98,0.0,14.25,Credit Card,Pending,
+ORD10021,CUST013,2026-03-03,Minneapolis,MN,34.99,5.99,0.0,Debit Card,Pending,
+ORD10022,CUST017,2026-03-03,Charlotte,NC,229.98,0.0,11.5,Credit Card,Pending,
+ORD10023,CUST012,2026-03-02,San Diego,CA,159.0,0.0,0.0,Credit Card,Pending,
+ORD10024,CUST016,2026-03-04,Columbus,OH,57.98,5.99,0.0,PayPal,Pending,
+ORD10025,CUST019,2026-03-04,San Jose,CA,449.98,0.0,22.5,Credit Card,Pending,

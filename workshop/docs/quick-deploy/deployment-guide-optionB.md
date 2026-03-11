@@ -167,6 +167,30 @@ After the agent configuration & API permission set up completes, open the app UR
 
 Follow steps in this page to  [Customize for your use case](../02-customize/index.md).
 
+### Bring Your Own Data (Optional)
+
+Instead of using AI-generated sample data, you can run the entire lab with **your own data**.
+
+1. Place your files in `data/customdata/`:
+
+    ```
+    data/customdata/
+    ├── tables/
+    │   └── *.csv                   # One CSV per table
+    └── documents/
+        └── *.pdf                   # PDF documents for AI Search
+    ```
+
+    > The `config/` folder (with `ontology_config.json`) is **auto-generated** from your CSV files. See [data/customdata/README.md](https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator/blob/main/data/customdata/README.md) for details.
+
+2. Run the build with `--custom-data`:
+
+    ```bash
+    python scripts/00_build_solution.py --custom-data data/customdata --from 04
+    ```
+
+    You will be prompted for your **Industry** and **Use Case**. The script will auto-generate the config, skip step 01 (AI data generation), and run the remaining pipeline steps.
+
 
 ----------
 
