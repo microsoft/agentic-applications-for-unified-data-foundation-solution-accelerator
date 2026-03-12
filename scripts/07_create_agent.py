@@ -407,6 +407,12 @@ def create_kb_mcp_connection():
     resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
     ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
     project_name = os.getenv("AZURE_AI_PROJECT_NAME")
+    
+    # Extract project name from endpoint if not set
+    if not project_name:
+        agent_endpoint = os.getenv("AZURE_AI_AGENT_ENDPOINT") or os.getenv("AZURE_AI_PROJECT_ENDPOINT")
+        if agent_endpoint and "/projects/" in agent_endpoint:
+            project_name = agent_endpoint.split("/projects/")[-1].rstrip("/")
 
     if not (subscription_id and resource_group and ai_service_name and project_name):
         print("[WARN] Cannot build project ARM path – need AZURE_SUBSCRIPTION_ID, "
