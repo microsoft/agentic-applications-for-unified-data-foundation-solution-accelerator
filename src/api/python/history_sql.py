@@ -302,6 +302,10 @@ class SqlQueryTool(BaseModel):
             if cursor:
                 cursor.close()
 
+    async def execute_sql(self, sql_query):
+        """Alias for run_sql_query. Execute SQL query and return results as list of dictionaries."""
+        return await self.run_sql_query(sql_query)
+
 
 # Configuration variable
 USE_CHAT_HISTORY_ENABLED = os.getenv("USE_CHAT_HISTORY_ENABLED", "true").lower() == "true"

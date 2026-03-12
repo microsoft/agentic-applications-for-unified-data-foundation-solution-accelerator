@@ -20,6 +20,9 @@ import sys
 import json
 import struct
 import argparse
+import asyncio
+import logging
+import traceback
 
 # Parse arguments first
 parser = argparse.ArgumentParser()
@@ -34,9 +37,16 @@ from load_env import load_all_env, get_data_folder
 load_all_env()
 
 from azure.identity import DefaultAzureCredential
-from azure.ai.projects import AIProjectClient
+from azure.identity.aio import DefaultAzureCredential as AsyncDefaultAzureCredential
+from azure.ai.projects.aio import AIProjectClient
+from agent_framework.azure import AzureAIProjectAgentProvider
 import pyodbc
 import requests
+
+# Suppress informational warnings from agent_framework about runtime
+# tool/structured_output overrides not being supported by AzureAIClient.
+agent_log_level = os.getenv("AGENT_FRAMEWORK_LOG_LEVEL", "ERROR").upper()
+logging.getLogger("agent_framework.azure").setLevel(getattr(logging, agent_log_level, logging.ERROR))
 
 # ============================================================================
 # Configuration
@@ -240,16 +250,6 @@ def execute_sql(sql_query: str) -> str:
 # Initialize Client
 # ============================================================================
 
-project_client = AIProjectClient(
-    endpoint=ENDPOINT,
-    credential=credential
-)
-
-# Get OpenAI client from project
-openai_client = project_client.get_openai_client()
-conversation = openai_client.conversations.create()
-
-print("-" * 60)
 
 # ============================================================================
 # Sample Questions - Load from config or use defaults
@@ -325,193 +325,113 @@ def show_help():
 # Chat Loop
 # ============================================================================
 
-def chat(user_message: str, conversation_id: str):
+async def chat(user_message: str, conversation_id: str, agent):
     """Send a message to the agent and handle function calls.
     
     Args:
         user_message: The user's input message
         conversation_id: The conversation ID to maintain context across turns
+        agent: The agent instance from AzureAIProjectAgentProvider
     """
     
     try:
-        # Initial request to the agent (using persistent conversation)
-        response = openai_client.responses.create(
-            conversation=conversation_id,
-            input=user_message,
-            extra_body={"agent": {"name": CHAT_AGENT_NAME, "type": "agent_reference"}}
-        )
-        
-        # Process response - handle function calls if any
-        max_iterations = 10
-        iteration = 0
-        
-        while iteration < max_iterations:
-            iteration += 1
-            
-            # Check for function calls and tool uses in output
-            function_calls = []
-            text_output = ""
-            search_results = []
-            
-            for item in response.output:
-                item_type = getattr(item, 'type', None)
-                
-                if item_type == 'function_call':
-                    function_calls.append(item)
-                elif item_type == 'message':
-                    for content in item.content:
-                        if hasattr(content, 'text'):
-                            text_output += content.text
-                        # Check for annotations (citations from search)
-                        if hasattr(content, 'annotations'):
-                            for ann in content.annotations:
-                                if hasattr(ann, 'url_citation'):
-                                    search_results.append(ann.url_citation)
-                                elif hasattr(ann, 'file_citation'):
-                                    search_results.append(getattr(ann.file_citation, 'file_id', str(ann.file_citation)))
-                # Handle search tool call (request) - native Azure AI Search
-                elif item_type == 'azure_ai_search_call':
-                    if VERBOSE:
-                        # Extract the search query from arguments
-                        args_str = getattr(item, 'arguments', '{}')
-                        try:
-                            args = json.loads(args_str) if args_str else {}
-                            query = args.get('query', 'unknown')
-                        except:
-                            query = args_str
-                        print(f"\n🔍 AI Search: \"{query}\"")
-                # Handle search tool output (result) - results are internal to the agent
-                elif item_type == 'azure_ai_search_call_output':
-                    if VERBOSE:
-                        # Native AI Search doesn't expose raw results in API response
-                        # The agent uses results internally and includes citations in the answer
-                        print(f"   ✓ Search completed (results used internally by agent)")
-                # Handle Foundry IQ MCP tool call (knowledge base retrieval)
-                elif item_type == 'mcp_call':
-                    if VERBOSE:
-                        tool_name = getattr(item, 'name', 'unknown')
-                        args_str = getattr(item, 'arguments', '{}')
-                        print(f"\n📚 Knowledge Base MCP call: {tool_name}")
-                        try:
-                            args = json.loads(args_str) if args_str else {}
-                            if 'query' in args:
-                                print(f"   Query: \"{args['query']}\"")
-                        except:
-                            pass
-                # Handle MCP tool output
-                elif item_type == 'mcp_call_output':
-                    if VERBOSE:
-                        print(f"   ✓ Knowledge base retrieval completed")
-                # Handle other tool result types
-                elif item_type in ['tool_call']:
-                    if VERBOSE:
-                        print(f"\n🔧 Tool called: {getattr(item, 'name', 'unknown')}")
-                        
-                # Catch-all for other tool results
-                elif item_type and ('search' in str(item_type).lower() or 'mcp' in str(item_type).lower()):
-                    if VERBOSE:
-                        print(f"\n🔍 Tool result (type: {item_type})")
-                        print(f"   {str(item)[:500]}")
-            
-            # Print search citations if any (verbose only)
-            if search_results and VERBOSE:
-                print(f"\n📚 Search Citations:")
-                for citation in search_results[:5]:  # Show up to 5 citations
-                    print(f"   - {citation}")
-            
-            # If no function calls, we're done
-            if not function_calls:
-                if text_output:
-                    print(f"\nAssistant: {text_output}")
-                return text_output
-            
-            # Handle function calls
-            tool_outputs = []
-            for fc in function_calls:
-                func_name = fc.name
-                func_args = json.loads(fc.arguments)
-                
-                if VERBOSE:
-                    print(f"\n🔧 Calling {func_name}...")
-                
-                if func_name == "execute_sql":
-                    sql_query = func_args.get("sql_query", "")
-                    if VERBOSE:
-                        print(f"\n   📝 SQL Query:")
-                        print(f"   {'-'*50}")
-                        print(f"   {sql_query}")
-                        print(f"   {'-'*50}")
-                    result = execute_sql(sql_query)
-                    if VERBOSE:
-                        print(f"\n   📊 SQL Result:")
-                        print(f"   {'-'*50}")
-                        for line in result.split('\n'):
-                            print(f"   {line}")
-                        print(f"   {'-'*50}")
-                else:
-                    result = f"Unknown function: {func_name}"
-                
-                tool_outputs.append({
-                    "type": "function_call_output",
-                    "call_id": fc.call_id,
-                    "output": result
-                })
-            
-            # Submit tool outputs and get next response (conversation maintains context)
-            response = openai_client.responses.create(
-                conversation=conversation_id,
-                input=tool_outputs,
-                extra_body={
-                    "agent": {"name": CHAT_AGENT_NAME, "type": "agent_reference"}
-                }
-            )
-        
-        print("\nWarning: Max iterations reached")
-        return None
+        text_output = ""
+        citations: list[dict] = []
+
+        async for chunk in agent.run(user_message, stream=True, conversation_id=conversation_id):
+            # Collect citations from Azure AI Search responses
+            for content in getattr(chunk, "contents", []):
+                annotations = getattr(content, "annotations", [])
+                if annotations:
+                    citations.extend(annotations)
+
+            chunk_text = str(chunk.text) if chunk.text else ""
+            if chunk_text:
+                text_output += chunk_text
+
+        if text_output:
+            print(f"\nAssistant: {text_output}")
+
+        # # Print search citations
+        # if citations:
+        #     print("\n📚 Search Citations:")
+        #     seen_doc_ids = set()
+        #     print("   (Showing unique documents cited in this response)")
+        #     print("   " + "-"*40)
+        #     for citation in citations:
+        #         # URL is directly on the citation object, fallback to additional_properties.get_url
+        #         url = citation.get("url") or (citation.get("additional_properties") or {}).get("get_url", "N/A")
+        #         title = citation.get("title", "N/A")
+        #         if title not in seen_doc_ids:
+        #             seen_doc_ids.add(title)
+        #             print(f"   - {title}: {url}")
+
+        return text_output
         
     except Exception as e:
         print(f"\nError: {e}")
-        import traceback
         traceback.print_exc()
         return None
 
 
-# Main chat loop
-while True:
-    try:
-        user_input = input("\nYou: ").strip()
-        
-        if not user_input:
-            continue
-        
-        if user_input.lower() in ['quit', 'exit', 'q']:
-            print("Goodbye!")
-            break
-        
-        if user_input.lower() == 'help':
-            show_help()
-            continue
-        
-        # Check for numbered question shortcuts
-        if user_input.isdigit():
-            idx = int(user_input) - 1
-            if 0 <= idx < len(sample_questions):
-                user_input = sample_questions[idx]
-                print(f"  → {user_input}")
-        
-        # Pass the persistent conversation ID to maintain context
-        chat(user_input, conversation.id)
-        
-    except KeyboardInterrupt:
-        print("\n\nGoodbye!")
-        break
-    except EOFError:
-        print("\nGoodbye!")
-        break
+async def main():
+    async with (
+        AsyncDefaultAzureCredential() as async_credential,
+        AIProjectClient(endpoint=ENDPOINT, credential=async_credential) as project_client,
+    ):
+        # Create provider for agent management
+        provider = AzureAIProjectAgentProvider(project_client=project_client)
 
-# Cleanup conversation when done
-try:
-    openai_client.conversations.delete(conversation_id=conversation.id)
-    print("\nConversation cleaned up.")
-except Exception:
-    pass  # Ignore cleanup errors
+        # Get agent with tools using provider
+        agent = await provider.get_agent(
+            name=CHAT_AGENT_NAME,
+            tools=execute_sql
+        )
+
+        # Create conversation for context continuity
+        openai_client = project_client.get_openai_client()
+        conversation = await openai_client.conversations.create()
+
+        print("-" * 60)
+
+        # Main chat loop
+        while True:
+            try:
+                user_input = input("\nYou: ").strip()
+                
+                if not user_input:
+                    continue
+                
+                if user_input.lower() in ['quit', 'exit', 'q']:
+                    print("Goodbye!")
+                    break
+                
+                if user_input.lower() == 'help':
+                    show_help()
+                    continue
+                
+                # Check for numbered question shortcuts
+                if user_input.isdigit():
+                    idx = int(user_input) - 1
+                    if 0 <= idx < len(sample_questions):
+                        user_input = sample_questions[idx]
+                        print(f"  → {user_input}")
+                
+                # Pass the persistent conversation ID to maintain context
+                await chat(user_input, conversation.id, agent)
+                
+            except KeyboardInterrupt:
+                print("\n\nGoodbye!")
+                break
+            except EOFError:
+                print("\nGoodbye!")
+                break
+
+        # Cleanup conversation when done
+        try:
+            await openai_client.conversations.delete(conversation_id=conversation.id)
+            print("\nConversation cleaned up.")
+        except Exception:
+            pass  # Ignore cleanup errors
+
+asyncio.run(main())
