@@ -99,12 +99,22 @@ print(f"Tables: {', '.join(ontology_config['tables'].keys())}")
 # Authentication
 # ============================================================================
 
-credential = AzureCliCredential()
-
-def get_headers():
-    """Get fresh headers with token"""
-    token = credential.get_token("https://api.fabric.microsoft.com/.default").token
-    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+def get_headers(max_retries=3, retry_delay=5):
+    """Get fresh headers with Fabric API token. Retries with exponential backoff on failure."""
+    credential = AzureCliCredential()
+    for attempt in range(1, max_retries + 1):
+        try:
+            token = credential.get_token("https://api.fabric.microsoft.com/.default").token
+            return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        except Exception as e:
+            if attempt < max_retries:
+                wait = retry_delay * (2 ** (attempt - 1))
+                print(f"  [RETRY] Token acquisition attempt {attempt}/{max_retries} failed: {e}")
+                print(f"  Retrying in {wait} seconds...")
+                time.sleep(wait)
+            else:
+                print(f"  [FAIL] Token acquisition failed after {max_retries} attempts: {e}")
+                raise
 
 # ============================================================================
 # Helper Functions
@@ -219,8 +229,8 @@ else:
 with open(suffix_file, "w") as f:
     f.write(str(new_suffix))
 
-lakehouse_name = f"{SOLUTION_NAME}_lakehouse_{new_suffix}"
-ontology_name = f"{SOLUTION_NAME}_ontology_{new_suffix}"
+lakehouse_name = f"lakehouse_{SOLUTION_NAME}_{new_suffix}"
+ontology_name = f"ontology_{SOLUTION_NAME}_{new_suffix}"
 
 # ============================================================================
 # Step 1: Create Lakehouse

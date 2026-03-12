@@ -76,7 +76,6 @@ def should_mock_azure_sdk():
         bool: True if running any Python API tests that import chat or history modules.
     """
     # Always mock Azure SDK to prevent import errors
-    # The agent_framework.azure module has version compatibility issues
     return True
 
 
@@ -101,16 +100,6 @@ if should_mock_azure_sdk():
     # Mock specific classes that are imported
     mock_ai_agents_models.TruncationObject = MagicMock()
     
-    # Mock agent_framework modules
-    mock_agent_framework = MagicMock()
-    mock_agent_framework.ChatAgent = MagicMock()
-    mock_agent_framework.exceptions = MagicMock()
-    mock_agent_framework.exceptions.ServiceResponseException = Exception
-    
-    mock_agent_framework_azure = MagicMock()
-    mock_azure_ai_client = MagicMock()
-    mock_agent_framework_azure.AzureAIClient = mock_azure_ai_client
-    
     # Register all mocks in sys.modules BEFORE any imports
     sys.modules['azure.ai.agents'] = mock_ai_agents
     sys.modules['azure.ai.agents.models'] = mock_ai_agents_models
@@ -123,11 +112,6 @@ if should_mock_azure_sdk():
     sys.modules['azure.ai.projects.operations._patch'] = MagicMock()
     sys.modules['azure.ai.projects.operations._patch_datasets'] = MagicMock()
     sys.modules['azure.ai.projects._client'] = MagicMock()
-    sys.modules['agent_framework'] = mock_agent_framework
-    sys.modules['agent_framework.azure'] = mock_agent_framework_azure
-    sys.modules['agent_framework.exceptions'] = mock_agent_framework.exceptions
-    sys.modules['agent_framework_azure_ai'] = MagicMock()
-    sys.modules['agent_framework_azure_ai._client'] = MagicMock()
 
 
 # Conditionally create mock modules before they are imported by app.py

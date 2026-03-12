@@ -554,22 +554,50 @@ resource userStorageBlobContributor 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
-output aiServicesTarget string = !empty(existingOpenAIEndpoint) ? existingOpenAIEndpoint : aiServices.properties.endpoints['OpenAI Language Model Instance API'] //aiServices_m.properties.endpoint
+@description('The endpoint URL for the Azure OpenAI service.')
+output aiServicesTarget string = !empty(existingOpenAIEndpoint) ? existingOpenAIEndpoint : aiServices.properties.endpoints['OpenAI Language Model Instance API']
+
+@description('The name of the AI Services account.')
 output aiServicesName string = !empty(existingAIServicesName) ? existingAIServicesName : aiServicesName
 
+@description('The name of the AI Search service.')
 output aiSearchName string = isWorkshop ? aiSearchName : ''
+
+@description('The resource ID of the AI Search service.')
 output aiSearchId string = isWorkshop ? aiSearch.id : ''
+
+@description('The endpoint URL of the AI Search service.')
 output aiSearchTarget string = isWorkshop ? 'https://${aiSearch.name}.search.windows.net' : ''
+
+@description('The name of the AI Search service resource.')
 output aiSearchService string = isWorkshop ? aiSearch.name : ''
+
+@description('The name of the AI Foundry project.')
 output aiProjectName string = !empty(existingAIProjectName) ? existingAIProjectName : aiProject.name
+
+@description('The name of the AI Search connection.')
 output aiSearchConnectionName string = isWorkshop ? aiSearchConnectionName : ''
+
+@description('The resource ID of the AI Search connection.')
 output aiSearchConnectionId string = (isWorkshop && empty(azureExistingAIProjectResourceId)) ? searchConnection.id : ''
 
+@description('The resource ID of the Application Insights instance.')
 output applicationInsightsId string = applicationInsights.id
+
+@description('The name of the Log Analytics workspace.')
 output logAnalyticsWorkspaceResourceName string = useExisting ? existingLogAnalyticsWorkspace.name : logAnalytics.name
+
+@description('The resource group of the Log Analytics workspace.')
 output logAnalyticsWorkspaceResourceGroup string = useExisting ? existingLawResourceGroup : resourceGroup().name
+
+@description('The subscription ID of the Log Analytics workspace.')
 output logAnalyticsWorkspaceSubscription string = useExisting ? existingLawSubscription : subscription().subscriptionId
 
+@description('The endpoint URL for the AI Foundry project.')
 output projectEndpoint string = !empty(existingProjEndpoint) ? existingProjEndpoint : aiProject.properties.endpoints['AI Foundry API']
+
+@description('The connection string for Application Insights.')
 output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
+
+@description('The resource ID of the AI Foundry account.')
 output aiFoundryResourceId string = !empty(azureExistingAIProjectResourceId) ? azureExistingAIProjectResourceId : aiServices.id

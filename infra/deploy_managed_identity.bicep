@@ -15,10 +15,10 @@ param miName string
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: miName
   location: solutionLocation
-  // tags: {
-  //   app: solutionName
-  //   location: solutionLocation
-  // }
+  tags: {
+    app: solutionName
+    location: solutionLocation
+  }
 }
 
 @description('This is the built-in owner role. See https://docs.microsoft.com/azure/role-based-access-control/built-in-roles#owner')
@@ -39,12 +39,13 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 resource managedIdentityBackendApp 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: '${solutionName}-backend-app-mi'
   location: solutionLocation
-  // tags: {
-  //   app: solutionName
-  //   location: solutionLocation
-  // }
+  tags: {
+    app: solutionName
+    location: solutionLocation
+  }
 }
 
+@description('The managed identity details including id, objectId, clientId, and name.')
 output managedIdentityOutput object = {
   id: managedIdentity.id
   objectId: managedIdentity.properties.principalId
@@ -52,6 +53,7 @@ output managedIdentityOutput object = {
   name: miName
 }
 
+@description('The backend app managed identity details including id, objectId, clientId, and name.')
 output managedIdentityBackendAppOutput object = {
   id: managedIdentityBackendApp.id
   objectId: managedIdentityBackendApp.properties.principalId

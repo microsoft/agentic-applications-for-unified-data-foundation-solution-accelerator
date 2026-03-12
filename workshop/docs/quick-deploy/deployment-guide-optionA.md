@@ -228,29 +228,37 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 - "What is the average score from inspections?"
 - Show tickets grouped by status.
 
-### 8. Deploy and launch the application
+### 8. Launch the application
 
-```bash
-azd env set AZURE_ENV_DEPLOY_APP true
-```
+The web application is already deployed during the initial `azd up` deployment. Open the app URL shown in the deployment output in your browser.
 
-```bash
-azd up
-```
-
-### 9. Set up app permissions
-
-```bash
-python scripts/00_build_solution.py --from 09
-```
-
-> **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
-
-After the agent configuration & API permission set up completes, open the app URL shown in the output.
-
-### 10. Customize for Your Industry (Optional)
+### 9. Customize for Your Industry (Optional)
 
 Follow steps in this page to  [Customize for your use case](../02-customize/index.md).
+
+### Bring Your Own Data (Optional)
+
+Instead of using AI-generated sample data, you can run the entire lab with **your own data**.
+
+1. Place your files in `data/customdata/`:
+
+    ```
+    data/customdata/
+    ├── tables/
+    │   └── *.csv                   # One CSV per table
+    └── documents/
+        └── *.pdf                   # PDF documents for AI Search
+    ```
+
+    > The `config/` folder (with `ontology_config.json`) is **auto-generated** from your CSV files. See [data/customdata/README.md](https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator/blob/main/data/customdata/README.md) for details.
+
+2. Run the build with `--custom-data`:
+
+    ```bash
+    python scripts/00_build_solution.py --custom-data data/customdata --fabric-workspace-id <your-workspace-id>
+    ```
+
+    You will be prompted for your **Industry** and **Use Case**. The script will auto-generate the config, skip step 01 (AI data generation), and run the remaining pipeline steps.
 
 
 ----------
