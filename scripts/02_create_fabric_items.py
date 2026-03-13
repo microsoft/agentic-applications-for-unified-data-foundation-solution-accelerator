@@ -611,5 +611,3 @@ Manual step required:
   - Create Data Agent in Fabric portal and map to Ontology
   - (Data Agent API doesn't support definition configuration yet)
 """)
-
-

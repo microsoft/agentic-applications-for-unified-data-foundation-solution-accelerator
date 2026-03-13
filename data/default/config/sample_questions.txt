@@ -1,20 +1,19 @@
 === SQL QUESTIONS (Fabric Data) ===
-1. How many open tickets are currently assigned to technicians in the Repair department?
-2. What is the average duration in hours of work orders classified as Emergency Repair?
-3. Show the count of outages grouped by severity level for the last six months.
-4. Which technician has the highest number of resolved tickets in the last three months?
-5. What is the monthly trend of network node maintenance activities performed?
+1. How many tickets are high priority?
+2. What is the average score from inspections?
+3. Show tickets grouped by status.
+4. Which ticket has the highest priority?
+5. How does inspection result distribution compare across ticket statuses?
 
 === DOCUMENT QUESTIONS (AI Search) ===
-1. According to the Network Operations Policy, what is the maximum time allowed for ticket resolution?
-2. What are the required safety procedures technicians must follow during field operations?
-3. Which communication channels are specified for notifying customers about outages in the Outage Management Guidelines?
-4. How often must network nodes undergo scheduled maintenance as described in the Maintenance Scheduling and Standards?
-5. What penalties apply if SLA response time commitments are not met, according to the SLA Policies?
+1. What constitutes a failed inspection?
+2. What are the requirements for handling customer tickets?
+3. How quickly should high priority tickets be resolved?
+4. What actions are required for tickets not meeting feedback standards?
+5. How often must failed inspections be reviewed?
 
 === COMBINED INSIGHT QUESTIONS ===
-1. Are any outage durations exceeding the limits set in the Outage Duration Thresholds of the Network Operations Policy?
-2. Which work orders have durations longer than allowed by the Work Order Duration section in the Technician Work Order Procedures?
-3. Do any tickets have response times that violate the Response Time Commitments stated in the SLA Policies?
-4. Which network nodes have not received maintenance within the 90-day period required by the Maintenance Scheduling and Standards?
-5. Are there technicians whose quality inspection pass rates fall below the minimum threshold described in the Quality Assurance Manual?
+1. Do any inspections violate quality control standards in our Inspection Procedures?
+2. Are there any tickets that require follow-up assessments based on our Inspection Procedures?
+3. What is our average inspection score, and does it meet the minimum standard outlined in our Quality Control Standards?
+4. How many tickets are open and exceeding response targets set in our Ticket Management Policy?

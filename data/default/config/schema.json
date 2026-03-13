@@ -1,74 +1,7 @@
 {
-  "name": "Network Operations and Outage Tracking",
-  "description": "Management of telecommunications network operations with outage tracking and trouble ticket management",
+  "name": "Network Operations",
+  "description": "Tracking outages and trouble tickets.",
   "tables": {
-    "customers": {
-      "columns": [
-        {
-          "name": "customer_id",
-          "type": "String"
-        },
-        {
-          "name": "name",
-          "type": "String"
-        },
-        {
-          "name": "city",
-          "type": "String"
-        },
-        {
-          "name": "signup_date",
-          "type": "Date"
-        }
-      ],
-      "key": "customer_id"
-    },
-    "technicians": {
-      "columns": [
-        {
-          "name": "technician_id",
-          "type": "String"
-        },
-        {
-          "name": "name",
-          "type": "String"
-        },
-        {
-          "name": "department",
-          "type": "String"
-        },
-        {
-          "name": "hire_date",
-          "type": "Date"
-        }
-      ],
-      "key": "technician_id"
-    },
-    "network_nodes": {
-      "columns": [
-        {
-          "name": "node_id",
-          "type": "String"
-        },
-        {
-          "name": "node_type",
-          "type": "String"
-        },
-        {
-          "name": "location",
-          "type": "String"
-        },
-        {
-          "name": "status",
-          "type": "String"
-        },
-        {
-          "name": "last_maintenance_date",
-          "type": "Date"
-        }
-      ],
-      "key": "node_id"
-    },
     "tickets": {
       "columns": [
         {
@@ -76,15 +9,11 @@
           "type": "String"
         },
         {
-          "name": "customer_id",
+          "name": "customer_name",
           "type": "String"
         },
         {
-          "name": "technician_id",
-          "type": "String"
-        },
-        {
-          "name": "node_id",
+          "name": "issue_description",
           "type": "String"
         },
         {
@@ -94,51 +23,14 @@
         {
           "name": "status",
           "type": "String"
-        },
-        {
-          "name": "issue_type",
-          "type": "String"
-        },
-        {
-          "name": "date_created",
-          "type": "Date"
-        },
-        {
-          "name": "date_resolved",
-          "type": "Date"
         }
       ],
       "key": "ticket_id"
     },
-    "outages": {
+    "inspections": {
       "columns": [
         {
-          "name": "outage_id",
-          "type": "String"
-        },
-        {
-          "name": "node_id",
-          "type": "String"
-        },
-        {
-          "name": "start_date",
-          "type": "Date"
-        },
-        {
-          "name": "duration_hours",
-          "type": "BigInt"
-        },
-        {
-          "name": "severity",
-          "type": "String"
-        }
-      ],
-      "key": "outage_id"
-    },
-    "work_orders": {
-      "columns": [
-        {
-          "name": "work_order_id",
+          "name": "inspection_id",
           "type": "String"
         },
         {
@@ -146,139 +38,21 @@
           "type": "String"
         },
         {
-          "name": "technician_id",
+          "name": "result",
           "type": "String"
         },
         {
-          "name": "type",
-          "type": "String"
-        },
-        {
-          "name": "status",
-          "type": "String"
-        },
-        {
-          "name": "date_created",
-          "type": "Date"
-        },
-        {
-          "name": "date_completed",
-          "type": "Date"
-        },
-        {
-          "name": "duration_hours",
+          "name": "score",
           "type": "BigInt"
         }
       ],
-      "key": "work_order_id"
-    },
-    "maintenance_records": {
-      "columns": [
-        {
-          "name": "maintenance_id",
-          "type": "String"
-        },
-        {
-          "name": "node_id",
-          "type": "String"
-        },
-        {
-          "name": "technician_id",
-          "type": "String"
-        },
-        {
-          "name": "maintenance_type",
-          "type": "String"
-        },
-        {
-          "name": "date_performed",
-          "type": "Date"
-        }
-      ],
-      "key": "maintenance_id"
-    },
-    "service_sla_metrics": {
-      "columns": [
-        {
-          "name": "sla_id",
-          "type": "String"
-        },
-        {
-          "name": "ticket_id",
-          "type": "String"
-        },
-        {
-          "name": "response_time_hours",
-          "type": "BigInt"
-        },
-        {
-          "name": "resolution_time_hours",
-          "type": "BigInt"
-        }
-      ],
-      "key": "sla_id"
+      "key": "inspection_id"
     }
   },
   "relationships": [
     {
-      "name": "ticket_customer",
-      "from": "tickets",
-      "to": "customers",
-      "fromKey": "customer_id",
-      "toKey": "customer_id"
-    },
-    {
-      "name": "ticket_technician",
-      "from": "tickets",
-      "to": "technicians",
-      "fromKey": "technician_id",
-      "toKey": "technician_id"
-    },
-    {
-      "name": "ticket_node",
-      "from": "tickets",
-      "to": "network_nodes",
-      "fromKey": "node_id",
-      "toKey": "node_id"
-    },
-    {
-      "name": "outage_node",
-      "from": "outages",
-      "to": "network_nodes",
-      "fromKey": "node_id",
-      "toKey": "node_id"
-    },
-    {
-      "name": "workorder_ticket",
-      "from": "work_orders",
-      "to": "tickets",
-      "fromKey": "ticket_id",
-      "toKey": "ticket_id"
-    },
-    {
-      "name": "workorder_technician",
-      "from": "work_orders",
-      "to": "technicians",
-      "fromKey": "technician_id",
-      "toKey": "technician_id"
-    },
-    {
-      "name": "maintenance_node",
-      "from": "maintenance_records",
-      "to": "network_nodes",
-      "fromKey": "node_id",
-      "toKey": "node_id"
-    },
-    {
-      "name": "maintenance_technician",
-      "from": "maintenance_records",
-      "to": "technicians",
-      "fromKey": "technician_id",
-      "toKey": "technician_id"
-    },
-    {
-      "name": "sla_ticket",
-      "from": "service_sla_metrics",
+      "name": "ticket_inspection",
+      "from": "inspections",
       "to": "tickets",
       "fromKey": "ticket_id",
       "toKey": "ticket_id"
