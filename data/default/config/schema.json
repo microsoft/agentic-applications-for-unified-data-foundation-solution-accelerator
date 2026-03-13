@@ -1,0 +1,61 @@
+{
+  "name": "Network Operations",
+  "description": "Tracking outages and trouble tickets.",
+  "tables": {
+    "tickets": {
+      "columns": [
+        {
+          "name": "ticket_id",
+          "type": "String"
+        },
+        {
+          "name": "customer_name",
+          "type": "String"
+        },
+        {
+          "name": "issue_description",
+          "type": "String"
+        },
+        {
+          "name": "priority",
+          "type": "String"
+        },
+        {
+          "name": "status",
+          "type": "String"
+        }
+      ],
+      "key": "ticket_id"
+    },
+    "inspections": {
+      "columns": [
+        {
+          "name": "inspection_id",
+          "type": "String"
+        },
+        {
+          "name": "ticket_id",
+          "type": "String"
+        },
+        {
+          "name": "result",
+          "type": "String"
+        },
+        {
+          "name": "score",
+          "type": "BigInt"
+        }
+      ],
+      "key": "inspection_id"
+    }
+  },
+  "relationships": [
+    {
+      "name": "ticket_inspection",
+      "from": "inspections",
+      "to": "tickets",
+      "fromKey": "ticket_id",
+      "toKey": "ticket_id"
+    }
+  ]
+}
