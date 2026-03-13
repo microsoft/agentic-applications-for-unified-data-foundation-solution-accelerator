@@ -333,13 +333,24 @@ else:
         key_col = table_def["key"]
         key_prop_id = property_ids[table_name][key_col]
         
-        # Find DateTime column for timeseries binding
+        # Find DateTime column for timeseries binding.
+        # Only use timeseries if the table also has numeric metric columns
+        # (BigInt/Double) beyond the primary key — otherwise the Date is just
+        # a static attribute (e.g. signup_date) and putting it in
+        # timeseriesProperties causes the Fabric Data Agent to generate
+        # mismatched entitySelector + timeSeriesSelector queries.
+        numeric_types = {"BigInt", "Double", "Int", "Float"}
+        has_metric_cols = any(
+            table_def["types"].get(c, "String") in numeric_types and c != key_col
+            for c in table_def["columns"]
+        )
         timeseries_col = None
-        for col in table_def["columns"]:
-            col_type = table_def["types"].get(col, "String")
-            if col_type in ["DateTime", "Date"]:
-                timeseries_col = col
-                break
+        if has_metric_cols:
+            for col in table_def["columns"]:
+                col_type = table_def["types"].get(col, "String")
+                if col_type in ["DateTime", "Date"]:
+                    timeseries_col = col
+                    break
         
         # Build static properties - all columns EXCEPT DateTime
         properties = []

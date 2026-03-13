@@ -1,201 +1,201 @@
 customer_id,name,city,signup_date
-CUST0001,John Garcia,Hillsdale,2022-07-19
-CUST0002,Michael Brown,Riverton,2022-06-15
-CUST0003,Jessica Williams,Lakeside,2023-02-15
-CUST0004,David Smith,Lakeside,2022-03-19
-CUST0005,James Davis,Springfield,2022-06-19
-CUST0006,Jessica Miller,Lakeside,2022-02-06
-CUST0007,Patricia Johnson,Springfield,2022-11-09
-CUST0008,Susan Jones,Lakeside,2022-05-28
-CUST0009,David Miller,Mapleton,2022-05-19
-CUST0010,Linda Johnson,Lakeside,2022-08-31
-CUST0011,Patricia Davis,Hillsdale,2022-04-23
-CUST0012,Jennifer Brown,Riverton,2022-04-27
-CUST0013,Joseph Garcia,Springfield,2022-10-06
-CUST0014,Mary Williams,Hillsdale,2023-02-27
-CUST0015,David Johnson,Hillsdale,2022-07-16
-CUST0016,Barbara Garcia,Riverton,2023-06-26
-CUST0017,Jennifer Miller,Mapleton,2022-10-16
-CUST0018,Robert Davis,Lakeside,2023-09-05
-CUST0019,Michael Williams,Lakeside,2022-09-15
-CUST0020,Susan Smith,Mapleton,2022-07-25
-CUST0021,Michael Brown,Lakeside,2023-05-23
-CUST0022,David Miller,Hillsdale,2022-10-12
-CUST0023,Patricia Johnson,Mapleton,2023-05-12
-CUST0024,Susan Johnson,Mapleton,2022-05-17
-CUST0025,Elizabeth Jones,Springfield,2023-04-20
-CUST0026,Elizabeth Smith,Lakeside,2022-09-25
-CUST0027,Mary Miller,Riverton,2022-02-02
-CUST0028,Susan Smith,Hillsdale,2022-05-17
-CUST0029,John Brown,Riverton,2023-07-09
-CUST0030,Jessica Johnson,Springfield,2023-04-16
-CUST0031,Mary Miller,Mapleton,2023-01-29
-CUST0032,Elizabeth Brown,Lakeside,2022-10-01
-CUST0033,Michael Davis,Hillsdale,2023-07-23
-CUST0034,Linda Johnson,Riverton,2023-01-12
-CUST0035,Joseph Miller,Riverton,2022-12-16
-CUST0036,Patricia Williams,Hillsdale,2023-08-24
-CUST0037,Robert Davis,Riverton,2023-07-11
-CUST0038,Elizabeth Smith,Hillsdale,2022-12-28
-CUST0039,Patricia Garcia,Hillsdale,2023-09-23
-CUST0040,Mary Brown,Riverton,2023-04-13
-CUST0041,Joseph Brown,Springfield,2023-04-14
-CUST0042,Jessica Williams,Hillsdale,2022-09-23
-CUST0043,Mary Williams,Hillsdale,2022-01-18
-CUST0044,Barbara Williams,Hillsdale,2023-06-22
-CUST0045,Michael Davis,Lakeside,2023-01-20
-CUST0046,Susan Brown,Lakeside,2022-05-12
-CUST0047,Robert Miller,Springfield,2023-04-08
-CUST0048,William Johnson,Riverton,2022-10-30
-CUST0049,Elizabeth Brown,Mapleton,2022-09-29
-CUST0050,Susan Jones,Lakeside,2022-12-23
-CUST0051,Joseph Jones,Hillsdale,2023-08-16
-CUST0052,James Miller,Mapleton,2022-02-08
-CUST0053,James Johnson,Mapleton,2023-04-30
-CUST0054,Elizabeth Johnson,Mapleton,2023-03-16
-CUST0055,William Davis,Springfield,2023-03-12
-CUST0056,Michael Brown,Lakeside,2022-05-23
-CUST0057,Richard Johnson,Mapleton,2022-09-16
-CUST0058,James Jones,Lakeside,2022-01-28
-CUST0059,Susan Smith,Mapleton,2023-04-03
-CUST0060,Michael Davis,Riverton,2022-03-02
-CUST0061,Jennifer Davis,Lakeside,2023-09-07
-CUST0062,Patricia Miller,Hillsdale,2022-07-14
-CUST0063,David Smith,Springfield,2022-08-01
-CUST0064,Patricia Johnson,Lakeside,2022-11-09
-CUST0065,Elizabeth Brown,Hillsdale,2022-04-24
-CUST0066,David Garcia,Hillsdale,2022-07-12
-CUST0067,Susan Brown,Springfield,2023-08-30
-CUST0068,Barbara Williams,Hillsdale,2022-09-14
-CUST0069,Robert Brown,Mapleton,2022-04-27
-CUST0070,Linda Johnson,Springfield,2022-10-27
-CUST0071,Patricia Miller,Hillsdale,2023-04-19
-CUST0072,Linda Brown,Mapleton,2022-08-14
-CUST0073,Susan Davis,Riverton,2022-01-09
-CUST0074,John Jones,Lakeside,2022-03-28
-CUST0075,Jessica Brown,Hillsdale,2022-06-04
-CUST0076,Robert Smith,Lakeside,2023-04-16
-CUST0077,Michael Williams,Hillsdale,2023-05-29
-CUST0078,Barbara Brown,Mapleton,2022-11-02
-CUST0079,Robert Smith,Mapleton,2023-01-09
-CUST0080,Elizabeth Williams,Lakeside,2023-09-18
-CUST0081,Jessica Davis,Springfield,2022-01-13
-CUST0082,Linda Miller,Mapleton,2022-06-27
-CUST0083,William Jones,Mapleton,2023-06-28
-CUST0084,Jennifer Johnson,Springfield,2023-09-05
-CUST0085,Jennifer Jones,Lakeside,2023-05-22
-CUST0086,John Williams,Mapleton,2022-10-24
-CUST0087,John Davis,Springfield,2022-04-13
-CUST0088,James Garcia,Riverton,2022-04-28
-CUST0089,David Davis,Hillsdale,2023-08-09
-CUST0090,John Johnson,Springfield,2022-01-03
-CUST0091,Patricia Miller,Hillsdale,2023-06-16
-CUST0092,Linda Williams,Riverton,2022-08-31
-CUST0093,James Jones,Mapleton,2022-03-12
-CUST0094,David Johnson,Lakeside,2022-10-16
-CUST0095,Jessica Davis,Lakeside,2022-04-18
-CUST0096,William Miller,Riverton,2022-10-04
-CUST0097,Patricia Davis,Lakeside,2023-01-22
-CUST0098,Barbara Jones,Springfield,2023-04-17
-CUST0099,Jessica Miller,Springfield,2022-10-13
-CUST0100,David Brown,Riverton,2022-08-16
-CUST0101,Susan Jones,Lakeside,2023-09-13
-CUST0102,John Miller,Lakeside,2023-01-27
-CUST0103,James Smith,Hillsdale,2022-01-01
-CUST0104,James Smith,Lakeside,2022-02-08
-CUST0105,Barbara Miller,Hillsdale,2023-04-03
-CUST0106,David Johnson,Springfield,2022-12-28
-CUST0107,Patricia Garcia,Hillsdale,2022-06-05
-CUST0108,Richard Johnson,Mapleton,2022-01-03
-CUST0109,Linda Davis,Riverton,2023-05-11
-CUST0110,Michael Smith,Lakeside,2023-07-27
-CUST0111,William Miller,Springfield,2022-12-12
-CUST0112,Barbara Johnson,Lakeside,2023-07-06
-CUST0113,Robert Williams,Springfield,2022-09-16
-CUST0114,Michael Jones,Lakeside,2022-06-23
-CUST0115,Barbara Smith,Lakeside,2022-09-09
-CUST0116,Michael Davis,Riverton,2022-04-10
-CUST0117,Richard Garcia,Hillsdale,2022-03-19
-CUST0118,Joseph Garcia,Lakeside,2022-06-12
-CUST0119,Mary Smith,Mapleton,2022-12-27
-CUST0120,Richard Brown,Lakeside,2023-06-14
-CUST0121,David Jones,Mapleton,2023-09-18
-CUST0122,David Brown,Lakeside,2023-02-06
-CUST0123,James Garcia,Riverton,2023-02-10
-CUST0124,Michael Jones,Hillsdale,2022-12-19
-CUST0125,John Brown,Riverton,2023-08-22
-CUST0126,Richard Johnson,Hillsdale,2022-01-17
-CUST0127,Linda Jones,Hillsdale,2023-05-24
-CUST0128,John Jones,Springfield,2022-09-03
-CUST0129,Barbara Brown,Hillsdale,2022-05-06
-CUST0130,Barbara Johnson,Hillsdale,2022-08-25
-CUST0131,Robert Miller,Lakeside,2022-05-31
-CUST0132,Mary Williams,Springfield,2023-06-27
-CUST0133,Patricia Jones,Springfield,2022-11-30
-CUST0134,David Jones,Riverton,2022-10-26
-CUST0135,Michael Brown,Riverton,2023-03-14
-CUST0136,Elizabeth Jones,Hillsdale,2022-10-07
-CUST0137,Patricia Garcia,Springfield,2022-08-09
-CUST0138,William Williams,Mapleton,2022-03-18
-CUST0139,Linda Williams,Hillsdale,2022-12-18
-CUST0140,Patricia Brown,Mapleton,2022-01-20
-CUST0141,Barbara Jones,Riverton,2023-01-20
-CUST0142,David Jones,Hillsdale,2023-08-03
-CUST0143,Elizabeth Garcia,Riverton,2022-08-12
-CUST0144,Jessica Garcia,Hillsdale,2023-07-21
-CUST0145,John Garcia,Springfield,2023-06-02
-CUST0146,Jessica Jones,Mapleton,2022-08-22
-CUST0147,John Jones,Hillsdale,2023-05-30
-CUST0148,James Garcia,Springfield,2023-09-17
-CUST0149,David Garcia,Riverton,2023-09-01
-CUST0150,Jessica Williams,Springfield,2022-05-23
-CUST0151,Patricia Garcia,Springfield,2022-10-13
-CUST0152,Jennifer Garcia,Springfield,2023-02-05
-CUST0153,Mary Brown,Riverton,2023-06-30
-CUST0154,Richard Jones,Riverton,2023-06-13
-CUST0155,Joseph Jones,Riverton,2022-04-09
-CUST0156,Jennifer Williams,Mapleton,2023-05-03
-CUST0157,John Davis,Mapleton,2022-09-13
-CUST0158,Robert Williams,Mapleton,2023-06-02
-CUST0159,Jennifer Smith,Springfield,2023-06-03
-CUST0160,David Johnson,Lakeside,2022-05-16
-CUST0161,David Williams,Lakeside,2023-07-23
-CUST0162,James Miller,Riverton,2022-06-19
-CUST0163,Mary Jones,Mapleton,2023-07-27
-CUST0164,William Jones,Mapleton,2022-10-22
-CUST0165,Mary Brown,Springfield,2022-05-19
-CUST0166,Susan Smith,Riverton,2023-09-10
-CUST0167,Jennifer Brown,Mapleton,2023-03-11
-CUST0168,Elizabeth Smith,Hillsdale,2022-07-25
-CUST0169,John Smith,Mapleton,2022-06-20
-CUST0170,David Garcia,Mapleton,2023-04-25
-CUST0171,Robert Davis,Mapleton,2022-04-02
-CUST0172,Jennifer Smith,Springfield,2022-01-09
-CUST0173,Susan Garcia,Mapleton,2022-12-09
-CUST0174,Michael Davis,Springfield,2023-06-26
-CUST0175,James Williams,Hillsdale,2022-03-24
-CUST0176,Michael Miller,Hillsdale,2022-04-21
-CUST0177,Patricia Johnson,Riverton,2022-09-23
-CUST0178,Joseph Miller,Springfield,2023-02-13
-CUST0179,John Johnson,Mapleton,2022-04-12
-CUST0180,Mary Jones,Lakeside,2022-01-19
-CUST0181,John Brown,Riverton,2023-08-27
-CUST0182,David Brown,Lakeside,2022-12-30
-CUST0183,James Williams,Hillsdale,2022-02-03
-CUST0184,Mary Davis,Hillsdale,2023-07-26
-CUST0185,James Miller,Riverton,2023-06-22
-CUST0186,Linda Davis,Hillsdale,2022-11-18
-CUST0187,William Garcia,Hillsdale,2023-03-03
-CUST0188,James Jones,Springfield,2023-08-10
-CUST0189,John Johnson,Riverton,2023-06-20
-CUST0190,John Davis,Mapleton,2023-03-09
-CUST0191,David Garcia,Hillsdale,2023-02-13
-CUST0192,Richard Miller,Hillsdale,2022-12-08
-CUST0193,Patricia Johnson,Mapleton,2022-07-19
-CUST0194,James Brown,Springfield,2022-09-04
-CUST0195,Jessica Miller,Lakeside,2023-06-17
-CUST0196,James Davis,Springfield,2022-10-31
-CUST0197,Richard Williams,Riverton,2023-05-14
-CUST0198,Richard Miller,Riverton,2022-12-07
-CUST0199,Jessica Brown,Hillsdale,2022-04-30
-CUST0200,Susan Brown,Springfield,2022-05-07
+CUST0001,John Garcia,Hillsdale,2022-07-19 00:00:00
+CUST0002,Michael Brown,Riverton,2022-06-15 00:00:00
+CUST0003,Jessica Williams,Lakeside,2023-02-15 00:00:00
+CUST0004,David Smith,Lakeside,2022-03-19 00:00:00
+CUST0005,James Davis,Springfield,2022-06-19 00:00:00
+CUST0006,Jessica Miller,Lakeside,2022-02-06 00:00:00
+CUST0007,Patricia Johnson,Springfield,2022-11-09 00:00:00
+CUST0008,Susan Jones,Lakeside,2022-05-28 00:00:00
+CUST0009,David Miller,Mapleton,2022-05-19 00:00:00
+CUST0010,Linda Johnson,Lakeside,2022-08-31 00:00:00
+CUST0011,Patricia Davis,Hillsdale,2022-04-23 00:00:00
+CUST0012,Jennifer Brown,Riverton,2022-04-27 00:00:00
+CUST0013,Joseph Garcia,Springfield,2022-10-06 00:00:00
+CUST0014,Mary Williams,Hillsdale,2023-02-27 00:00:00
+CUST0015,David Johnson,Hillsdale,2022-07-16 00:00:00
+CUST0016,Barbara Garcia,Riverton,2023-06-26 00:00:00
+CUST0017,Jennifer Miller,Mapleton,2022-10-16 00:00:00
+CUST0018,Robert Davis,Lakeside,2023-09-05 00:00:00
+CUST0019,Michael Williams,Lakeside,2022-09-15 00:00:00
+CUST0020,Susan Smith,Mapleton,2022-07-25 00:00:00
+CUST0021,Michael Brown,Lakeside,2023-05-23 00:00:00
+CUST0022,David Miller,Hillsdale,2022-10-12 00:00:00
+CUST0023,Patricia Johnson,Mapleton,2023-05-12 00:00:00
+CUST0024,Susan Johnson,Mapleton,2022-05-17 00:00:00
+CUST0025,Elizabeth Jones,Springfield,2023-04-20 00:00:00
+CUST0026,Elizabeth Smith,Lakeside,2022-09-25 00:00:00
+CUST0027,Mary Miller,Riverton,2022-02-02 00:00:00
+CUST0028,Susan Smith,Hillsdale,2022-05-17 00:00:00
+CUST0029,John Brown,Riverton,2023-07-09 00:00:00
+CUST0030,Jessica Johnson,Springfield,2023-04-16 00:00:00
+CUST0031,Mary Miller,Mapleton,2023-01-29 00:00:00
+CUST0032,Elizabeth Brown,Lakeside,2022-10-01 00:00:00
+CUST0033,Michael Davis,Hillsdale,2023-07-23 00:00:00
+CUST0034,Linda Johnson,Riverton,2023-01-12 00:00:00
+CUST0035,Joseph Miller,Riverton,2022-12-16 00:00:00
+CUST0036,Patricia Williams,Hillsdale,2023-08-24 00:00:00
+CUST0037,Robert Davis,Riverton,2023-07-11 00:00:00
+CUST0038,Elizabeth Smith,Hillsdale,2022-12-28 00:00:00
+CUST0039,Patricia Garcia,Hillsdale,2023-09-23 00:00:00
+CUST0040,Mary Brown,Riverton,2023-04-13 00:00:00
+CUST0041,Joseph Brown,Springfield,2023-04-14 00:00:00
+CUST0042,Jessica Williams,Hillsdale,2022-09-23 00:00:00
+CUST0043,Mary Williams,Hillsdale,2022-01-18 00:00:00
+CUST0044,Barbara Williams,Hillsdale,2023-06-22 00:00:00
+CUST0045,Michael Davis,Lakeside,2023-01-20 00:00:00
+CUST0046,Susan Brown,Lakeside,2022-05-12 00:00:00
+CUST0047,Robert Miller,Springfield,2023-04-08 00:00:00
+CUST0048,William Johnson,Riverton,2022-10-30 00:00:00
+CUST0049,Elizabeth Brown,Mapleton,2022-09-29 00:00:00
+CUST0050,Susan Jones,Lakeside,2022-12-23 00:00:00
+CUST0051,Joseph Jones,Hillsdale,2023-08-16 00:00:00
+CUST0052,James Miller,Mapleton,2022-02-08 00:00:00
+CUST0053,James Johnson,Mapleton,2023-04-30 00:00:00
+CUST0054,Elizabeth Johnson,Mapleton,2023-03-16 00:00:00
+CUST0055,William Davis,Springfield,2023-03-12 00:00:00
+CUST0056,Michael Brown,Lakeside,2022-05-23 00:00:00
+CUST0057,Richard Johnson,Mapleton,2022-09-16 00:00:00
+CUST0058,James Jones,Lakeside,2022-01-28 00:00:00
+CUST0059,Susan Smith,Mapleton,2023-04-03 00:00:00
+CUST0060,Michael Davis,Riverton,2022-03-02 00:00:00
+CUST0061,Jennifer Davis,Lakeside,2023-09-07 00:00:00
+CUST0062,Patricia Miller,Hillsdale,2022-07-14 00:00:00
+CUST0063,David Smith,Springfield,2022-08-01 00:00:00
+CUST0064,Patricia Johnson,Lakeside,2022-11-09 00:00:00
+CUST0065,Elizabeth Brown,Hillsdale,2022-04-24 00:00:00
+CUST0066,David Garcia,Hillsdale,2022-07-12 00:00:00
+CUST0067,Susan Brown,Springfield,2023-08-30 00:00:00
+CUST0068,Barbara Williams,Hillsdale,2022-09-14 00:00:00
+CUST0069,Robert Brown,Mapleton,2022-04-27 00:00:00
+CUST0070,Linda Johnson,Springfield,2022-10-27 00:00:00
+CUST0071,Patricia Miller,Hillsdale,2023-04-19 00:00:00
+CUST0072,Linda Brown,Mapleton,2022-08-14 00:00:00
+CUST0073,Susan Davis,Riverton,2022-01-09 00:00:00
+CUST0074,John Jones,Lakeside,2022-03-28 00:00:00
+CUST0075,Jessica Brown,Hillsdale,2022-06-04 00:00:00
+CUST0076,Robert Smith,Lakeside,2023-04-16 00:00:00
+CUST0077,Michael Williams,Hillsdale,2023-05-29 00:00:00
+CUST0078,Barbara Brown,Mapleton,2022-11-02 00:00:00
+CUST0079,Robert Smith,Mapleton,2023-01-09 00:00:00
+CUST0080,Elizabeth Williams,Lakeside,2023-09-18 00:00:00
+CUST0081,Jessica Davis,Springfield,2022-01-13 00:00:00
+CUST0082,Linda Miller,Mapleton,2022-06-27 00:00:00
+CUST0083,William Jones,Mapleton,2023-06-28 00:00:00
+CUST0084,Jennifer Johnson,Springfield,2023-09-05 00:00:00
+CUST0085,Jennifer Jones,Lakeside,2023-05-22 00:00:00
+CUST0086,John Williams,Mapleton,2022-10-24 00:00:00
+CUST0087,John Davis,Springfield,2022-04-13 00:00:00
+CUST0088,James Garcia,Riverton,2022-04-28 00:00:00
+CUST0089,David Davis,Hillsdale,2023-08-09 00:00:00
+CUST0090,John Johnson,Springfield,2022-01-03 00:00:00
+CUST0091,Patricia Miller,Hillsdale,2023-06-16 00:00:00
+CUST0092,Linda Williams,Riverton,2022-08-31 00:00:00
+CUST0093,James Jones,Mapleton,2022-03-12 00:00:00
+CUST0094,David Johnson,Lakeside,2022-10-16 00:00:00
+CUST0095,Jessica Davis,Lakeside,2022-04-18 00:00:00
+CUST0096,William Miller,Riverton,2022-10-04 00:00:00
+CUST0097,Patricia Davis,Lakeside,2023-01-22 00:00:00
+CUST0098,Barbara Jones,Springfield,2023-04-17 00:00:00
+CUST0099,Jessica Miller,Springfield,2022-10-13 00:00:00
+CUST0100,David Brown,Riverton,2022-08-16 00:00:00
+CUST0101,Susan Jones,Lakeside,2023-09-13 00:00:00
+CUST0102,John Miller,Lakeside,2023-01-27 00:00:00
+CUST0103,James Smith,Hillsdale,2022-01-01 00:00:00
+CUST0104,James Smith,Lakeside,2022-02-08 00:00:00
+CUST0105,Barbara Miller,Hillsdale,2023-04-03 00:00:00
+CUST0106,David Johnson,Springfield,2022-12-28 00:00:00
+CUST0107,Patricia Garcia,Hillsdale,2022-06-05 00:00:00
+CUST0108,Richard Johnson,Mapleton,2022-01-03 00:00:00
+CUST0109,Linda Davis,Riverton,2023-05-11 00:00:00
+CUST0110,Michael Smith,Lakeside,2023-07-27 00:00:00
+CUST0111,William Miller,Springfield,2022-12-12 00:00:00
+CUST0112,Barbara Johnson,Lakeside,2023-07-06 00:00:00
+CUST0113,Robert Williams,Springfield,2022-09-16 00:00:00
+CUST0114,Michael Jones,Lakeside,2022-06-23 00:00:00
+CUST0115,Barbara Smith,Lakeside,2022-09-09 00:00:00
+CUST0116,Michael Davis,Riverton,2022-04-10 00:00:00
+CUST0117,Richard Garcia,Hillsdale,2022-03-19 00:00:00
+CUST0118,Joseph Garcia,Lakeside,2022-06-12 00:00:00
+CUST0119,Mary Smith,Mapleton,2022-12-27 00:00:00
+CUST0120,Richard Brown,Lakeside,2023-06-14 00:00:00
+CUST0121,David Jones,Mapleton,2023-09-18 00:00:00
+CUST0122,David Brown,Lakeside,2023-02-06 00:00:00
+CUST0123,James Garcia,Riverton,2023-02-10 00:00:00
+CUST0124,Michael Jones,Hillsdale,2022-12-19 00:00:00
+CUST0125,John Brown,Riverton,2023-08-22 00:00:00
+CUST0126,Richard Johnson,Hillsdale,2022-01-17 00:00:00
+CUST0127,Linda Jones,Hillsdale,2023-05-24 00:00:00
+CUST0128,John Jones,Springfield,2022-09-03 00:00:00
+CUST0129,Barbara Brown,Hillsdale,2022-05-06 00:00:00
+CUST0130,Barbara Johnson,Hillsdale,2022-08-25 00:00:00
+CUST0131,Robert Miller,Lakeside,2022-05-31 00:00:00
+CUST0132,Mary Williams,Springfield,2023-06-27 00:00:00
+CUST0133,Patricia Jones,Springfield,2022-11-30 00:00:00
+CUST0134,David Jones,Riverton,2022-10-26 00:00:00
+CUST0135,Michael Brown,Riverton,2023-03-14 00:00:00
+CUST0136,Elizabeth Jones,Hillsdale,2022-10-07 00:00:00
+CUST0137,Patricia Garcia,Springfield,2022-08-09 00:00:00
+CUST0138,William Williams,Mapleton,2022-03-18 00:00:00
+CUST0139,Linda Williams,Hillsdale,2022-12-18 00:00:00
+CUST0140,Patricia Brown,Mapleton,2022-01-20 00:00:00
+CUST0141,Barbara Jones,Riverton,2023-01-20 00:00:00
+CUST0142,David Jones,Hillsdale,2023-08-03 00:00:00
+CUST0143,Elizabeth Garcia,Riverton,2022-08-12 00:00:00
+CUST0144,Jessica Garcia,Hillsdale,2023-07-21 00:00:00
+CUST0145,John Garcia,Springfield,2023-06-02 00:00:00
+CUST0146,Jessica Jones,Mapleton,2022-08-22 00:00:00
+CUST0147,John Jones,Hillsdale,2023-05-30 00:00:00
+CUST0148,James Garcia,Springfield,2023-09-17 00:00:00
+CUST0149,David Garcia,Riverton,2023-09-01 00:00:00
+CUST0150,Jessica Williams,Springfield,2022-05-23 00:00:00
+CUST0151,Patricia Garcia,Springfield,2022-10-13 00:00:00
+CUST0152,Jennifer Garcia,Springfield,2023-02-05 00:00:00
+CUST0153,Mary Brown,Riverton,2023-06-30 00:00:00
+CUST0154,Richard Jones,Riverton,2023-06-13 00:00:00
+CUST0155,Joseph Jones,Riverton,2022-04-09 00:00:00
+CUST0156,Jennifer Williams,Mapleton,2023-05-03 00:00:00
+CUST0157,John Davis,Mapleton,2022-09-13 00:00:00
+CUST0158,Robert Williams,Mapleton,2023-06-02 00:00:00
+CUST0159,Jennifer Smith,Springfield,2023-06-03 00:00:00
+CUST0160,David Johnson,Lakeside,2022-05-16 00:00:00
+CUST0161,David Williams,Lakeside,2023-07-23 00:00:00
+CUST0162,James Miller,Riverton,2022-06-19 00:00:00
+CUST0163,Mary Jones,Mapleton,2023-07-27 00:00:00
+CUST0164,William Jones,Mapleton,2022-10-22 00:00:00
+CUST0165,Mary Brown,Springfield,2022-05-19 00:00:00
+CUST0166,Susan Smith,Riverton,2023-09-10 00:00:00
+CUST0167,Jennifer Brown,Mapleton,2023-03-11 00:00:00
+CUST0168,Elizabeth Smith,Hillsdale,2022-07-25 00:00:00
+CUST0169,John Smith,Mapleton,2022-06-20 00:00:00
+CUST0170,David Garcia,Mapleton,2023-04-25 00:00:00
+CUST0171,Robert Davis,Mapleton,2022-04-02 00:00:00
+CUST0172,Jennifer Smith,Springfield,2022-01-09 00:00:00
+CUST0173,Susan Garcia,Mapleton,2022-12-09 00:00:00
+CUST0174,Michael Davis,Springfield,2023-06-26 00:00:00
+CUST0175,James Williams,Hillsdale,2022-03-24 00:00:00
+CUST0176,Michael Miller,Hillsdale,2022-04-21 00:00:00
+CUST0177,Patricia Johnson,Riverton,2022-09-23 00:00:00
+CUST0178,Joseph Miller,Springfield,2023-02-13 00:00:00
+CUST0179,John Johnson,Mapleton,2022-04-12 00:00:00
+CUST0180,Mary Jones,Lakeside,2022-01-19 00:00:00
+CUST0181,John Brown,Riverton,2023-08-27 00:00:00
+CUST0182,David Brown,Lakeside,2022-12-30 00:00:00
+CUST0183,James Williams,Hillsdale,2022-02-03 00:00:00
+CUST0184,Mary Davis,Hillsdale,2023-07-26 00:00:00
+CUST0185,James Miller,Riverton,2023-06-22 00:00:00
+CUST0186,Linda Davis,Hillsdale,2022-11-18 00:00:00
+CUST0187,William Garcia,Hillsdale,2023-03-03 00:00:00
+CUST0188,James Jones,Springfield,2023-08-10 00:00:00
+CUST0189,John Johnson,Riverton,2023-06-20 00:00:00
+CUST0190,John Davis,Mapleton,2023-03-09 00:00:00
+CUST0191,David Garcia,Hillsdale,2023-02-13 00:00:00
+CUST0192,Richard Miller,Hillsdale,2022-12-08 00:00:00
+CUST0193,Patricia Johnson,Mapleton,2022-07-19 00:00:00
+CUST0194,James Brown,Springfield,2022-09-04 00:00:00
+CUST0195,Jessica Miller,Lakeside,2023-06-17 00:00:00
+CUST0196,James Davis,Springfield,2022-10-31 00:00:00
+CUST0197,Richard Williams,Riverton,2023-05-14 00:00:00
+CUST0198,Richard Miller,Riverton,2022-12-07 00:00:00
+CUST0199,Jessica Brown,Hillsdale,2022-04-30 00:00:00
+CUST0200,Susan Brown,Springfield,2022-05-07 00:00:00

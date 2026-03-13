@@ -14,7 +14,7 @@
                 "customer_id": "String",
                 "name": "String",
                 "city": "String",
-                "signup_date": "Date"
+                "signup_date": "DateTime"
             },
             "key": "customer_id",
             "source_table": "customers"
@@ -30,7 +30,7 @@
                 "technician_id": "String",
                 "name": "String",
                 "department": "String",
-                "hire_date": "Date"
+                "hire_date": "DateTime"
             },
             "key": "technician_id",
             "source_table": "technicians"
@@ -48,7 +48,7 @@
                 "node_type": "String",
                 "location": "String",
                 "status": "String",
-                "last_maintenance_date": "Date"
+                "last_maintenance_date": "DateTime"
             },
             "key": "node_id",
             "source_table": "network_nodes"
@@ -73,8 +73,8 @@
                 "priority": "String",
                 "status": "String",
                 "issue_type": "String",
-                "date_created": "Date",
-                "date_resolved": "Date"
+                "date_created": "DateTime",
+                "date_resolved": "DateTime"
             },
             "key": "ticket_id",
             "source_table": "tickets"
@@ -90,7 +90,7 @@
             "types": {
                 "outage_id": "String",
                 "node_id": "String",
-                "start_date": "Date",
+                "start_date": "DateTime",
                 "duration_hours": "BigInt",
                 "severity": "String"
             },
@@ -114,8 +114,8 @@
                 "technician_id": "String",
                 "type": "String",
                 "status": "String",
-                "date_created": "Date",
-                "date_completed": "Date",
+                "date_created": "DateTime",
+                "date_completed": "DateTime",
                 "duration_hours": "BigInt"
             },
             "key": "work_order_id",
@@ -134,7 +134,7 @@
                 "node_id": "String",
                 "technician_id": "String",
                 "maintenance_type": "String",
-                "date_performed": "Date"
+                "date_performed": "DateTime"
             },
             "key": "maintenance_id",
             "source_table": "maintenance_records"
