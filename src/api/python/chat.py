@@ -379,7 +379,9 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
 
                 chunk_text = str(chunk.text) if chunk.text else ""
 
-                # # Replace citation markers like 【4:0†source】 with [1], [2], etc.
+                # Remove citation markers like 【4:0†source】 from response text until citation issue resolved
+                chunk_text = re.sub(r'【\d+:\d+†[^】]+】', '', chunk_text)
+                # Replace citation markers like 【4:0†source】 with [1], [2], etc.
                 # chunk_text = re.sub(r'【\d+:\d+†[^】]+】', replace_citation_marker, chunk_text)
 
                 if chunk_text:

@@ -286,7 +286,7 @@ If the user query is asking for a chart:
             - Only create the chart after numeric data is successfully retrieved.
             - If no numeric data is returned, do not generate a chart; instead, return "Chart cannot be generated".
         For charts:
-            Return the JSON in {{"answer": <chart JSON>, "citations": []}} format.
+            Return the response only in JSON format.
             Do not include any text or commentary outside the JSON.
 
 ## Greeting
