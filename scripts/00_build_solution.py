@@ -9,6 +9,9 @@ Usage:
     # Start from a specific step
     python scripts/00_build_solution.py --from 06
 
+    # Bring your own data (skips AI data generation)
+    python scripts/00_build_solution.py --custom-data data/customdata
+
 Steps (Fabric SQL mode):
     01  - Generate sample data
     02  - Create Fabric Lakehouse
@@ -23,6 +26,13 @@ Steps (Azure-only mode):
     05  - Upload data to Azure SQL
     06  - Upload documents to AI Search
     07  - Create Foundry Agent (Azure SQL + Search)
+
+Custom Data mode (--custom-data):
+    Skips step 01 and uses your own data from the specified folder.
+    The folder must contain:
+        tables/*.csv                 - One CSV per table
+        documents/*.pdf              - PDF documents for AI Search
+    The config/ folder (ontology_config.json) is auto-generated from your CSVs.
 
 Both modes always use:
     - Native AzureAISearchTool for document search
@@ -69,6 +79,7 @@ Examples:
   python scripts/00_build_solution.py --only 07      # Run only specific steps
   python scripts/00_build_solution.py -g rg-myproject-dev  # Pre-provisioned infra
   python scripts/00_build_solution.py --fabric-workspace-id <id>  # Pass Fabric workspace ID
+  python scripts/00_build_solution.py --custom-data data/customdata  # Use your own data
 """
 )
 parser.add_argument("--industry", type=str, 
@@ -81,6 +92,9 @@ parser.add_argument("--fabric-workspace-id", type=str,
                     help="Fabric workspace ID (overrides FABRIC_WORKSPACE_ID in .env)")
 parser.add_argument("--resource-group", "-g", type=str,
                     help="Azure resource group to fetch env settings from (for pre-provisioned infra)")
+parser.add_argument("--custom-data", type=str,
+                    help="Path to folder with tables/ (CSVs) and documents/ (PDFs). "
+                         "Config is auto-generated from your CSV files.")
 parser.add_argument("--clean", action="store_true",
                     help="Clean and recreate artifacts")
 
@@ -135,6 +149,110 @@ azure_only = os.getenv("AZURE_ENV_ONLY", "false").lower() in ("true", "1", "yes"
 deploy_app = os.getenv("AZURE_ENV_DEPLOY_APP", "false").lower() in ("true", "1", "yes")
 
 # ============================================================================
+# Handle --custom-data: validate folder, generate config, set DATA_FOLDER
+# ============================================================================
+
+custom_data_dir = None
+if args.custom_data:
+    custom_data_dir = os.path.abspath(args.custom_data)
+
+    # Require tables/ and documents/ subfolders
+    required_subdirs = ["tables", "documents"]
+    missing = [d for d in required_subdirs if not os.path.isdir(os.path.join(custom_data_dir, d))]
+    if missing:
+        print(f"ERROR: Custom data folder is missing required subfolders: {', '.join(missing)}")
+        print(f"       Expected structure in '{custom_data_dir}':")
+        print(f"         tables/      - CSV files (one per table)")
+        print(f"         documents/   - PDF files")
+        print(f"\n       See data/customdata/README.md for details.")
+        sys.exit(1)
+
+    csv_files = [f for f in os.listdir(os.path.join(custom_data_dir, "tables")) if f.endswith(".csv")]
+    pdf_files = [f for f in os.listdir(os.path.join(custom_data_dir, "documents")) if f.endswith(".pdf")]
+    if not csv_files:
+        print(f"ERROR: No CSV files found in {os.path.join(custom_data_dir, 'tables')}")
+        sys.exit(1)
+    if not pdf_files:
+        print(f"WARNING: No PDF files found in {os.path.join(custom_data_dir, 'documents')}")
+
+    # Ensure config/ folder exists
+    config_dir = os.path.join(custom_data_dir, "config")
+    os.makedirs(config_dir, exist_ok=True)
+    config_path = os.path.join(config_dir, "ontology_config.json")
+    questions_path = os.path.join(config_dir, "sample_questions.txt")
+
+    # If both config and questions already exist, read industry/usecase from config
+    if os.path.exists(config_path) and os.path.exists(questions_path):
+        import json
+        with open(config_path, "r") as f:
+            existing_config = json.load(f)
+        custom_industry = args.industry or existing_config.get("scenario", "").capitalize()
+        custom_usecase = args.usecase or existing_config.get("name", "")
+        print(f"[OK] Using existing config: {config_path}")
+    else:
+        # Need industry/usecase for config generation — prefer CLI args, then prompt
+        custom_industry = args.industry
+        custom_usecase = args.usecase
+
+        if not custom_industry or not custom_usecase:
+            # If config exists, read from it to avoid re-prompting
+            if os.path.exists(config_path):
+                import json
+                with open(config_path, "r") as f:
+                    existing_config = json.load(f)
+                custom_industry = custom_industry or existing_config.get("scenario", "").capitalize()
+                custom_usecase = custom_usecase or existing_config.get("name", "")
+
+        if not custom_industry or not custom_usecase:
+            print("\n" + "="*60)
+            print("Custom Data - Industry & Use Case")
+            print("="*60)
+            print("\nDescribe your data so the agent understands the domain context.\n")
+            if not custom_industry:
+                custom_industry = input("Industry (e.g. Healthcare, Retail, Manufacturing): ").strip()
+                if not custom_industry:
+                    print("ERROR: Industry is required for custom data.")
+                    sys.exit(1)
+            if not custom_usecase:
+                custom_usecase = input("Use Case (e.g. Patient records and clinical notes): ").strip()
+                if not custom_usecase:
+                    print("ERROR: Use case is required for custom data.")
+                    sys.exit(1)
+
+        print(f"\n[...] Generating config and sample questions from CSV files...")
+        gen_script = os.path.join(script_dir, "generate_config_from_csv.py")
+        gen_cmd = [
+            sys.executable, gen_script,
+            "--data-folder", custom_data_dir,
+            "--industry", custom_industry,
+            "--usecase", custom_usecase,
+        ]
+        gen_result = subprocess.run(gen_cmd, cwd=script_dir)
+        if gen_result.returncode != 0:
+            print("ERROR: Failed to generate config from CSV files.")
+            sys.exit(1)
+
+    # Set DATA_FOLDER in environment and persist to scripts/.env
+    project_root = os.path.abspath(os.path.join(script_dir, ".."))
+    relative_data_dir = os.path.relpath(custom_data_dir, project_root)
+    os.environ["DATA_FOLDER"] = relative_data_dir
+
+    from dotenv import set_key
+    env_path = os.path.join(script_dir, ".env")
+    set_key(env_path, "DATA_FOLDER", relative_data_dir)
+    set_key(env_path, "INDUSTRY", custom_industry)
+    set_key(env_path, "USECASE", custom_usecase)
+    os.environ["INDUSTRY"] = custom_industry
+    os.environ["USECASE"] = custom_usecase
+
+    print(f"\n[OK] Custom data folder: {custom_data_dir}")
+    print(f"     Industry: {custom_industry}")
+    print(f"     Use Case: {custom_usecase}")
+    print(f"     Tables: {', '.join(csv_files)}")
+    print(f"     Documents: {', '.join(pdf_files) if pdf_files else '(none)'}")
+    print(f"     DATA_FOLDER set to: {relative_data_dir}")
+
+# ============================================================================
 # Determine Pipeline
 # ============================================================================
 
@@ -144,6 +262,11 @@ elif azure_only:
     pipeline = AZURE_ONLY_PIPELINE.copy()
 else:
     pipeline = FABRIC_PIPELINE.copy()
+
+# Skip data generation step when using custom data
+if custom_data_dir and "01" in pipeline:
+    pipeline = [s for s in pipeline if s != "01"]
+    print("  (Skipping step 01 — using custom data instead of AI generation)")
 
 # Apply --from filter
 if args.from_step:
