@@ -18,6 +18,7 @@ The script reads sql_mode from agent_ids.json to determine which SQL backend to 
 import os
 import sys
 import json
+import re
 import struct
 import argparse
 import asyncio
@@ -346,6 +347,8 @@ async def chat(user_message: str, conversation_id: str, agent):
                     citations.extend(annotations)
 
             chunk_text = str(chunk.text) if chunk.text else ""
+            # Remove citation markers like 【4:0†source】 from response text
+            chunk_text = re.sub(r'【\d+:\d+†[^】]+】', '', chunk_text)
             if chunk_text:
                 text_output += chunk_text
 
