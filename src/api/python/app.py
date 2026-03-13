@@ -6,12 +6,14 @@ registers API routers, and manages application lifespan events such as agent ini
 and cleanup.
 """
 
+import json
 import os
 import logging
 from azure.monitor.opentelemetry import configure_azure_monitor
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from opentelemetry import trace
 
 from dotenv import load_dotenv
 import uvicorn
@@ -64,6 +66,30 @@ def build_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @fastapi_app.middleware("http")
+    async def attach_trace_attributes(request: Request, call_next):
+        """Auto-attach user_id and conversation_id to the current OpenTelemetry span."""
+        span = trace.get_current_span()
+        if span and span.is_recording():
+            # user_id from Easy Auth header
+            user_id = request.headers.get("x-ms-client-principal-id")
+            if user_id:
+                span.set_attribute("user_id", user_id)
+
+            # conversation_id from JSON body (POST/PUT/PATCH only)
+            if request.method in ("POST", "PUT", "PATCH"):
+                try:
+                    body = await request.body()
+                    if body:
+                        body_json = json.loads(body)
+                        conversation_id = body_json.get("conversation_id")
+                        if conversation_id:
+                            span.set_attribute("conversation_id", conversation_id)
+                except Exception:
+                    pass
+
+        return await call_next(request)
 
     # Include routers
     fastapi_app.include_router(chat_router, prefix="/api", tags=["chat"])
