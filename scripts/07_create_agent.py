@@ -329,7 +329,7 @@ If the user query is asking for a chart:
             - Only create the chart after numeric data is successfully retrieved.
             - If no numeric data is returned, do not generate a chart; instead, return "Chart cannot be generated".
         For charts:
-            Return the JSON in {{"answer": <chart JSON>, "citations": []}} format.
+            Return the response only in JSON format.
             Do not include any text or commentary outside the JSON.
 
 ## Greeting
@@ -458,7 +458,7 @@ if USE_KNOWLEDGE_BASE:
         resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
         ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
         project_name = os.getenv("AZURE_AI_PROJECT_NAME")
-
+    
         if not (subscription_id and resource_group and ai_service_name and project_name):
             print("[WARN] Cannot build project ARM path need AZURE_SUBSCRIPTION_ID, "
                   "AZURE_RESOURCE_GROUP, AI_SERVICE_NAME, and AZURE_AI_PROJECT_NAME.")

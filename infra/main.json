@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "12238466678979722048"
+      "templateHash": "2973216867141133788"
     }
   },
   "parameters": {
@@ -4999,6 +4999,13 @@
         "description": "Azure AI Foundry resource ID for role assignments"
       },
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiFoundryResourceId.value]"
+    },
+    "AZURE_AI_PROJECT_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure AI Foundry project name"
+      },
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiProjectName.value]"
     },
     "AI_SERVICE_NAME": {
       "type": "string",

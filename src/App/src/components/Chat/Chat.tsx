@@ -37,7 +37,7 @@ import {
 import { ChatAdd24Regular } from "@fluentui/react-icons";
 import { generateUUIDv4 } from "../../configs/Utils";
 import ChatMessageComponent from "../ChatMessage/ChatMessage";
-import { getChatLandingText, isWorkShopDeployment } from "../../config";
+import { getChatLandingText } from "../../config";
 import {
   parseChartContent,
   isMalformedChartJSON,
@@ -465,14 +465,10 @@ const Chat: React.FC<ChatProps> = ({
             // Workshop mode: single complete response chunk — parse directly
             // Non-workshop mode: multiple streaming chunks concatenated — split and take last segment
             let chartTextToParse: string;
-            if (isWorkShopDeployment()) {
-              chartTextToParse = runningText;
-            } else {
-              const splitRunningText = runningText.split("}{");
-              chartTextToParse = splitRunningText.length > 1
-                ? "{" + splitRunningText[splitRunningText.length - 1]
-                : splitRunningText[0];
-            }
+            const splitRunningText = runningText.split("}{");
+            chartTextToParse = splitRunningText.length > 1
+              ? "{" + splitRunningText[splitRunningText.length - 1]
+              : splitRunningText[0];
             const parsedChartResponse = JSON.parse(chartTextToParse);
             
             const rawChartContent = parsedChartResponse?.choices[0]?.messages[0]?.content;

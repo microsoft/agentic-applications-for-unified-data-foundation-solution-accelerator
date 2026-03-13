@@ -22,6 +22,9 @@ from azure.monitor.events.extension import track_event
 from azure.monitor.opentelemetry import configure_azure_monitor
 from azure.ai.projects.aio import AIProjectClient
 
+# Agent Framework
+from agent_framework.azure import AzureAIProjectAgentProvider
+
 # Azure Auth
 from auth.azure_credential_utils import get_azure_credential_async
 
@@ -40,6 +43,12 @@ router = APIRouter()
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Suppress informational warnings from agent_framework about runtime
+# tool/structured_output overrides not being supported by AzureAIClient.
+agent_log_level = os.getenv("AGENT_FRAMEWORK_LOG_LEVEL", "ERROR").upper()
+logging.getLogger("agent_framework.azure").setLevel(getattr(logging, agent_log_level, logging.ERROR))
+
 
 # Check if the Application Insights Instrumentation Key is set in the environment variables
 instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
@@ -296,8 +305,8 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
 
 async def stream_openai_text_workshop(conversation_id: str, query: str) -> StreamingResponse:
     """
-    Get a streaming text response from OpenAI with workshop mode using responses.create().
-    Handles both SQL function calls and AI Search like 08_test_agent.py.
+    Get a streaming text response from OpenAI with workshop mode using AzureAIProjectAgentProvider.
+    Uses agent_framework to handle function calls (SQL) and search tools automatically.
     Uses Fabric SQL when AZURE_ENV_ONLY is false, otherwise uses Azure SQL.
     """
     complete_response = ""
@@ -332,121 +341,79 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
 
             custom_tool = SqlQueryTool(pyodbc_conn=db_connection) if db_connection else None
 
-            openai_client = project_client.get_openai_client()
+            # Create provider and get agent with tools
+            provider = AzureAIProjectAgentProvider(project_client=project_client)
+            agent = await provider.get_agent(
+                name=os.getenv("AGENT_NAME_CHAT"),
+                tools=custom_tool.execute_sql if custom_tool else None
+            )
 
             # Create or retrieve conversation
             if not conv_id:
+                openai_client = project_client.get_openai_client()
                 conv = await openai_client.conversations.create()
                 conv_id = conv.id
                 cache[conversation_id] = conv_id
 
-            # Initial request to the agent
-            response = await openai_client.responses.create(
-                conversation=conv_id,
-                input=query,
-                extra_body={"agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
-            )
+            # Citation tracking
+            citations = []
+            first_chunk = True
+            citation_marker_map = {}  # Maps original markers to sequential numbers
+            citation_counter = 0
 
-            # Process response - handle function calls and search
-            max_iterations = 10
-            iteration = 0
+            def replace_citation_marker(match):
+                nonlocal citation_counter
+                marker = match.group(0)
+                if marker not in citation_marker_map:
+                    citation_counter += 1
+                    citation_marker_map[marker] = citation_counter
+                return f"[{citation_marker_map[marker]}]"
 
-            while iteration < max_iterations:
-                iteration += 1
+            # Stream response using agent_framework - handles function calls automatically
+            async for chunk in agent.run(query, stream=True, conversation_id=conv_id):
+                # # Collect citations from Azure AI Search responses
+                # for content in getattr(chunk, "contents", []):
+                #     annotations = getattr(content, "annotations", [])
+                #     if annotations:
+                #         citations.extend(annotations)
 
-                # Check for function calls and tool uses in output
-                function_calls = []
-                text_output = ""
-                search_results = []
+                chunk_text = str(chunk.text) if chunk.text else ""
 
-                for item in response.output:
-                    item_type = getattr(item, 'type', None)
+                # Remove citation markers like 【4:0†source】 from response text until citation issue resolved
+                chunk_text = re.sub(r'【\d+:\d+†[^】]+】', '', chunk_text)
+                # Replace citation markers like 【4:0†source】 with [1], [2], etc.
+                # chunk_text = re.sub(r'【\d+:\d+†[^】]+】', replace_citation_marker, chunk_text)
 
-                    if item_type == 'function_call':
-                        function_calls.append(item)
-                    elif item_type == 'message':
-                        # Type guard: only process if item has content attribute and it's not None
-                        if hasattr(item, 'content') and item.content is not None:
-                            for content in item.content:
-                                if hasattr(content, 'text'):
-                                    text_output += content.text
-                                # Check for annotations (citations from search)
-                                if hasattr(content, 'annotations'):
-                                    for ann in content.annotations:
-                                        if hasattr(ann, 'url_citation'):
-                                            search_results.append(ann.url_citation)
-                                        elif hasattr(ann, 'file_citation'):
-                                            search_results.append(getattr(ann.file_citation, 'file_id', str(ann.file_citation)))
-                    # Handle search tool call (request) - native Azure AI Search
-                    elif item_type == 'azure_ai_search_call':
-                        args_str = getattr(item, 'arguments', '{}')
-                        try:
-                            args = json.loads(args_str) if args_str else {}
-                            query_text = args.get('query', 'unknown')
-                            logger.info("AI Search query: %s", query_text)
-                        except Exception:
-                            logger.info("AI Search called")
-                    # Handle search tool output (result)
-                    elif item_type == 'azure_ai_search_call_output':
-                        logger.info("AI Search completed")
-                    # Handle Foundry IQ MCP tool call (knowledge base retrieval)
-                    elif item_type == 'mcp_call':
-                        tool_name = getattr(item, 'name', 'unknown')
-                        logger.info("Knowledge Base MCP call: %s", tool_name)
-                    # Handle MCP tool output
-                    elif item_type == 'mcp_call_output':
-                        logger.info("Knowledge base retrieval completed")
-
-                # If no function calls, we're done
-                if not function_calls:
-                    if text_output:
-                        complete_response += text_output
-                        yield text_output
-                    break
-
-                # Handle function calls
-                tool_outputs = []
-                for fc in function_calls:
-                    func_name = fc.name
-                    func_args = json.loads(fc.arguments)
-
-                    logger.info("Calling function: %s", func_name)
-
-                    if func_name == "execute_sql":
-                        sql_query = func_args.get("sql_query", "")
-                        logger.info("Executing SQL query: %s", sql_query[:100])
-                        result = await custom_tool.run_sql_query(sql_query=sql_query) if custom_tool else []
-                        logger.info("SQL query completed")
-                        # Convert result to string - it's a list of dicts from run_sql_query
-                        if result is None:
-                            result_str = "No results returned"
-                        elif isinstance(result, (list, dict)):
-                            result_str = json.dumps(result, ensure_ascii=False)
-                        else:
-                            result_str = str(result)
+                if chunk_text:
+                    complete_response += chunk_text
+                    if first_chunk:
+                        first_chunk = False
+                        yield "{ \"answer\": " + chunk_text
                     else:
-                        result_str = f"Unknown function: {func_name}"
-                        logger.warning("Unknown function called: %s", func_name)
+                        yield chunk_text
 
-                    tool_outputs.append({
-                        "type": "function_call_output",
-                        "call_id": fc.call_id,
-                        "output": result_str
-                    })
+            cache[conversation_id] = conv_id
 
-                # Submit tool outputs and get next response
-                # Note: Don't include 'conversation' when using 'previous_response_id'
-                response = await openai_client.responses.create(
-                    conversation=conv_id,
-                    input=tool_outputs,
-                    extra_body={
-                        "agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}
-                    }
-                )
+            # Yield citations at end of stream
+            if citations:
+                citation_list = []
+                seen_doc_ids = set()
 
-            if iteration >= max_iterations:
-                logger.warning("Max iterations reached in workshop mode")
-                yield "\n\n(Response processing reached maximum iterations)"
+                for citation in citations:
+                    # URL is directly on the citation object, fallback to additional_properties.get_url
+                    url = citation.get("url") or (citation.get("additional_properties") or {}).get("get_url") or "N/A"
+                    title = citation.get("title", "N/A")
+
+                    # Skip duplicate citations based on title
+                    if title in seen_doc_ids:
+                        continue
+                    seen_doc_ids.add(title)
+
+                    citation_list.append(json.dumps({"url": url, "title": title}))
+
+                yield ", \"citations\": [" + ",".join(citation_list) + "]}"
+            else:
+                yield ", \"citations\": []}"
 
     except Exception as e:
         complete_response = str(e)
