@@ -358,8 +358,8 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
             # Citation tracking
             citations = []
             first_chunk = True
-            citation_marker_map = {}  # Maps original markers to sequential numbers
-            citation_counter = 0
+            # citation_marker_map = {}  # Maps original markers to sequential numbers
+            # citation_counter = 0
 
             # def replace_citation_marker(match):
             #     nonlocal citation_counter
