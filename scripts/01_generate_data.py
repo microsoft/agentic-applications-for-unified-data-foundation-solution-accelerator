@@ -985,7 +985,7 @@ if COSMOSDB_ACCOUNT:
         # Detect partition key configuration (single vs hierarchical)
         container_props = container.read()
         pk_paths = container_props["partitionKey"]["paths"]
-        pk_kind = container_props["partitionKey"].get("kind", "Hash")
+        # pk_kind = container_props["partitionKey"].get("kind", "Hash")
         pk_fields = [p.lstrip("/") for p in pk_paths]
 
         items = list(container.query_items(
