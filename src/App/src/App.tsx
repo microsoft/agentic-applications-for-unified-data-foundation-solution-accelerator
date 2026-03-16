@@ -17,7 +17,7 @@ import {
   fetchConversationMessages, // eslint-disable-line @typescript-eslint/no-unused-vars
   deleteAllConversations,
 } from "./store/chatHistorySlice";
-import { setSelectedConversationId, setAppSpinner, startNewConversation, fetchUserInfo } from "./store/appSlice";
+import { setSelectedConversationId, startNewConversation, fetchUserInfo } from "./store/appSlice";
 import { clearCitation } from "./store/citationSlice";
 import { setMessages, clearChat } from "./store/chatSlice";
 import { AppLogo } from "./components/Svg/Svg";
