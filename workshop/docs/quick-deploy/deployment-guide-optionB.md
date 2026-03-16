@@ -84,6 +84,11 @@ az provider register --namespace Microsoft.App
 az provider register --namespace Microsoft.AppConfiguration
 ```
 
+**NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
+```bash 
+azd config set provision.preflight off
+```
+
 **Run the deployment:**
 
 Run the following command to provision all required Azure resources:
