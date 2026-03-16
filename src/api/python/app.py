@@ -32,22 +32,27 @@ else:
     # Log a warning if the Instrumentation Key is not found
     logging.warning("No Application Insights Instrumentation Key found. Skipping configuration")
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
-# Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
-logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
-    logging.WARNING
-)
-logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
-
-# Reduce Azure Monitor internal logs
-logging.getLogger("azure.monitor.opentelemetry").setLevel(logging.ERROR)
-
-# Exclude Azure Monitor settings endpoint from tracing
-os.environ["OTEL_PYTHON_REQUESTS_EXCLUDED_URLS"] = "settings.sdk.monitor.azure.com"
-
+# Load environment variables
 load_dotenv()
+
+# Configure logging
+# Basic application logging level (default: INFO)
+AZURE_BASIC_LOGGING_LEVEL = os.getenv("AZURE_BASIC_LOGGING_LEVEL", "INFO").upper()
+# Azure package logging level (default: WARNING to suppress verbose INFO)
+AZURE_PACKAGE_LOGGING_LEVEL = os.getenv("AZURE_PACKAGE_LOGGING_LEVEL", "WARNING").upper()
+# Comma-separated list of Azure logger names to suppress
+AZURE_LOGGING_PACKAGES = [
+    pkg.strip() for pkg in os.getenv("AZURE_LOGGING_PACKAGES", "").split(",") if pkg.strip()
+]
+
+logging.basicConfig(
+    level=getattr(logging, AZURE_BASIC_LOGGING_LEVEL, logging.INFO),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Suppress verbose Azure SDK loggers
+for logger_name in AZURE_LOGGING_PACKAGES:
+    logging.getLogger(logger_name).setLevel(getattr(logging, AZURE_PACKAGE_LOGGING_LEVEL, logging.WARNING))
 
 
 def build_app() -> FastAPI:
