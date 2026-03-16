@@ -15,7 +15,6 @@ import argparse
 import sys
 import os
 import re
-import json
 from pathlib import Path
 from urllib.parse import urlparse
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

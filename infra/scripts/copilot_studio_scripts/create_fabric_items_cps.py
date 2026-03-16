@@ -2,7 +2,6 @@ import requests
 import time
 import json
 import base64
-import os
 from azure.identity import AzureCliCredential
 
 def get_fabric_headers():
