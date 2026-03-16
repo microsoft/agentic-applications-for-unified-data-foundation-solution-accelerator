@@ -146,8 +146,8 @@ def update_fabric_app_settings():
                     fabric_ids = json.load(f)
                 LAKEHOUSE_ID = LAKEHOUSE_ID or fabric_ids.get("lakehouse_id")
                 LAKEHOUSE_NAME = LAKEHOUSE_NAME or fabric_ids.get("lakehouse_name")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  [WARN] Failed to load Fabric IDs from fabric_ids.json: {e}")
 
     if not WORKSPACE_ID:
         print("  [SKIP] FABRIC_WORKSPACE_ID not set")
@@ -187,8 +187,8 @@ def update_fabric_app_settings():
                 fabric_ids["sql_endpoint"] = fabric_sql_endpoint
                 with open(fabric_ids_path, "w") as f:
                     json.dump(fabric_ids, f, indent=2)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  [WARN] Failed to save SQL endpoint to fabric_ids.json: {e}")
     else:
         print("  [WARN] SQL Endpoint not available yet")
 

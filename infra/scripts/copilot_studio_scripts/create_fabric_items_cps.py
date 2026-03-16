@@ -268,15 +268,16 @@ for notebook_name in notebook_names:
         notebook_json['metadata']['dependencies']['lakehouse']['default_lakehouse_name'] = lakehouse_res.json()['displayName']
         notebook_json['metadata']['dependencies']['lakehouse']['default_lakehouse_workspace_id'] = lakehouse_res.json()['workspaceId']
         print('lakehouse name: ', notebook_json['metadata']['dependencies']['lakehouse']['default_lakehouse_name'] )
-    except:
-        pass
+    except Exception as e:
+        print(f"Warning: Unable to set lakehouse dependency in notebook metadata. Details: {e}")
+        
     
     if environmentId != '':
         try:
             notebook_json['metadata']['dependencies']['environment']['environmentId'] = environmentId
             notebook_json['metadata']['dependencies']['environment']['workspaceId'] = lakehouse_res.json()['workspaceId']
-        except:
-            pass
+        except Exception as e:
+            print(f"Warning: Unable to set environment dependency in notebook metadata. Details: {e}")
 
 
     notebook_base64 = base64.b64encode(json.dumps(notebook_json).encode('utf-8'))

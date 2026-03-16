@@ -60,8 +60,8 @@ def _looks_like_date_column(col_name: str, series: "pd.Series") -> bool:
             return True
         if pct_parsed >= 0.8 and name_hint:
             return True
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"    Warning: Error parsing date column '{col_name}': {e}")    
     return False
 
 
@@ -265,8 +265,8 @@ def _generate_questions_ai(tables, relationships, doc_files,
                     mn, mx = parsed.min().strftime("%Y-%m-%d"), parsed.max().strftime("%Y-%m-%d")
                     col_range_lines.append(f"    {col}: {mn} to {mx}")
                     date_range_notes.append(f"{tname}.{col}: {mn} to {mx}")
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"    Warning: Error parsing date column '{col}': {e}")
 
         date_range_block = ""
         if col_range_lines:
