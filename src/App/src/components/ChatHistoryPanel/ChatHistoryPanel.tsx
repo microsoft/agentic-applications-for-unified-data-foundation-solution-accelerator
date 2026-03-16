@@ -10,14 +10,11 @@ import {
   IContextualMenuItem,
   PrimaryButton,
   Stack,
-  StackItem,
-  Text,
   Spinner,
   SpinnerSize,
 } from "@fluentui/react";
 
 import styles from "./ChatHistoryPanel.module.css";
-import { type Conversation } from "../../types/AppTypes";
 import { ChatHistoryListItemGroups } from "../ChatHistoryListItemGroups/ChatHistoryListItemGroups";
 import { useAppSelector } from "../../store/hooks";
 
