@@ -212,12 +212,12 @@ def upload_documents():
         
         # Upload in batches of 10 documents
         if len(all_docs) >= 10:
-            result = search_client.upload_documents(documents=all_docs)
+            search_client.upload_documents(documents=all_docs)
             all_docs = []
     
     # Upload remaining documents
     if all_docs:
-        result = search_client.upload_documents(documents=all_docs)
+        search_client.upload_documents(documents=all_docs)
     
     print(f"✓ Processed {counter} files")
 
