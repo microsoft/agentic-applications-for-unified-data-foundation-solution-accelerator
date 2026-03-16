@@ -23,7 +23,7 @@
     "gptModelVersion": {
       "value": "${AZURE_ENV_MODEL_VERSION}"
     },
-    "azureOpenaiAPIVersion ": {
+    "azureOpenaiAPIVersion": {
       "value": "${AZURE_OPENAI_API_VERSION}"
     },
     "gptDeploymentCapacity": {
