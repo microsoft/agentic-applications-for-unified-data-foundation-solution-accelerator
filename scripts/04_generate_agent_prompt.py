@@ -185,7 +185,7 @@ elif args.from_fabric:
             
             try:
                 content = json.loads(payload)
-            except:
+            except Exception:
                 continue
             
             # EntityType definition (Ontology format uses numeric IDs in path)
