@@ -55,7 +55,7 @@ lakehouse_data = {
   "type": "Lakehouse"
 }
 lakehouse_res = requests.post(fabric_items_url, headers=fabric_headers, json=lakehouse_data)
-# print(lakehouse_res.json())
+print(lakehouse_res.json())
 lakehouseId = lakehouse_res.json()['id']
 
 
