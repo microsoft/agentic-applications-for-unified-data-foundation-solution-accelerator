@@ -662,9 +662,6 @@ async def create_conversation(user_id, title="", conversation_id=None):
         Exception: If an error occurs during conversation creation.
     """
     try:
-        # if not user_id:
-        #     logger.warning("No User ID found, cannot create conversation.")
-        #     return None
 
         if not conversation_id:
             logger.warning("No conversation_id found, generating a new one.")
@@ -703,10 +700,6 @@ async def create_message(uuid, conversation_id, user_id, input_message: dict):
         Exception: If an error occurs during message creation.
     """
     try:
-        # if not user_id:
-        #     logger.warning("No User ID found, cannot create message.")
-        #     return None
-
         if not conversation_id:
             logger.warning("No conversation_id found, cannot create conversation message.")
             return None
@@ -785,11 +778,6 @@ async def update_conversation(user_id: str, request_json: dict):
         conversation_id = request_json.get("conversation_id")
         messages = request_json.get("messages", [])
 
-        # if not user_id:
-        #     logger.warning("No User ID found, cannot update conversation.")
-        #     return None
-
-        # conversation = None
         query = "SELECT * FROM hst_conversations where conversation_id = ?"
         conversation = await run_query_params(query, (conversation_id,))
 
@@ -1070,12 +1058,6 @@ async def delete_all_conversations_endpoint(request: Request):
             request_headers=request.headers)
         user_id = authenticated_user["user_principal_id"]
 
-        # if not user_id:
-        #     track_event_if_configured("DeleteAllConversationsValidationError", {
-        #         "error": "user_id is missing",
-        #         "user_id": user_id
-        #     })
-        #     raise HTTPException(status_code=400, detail="user_id is required")
         # Get all user conversations
         conversations = await get_conversations(user_id, offset=0, limit=None)
         if not conversations:

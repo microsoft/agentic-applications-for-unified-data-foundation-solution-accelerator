@@ -442,8 +442,6 @@ if job_response.status_code == 202:
         status = retry_response.json()['status']
         print(status)
         attempt += 1
-        # if attempt % 2 == 0:
-        #     fabric_headers = get_fabric_headers()
 
     print('pipeline run completed',retry_response.json()['status'])
 
