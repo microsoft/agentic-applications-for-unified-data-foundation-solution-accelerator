@@ -115,6 +115,7 @@ def get_headers(max_retries=3, retry_delay=5):
             else:
                 print(f"  [FAIL] Token acquisition failed after {max_retries} attempts: {e}")
                 raise
+    raise RuntimeError("Failed to acquire token after all retries")
 
 # ============================================================================
 # Helper Functions

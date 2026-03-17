@@ -124,6 +124,7 @@ def get_headers(max_retries=3, retry_delay=5):
             else:
                 print(f"  [FAIL] Token acquisition failed after {max_retries} attempts: {e}")
                 raise
+    raise RuntimeError("Failed to acquire Fabric API token and construct headers.")
 
 def make_request(method, url, **kwargs):
     """Make request with retry logic for 429 rate limiting"""
