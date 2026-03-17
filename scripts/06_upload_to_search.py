@@ -261,7 +261,6 @@ def chunk_text_by_sentences(text: str, max_size: int = CHUNK_SIZE, overlap: int 
             # Save current chunk if it has content
             if current_chunk:
                 chunks.append(' '.join(current_chunk))
-                overlap_sentences = current_chunk[-2:] if len(current_chunk) >= 2 else current_chunk[:]
             
             chunks.append(sentence)
             current_chunk = []
