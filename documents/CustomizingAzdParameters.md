@@ -17,7 +17,7 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_MODEL_VERSION`                 | string  | `2025-04-14`             | Sets the GPT model version.                                                |
 | `AZURE_OPENAI_API_VERSION`                | string  | `2025-01-01-preview`     | Specifies the API version for Azure OpenAI.                                |
 | `AZURE_OPENAI_DEPLOYMENT_MODEL_CAPACITY`  | integer | `150`                    | Sets the GPT model capacity (minimum: 10).                                 |
-| `AZURE_ENV_IMAGETAG`                      | string  | `latest_v2`        | Sets the container image tag.                                              |
+| `AZURE_ENV_IMAGETAG`                      | string  | `latest_workshop`        | Sets the container image tag.                                              |
 | `AZURE_ENV_USE_CASE`                      | string  | `Retail-sales-analysis`  | Specifies the use case (allowed: `Retail-sales-analysis`, `Insurance-improve-customer-meetings`). |
 | `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID`    | string  | ` `                      | Reuses an existing Log Analytics Workspace. Guide: [Existing Workspace ID](/documents/re-use-log-analytics.md). |
 | `AZURE_EXISTING_AI_PROJECT_RESOURCE_ID`   | string  | ` `                      | Reuses an existing AI Foundry project instead of creating a new one.       |
