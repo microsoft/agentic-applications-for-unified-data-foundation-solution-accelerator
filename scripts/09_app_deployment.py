@@ -142,7 +142,6 @@ def update_fabric_app_settings():
             if not os.path.exists(fabric_ids_path):
                 fabric_ids_path = os.path.join(data_dir, "fabric_ids.json")
             if os.path.exists(fabric_ids_path):
-                import json
                 with open(fabric_ids_path) as f:
                     fabric_ids = json.load(f)
                 LAKEHOUSE_ID = LAKEHOUSE_ID or fabric_ids.get("lakehouse_id")
@@ -176,7 +175,6 @@ def update_fabric_app_settings():
         # Save to fabric_ids.json
         try:
             from load_env import get_data_folder
-            import json
             data_dir = get_data_folder()
             config_dir = os.path.join(data_dir, "config")
             fabric_ids_path = os.path.join(config_dir, "fabric_ids.json")
