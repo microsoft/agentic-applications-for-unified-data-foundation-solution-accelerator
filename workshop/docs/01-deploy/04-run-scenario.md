@@ -23,8 +23,7 @@ This uses the `data/default` folder and runs all setup steps:
 
 | Step | What Happens | Time |
 |------|--------------|------|
-| 02 | Create Fabric Lakehouse | ~30s |
-| 03 | Load data into Fabric | ~1min |
+| 02 | Create Fabric Lakehouse & Load data | ~1.5min |
 | 04 | Generate Agent Prompt | ~5s |
 | 06 | Upload documents to AI Search | ~1min |
 | 07 | Create Foundry Agent | ~10s |
@@ -32,15 +31,13 @@ This uses the `data/default` folder and runs all setup steps:
 ## Expected Output
 
 ```
-> [02] Create Fabric Lakehouse... OK
-> [03] Load Data into Fabric... OK
-> [04] Generate Agent Prompt... OK
-> [06] Upload to AI Search... OK
-> [07] Create Foundry Agent... OK
+  [02] Create Fabric Lakehouse & Load Data... OK (90.5s)
+  [04] Generate Agent Prompt... OK (5.2s)
+  [06] Upload to AI Search... OK (60.3s)
+  [07] Create Foundry Agent... OK (10.1s)
 
-Done! 5/5 steps completed
-Next: python scripts/08_test_agent.py
-
+✓ Done! 4/4 steps completed
+  Next: python scripts/08_test_agent.py
 ```
 
 <!-- ## Create the Ontology
