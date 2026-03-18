@@ -31,13 +31,13 @@ This uses the `data/default` folder and runs all setup steps:
 ## Expected Output
 
 ```
-  [02] Create Fabric Lakehouse & Load Data... OK (90.5s)
-  [04] Generate Agent Prompt... OK (5.2s)
-  [06] Upload to AI Search... OK (60.3s)
-  [07] Create Foundry Agent... OK (10.1s)
+> [02] Create Fabric Lakehouse & Load Data... OK (90.5s)
+> [04] Generate Agent Prompt... OK (5.2s)
+> [06] Upload to AI Search... OK (60.3s)
+> [07] Create Foundry Agent... OK (10.1s)
 
-✓ Done! 4/4 steps completed
-  Next: python scripts/08_test_agent.py
+> ✓ Done! 4/4 steps completed
+> Next: python scripts/08_test_agent.py
 ```
 
 <!-- ## Create the Ontology
