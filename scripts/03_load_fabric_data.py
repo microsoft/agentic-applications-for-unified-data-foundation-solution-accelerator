@@ -21,6 +21,7 @@ import os
 import sys
 import json
 import time
+import base64
 
 # Load environment from azd + project .env
 from load_env import load_all_env, get_data_folder
@@ -108,10 +109,22 @@ print(f"Tables: {', '.join(ontology_config['tables'].keys())}")
 
 credential = AzureCliCredential()
 
-def get_headers():
-    """Get fresh headers with token"""
-    token = credential.get_token("https://api.fabric.microsoft.com/.default").token
-    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+def get_headers(max_retries=3, retry_delay=5):
+    """Get fresh headers with Fabric API token. Retries with exponential backoff on failure."""
+    credential = AzureCliCredential()
+    for attempt in range(1, max_retries + 1):
+        try:
+            token = credential.get_token("https://api.fabric.microsoft.com/.default").token
+            return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        except Exception as e:
+            if attempt < max_retries:
+                wait = retry_delay * (2 ** (attempt - 1))
+                print(f"  [RETRY] Token acquisition attempt {attempt}/{max_retries} failed: {e}")
+                print(f"  Retrying in {wait} seconds...")
+                time.sleep(wait)
+            else:
+                print(f"  [FAIL] Token acquisition failed after {max_retries} attempts: {e}")
+                raise
 
 def make_request(method, url, **kwargs):
     """Make request with retry logic for 429 rate limiting"""
@@ -134,7 +147,7 @@ def wait_for_lro(operation_url, operation_name="Operation", timeout=300):
         if resp.status_code == 200:
             result = resp.json()
             status = result.get("status", "Unknown")
-            if status in ["Succeeded", "succeeded"]:
+            if status in ["Succeeded", "succeeded", "Completed", "completed"]:
                 print(f"    [OK] {operation_name} completed")
                 return result
             elif status in ["Failed", "failed"]:
@@ -143,6 +156,14 @@ def wait_for_lro(operation_url, operation_name="Operation", timeout=300):
         time.sleep(3)
     print(f"    [FAIL] {operation_name} timed out")
     return None
+
+def b64encode(content):
+    """Encode content to base64"""
+    if isinstance(content, dict):
+        content = json.dumps(content)
+    if isinstance(content, str):
+        content = content.encode("utf-8")
+    return base64.b64encode(content).decode("utf-8")
 
 # ============================================================================
 # Step 1: Get Workspace Name (needed for OneLake path)
@@ -204,40 +225,172 @@ time.sleep(10)
 if args.skip_tables:
     print(f"\n[3/3] Skipping table load (--skip-tables flag)")
 else:
-    print(f"\n[3/3] Loading CSV files as Delta tables...")
-    
-    tables_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/lakehouses/{LAKEHOUSE_ID}/tables"
-    
-    for table_name in ontology_config["tables"].keys():
-        csv_file = f"{table_name}.csv"
-        print(f"  Loading {csv_file} as table '{table_name}'...")
-        
-        load_table_url = f"{tables_url}/{table_name}/load"
-        load_payload = {
-            "relativePath": f"Files/{csv_file}",
-            "pathType": "File",
-            "mode": "Overwrite",
-            "formatOptions": {
-                "format": "Csv",
-                "header": True,
-                "delimiter": ","
+    print(f"\n[3/3] Loading CSV files as Delta tables via Fabric Notebook...")
+
+    # --- Build PySpark notebook code to load all CSVs as Delta tables ---
+    table_names = list(ontology_config["tables"].keys())
+    spark_code_lines = [
+        "import os",
+        "",
+        f"lakehouse_name = '{LAKEHOUSE_NAME}'",
+        f"table_names = {table_names}",
+        "",
+        "for table_name in table_names:",
+        "    csv_path = f'Files/{table_name}.csv'",
+        "    print(f'Loading {table_name} from {csv_path}...')",
+        "    df = spark.read.option('header', 'true').option('inferSchema', 'true').csv(csv_path)",
+        "    df.write.mode('overwrite').format('delta').saveAsTable(table_name)",
+        "    print(f'  [OK] {table_name}: {df.count()} rows')",
+        "",
+        "print('All tables loaded successfully.')",
+    ]
+    spark_code = "\n".join(spark_code_lines)
+
+    notebook_name = f"load_tables_{LAKEHOUSE_NAME}"
+
+    # Build notebook payload with Fabric notebook definition format
+    notebook_metadata = {
+        "language_info": {"name": "python"},
+        "trident": {
+            "lakehouse": {
+                "default_lakehouse": LAKEHOUSE_ID,
+                "default_lakehouse_name": LAKEHOUSE_NAME,
+                "default_lakehouse_workspace_id": WORKSPACE_ID,
+                "known_lakehouses": [
+                    {
+                        "id": LAKEHOUSE_ID
+                    }
+                ]
             }
         }
-        
-        resp = make_request("POST", load_table_url, json=load_payload)
-        
-        if resp.status_code == 200:
-            print(f"  [OK] Table '{table_name}' loaded successfully")
-        elif resp.status_code == 202:
-            operation_url = resp.headers.get("Location")
-            wait_for_lro(operation_url, f"Table '{table_name}' loading")
+    }
+
+    notebook_payload_content = {
+        "nbformat": 4,
+        "nbformat_minor": 5,
+        "metadata": notebook_metadata,
+        "cells": [
+            {
+                "cell_type": "code",
+                "source": [spark_code],
+                "metadata": {},
+                "outputs": []
+            }
+        ]
+    }
+
+    # Check if notebook already exists, delete it to recreate
+    print(f"  Creating notebook '{notebook_name}'...")
+    existing_nb_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items?type=Notebook"
+    existing_nb_resp = make_request("GET", existing_nb_url)
+    if existing_nb_resp.status_code == 200:
+        for item in existing_nb_resp.json().get("value", []):
+            if item["displayName"] == notebook_name:
+                del_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items/{item['id']}"
+                make_request("DELETE", del_url)
+                print(f"  Deleted existing notebook '{notebook_name}'")
+                time.sleep(10)  # Wait for deletion to propagate
+                break
+
+    # Create the notebook
+    create_nb_payload = {
+        "displayName": notebook_name,
+        "type": "Notebook",
+        "definition": {
+            "format": "ipynb",
+            "parts": [
+                {
+                    "path": "artifact.content.ipynb",
+                    "payload": b64encode(notebook_payload_content),
+                    "payloadType": "InlineBase64"
+                }
+            ]
+        }
+    }
+
+    create_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items"
+    resp = make_request("POST", create_url, json=create_nb_payload)
+
+    if resp.status_code == 201:
+        notebook_id = resp.json()["id"]
+        print(f"  [OK] Created notebook: {notebook_name} ({notebook_id})")
+    elif resp.status_code == 202:
+        operation_url = resp.headers.get("Location")
+        result = wait_for_lro(operation_url, "Notebook creation")
+        # Find the notebook to get its ID
+        nb_resp = make_request("GET", existing_nb_url)
+        notebook_id = None
+        if nb_resp.status_code == 200:
+            for item in nb_resp.json().get("value", []):
+                if item["displayName"] == notebook_name:
+                    notebook_id = item["id"]
+                    break
+        if not notebook_id:
+            print(f"  [FAIL] Could not find created notebook")
+            sys.exit(1)
+        print(f"  [OK] Created notebook: {notebook_name} ({notebook_id})")
+    else:
+        print(f"  [FAIL] Failed to create notebook: {resp.status_code} {resp.text}")
+        sys.exit(1)
+
+    # Run the notebook
+    print(f"  Running notebook to load tables...")
+    run_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items/{notebook_id}/jobs/instances?jobType=RunNotebook"
+    run_resp = make_request("POST", run_url)
+
+    if run_resp.status_code in [200, 202]:
+        operation_url = run_resp.headers.get("Location")
+        if operation_url:
+            result = wait_for_lro(operation_url, "Notebook execution", timeout=600)
+            if result is None:
+                print(f"  [FAIL] Notebook execution failed or timed out")
+                sys.exit(1)
         else:
-            print(f"  ⚠ Table loading returned status: {resp.status_code}")
-            print(f"    Response: {resp.text}")
-    
+            # No Location header, wait and check
+            print("  Waiting for notebook execution...")
+            time.sleep(60)
+        print(f"  [OK] Notebook execution completed - all tables loaded")
+    else:
+        print(f"  [FAIL] Failed to run notebook: {run_resp.status_code} {run_resp.text}")
+        sys.exit(1)
+
     # Wait for tables to be indexed
     print("  Waiting for tables to be indexed...")
     time.sleep(30)
+
+    # --- Original Step 3 code (replaced by notebook approach above) ---
+    # tables_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/lakehouses/{LAKEHOUSE_ID}/tables"
+    #
+    # for table_name in ontology_config["tables"].keys():
+    #     csv_file = f"{table_name}.csv"
+    #     print(f"  Loading {csv_file} as table '{table_name}'...")
+    #
+    #     load_table_url = f"{tables_url}/{table_name}/load"
+    #     load_payload = {
+    #         "relativePath": f"Files/{csv_file}",
+    #         "pathType": "File",
+    #         "mode": "Overwrite",
+    #         "formatOptions": {
+    #             "format": "Csv",
+    #             "header": True,
+    #             "delimiter": ","
+    #         }
+    #     }
+    #
+    #     resp = make_request("POST", load_table_url, json=load_payload)
+    #
+    #     if resp.status_code == 200:
+    #         print(f"  [OK] Table '{table_name}' loaded successfully")
+    #     elif resp.status_code == 202:
+    #         operation_url = resp.headers.get("Location")
+    #         wait_for_lro(operation_url, f"Table '{table_name}' loading")
+    #     else:
+    #         print(f"  Table loading returned status: {resp.status_code}")
+    #         print(f"    Response: {resp.text}")
+    #
+    #     # Wait for tables to be indexed
+    #     print("  Waiting for tables to be indexed...")
+    #     time.sleep(30)
 
 # ============================================================================
 # Step 4: Trigger Ontology Materialization
@@ -297,5 +450,3 @@ Tables loaded: {', '.join(ontology_config['tables'].keys())}
 Next step - Generate schema prompt:
   python scripts/04_generate_agent_prompt.py
 """)
-
-

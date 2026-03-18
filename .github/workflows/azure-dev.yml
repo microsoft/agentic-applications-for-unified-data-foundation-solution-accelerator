@@ -1,6 +1,9 @@
 name: Azure Template Validation
 on:
   workflow_dispatch:
+  push: 
+    branches: 
+    - main 
 
 permissions:
   contents: read
@@ -10,6 +13,7 @@ permissions:
 jobs:
   template_validation_job:
     runs-on: ubuntu-latest
+    environment: production
     name: Template validation
 
     steps:
@@ -28,6 +32,7 @@ jobs:
           AZURE_ENV_NAME: ${{ secrets.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOYING_USER_PRINCIPAL_TYPE: ServicePrincipal
 
       # Step 3: Print the result of the validation
       - name: Print result
