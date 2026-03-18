@@ -38,7 +38,7 @@ az login --tenant <tenant-id>
     
     When prompted, enter a unique environment name. This deploys Azure SQL Database instead of Fabric SQL, allowing you to run the workshop without a Fabric workspace.
 
-Register the Microsoft Cognitive Services resource provider (required if not already registered on your subscription):
+Register the required resource providers (if not already registered on your subscription):
 
 ```bash
 az login
@@ -46,9 +46,24 @@ az login
 
 > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
+**Register Microsoft Cognitive Services:**
 ```bash
 az provider register --namespace Microsoft.CognitiveServices
 ```
+
+**Register Microsoft App:**
+```bash
+az provider register --namespace Microsoft.App
+```
+
+**Register Microsoft App Configuration:**
+```bash
+az provider register --namespace Microsoft.AppConfiguration
+```
+
+**Run the deployment:**
+
+Run the following command to provision all required Azure resources:
 
 ```bash
 azd up
@@ -77,4 +92,4 @@ After deployment, Azure endpoints are automatically saved to `.azure/<env>/.env`
 
 ---
 
-[← Overview](index.md) | [Create Fabric workspace →](02-setup-fabric.md)
+[← Overview](index.md) | [Fabric Setup →](02-setup-fabric.md)

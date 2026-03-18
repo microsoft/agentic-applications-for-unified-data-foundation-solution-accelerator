@@ -1,0 +1,14 @@
+{
+  "index_name": "knowledge_index",
+  "document_count": 27,
+  "pdf_files": [
+    "maintenance_scheduling_and_standards.pdf",
+    "customer_service_and_communication_policy.pdf",
+    "technician_work_order_procedures.pdf",
+    "network_operations_policy.pdf",
+    "sla_policies.pdf",
+    "outage_management_guidelines.pdf",
+    "safety_standards_and_protocol.pdf",
+    "quality_assurance_manual.pdf"
+  ]
+}

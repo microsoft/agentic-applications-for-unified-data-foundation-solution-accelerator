@@ -132,13 +132,8 @@ def create_guide():
     pdf.step(7, 'Test the agent',
         'python scripts/08_test_agent.py')
     
-    pdf.step(8, 'Deploy and launch the application',
-        'azd env set AZURE_ENV_DEPLOY_APP true\nazd up',
-        'After deployment completes, open the app URL shown in the output')
-    
-    pdf.step(9, '(Azure-only mode) Update agent configuration',
-        'python scripts/00_build_solution.py --from 05',
-        'Only run this if you set AZURE_ENV_ONLY=true. Skip this step if using Fabric mode.')
+    pdf.step(8, 'Launch the application',
+        'Open the app URL shown in the azd up output in your browser')
     
     # Sample Questions
     pdf.section_header('Try These Questions')

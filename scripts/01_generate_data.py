@@ -36,10 +36,10 @@ from azure.identity import DefaultAzureCredential
 # ============================================================================
 
 # Azure services - from azd environment
-FOUNDRY_ENDPOINT = os.getenv("AZURE_AI_PROJECT_ENDPOINT")
+FOUNDRY_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
 
 if not FOUNDRY_ENDPOINT:
-    print("ERROR: AZURE_AI_PROJECT_ENDPOINT not set")
+    print("ERROR: AZURE_AI_AGENT_ENDPOINT not set")
     print("       Run 'azd up' to deploy Azure resources")
     sys.exit(1)
 
@@ -114,7 +114,7 @@ credential = DefaultAzureCredential()
 from azure.ai.projects import AIProjectClient
 project_client = AIProjectClient(endpoint=FOUNDRY_ENDPOINT, credential=credential)
 client = project_client.get_openai_client()
-model = os.getenv("AZURE_CHAT_MODEL") or os.getenv("MODEL_DEPLOYMENT", "gpt-4o-mini")
+model = os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4.1-mini")
 
 print("[OK] AI client initialized")
 
@@ -328,23 +328,49 @@ Before completing your script, mentally verify:
 2. ID FORMAT: Use consistent ID format everywhere (if parts use PART001, inspections must reference PART001 not PART1)
 3. PRIMARY KEYS: Every table has unique IDs with no duplicates
 4. NO NULLS in ID columns: All ID and foreign key columns must have values
-5. DATE RANGE: Dates should span several months (not all same date) for trend analysis
+5. DATE RANGE: Dates MUST use datetime.now() as anchor and span the last 6 months up to today — NEVER hardcode a past year
 6. NUMERIC VARIANCE: Numeric columns should have realistic spread (not all same value)
 7. CATEGORIES: Use 3-6 distinct values for category columns (good for charts)
 8. SAVE ALL TABLES: Every DataFrame must be saved with .to_csv()
 
-DATES - Must have realistic variety:
+DATES - CRITICAL: Must be CURRENT and distributed!
+All transactional/event dates MUST be anchored to TODAY (datetime.now()), NOT to a hardcoded
+year like 2024 or 2023.  Users will ask "last month", "last week", "this quarter" — stale
+dates produce zero results.
+
 ```python
 import random
 from datetime import datetime, timedelta
 
-# GOOD - varied dates over a year
-base_date = datetime(2024, 1, 1)
-dates = [(base_date + timedelta(days=random.randint(0, 365))).strftime('%Y-%m-%d') for _ in range(NUM_ROWS)]
+today = datetime.now()
+
+# GOOD - recent dates distributed over the last 6 months up to today
+dates = [(today - timedelta(days=random.randint(0, 180))).strftime('%Y-%m-%d')
+         for _ in range(NUM_ROWS)]
+
+# GOOD - ensure some dates land in every recent period:
+#   ~30 % in the last 30 days ("last month")
+#   ~30 % 30-90 days ago ("last quarter")
+#   ~40 % 90-180 days ago (older)
+recent_dates = []
+for i in range(NUM_ROWS):
+    r = random.random()
+    if r < 0.30:
+        days_ago = random.randint(0, 30)
+    elif r < 0.60:
+        days_ago = random.randint(31, 90)
+    else:
+        days_ago = random.randint(91, 180)
+    recent_dates.append((today - timedelta(days=days_ago)).strftime('%Y-%m-%d'))
 
 # GOOD - varied birth dates (ages 20-80)
 birth_years = [random.randint(1945, 2005) for _ in range(NUM_PATIENTS)]
 dobs = [f"{{y}}-{{random.randint(1,12):02d}}-{{random.randint(1,28):02d}}" for y in birth_years]
+
+# BAD - hardcoded past year (will break "last month" queries!)
+base_date = datetime(2024, 1, 1)   # NEVER do this!
+dates = [(base_date + timedelta(days=random.randint(0, 365))).strftime('%Y-%m-%d')  # WRONG!
+         for _ in range(NUM_ROWS)]
 
 # BAD - all same date
 dates = ['2023-10-01'] * NUM_ROWS  # Useless for analysis!
@@ -378,14 +404,14 @@ names = [f"{{random.choice(first_names)}} {{random.choice(last_names)}}" for _ i
 ```
 
 KEY COLUMNS TO INCLUDE (adapt to industry):
-- Date columns with realistic ranges
+- Date columns anchored to today (datetime.now()), distributed over the last 6 months
 - Numeric columns for aggregation (duration, amount, count, rating)
 - Category columns for filtering/grouping (type, status, department)
 - Threshold-comparable values (so combined questions can compare data vs policy)
 
 === CHART-FRIENDLY DATA ===
 Include data that supports visualizations:
-- DATE columns spanning multiple months (for line charts showing trends over time)
+- DATE columns anchored to datetime.now(), spanning the last 6 months up to today (for line charts & "last month" queries)
 - CATEGORY columns with 3-6 distinct values (for bar charts and pie charts)
 - NUMERIC columns with variance (for meaningful aggregations like sum, avg, count)
 - At least one table should have: date + category + numeric value (e.g., order_date, order_status, order_amount)
@@ -480,6 +506,8 @@ Write 5 questions that use YOUR actual columns. Include a mix of:
 - Groupings: "Show [records] grouped by [category]" (use actual category column)
 - Top N: "Which [entity] has the highest [numeric_column]?" (use actual column)
 - Trends: "What is the monthly breakdown of [metric]?" (only if you have date columns)
+- Time-aware: "How many [records] were created in the last month?" or "What [metric] do we see this quarter?"
+  (IMPORTANT: your date data must be distributed around today's date so these return results)
 
 VALIDATION: For each SQL question, verify the column EXISTS in your table & there is relevant data.
 If you ask "What is the average score?" → your table MUST have a 'score' column
@@ -699,7 +727,7 @@ The script should start with imports and end with a print statement confirming c
 # Generate the Script
 # ============================================================================
 
-print("\n[Step 1/2] Generating custom data script...")
+print("\n[Step 1/3] Generating custom data script...")
 print("(This may take 30-60 seconds)")
 
 prompt = SCRIPT_PROMPT.format(
@@ -768,7 +796,7 @@ for attempt in range(1, MAX_RETRIES + 1):
         print(f"  Saved to: {script_path}")
     
     # Try to execute
-    print(f"\n[Step 2/2] Executing generated script..." if attempt == 1 else "  Executing...")
+    print(f"\n[Step 2/3] Executing generated script..." if attempt == 1 else "  Executing...")
     
     try:
         exec_globals = {"__name__": "__main__"}
@@ -799,39 +827,61 @@ if last_error:
     sys.exit(1)
 
 # ============================================================================
+# Build Config & Sample Questions (shared code with custom-data flow)
+# ============================================================================
+
+from data_config_utils import (
+    build_tables_from_csvs,
+    build_ontology_config,
+    generate_sample_questions,
+    write_config_files,
+)
+
+tables_dir = os.path.join(data_dir, "tables")
+docs_dir = os.path.join(data_dir, "documents")
+config_dir = os.path.join(data_dir, "config")
+
+print(f"\n[Step 3/3] Building config and sample questions...")
+print("  (Using shared config builder — same code as custom-data flow)")
+
+tables, rels = build_tables_from_csvs(tables_dir)
+print(f"  Found {len(tables)} table(s) with {len(rels)} relationship(s)")
+
+ontology_config = build_ontology_config(tables, rels, industry, usecase)
+
+doc_files_list = (sorted([f for f in os.listdir(docs_dir) if f.endswith('.pdf')])
+                  if os.path.isdir(docs_dir) else [])
+
+questions_text = generate_sample_questions(
+    tables, rels, doc_files_list,
+    industry, usecase, tables_dir,
+    client=client, model=model,
+)
+
+write_config_files(config_dir, ontology_config, questions_text)
+
+# ============================================================================
 # Verify Output
 # ============================================================================
 
 print("\n" + "="*60)
 print("Verifying generated files...")
 
-config_dir = os.path.join(data_dir, "config")
-tables_dir = os.path.join(data_dir, "tables")
-docs_dir = os.path.join(data_dir, "documents")
-
-# Check what was created
 csv_files = [f for f in os.listdir(tables_dir) if f.endswith('.csv')] if os.path.exists(tables_dir) else []
 pdf_files = [f for f in os.listdir(docs_dir) if f.endswith('.pdf')] if os.path.exists(docs_dir) else []
 config_files = os.listdir(config_dir) if os.path.exists(config_dir) else []
 
-# Validate ontology_config.json is valid JSON
 ontology_path = os.path.join(config_dir, "ontology_config.json")
 if os.path.exists(ontology_path):
-    try:
-        import json
-        with open(ontology_path, 'r') as f:
-            config = json.load(f)
-        # Validate required keys
-        required_keys = ["scenario", "name", "tables"]
-        missing = [k for k in required_keys if k not in config]
-        if missing:
-            print(f"[WARN] ontology_config.json missing keys: {missing}")
-        else:
-            print("[OK] ontology_config.json is valid")
-    except json.JSONDecodeError as e:
-        print(f"[FAIL] ontology_config.json is invalid JSON: {e}")
-        print("       This will cause downstream scripts to fail!")
-        sys.exit(1)
+    import json
+    with open(ontology_path, 'r') as f:
+        config = json.load(f)
+    required_keys = ["scenario", "name", "tables"]
+    missing = [k for k in required_keys if k not in config]
+    if missing:
+        print(f"[WARN] ontology_config.json missing keys: {missing}")
+    else:
+        print("[OK] ontology_config.json is valid")
 else:
     print("[WARN] ontology_config.json not found")
 

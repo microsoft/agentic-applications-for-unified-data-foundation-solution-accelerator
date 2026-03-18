@@ -70,4 +70,4 @@ Before proceeding:
 
 ---
 
-[← Create Fabric workspace](02-setup-fabric.md) | [Build solution →](04-run-scenario.md)
+[← Fabric Setup](02-setup-fabric.md) | [Build solution →](04-run-scenario.md)
