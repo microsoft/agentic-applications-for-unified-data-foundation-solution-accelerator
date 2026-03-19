@@ -1,5 +1,5 @@
 """
-07_create_agent.py - Create AI Foundry Agent with SQL + AI Search / Knowledge Base
+06_create_agent.py - Create AI Foundry Agent with SQL + AI Search / Knowledge Base
 Unified script that automatically selects the SQL backend and search mode based on configuration.
 
 SQL Modes:
@@ -11,13 +11,13 @@ Search Modes:
     - Knowledge Base mode (--use-knowledge-base): Uses Foundry IQ Knowledge Base via MCP
 
 Usage:
-    python 07_create_agent.py                          # Auto-detect SQL, Search Connection
-    python 07_create_agent.py --azure-only             # Force Azure SQL, Search Connection
-    python 07_create_agent.py --use-knowledge-base     # Auto-detect SQL, Knowledge Base
+    python 06_create_agent.py                          # Auto-detect SQL, Search Connection
+    python 06_create_agent.py --azure-only             # Force Azure SQL, Search Connection
+    python 06_create_agent.py --use-knowledge-base     # Auto-detect SQL, Knowledge Base
 
 Prerequisites:
-    - Run 01_generate_sample_data.py (creates data and ontology_config.json)
-    - Run 06_upload_to_search.py (uploads PDFs to AI Search)
+    - Run 01_generate_data.py (creates data and ontology_config.json)
+    - Run 05_upload_to_search.py (uploads PDFs to AI Search)
     - For Fabric mode: Run 02/03 scripts to set up Fabric Lakehouse
     - For Azure SQL mode: Run 06a_upload_to_sql.py
 
@@ -631,5 +631,5 @@ Title Agent:
   Tools: None (text generation only)
 
 Next step:
-  python scripts/08_test_agent.py
+  python scripts/07_test_agent.py
 """)

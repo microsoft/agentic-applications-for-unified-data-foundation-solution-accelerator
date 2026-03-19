@@ -14,7 +14,7 @@ python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-worksp
 
 Azure Only Mode (if you ran `azd env set AZURE_ENV_ONLY true` before deploying)
 ```bash
-python scripts/00_build_solution.py --from 04
+python scripts/00_build_solution.py --from 03
 ```
 
 > **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
@@ -24,20 +24,20 @@ This uses the `data/default` folder and runs all setup steps:
 | Step | What Happens | Time |
 |------|--------------|------|
 | 02 | Create Fabric Lakehouse & Load data | ~1.5min |
-| 04 | Generate Agent Prompt | ~5s |
-| 06 | Upload documents to AI Search | ~1min |
-| 07 | Create Foundry Agent | ~10s |
+| 03 | Generate Agent Prompt | ~5s |
+| 05 | Upload documents to AI Search | ~1min |
+| 06 | Create Foundry Agent | ~10s |
 
 ## Expected Output
 
 ```
 > [02] Create Fabric Lakehouse & Load Data... OK (90.5s)
-> [04] Generate Agent Prompt... OK (5.2s)
-> [06] Upload to AI Search... OK (60.3s)
-> [07] Create Foundry Agent... OK (10.1s)
+> [03] Generate Agent Prompt... OK (5.2s)
+> [05] Upload to AI Search... OK (60.3s)
+> [06] Create Foundry Agent... OK (10.1s)
 
 > ✓ Done! 4/4 steps completed
-> Next: python scripts/08_test_agent.py
+> Next: python scripts/07_test_agent.py
 ```
 
 <!-- ## Create the Ontology
@@ -65,7 +65,7 @@ Support group by in GQL.
 ## Test the Agent
 
 ```bash
-python scripts/08_test_agent.py
+python scripts/07_test_agent.py
 ```
 
 ### Sample Conversation

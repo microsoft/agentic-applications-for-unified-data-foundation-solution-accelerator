@@ -5,7 +5,7 @@
 After generation completes, test the agent:
 
 ```bash
-python scripts/08_test_agent.py
+python scripts/07_test_agent.py
 ```
 
 ## Use the Generated Sample Questions
