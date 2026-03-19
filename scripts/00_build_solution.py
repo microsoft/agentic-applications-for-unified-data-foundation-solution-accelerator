@@ -127,10 +127,11 @@ if args.resource_group:
     print(f"\nFetching settings from resource group: {args.resource_group}")
     generate_script = os.path.join(script_dir, "generate_env_from_azure.py")
     
-    result = subprocess.run(
-        [sys.executable, generate_script, "--resource-group", args.resource_group],
-        cwd=script_dir
-    )
+    gen_cmd = [sys.executable, generate_script, "--resource-group", args.resource_group]
+    if args.quiet:
+        gen_cmd.append("--quiet")
+    
+    result = subprocess.run(gen_cmd, cwd=script_dir)
     
     if result.returncode == 0:
         print("✓ Environment configured from Azure.")

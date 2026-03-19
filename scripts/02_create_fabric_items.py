@@ -730,13 +730,11 @@ else:
         print(f"    Response: {resp.text}")
         sys.exit(1)
 
-    # Save ontology definition parts for script 03 to use after data loading.
-    # The ontology won't fully materialize until the lakehouse tables exist with data.
-    # Script 03 will call updateDefinition after loading data to trigger materialization.
+    # Save ontology definition parts
     ontology_def_path = os.path.join(config_dir, "ontology_definition_parts.json")
     with open(ontology_def_path, "w") as f:
         json.dump(definition_parts, f)
-    print(f"  [OK] Saved definition parts for post-data-load materialization")
+    print(f"  [OK] Saved definition parts")
 
 
 # Wait for Ontology to be ready
