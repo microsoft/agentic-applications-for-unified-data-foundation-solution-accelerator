@@ -3,12 +3,12 @@
 Assigns roles and permissions required for the deployed application.
 
 Usage:
-    python 09_app_deployment.py
+    python 08_app_deployment.py
 
 Prerequisites:
     - Azure resources deployed (azd up)
     - For Fabric mode: Fabric workspace created (02_create_fabric_items.py)
-    - For Azure SQL mode: SQL database populated (05_upload_to_sql.py)
+    - For Azure SQL mode: SQL database populated (04_upload_to_sql.py)
 
 What this script does:
     - Fabric mode (AZURE_ENV_ONLY=false):
@@ -492,7 +492,7 @@ def update_agent_app_settings():
 
         if not os.path.exists(agent_ids_path):
             print(f"\n[SKIP] Agent App Settings update - {agent_ids_path} not found")
-            print("       Run 07_create_agent.py first.")
+            print("       Run 06_create_agent.py first.")
             return
 
         with open(agent_ids_path) as f:

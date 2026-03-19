@@ -1,5 +1,5 @@
 """
-08_test_agent.py - Test AI Foundry Agent with SQL + Native AI Search
+07_test_agent.py - Test AI Foundry Agent with SQL + Native AI Search
 Unified test script that automatically detects SQL backend from agent config.
 
 Modes:
@@ -8,9 +8,9 @@ Modes:
     - Both modes: Native AI Search handles document queries automatically
 
 Usage:
-    python 08_test_agent.py           # Clean output (default)
-    python 08_test_agent.py -v         # Verbose: show SQL queries, search details
-    python 08_test_agent.py --agent-name <name>
+    python 07_test_agent.py           # Clean output (default)
+    python 07_test_agent.py -v         # Verbose: show SQL queries, search details
+    python 07_test_agent.py --agent-name <name>
 
 The script reads sql_mode from agent_ids.json to determine which SQL backend to use.
 """
@@ -79,7 +79,7 @@ if not os.path.exists(config_dir):
 agent_ids_path = os.path.join(config_dir, "agent_ids.json")
 if not os.path.exists(agent_ids_path):
     print("ERROR: agent_ids.json not found")
-    print("       Run 07_create_agent.py first")
+    print("       Run 06_create_agent.py first")
     sys.exit(1)
 
 with open(agent_ids_path) as f:
@@ -89,7 +89,7 @@ with open(agent_ids_path) as f:
 CHAT_AGENT_NAME = args.agent_name or agent_ids.get("chat_agent_name")
 if not CHAT_AGENT_NAME:
     print("ERROR: No agent name found")
-    print("       Run 07_create_agent.py first or provide --agent-name")
+    print("       Run 06_create_agent.py first or provide --agent-name")
     sys.exit(1)
 
 # Determine SQL mode from saved config
