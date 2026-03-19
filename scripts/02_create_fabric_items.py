@@ -34,6 +34,7 @@ load_all_env()
 
 # Azure imports
 from azure.identity import AzureCliCredential
+from azure.storage.filedatalake import DataLakeServiceClient
 import requests
 
 # ============================================================================
@@ -66,10 +67,12 @@ else:
 
 # Set up paths for new folder structure (config/, tables/, documents/)
 config_dir = os.path.join(data_dir, "config")
+tables_dir = os.path.join(data_dir, "tables")
 
 # Check for config dir (new structure) or fallback to old structure
 if not os.path.exists(config_dir):
     config_dir = data_dir
+    tables_dir = data_dir
 
 config_path = os.path.join(config_dir, "ontology_config.json")
 
@@ -84,6 +87,7 @@ if not os.path.exists(config_path):
 
 SOLUTION_NAME = args.solutionname
 FABRIC_API = "https://api.fabric.microsoft.com/v1"
+ONELAKE_URL = "onelake.dfs.fabric.microsoft.com"
 
 with open(config_path) as f:
     ontology_config = json.load(f)
@@ -108,6 +112,7 @@ def get_headers(max_retries=3, retry_delay=5):
             return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
         except Exception as e:
             if attempt < max_retries:
+                credential = AzureCliCredential()
                 wait = retry_delay * (2 ** (attempt - 1))
                 print(f"  [RETRY] Token acquisition attempt {attempt}/{max_retries} failed: {e}")
                 print(f"  Retrying in {wait} seconds...")
@@ -133,7 +138,7 @@ def make_request(method, url, **kwargs):
         return response
     return response
 
-def wait_for_lro(operation_url, timeout=300):
+def wait_for_lro(operation_url, operation_name="Operation", timeout=300):
     """Wait for long-running operation to complete"""
     start = time.time()
     while time.time() - start < timeout:
@@ -141,7 +146,7 @@ def wait_for_lro(operation_url, timeout=300):
         if resp.status_code == 200:
             result = resp.json()
             status = result.get("status", "Unknown")
-            if status in ["Succeeded", "succeeded"]:
+            if status in ["Succeeded", "succeeded", "Completed", "completed"]:
                 # Try to get the resource from resourceLocation
                 resource_location = result.get("resourceLocation")
                 if resource_location:
@@ -150,9 +155,9 @@ def wait_for_lro(operation_url, timeout=300):
                         return res_resp.json()
                 return result
             elif status in ["Failed", "failed"]:
-                raise Exception(f"Operation failed: {result}")
+                raise Exception(f"{operation_name} failed: {result}")
         time.sleep(3)
-    raise TimeoutError("Operation timed out")
+    raise TimeoutError(f"{operation_name} timed out")
 
 def find_item(item_type, display_name):
     """Find a Fabric item by type and name"""
@@ -236,7 +241,7 @@ ontology_name = f"ontology_{SOLUTION_NAME}_{new_suffix}"
 # Step 1: Create Lakehouse
 # ============================================================================
 
-print(f"\n[1/3] Creating Lakehouse...")
+print(f"\n[1/6] Creating Lakehouse...")
 
 existing_lakehouse = find_item("Lakehouse", lakehouse_name)
 if existing_lakehouse:
@@ -264,10 +269,184 @@ else:
 time.sleep(5)
 
 # ============================================================================
-# Step 2: Create Ontology (using dedicated ontologies API)
+# Step 2: Get Workspace Name (needed for OneLake path)
 # ============================================================================
 
-print(f"\n[2/3] Creating Ontology...")
+print(f"\n[2/6] Getting workspace info...")
+resp = make_request("GET", f"{FABRIC_API}/workspaces/{WORKSPACE_ID}")
+if resp.status_code != 200:
+    print(f"  [FAIL] Failed to get workspace info: {resp.text}")
+    sys.exit(1)
+workspace_name = resp.json()["displayName"]
+print(f"  Workspace name: {workspace_name}")
+
+# ============================================================================
+# Step 3: Upload CSV Files to Lakehouse
+# ============================================================================
+
+print(f"\n[3/6] Uploading CSV files to Lakehouse...")
+
+credential = AzureCliCredential()
+account_url = f"https://{ONELAKE_URL}"
+service_client = DataLakeServiceClient(account_url, credential=credential)
+file_system_client = service_client.get_file_system_client(workspace_name)
+
+data_path = f"{lakehouse_name}.Lakehouse/Files"
+directory_client = file_system_client.get_directory_client(data_path)
+
+uploaded_files = []
+for table_name in ontology_config["tables"].keys():
+    csv_file = f"{table_name}.csv"
+    csv_path = os.path.join(tables_dir, csv_file)
+
+    if not os.path.exists(csv_path):
+        print(f"  [FAIL] CSV not found: {csv_file}")
+        continue
+
+    try:
+        print(f"  Uploading {csv_file}...")
+        file_client = directory_client.get_file_client(csv_file)
+        with open(csv_path, "rb") as f:
+            file_client.upload_data(f, overwrite=True)
+
+        file_size = os.path.getsize(csv_path)
+        print(f"  [OK] {csv_file} uploaded ({file_size:,} bytes)")
+        uploaded_files.append(csv_file)
+    except Exception as e:
+        print(f"  [FAIL] Failed to upload {csv_file}: {e}")
+        sys.exit(1)
+
+print("  Waiting for files to be available...")
+time.sleep(10)
+
+# ============================================================================
+# Step 4: Load CSV Files as Delta Tables via Fabric Notebook
+# ============================================================================
+
+print(f"\n[4/6] Loading CSV files as Delta tables via Fabric Notebook...")
+
+table_names = list(ontology_config["tables"].keys())
+spark_code_lines = [
+    "import os",
+    "",
+    f"lakehouse_name = '{lakehouse_name}'",
+    f"table_names = {table_names}",
+    "",
+    "for table_name in table_names:",
+    "    csv_path = f'Files/{table_name}.csv'",
+    "    print(f'Loading {table_name} from {csv_path}...')",
+    "    df = spark.read.option('header', 'true').option('inferSchema', 'true').csv(csv_path)",
+    "    df.write.mode('overwrite').format('delta').saveAsTable(table_name)",
+    "    print(f'  [OK] {table_name}: {df.count()} rows')",
+    "",
+    "print('All tables loaded successfully.')",
+]
+spark_code = "\n".join(spark_code_lines)
+
+notebook_name = f"load_tables_{lakehouse_name}"
+
+notebook_metadata = {
+    "language_info": {"name": "python"},
+    "trident": {
+        "lakehouse": {
+            "default_lakehouse": lakehouse_id,
+            "default_lakehouse_name": lakehouse_name,
+            "default_lakehouse_workspace_id": WORKSPACE_ID,
+            "known_lakehouses": [{"id": lakehouse_id}]
+        }
+    }
+}
+
+notebook_payload_content = {
+    "nbformat": 4,
+    "nbformat_minor": 5,
+    "metadata": notebook_metadata,
+    "cells": [
+        {
+            "cell_type": "code",
+            "source": [spark_code],
+            "metadata": {},
+            "outputs": []
+        }
+    ]
+}
+
+# Check if notebook already exists, delete it to recreate
+print(f"  Creating notebook '{notebook_name}'...")
+existing_nb_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items?type=Notebook"
+existing_nb_resp = make_request("GET", existing_nb_url)
+if existing_nb_resp.status_code == 200:
+    for item in existing_nb_resp.json().get("value", []):
+        if item["displayName"] == notebook_name:
+            del_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items/{item['id']}"
+            make_request("DELETE", del_url)
+            print(f"  Deleted existing notebook '{notebook_name}'")
+            time.sleep(3)
+            break
+
+create_nb_payload = {
+    "displayName": notebook_name,
+    "type": "Notebook",
+    "definition": {
+        "format": "ipynb",
+        "parts": [
+            {
+                "path": "artifact.content.ipynb",
+                "payload": b64encode(notebook_payload_content),
+                "payloadType": "InlineBase64"
+            }
+        ]
+    }
+}
+
+create_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items"
+resp = make_request("POST", create_url, json=create_nb_payload)
+
+if resp.status_code == 201:
+    notebook_id = resp.json()["id"]
+    print(f"  [OK] Created notebook: {notebook_name} ({notebook_id})")
+elif resp.status_code == 202:
+    operation_url = resp.headers.get("Location")
+    wait_for_lro(operation_url, "Notebook creation")
+    nb_resp = make_request("GET", existing_nb_url)
+    notebook_id = None
+    if nb_resp.status_code == 200:
+        for item in nb_resp.json().get("value", []):
+            if item["displayName"] == notebook_name:
+                notebook_id = item["id"]
+                break
+    if not notebook_id:
+        print(f"  [FAIL] Could not find created notebook")
+        sys.exit(1)
+    print(f"  [OK] Created notebook: {notebook_name} ({notebook_id})")
+else:
+    print(f"  [FAIL] Failed to create notebook: {resp.status_code} {resp.text}")
+    sys.exit(1)
+
+print(f"  Running notebook to load tables...")
+run_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items/{notebook_id}/jobs/instances?jobType=RunNotebook"
+run_resp = make_request("POST", run_url)
+
+if run_resp.status_code in [200, 202]:
+    operation_url = run_resp.headers.get("Location")
+    if operation_url:
+        wait_for_lro(operation_url, "Notebook execution", timeout=600)
+    else:
+        print("  Waiting for notebook execution...")
+        time.sleep(60)
+    print(f"  [OK] Notebook execution completed - all tables loaded")
+else:
+    print(f"  [FAIL] Failed to run notebook: {run_resp.status_code} {run_resp.text}")
+    sys.exit(1)
+
+print("  Waiting for tables to be indexed...")
+time.sleep(30)
+
+# ============================================================================
+# Step 5: Create Ontology (using dedicated ontologies API)
+# ============================================================================
+
+print(f"\n[5/6] Creating Ontology...")
 
 existing_ontology = find_ontology(ontology_name)
 if existing_ontology:
@@ -551,13 +730,11 @@ else:
         print(f"    Response: {resp.text}")
         sys.exit(1)
 
-    # Save ontology definition parts for script 03 to use after data loading.
-    # The ontology won't fully materialize until the lakehouse tables exist with data.
-    # Script 03 will call updateDefinition after loading data to trigger materialization.
+    # Save ontology definition parts
     ontology_def_path = os.path.join(config_dir, "ontology_definition_parts.json")
     with open(ontology_def_path, "w") as f:
         json.dump(definition_parts, f)
-    print(f"  [OK] Saved definition parts for post-data-load materialization")
+    print(f"  [OK] Saved definition parts")
 
 
 # Wait for Ontology to be ready
@@ -567,7 +744,7 @@ time.sleep(3)
 # Step 3: Save IDs for later scripts
 # ============================================================================
 
-print(f"\n[3/3] Saving configuration...")
+print(f"\n[6/6] Saving configuration...")
 
 ids_path = os.path.join(config_dir, "fabric_ids.json")
 fabric_ids = {
@@ -592,6 +769,7 @@ print(f"{'='*60}")
 print(f"""
 Lakehouse: {lakehouse_name}
   ID: {lakehouse_id}
+  Data: {len(uploaded_files)} CSV files uploaded and loaded as Delta tables
   
 Ontology: {ontology_name}
   ID: {ontology_id}
@@ -599,13 +777,8 @@ Ontology: {ontology_name}
 
 IDs saved to: {ids_path}
 
-Next step - Load data to Fabric:
-  python scripts/03_load_fabric_data.py
-
-After loading data:
-  1. Open Fabric portal and verify Lakehouse has data
-  2. Load CSV to Tables (Lakehouse > Get data > Load to Tables)
-  3. Run: python scripts/04_generate_agent_prompt.py
+Next step - Generate schema prompt:
+  python scripts/04_generate_agent_prompt.py
 
 Manual step required:
   - Create Data Agent in Fabric portal and map to Ontology

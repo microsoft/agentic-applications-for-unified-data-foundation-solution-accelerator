@@ -14,8 +14,7 @@ Usage:
 
 Steps (Fabric SQL mode):
     01  - Generate sample data
-    02  - Create Fabric Lakehouse
-    03  - Load data into Fabric
+    02  - Create Fabric Lakehouse & Load Data
     04  - Generate agent prompt
     06  - Upload documents to AI Search
     07  - Create Foundry Agent (Fabric SQL + Search)
@@ -52,8 +51,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 STEPS = {
     "01": {"script": "01_generate_data.py", "name": "Generate Sample Data", "time": "~2min"},
-    "02": {"script": "02_create_fabric_items.py", "name": "Create Fabric Lakehouse", "time": "~30s", "fabric": True},
-    "03": {"script": "03_load_fabric_data.py", "name": "Load Data into Fabric", "time": "~1min", "fabric": True},
+    "02": {"script": "02_create_fabric_items.py", "name": "Create Fabric Lakehouse & Load Data", "time": "~1.5min", "fabric": True},
     "04": {"script": "04_generate_agent_prompt.py", "name": "Generate Agent Prompt", "time": "~5s"},
     "05": {"script": "05_upload_to_sql.py", "name": "Upload to Azure SQL", "time": "~30s", "azure_only": True},
     "06": {"script": "06_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
@@ -62,7 +60,7 @@ STEPS = {
 }
 
 # Pipeline order by mode
-FABRIC_PIPELINE = ["01", "02", "03", "04", "06", "07", "09"]
+FABRIC_PIPELINE = ["01", "02", "04", "06", "07", "09"]
 AZURE_ONLY_PIPELINE = ["01", "04", "05", "06", "07", "09"]
 
 # ============================================================================
@@ -129,10 +127,11 @@ if args.resource_group:
     print(f"\nFetching settings from resource group: {args.resource_group}")
     generate_script = os.path.join(script_dir, "generate_env_from_azure.py")
     
-    result = subprocess.run(
-        [sys.executable, generate_script, "--resource-group", args.resource_group],
-        cwd=script_dir
-    )
+    gen_cmd = [sys.executable, generate_script, "--resource-group", args.resource_group]
+    if args.quiet:
+        gen_cmd.append("--quiet")
+    
+    result = subprocess.run(gen_cmd, cwd=script_dir)
     
     if result.returncode == 0:
         print("✓ Environment configured from Azure.")
