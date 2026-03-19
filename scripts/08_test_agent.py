@@ -130,10 +130,10 @@ else:
 print(f"{'='*60}")
 print(f"Chat Agent: {CHAT_AGENT_NAME}")
 if USE_FABRIC:
-    print(f"SQL Mode: Fabric Lakehouse")
+    print("SQL Mode: Fabric Lakehouse")
     print(f"Lakehouse: {LAKEHOUSE_NAME}")
 else:
-    print(f"SQL Mode: Azure SQL Database")
+    print("SQL Mode: Azure SQL Database")
     print(f"SQL Server: {SQL_SERVER}")
     print(f"SQL Database: {SQL_DATABASE}")
 print("Type 'quit' to exit, 'help' for sample questions\n")
@@ -160,8 +160,11 @@ def get_fabric_sql_endpoint():
             props = data.get("properties", {})
             sql_props = props.get("sqlEndpointProperties", {})
             return sql_props.get("connectionString")
+        elif VERBOSE:
+            print(f"[Fabric] API error response: {resp.text}")
     except Exception as e:
         print(f"Warning: Could not get Fabric SQL endpoint: {e}")
+        traceback.print_exc()
     return None
 
 
@@ -181,12 +184,21 @@ def get_azure_sql_connection():
     
     try:
         connection_string = f"DRIVER={{{driver18}}};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};"
-        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-        return conn
-    except Exception:
-        connection_string = f"DRIVER={{{driver17}}};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};"
-        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-        return conn
+        return pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+    except Exception as e:
+        if VERBOSE:
+            print(f"[Azure SQL] {driver18} failed: {e}")
+            print(f"[Azure SQL] Falling back to {driver17}...")
+        try:
+            connection_string = f"DRIVER={{{driver17}}};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};"
+            conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+            if VERBOSE:
+                print(f"[Azure SQL] Connected successfully using {driver17}")
+            return conn
+        except Exception as e2:
+            print(f"[Azure SQL] {driver17} also failed: {e2}")
+            traceback.print_exc()
+            raise
 
 
 def get_fabric_sql_connection():
@@ -208,12 +220,20 @@ def get_fabric_sql_connection():
     SQL_COPT_SS_ACCESS_TOKEN = 1256
     
     connection_string = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={SQL_ENDPOINT};DATABASE={LAKEHOUSE_NAME};Encrypt=yes;TrustServerCertificate=no"
-    conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-    return conn
+    try:
+        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+        return conn
+    except Exception as e:
+        if VERBOSE:
+            print(f"[Fabric SQL] Connection failed: {e}")
+            traceback.print_exc()
+        raise
 
 
 def execute_sql(sql_query: str) -> str:
     """Execute SQL query and return results."""
+    if VERBOSE:
+        print(f"\n[SQL] Executing query:\n{sql_query}")
     try:
         if USE_FABRIC:
             conn = get_fabric_sql_connection()
@@ -241,15 +261,14 @@ def execute_sql(sql_query: str) -> str:
         result_lines.append(f"\n({len(rows)} rows returned)")
         
         conn.close()
-        return "\n".join(result_lines)
+        result = "\n".join(result_lines)
+        if VERBOSE:
+            print(f"\n[SQL] Results:\n{result}")
+        return result
         
     except Exception as e:
+        traceback.print_exc()
         return f"SQL Error: {str(e)}"
-
-
-# ============================================================================
-# Initialize Client
-# ============================================================================
 
 
 # ============================================================================
@@ -339,6 +358,9 @@ async def chat(user_message: str, conversation_id: str, agent):
         text_output = ""
         citations: list[dict] = []
 
+        if VERBOSE:
+            print(f"\n[Agent] Sending message to '{CHAT_AGENT_NAME}' (conversation: {conversation_id[:8]}...)")
+
         async for chunk in agent.run(user_message, stream=True, conversation_id=conversation_id):
             # Collect citations from Azure AI Search responses
             for content in getattr(chunk, "contents", []):
@@ -354,20 +376,6 @@ async def chat(user_message: str, conversation_id: str, agent):
 
         if text_output:
             print(f"\nAssistant: {text_output}")
-
-        # # Print search citations
-        # if citations:
-        #     print("\n📚 Search Citations:")
-        #     seen_doc_ids = set()
-        #     print("   (Showing unique documents cited in this response)")
-        #     print("   " + "-"*40)
-        #     for citation in citations:
-        #         # URL is directly on the citation object, fallback to additional_properties.get_url
-        #         url = citation.get("url") or (citation.get("additional_properties") or {}).get("get_url", "N/A")
-        #         title = citation.get("title", "N/A")
-        #         if title not in seen_doc_ids:
-        #             seen_doc_ids.add(title)
-        #             print(f"   - {title}: {url}")
 
         return text_output
         
