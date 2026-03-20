@@ -81,8 +81,9 @@ async def get_azure_sql_connection():
     Returns:
         Connection: Database connection object for Azure SQL.
     """
-    sql_server = os.getenv("SQLDB_SERVER")
-    sql_database = os.getenv("SQLDB_DATABASE")
+    # Support both new and legacy environment variable names for backward compatibility
+    sql_server = os.getenv("AZURE_SQLDB_SERVER") or os.getenv("SQLDB_SERVER")
+    sql_database = os.getenv("AZURE_SQLDB_DATABASE") or os.getenv("SQLDB_DATABASE")
     driver18 = "ODBC Driver 18 for SQL Server"
     driver17 = "ODBC Driver 17 for SQL Server"
     api_uid = os.getenv("API_UID", "")

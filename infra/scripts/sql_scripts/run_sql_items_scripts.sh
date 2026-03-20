@@ -11,16 +11,22 @@ usecase="$6"
 
 # Get parameters from azd env, if not provided
 if [ -z "$sqlServer" ]; then
-    sqlServer=$(azd env get-value SQLDB_SERVER)
+    # Support both new and legacy environment variable names for backward compatibility
+    sqlServer=$(azd env get-value SQLDB_SERVER 2>/dev/null || azd env get-value AZURE_SQLDB_SERVER 2>/dev/null || echo "")
 fi
 
 if [ -z "$sqlDatabase" ]; then
-    sqlDatabase=$(azd env get-value SQLDB_DATABASE)
+    # Support both new and legacy environment variable names for backward compatibility
+    sqlDatabase=$(azd env get-value SQLDB_DATABASE 2>/dev/null || azd env get-value AZURE_SQLDB_DATABASE 2>/dev/null || echo "")
 fi
 
 if [ -z "$backend_app_uid" ]; then
-    backend_app_uid=$(azd env get-value SQLDB_USER_MID)
-    # Fallback to API_UID if SQLDB_USER_MID is not set
+    backend_app_uid=$(azd env get-value AZURE_SQLDB_USER_MID 2>/dev/null || echo "")
+    # Fallback to SQLDB_USER_MID if AZURE_SQLDB_USER_MID is not set
+    if [ -z "$backend_app_uid" ]; then
+        backend_app_uid=$(azd env get-value SQLDB_USER_MID 2>/dev/null || echo "")
+    fi
+    # Final fallback to API_UID if neither is set
     if [ -z "$backend_app_uid" ]; then
         backend_app_uid=$(azd env get-value API_UID)
     fi
@@ -43,7 +49,8 @@ if [ -z "$sqlServer" ] || [ -z "$sqlDatabase" ] || [ -z "$backend_app_uid" ] || 
     echo "Usage: $0 <sqlServer> <sqlDatabase> <backend_app_uid> <app_service> <resource_group> <usecase>"
     echo ""
     echo "Arguments can also be set via azd env variables:"
-    echo "  SQLDB_SERVER, SQLDB_DATABASE, SQLDB_USER_MID (or API_UID), API_APP_NAME, RESOURCE_GROUP_NAME, USE_CASE"
+    echo "  AZURE_SQLDB_SERVER (or SQLDB_SERVER), AZURE_SQLDB_DATABASE (or SQLDB_DATABASE),"
+    echo "  AZURE_SQLDB_USER_MID (or SQLDB_USER_MID or API_UID), API_APP_NAME, RESOURCE_GROUP_NAME, USE_CASE"
     exit 1
 fi
 
@@ -136,21 +143,21 @@ fi
 
 source "$tmp"
 
-SQLDB_SERVER="$SQLDB_SERVER1"
-SQLDB_DATABASE="$SQLDB_DATABASE1"
-SQLDB_CONNECTION_STRING="$SQLDB_CONNECTION_STRING1"
+AZURE_SQLDB_SERVER="$AZURE_SQLDB_SERVER1"
+AZURE_SQLDB_DATABASE="$AZURE_SQLDB_DATABASE1"
+AZURE_SQLDB_CONNECTION_STRING="$AZURE_SQLDB_CONNECTION_STRING1"
 
 # Update environment variables of API App
-if [ -n "$SQLDB_SERVER" ] && [ -n "$SQLDB_DATABASE" ] && [ -n "$SQLDB_CONNECTION_STRING" ]; then
+if [ -n "$AZURE_SQLDB_SERVER" ] && [ -n "$AZURE_SQLDB_DATABASE" ] && [ -n "$AZURE_SQLDB_CONNECTION_STRING" ]; then
     echo ""
     echo "Updating App Service environment variables..."
     az webapp config appsettings set \
       --resource-group "$resource_group" \
       --name "$app_service" \
       --settings \
-        SQLDB_SERVER="$SQLDB_SERVER" \
-        SQLDB_DATABASE="$SQLDB_DATABASE" \
-        SQLDB_CONNECTION_STRING="$SQLDB_CONNECTION_STRING" \
+        AZURE_SQLDB_SERVER="$AZURE_SQLDB_SERVER" \
+        AZURE_SQLDB_DATABASE="$AZURE_SQLDB_DATABASE" \
+        AZURE_SQLDB_CONNECTION_STRING="$AZURE_SQLDB_CONNECTION_STRING" \
         IS_WORKSHOP="True" \
       -o none
     echo "✓ Environment variables updated for App Service: $app_service"
@@ -163,8 +170,8 @@ echo ""
 echo "========================================"
 echo "Azure SQL Server Setup Complete!"
 echo "========================================"
-echo "Server: $SQLDB_SERVER"
-echo "Database: $SQLDB_DATABASE"
+echo "Server: $AZURE_SQLDB_SERVER"
+echo "Database: $AZURE_SQLDB_DATABASE"
 echo "App Service: $app_service"
 echo "IS_WORKSHOP: True"
 echo "========================================"

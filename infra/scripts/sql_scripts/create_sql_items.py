@@ -220,11 +220,11 @@ def main():
     odbc_driver_18 = "{ODBC Driver 18 for SQL Server}"
     sqldb_connection_string = f"DRIVER={odbc_driver_18};SERVER={args.sql_server};DATABASE={args.sql_database};UID={args.backend_app_uid};Authentication=ActiveDirectoryMSI"
     
-    # Write shell-safe exports (using SQLDB_* to match infra naming)
+    # Write shell-safe exports (using AZURE_SQLDB_* to match infra naming)
     with open(args.exports_file, "w", encoding="utf-8", newline="\n") as f:
-        f.write("export SQLDB_SERVER1=" + shlex.quote(args.sql_server) + "\n")
-        f.write("export SQLDB_DATABASE1=" + shlex.quote(args.sql_database) + "\n")
-        f.write("export SQLDB_CONNECTION_STRING1=" + shlex.quote(sqldb_connection_string) + "\n")
+        f.write("export AZURE_SQLDB_SERVER1=" + shlex.quote(args.sql_server) + "\n")
+        f.write("export AZURE_SQLDB_DATABASE1=" + shlex.quote(args.sql_database) + "\n")
+        f.write("export AZURE_SQLDB_CONNECTION_STRING1=" + shlex.quote(sqldb_connection_string) + "\n")
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ on:
         type: 'string'
         required: false
         default: 'python'
-      AZURE_ENV_USE_CASE:
+      USE_CASE:
         description: 'Specify use cases to deploy'
         type: 'string'
         required: false
@@ -47,12 +47,12 @@ on:
         required: false
         default: 'GoldenPath-Testing'
         type: string
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID:
         description: 'Log Analytics Workspace ID (Optional)'
         required: false
         default: ''
         type: string
-      AZURE_EXISTING_AI_PROJECT_RESOURCE_ID:
+      AZURE_ENV_FOUNDRY_PROJECT_RID:
         description: 'AI Project Resource ID (Optional)'
         required: false
         default: ''
@@ -89,12 +89,12 @@ jobs:
       azure_location: ${{ inputs.azure_location }}
       resource_group_name: ${{ inputs.resource_group_name }}
       BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
-      AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
+      USE_CASE: ${{ inputs.USE_CASE }}
       EXP: ${{ inputs.EXP }}
       build_docker_image: ${{ inputs.build_docker_image }}
       existing_webapp_url: ${{ inputs.existing_webapp_url }}
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
-      AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
+      AZURE_ENV_FOUNDRY_PROJECT_RID: ${{ inputs.AZURE_ENV_FOUNDRY_PROJECT_RID }}
       docker_image_tag: ${{ needs.docker-build.outputs.IMAGE_TAG }}
       run_e2e_tests: ${{ inputs.run_e2e_tests }}
       cleanup_resources: ${{ inputs.cleanup_resources }}
@@ -107,7 +107,7 @@ jobs:
     with:
       TEST_URL: ${{ needs.deploy.outputs.WEB_APPURL || inputs.existing_webapp_url }}
       TEST_SUITE: ${{ inputs.trigger_type == 'workflow_dispatch' && inputs.run_e2e_tests || 'GoldenPath-Testing' }}
-      AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
+      USE_CASE: ${{ inputs.USE_CASE }}
     secrets: inherit
 
   send-notification:

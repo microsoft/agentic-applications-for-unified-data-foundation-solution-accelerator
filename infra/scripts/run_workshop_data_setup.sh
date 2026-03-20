@@ -18,15 +18,20 @@ backend_app_display_name="$7"
 
 # Get parameters from azd env, if not provided
 if [ -z "$sqlServer" ]; then
-    sqlServer=$(azd env get-value SQLDB_SERVER 2>/dev/null || echo "")
+    # Support both new and legacy environment variable names for backward compatibility
+    sqlServer=$(azd env get-value AZURE_SQLDB_SERVER 2>/dev/null || azd env get-value SQLDB_SERVER 2>/dev/null || echo "")
 fi
 
 if [ -z "$sqlDatabase" ]; then
-    sqlDatabase=$(azd env get-value SQLDB_DATABASE 2>/dev/null || echo "")
+    # Support both new and legacy environment variable names for backward compatibility
+    sqlDatabase=$(azd env get-value AZURE_SQLDB_DATABASE 2>/dev/null || azd env get-value SQLDB_DATABASE 2>/dev/null || echo "")
 fi
 
 if [ -z "$backend_app_uid" ]; then
-    backend_app_uid=$(azd env get-value SQLDB_USER_MID 2>/dev/null || echo "")
+    backend_app_uid=$(azd env get-value AZURE_SQLDB_USER_MID 2>/dev/null || echo "")
+    if [ -z "$backend_app_uid" ]; then
+        backend_app_uid=$(azd env get-value SQLDB_USER_MID 2>/dev/null || echo "")
+    fi
     if [ -z "$backend_app_uid" ]; then
         backend_app_uid=$(azd env get-value API_UID 2>/dev/null || echo "")
     fi
@@ -53,15 +58,16 @@ searchEndpoint=$(azd env get-value AZURE_AI_SEARCH_ENDPOINT 2>/dev/null || echo 
 aiSearchName=$(azd env get-value AZURE_AI_SEARCH_NAME 2>/dev/null || echo "")
 aiProjectEndpoint=$(azd env get-value AZURE_AI_PROJECT_ENDPOINT 2>/dev/null || echo "")
 openaiEndpoint=$(azd env get-value AZURE_OPENAI_ENDPOINT 2>/dev/null || echo "")
-embeddingModel=$(azd env get-value AZURE_OPENAI_EMBEDDING_MODEL 2>/dev/null || echo "")
+# Support both new and legacy environment variable names for backward compatibility
+embeddingModel=$(azd env get-value AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME 2>/dev/null || azd env get-value AZURE_OPENAI_EMBEDDING_MODEL 2>/dev/null || echo "")
 indexName=$(azd env get-value AZURE_AI_SEARCH_INDEX 2>/dev/null || echo "knowledge_index")
 dataFolder=$(azd env get-value SEARCH_DATA_FOLDER 2>/dev/null || echo "data/default/documents")
 
 # Validate required parameters
 missing_params=""
-if [ -z "$sqlServer" ]; then missing_params="$missing_params SQLDB_SERVER"; fi
-if [ -z "$sqlDatabase" ]; then missing_params="$missing_params SQLDB_DATABASE"; fi
-if [ -z "$backend_app_uid" ]; then missing_params="$missing_params SQLDB_USER_MID"; fi
+if [ -z "$sqlServer" ]; then missing_params="$missing_params AZURE_SQLDB_SERVER"; fi
+if [ -z "$sqlDatabase" ]; then missing_params="$missing_params AZURE_SQLDB_DATABASE"; fi
+if [ -z "$backend_app_uid" ]; then missing_params="$missing_params AZURE_SQLDB_USER_MID"; fi
 if [ -z "$app_service" ]; then missing_params="$missing_params API_APP_NAME"; fi
 if [ -z "$resource_group" ]; then missing_params="$missing_params RESOURCE_GROUP_NAME"; fi
 if [ -z "$usecase" ]; then missing_params="$missing_params USE_CASE"; fi
@@ -72,7 +78,9 @@ if [ -n "$missing_params" ]; then
     echo "Usage: $0 [sqlServer] [sqlDatabase] [backend_app_uid] [app_service] [resource_group] [usecase] [backend_app_display_name]"
     echo ""
     echo "Or set the following azd environment variables:"
-    echo "  SQLDB_SERVER, SQLDB_DATABASE, SQLDB_USER_MID, API_APP_NAME, RESOURCE_GROUP_NAME, USE_CASE"
+    echo "  AZURE_SQLDB_SERVER (or SQLDB_SERVER), AZURE_SQLDB_DATABASE (or SQLDB_DATABASE),"
+    echo "  AZURE_SQLDB_USER_MID (or SQLDB_USER_MID or API_UID),"
+    echo "  API_APP_NAME, RESOURCE_GROUP_NAME, USE_CASE"
     exit 1
 fi
 
@@ -131,7 +139,8 @@ if [ -n "$searchEndpoint" ] && [ -n "$aiSearchName" ] && [ -n "$openaiEndpoint" 
     fi
 else
     echo "⚠ Skipping search index creation: missing search configuration"
-    echo "  Required: AZURE_AI_SEARCH_ENDPOINT, AZURE_AI_SEARCH_NAME, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_EMBEDDING_MODEL"
+    echo "  Required: AZURE_AI_SEARCH_ENDPOINT, AZURE_AI_SEARCH_NAME, AZURE_OPENAI_ENDPOINT),"
+    echo "  AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME(or AZURE_OPENAI_EMBEDDING_MODEL)"
 fi
 echo ""
 
