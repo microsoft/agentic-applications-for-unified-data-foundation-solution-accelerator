@@ -674,17 +674,17 @@ class TestHelperFunctions:
     def test_init_openai_disabled(self, monkeypatch):
         from history import init_openai_client
         
-        monkeypatch.delenv("AZURE_ENV_OPENAI_ENDPOINT", raising=False)
+        monkeypatch.delenv("AZURE_OPENAI_ENDPOINT", raising=False)
         monkeypatch.delenv("AZURE_OPENAI_RESOURCE", raising=False)
         
-        with pytest.raises(ValueError, match="AZURE_ENV_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE is required"):
+        with pytest.raises(ValueError, match="AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE is required"):
             init_openai_client()
     
     @pytest.mark.asyncio
     async def test_generate_title_success(self, monkeypatch):
         from history import generate_title
         
-        monkeypatch.setenv("AZURE_ENV_OPENAI_ENDPOINT", "https://test.openai.azure.com")
+        monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://test.openai.azure.com")
         monkeypatch.setenv("AZURE_OPENAI_MODEL", "gpt-4")
         
         mock_response = MagicMock()
@@ -723,7 +723,7 @@ class TestHelperFunctions:
     async def test_generate_title_exception(self, monkeypatch):
         from history import generate_title
         
-        monkeypatch.setenv("AZURE_ENV_OPENAI_ENDPOINT", "https://test.openai.azure.com")
+        monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://test.openai.azure.com")
         monkeypatch.setenv("AZURE_OPENAI_MODEL", "gpt-4")
         
         mock_client = AsyncMock()
