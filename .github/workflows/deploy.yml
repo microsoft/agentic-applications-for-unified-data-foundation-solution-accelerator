@@ -190,7 +190,7 @@ jobs:
           azd env set AZURE_RESOURCE_GROUP="${{ env.RESOURCE_GROUP_NAME }}"
           azd env set AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           azd env set AZURE_ENV_AI_SERVICE_LOCATION="${{ env.AZURE_LOCATION }}"
-          azd env set AZURE_ENV_GPT_MODEL_NAME_CAPACITY="${{ env.GPT_MIN_CAPACITY }}"
+          azd env set AZURE_ENV_GPT_MODEL_CAPACITY="${{ env.GPT_MIN_CAPACITY }}"
           azd env set AZURE_ENV_IMAGE_TAG="${IMAGE_TAG}"
 
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then

@@ -139,8 +139,8 @@ if [ -n "$searchEndpoint" ] && [ -n "$aiSearchName" ] && [ -n "$openaiEndpoint" 
     fi
 else
     echo "⚠ Skipping search index creation: missing search configuration"
-    echo "  Required: AZURE_AI_SEARCH_ENDPOINT, AZURE_AI_SEARCH_NAME, AZURE_OPENAI_ENDPOINT),"
-    echo "  AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME(or AZURE_OPENAI_EMBEDDING_MODEL)"
+    echo "  Required: AZURE_AI_SEARCH_ENDPOINT, AZURE_AI_SEARCH_NAME, AZURE_OPENAI_ENDPOINT,"
+    echo "  AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME (or AZURE_OPENAI_EMBEDDING_MODEL)"
 fi
 echo ""
 
