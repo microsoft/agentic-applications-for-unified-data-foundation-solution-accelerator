@@ -2,7 +2,7 @@
 targetScope = 'resourceGroup'
 
 @minLength(3)
-@maxLength(15)
+@maxLength(25)
 @description('Solution Name')
 param solutionName string
 
@@ -37,7 +37,7 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 }
 
 resource managedIdentityBackendApp 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: '${solutionName}-backend-app-mi'
+  name: 'id-backend-app-mi-${solutionName}'
   location: solutionLocation
   tags: {
     app: solutionName
