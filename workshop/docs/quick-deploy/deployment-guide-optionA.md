@@ -194,7 +194,7 @@ python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-worksp
 ### 6. Test the agent
 
 ```bash
-python scripts/08_test_agent.py
+python scripts/07_test_agent.py
 ```
 
 **Sample questions to try:**

@@ -3,7 +3,7 @@
 Reads ontology schema and generates an optimized prompt for NL2SQL agents.
 
 Usage:
-    python 04_generate_agent_prompt.py [--from-fabric] [--from-config]
+    python 03_generate_agent_prompt.py [--from-fabric] [--from-config]
 
 Options:
     --from-fabric   Fetch schema from Fabric Ontology API (requires Fabric setup)
@@ -291,6 +291,6 @@ Files saved:
 Token estimate: ~{len(prompt_text.split())} tokens
 
 Next steps:
-  - Run 05_create_fabric_agent.py to create Foundry agent with Fabric Data Agent tool
-  - Or run 07_create_sql_agent.py to create agent with pyodbc SQL tool
+  - Run 06_create_agent.py to create Foundry agent with Fabric Data Agent tool
+  - Or run 06_create_agent.py to create agent with pyodbc SQL tool
 """)

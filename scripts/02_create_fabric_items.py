@@ -1,22 +1,23 @@
 """
-02 - Setup Fabric Lakehouse and Ontology
-Creates Lakehouse and Ontology with data bindings (no data upload).
+02 - Setup Fabric Lakehouse, Load Data, and Create Ontology
+Creates Lakehouse, uploads CSV files, loads Delta tables, and creates Ontology.
 
 Usage:
     python 02_create_fabric_items.py [--data-folder <PATH>]
 
 Prerequisites:
-    - Run 01_generate_sample_data.py first (sets DATA_FOLDER in .env)
+    - Run 01_generate_data.py first (sets DATA_FOLDER in .env)
     - Azure CLI logged in (az login)
     - Fabric workspace with capacity assigned
 
 What this script does:
     1. Creates a Lakehouse (or reuses existing)
-    2. Creates Ontology with EntityTypes matching CSV schema
-    3. Adds DataBindings to connect Ontology to Lakehouse tables
-    4. Creates Relationships between entities
+    2. Uploads CSV files to Lakehouse
+    3. Loads CSV files as Delta tables via Fabric Notebook
+    4. Creates Ontology with EntityTypes matching CSV schema
+    5. Adds DataBindings to connect Ontology to Lakehouse tables
+    6. Creates Relationships between entities
     
-Note: Data upload is handled by 03_load_fabric_data.py
 """
 
 import argparse
@@ -779,7 +780,7 @@ Ontology: {ontology_name}
 IDs saved to: {ids_path}
 
 Next step - Generate schema prompt:
-  python scripts/04_generate_agent_prompt.py
+  python scripts/03_generate_agent_prompt.py
 
 Manual step required:
   - Create Data Agent in Fabric portal and map to Ontology
