@@ -3,7 +3,7 @@ targetScope = 'resourceGroup'
 var abbrs = loadJsonContent('./abbreviations.json')
 @minLength(3)
 @maxLength(20)
-@description('A unique prefix for all resources in this deployment. This should be 3-20 characters long:')
+@description('A unique  application/solution name for all resources in this deployment. This should be 3-20 characters long:')
 param environmentName string = 'agenticappudf'
 
 @maxLength(5)
@@ -353,7 +353,7 @@ module frontend_docker 'deploy_frontend_docker.bicep' = if (shouldDeployApp) {
 // Outputs
 // ============================================================================
 
-@description('Solution prefix used for naming resources')
+@description('Solution suffix used for naming resources')
 output SOLUTION_NAME string = solutionSuffix
 
 @description('Name of the deployed resource group')
