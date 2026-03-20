@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "10179550165995629055"
+      "templateHash": "12081662930555420588"
     }
   },
   "parameters": {
@@ -5029,7 +5029,7 @@
       },
       "value": "[parameters('isWorkshop')]"
     },
-    "AZURE_ENV_DEPLOY_APP=true": {
+    "AZURE_ENV_DEPLOY_APP": {
       "type": "bool",
       "metadata": {
         "description": "Flag indicating whether to deploy App Service"
