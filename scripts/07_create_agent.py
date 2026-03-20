@@ -27,7 +27,7 @@ Environment Variables (from azd):
     - AZURE_AI_SEARCH_CONNECTION_NAME: AI Search connection name (search connection mode)
     - AZURE_AI_SEARCH_ENDPOINT: AI Search endpoint (knowledge base mode)
     - AZURE_AI_SEARCH_INDEX: AI Search index name
-    - SQLDB_SERVER, SQLDB_DATABASE: Azure SQL (for azure-only mode)
+    - AZURE_SQLDB_SERVER, AZURE_SQLDB_DATABASE: Azure SQL (for azure-only mode)
     - FABRIC_WORKSPACE_ID: Fabric workspace (for Fabric mode)
 """
 
@@ -84,8 +84,8 @@ AZURE_AI_SEARCH_ENDPOINT = os.getenv("AZURE_AI_SEARCH_ENDPOINT")
 
 # SQL Configuration - determine mode
 FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
-SQL_SERVER = os.getenv("SQLDB_SERVER")
-SQL_DATABASE = os.getenv("SQLDB_DATABASE")
+SQL_SERVER = os.getenv("AZURE_SQLDB_SERVER") or os.getenv("SQLDB_SERVER")
+SQL_DATABASE = os.getenv("AZURE_SQLDB_DATABASE") or os.getenv("SQLDB_DATABASE")
 
 # Determine SQL mode
 if args.azure_only:
@@ -125,7 +125,7 @@ else:
 
 if not USE_FABRIC and (not SQL_SERVER or not SQL_DATABASE):
     print("ERROR: Azure SQL not configured and Fabric not available")
-    print("       Set SQLDB_SERVER and SQLDB_DATABASE in azd environment")
+    print("       Set AZURE_SQLDB_SERVER and AZURE_SQLDB_DATABASE in azd environment")
     print("       Or configure FABRIC_WORKSPACE_ID for Fabric mode")
     sys.exit(1)
 
