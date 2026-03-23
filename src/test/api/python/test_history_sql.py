@@ -680,14 +680,35 @@ class TestGenerateTitleFunction:
         
         messages = [{"role": "user", "content": "Hello"}]
         
-        mock_agent = MagicMock()
-        mock_agent.invoke_sync.return_value = "AI Generated Title"
-        
-        with patch('history_sql.ChatAgent', return_value=mock_agent):
-            with patch('history_sql.AzureAIClient'):
-                with patch('history_sql.AZURE_AI_AGENT_ENDPOINT', 'http://test'):
-                    result = await generate_title(messages)
-                    assert isinstance(result, str)
+        with patch('history_sql.AZURE_AI_AGENT_ENDPOINT', 'http://test'), \
+             patch('history_sql.AIProjectClient') as mock_client, \
+             patch('history_sql.get_azure_credential_async') as mock_cred:
+            
+            mock_cred.return_value = AsyncMock()
+            
+            # Mock project client and openai client
+            mock_project = AsyncMock()
+            mock_openai = AsyncMock()
+            mock_conv = Mock(id="title_thread")
+            mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+            
+            # Mock response
+            mock_response = Mock()
+            mock_message_item = Mock()
+            mock_message_item.type = 'message'
+            mock_content = Mock()
+            mock_content.text = "AI Generated Title"
+            mock_message_item.content = [mock_content]
+            mock_response.output = [mock_message_item]
+            mock_openai.responses.create = AsyncMock(return_value=mock_response)
+            
+            mock_project.get_openai_client = Mock(return_value=mock_openai)
+            mock_client.return_value.__aenter__ = AsyncMock(return_value=mock_project)
+            mock_client.return_value.__aexit__ = AsyncMock()
+            
+            result = await generate_title(messages)
+            assert isinstance(result, str)
+            assert result == "AI Generated Title"
 
 
 class TestGenerateFallbackTitleFunction:
@@ -1620,11 +1641,13 @@ class TestMessageContentProcessing:
         
         with patch('history_sql.AZURE_AI_AGENT_ENDPOINT', 'http://test'), \
              patch('history_sql.AIProjectClient') as mock_client, \
-             patch('history_sql.AzureAIClient'), \
-             patch('history_sql.ChatAgent'):
-            # Make the context manager raise ServiceResponseException
+             patch('history_sql.get_azure_credential_async') as mock_cred:
+            
+            mock_cred.return_value = AsyncMock()
+            
+            # Make the context manager raise Exception
             mock_instance = MagicMock()
-            mock_instance.__aenter__.side_effect = Exception("ServiceResponseException")
+            mock_instance.__aenter__ = AsyncMock(side_effect=Exception("ServiceResponseException"))
             mock_client.return_value = mock_instance
             
             result = await generate_title(messages)
@@ -1882,29 +1905,35 @@ class TestGenerateTitleEdgeCases:
     
     @pytest.mark.asyncio
     async def test_generate_title_returns_none_from_agent(self):
-        """Test generate_title when agent returns None."""
+        """Test generate_title when agent returns empty response."""
         from history_sql import generate_title
         
         messages = [{"role": "user", "content": "Test"}]
         
         with patch('history_sql.AZURE_AI_AGENT_ENDPOINT', 'http://test'), \
              patch('history_sql.AIProjectClient') as mock_client, \
-             patch('history_sql.AzureAIClient') as mock_ai_client, \
-             patch('history_sql.ChatAgent') as mock_agent:
+             patch('history_sql.get_azure_credential_async') as mock_cred:
+            
+            mock_cred.return_value = AsyncMock()
+            
             # Setup mocks
-            mock_project = MagicMock()
-            mock_client.return_value.__aenter__.return_value = mock_project
+            mock_project = AsyncMock()
+            mock_openai = AsyncMock()
+            mock_conv = Mock(id="title_thread")
+            mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
             
-            mock_chat_instance = MagicMock()
-            mock_ai_client.return_value = mock_chat_instance
+            # Mock response with empty output
+            mock_response = Mock()
+            mock_response.output = []
+            mock_openai.responses.create = AsyncMock(return_value=mock_response)
             
-            mock_agent_instance = MagicMock()
-            mock_agent_instance.get_new_thread.return_value = MagicMock()
-            mock_agent_instance.run = AsyncMock(return_value=None)  # Returns None
-            mock_agent.return_value.__aenter__.return_value = mock_agent_instance
+            mock_project.get_openai_client = Mock(return_value=mock_openai)
+            mock_client.return_value.__aenter__ = AsyncMock(return_value=mock_project)
+            mock_client.return_value.__aexit__ = AsyncMock()
             
             result = await generate_title(messages)
-            assert result == "Test"  # Falls back
+            # Empty response should fallback to first 4 words
+            assert result == "Test"  # Falls back to fallback title
 
 
 class TestDeleteAllEdgeCases:
