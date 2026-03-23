@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "6491294503865363586"
+      "templateHash": "3166511664173232629"
     }
   },
   "parameters": {
@@ -613,7 +613,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "13227055421268709117"
+              "templateHash": "2267984726636113670"
             }
           },
           "parameters": {
@@ -990,7 +990,7 @@
               "properties": {
                 "Application_Type": "web",
                 "publicNetworkAccessForIngestion": "Enabled",
-                "publicNetworkAccessForQuery": "Disabled",
+                "publicNetworkAccessForQuery": "Enabled",
                 "WorkspaceResourceId": "[if(variables('useExisting'), extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingLawSubscription'), variables('existingLawResourceGroup')), 'Microsoft.OperationalInsights/workspaces', variables('existingLawName')), resourceId('Microsoft.OperationalInsights/workspaces', variables('workspaceName')))]"
               },
               "dependsOn": [

@@ -48,9 +48,21 @@ if connection_string:
 else:
     logging.warning("No Application Insights connection string found. Skipping configuration")
 
-# Suppress verbose Azure SDK loggers
-for logger_name in AZURE_LOGGING_PACKAGES:
-    logging.getLogger(logger_name).setLevel(getattr(logging, AZURE_PACKAGE_LOGGING_LEVEL, logging.WARNING))
+# Suppress noisy Azure SDK / third-party loggers at the configured package level
+_default_suppressed_loggers = [
+    "azure.core.pipeline.policies.http_logging_policy",
+    "azure.identity",
+    "azure.ai",
+    "azure.monitor.opentelemetry",
+    "opentelemetry",
+    "urllib3",
+    "httpx",
+    "httpcore",
+]
+for logger_name in set(_default_suppressed_loggers + AZURE_LOGGING_PACKAGES):
+    logging.getLogger(logger_name).setLevel(
+        getattr(logging, AZURE_PACKAGE_LOGGING_LEVEL, logging.WARNING)
+    )
 
 
 def build_app() -> FastAPI:
