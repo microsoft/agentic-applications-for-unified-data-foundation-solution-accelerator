@@ -86,7 +86,7 @@ param embeddingModel string = 'text-embedding-ada-002'
 @description('Capacity of the Embedding Model deployment')
 param embeddingDeploymentCapacity int = 80
 
-param imageTag string = isWorkshop ? 'latest_workshop' : 'latest_v2'
+param imageTag string = isWorkshop ? 'v1' : 'latest_v2'
 
 @description('Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app.')
 param deployApp bool = false
@@ -98,7 +98,7 @@ param isWorkshop bool = true
 param azureEnvOnly bool = false
 
 // If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
-var shouldDeployApp = !isWorkshop || deployApp
+var shouldDeployApp = true
 
 param AZURE_LOCATION string=''
 var solutionLocation = empty(AZURE_LOCATION) ? resourceGroup().location : AZURE_LOCATION
@@ -131,7 +131,7 @@ param aiDeploymentsLocation string
 var solutionPrefix = 'da${padLeft(take(uniqueId, 12), 12, '0')}'
 
 @description('Name of the Azure Container Registry')
-param acrName string = isWorkshop ? 'dataagentscontainerregworkshop' : 'dataagentscontainerreg'
+param acrName string = isWorkshop ? 'testapreg' : 'dataagentscontainerreg'
 
 //Get the current deployer's information
 var deployerInfo = deployer()
@@ -149,6 +149,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorksh
         CreatedBy: createdBy
         DeploymentName: deployment().name
         Type: 'Non-WAF'
+        SecurityControl: 'Ignore'
       }
     )
   }

@@ -22,20 +22,8 @@ from chat import router as chat_router
 from history import router as history_router
 from history_sql import router as history_sql_router
 
-# Check if the Application Insights Instrumentation Key is set in the environment variables
-instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
-if instrumentation_key:
-    # Configure Application Insights if the Instrumentation Key is found
-    configure_azure_monitor(connection_string=instrumentation_key)
-    logging.info("Application Insights configured with the provided Instrumentation Key")
-else:
-    # Log a warning if the Instrumentation Key is not found
-    logging.warning("No Application Insights Instrumentation Key found. Skipping configuration")
-
-# Load environment variables
 load_dotenv()
 
-# Configure logging
 # Basic application logging level (default: INFO)
 AZURE_BASIC_LOGGING_LEVEL = os.getenv("AZURE_BASIC_LOGGING_LEVEL", "INFO").upper()
 # Azure package logging level (default: WARNING to suppress verbose INFO)
@@ -49,6 +37,16 @@ logging.basicConfig(
     level=getattr(logging, AZURE_BASIC_LOGGING_LEVEL, logging.INFO),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
+# Configure Application Insights AFTER logging.basicConfig
+connection_string = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+if connection_string:
+    configure_azure_monitor(connection_string=connection_string)
+    # Re-apply root logger level since configure_azure_monitor may override it
+    logging.getLogger().setLevel(getattr(logging, AZURE_BASIC_LOGGING_LEVEL, logging.INFO))
+    logging.info("Application Insights configured with the provided connection string")
+else:
+    logging.warning("No Application Insights connection string found. Skipping configuration")
 
 # Suppress verbose Azure SDK loggers
 for logger_name in AZURE_LOGGING_PACKAGES:
