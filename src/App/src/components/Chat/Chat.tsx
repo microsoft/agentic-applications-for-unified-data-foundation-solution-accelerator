@@ -93,14 +93,6 @@ const Chat: React.FC<ChatProps> = ({
     }
     const isNewConversation = !selectedConversationId;
 
-    if (false) {  // Disabled: chart display default
-      setIsChartLoading(true);
-      setTimeout(()=>{
-        makeApiRequestForChart('show in a graph by default', convId)
-      },5000)
-
-    }
-
     try {
       const result = await dispatch(updateConversation({ conversationId: convId, messages: newMessages })).unwrap();
       
