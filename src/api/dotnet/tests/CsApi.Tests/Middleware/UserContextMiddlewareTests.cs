@@ -67,8 +67,8 @@ public class UserContextMiddlewareTests
         Assert.True(httpContext.Items.TryGetValue(nameof(UserContext), out var storedUserObj));
         var storedUser = storedUserObj as UserContext;
         Assert.NotNull(storedUser);
-        Assert.Equal(expectedUser.UserPrincipalId, storedUser.UserPrincipalId);
-        Assert.Equal(expectedUser.UserName, storedUser.UserName);
+        Assert.Equal(expectedUser.UserPrincipalId, storedUser!.UserPrincipalId);
+        Assert.Equal(expectedUser.UserName, storedUser!.UserName);
     }
 
     [Fact]
