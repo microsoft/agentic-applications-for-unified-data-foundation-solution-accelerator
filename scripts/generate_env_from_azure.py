@@ -175,16 +175,27 @@ def get_foundry_project_principal_id(resource_group: str, project_name: str) -> 
     """Get the system-assigned identity principal ID of the AI Foundry project."""
     if not project_name:
         return ""
-    result = run_az_command([
-        "resource", "show",
+
+    # AI Foundry projects live under Microsoft.CognitiveServices/accounts/<account>/projects/<project>
+    projects = run_az_command([
+        "resource", "list",
         "--resource-group", resource_group,
-        "--resource-type", "Microsoft.MachineLearningServices/workspaces",
-        "--name", project_name,
+        "--resource-type", "Microsoft.CognitiveServices/accounts/projects",
     ])
-    if not result or not isinstance(result, dict):
+    if not projects or not isinstance(projects, list):
         return ""
-    identity = result.get("identity", {})
-    return identity.get("principalId", "")
+
+    for project in projects:
+        # Name format is "account/project" — match the project segment
+        proj_name = project.get("name", "").split("/")[-1]
+        if proj_name == project_name:
+            resource_id = project.get("id", "")
+            if resource_id:
+                details = run_az_command(["resource", "show", "--ids", resource_id])
+                if details and isinstance(details, dict):
+                    identity = details.get("identity", {})
+                    return identity.get("principalId", "")
+    return ""
 
 
 def get_cosmos_db_account(resource_group: str) -> str:
@@ -398,25 +409,25 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
             lines.append(f"MID_DISPLAY_NAME={mid_name}")
             _log(f"  Found MID_DISPLAY_NAME: {mid_name}")
     
+    # Derive AZURE_AI_PROJECT_NAME from AZURE_AI_AGENT_ENDPOINT if not present
+    derived_project_name = settings.get("AZURE_AI_PROJECT_NAME", "")
+    if not derived_project_name:
+        agent_endpoint = settings.get("AZURE_AI_AGENT_ENDPOINT", "")
+        if agent_endpoint and "/projects/" in agent_endpoint:
+            derived_project_name = agent_endpoint.split("/projects/")[-1].rstrip("/")
+            if derived_project_name:
+                lines.append(f"AZURE_AI_PROJECT_NAME={derived_project_name}")
+                _log(f"  Found AZURE_AI_PROJECT_NAME: {derived_project_name}")
+    
     # Derive FOUNDRY_PROJECT_PID from AI Foundry project if not present
     if "FOUNDRY_PROJECT_PID" not in settings:
-        project_name = settings.get("AZURE_AI_PROJECT_NAME", "")
-        if project_name:
-            _log(f"  Fetching FOUNDRY_PROJECT_PID for project '{project_name}'...")
-            foundry_pid = get_foundry_project_principal_id(resource_group, project_name)
+        if derived_project_name:
+            _log(f"  Fetching FOUNDRY_PROJECT_PID for project '{derived_project_name}'...")
+            foundry_pid = get_foundry_project_principal_id(resource_group, derived_project_name)
             if foundry_pid:
                 lines.append(f"FOUNDRY_PROJECT_PID={foundry_pid}")
                 _log(f"  Found FOUNDRY_PROJECT_PID: {foundry_pid}")
 
-    # Derive AZURE_AI_PROJECT_NAME from AZURE_AI_AGENT_ENDPOINT if not present
-    if "AZURE_AI_PROJECT_NAME" not in settings:
-        agent_endpoint = settings.get("AZURE_AI_AGENT_ENDPOINT", "")
-        if agent_endpoint and "/projects/" in agent_endpoint:
-            project_name = agent_endpoint.split("/projects/")[-1].rstrip("/")
-            if project_name:
-                lines.append(f"AZURE_AI_PROJECT_NAME={project_name}")
-                _log(f"  Found AZURE_AI_PROJECT_NAME: {project_name}")
-    
     # Derive WEB_APP_URL from frontend app service if not present
     if "WEB_APP_URL" not in settings:
         web_app_url, _ = get_app_service(resource_group, "app-", exclude="api")

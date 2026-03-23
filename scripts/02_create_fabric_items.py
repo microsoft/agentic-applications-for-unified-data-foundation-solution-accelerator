@@ -3,7 +3,7 @@
 Creates Lakehouse, uploads CSV files, loads Delta tables, and creates Ontology.
 
 Usage:
-    python 02_create_fabric_items.py [--data-folder <PATH>]
+    python 02_create_fabric_items.py [--data-folder <PATH>] [--datasource-type ontology|lakehouse]
 
 Prerequisites:
     - Run 01_generate_data.py first (sets DATA_FOLDER in .env)
@@ -50,6 +50,8 @@ p.add_argument("--clean", action="store_true",
                help="Delete and recreate Lakehouse and Ontology (use when switching scenarios)")
 p.add_argument("--skip-data-agent", action="store_true",
                help="Skip Data Agent creation step")
+p.add_argument("--datasource-type", choices=["ontology", "lakehouse"], default="ontology",
+               help="Data source type for Data Agent: 'ontology' (default) or 'lakehouse'")
 args = p.parse_args()
 
 WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
@@ -100,6 +102,7 @@ print(f"Setting up Fabric for: {SOLUTION_NAME}")
 print(f"{'='*60}")
 print(f"Workspace ID: {WORKSPACE_ID}")
 print(f"Scenario: {ontology_config['name']}")
+print(f"Datasource type: {args.datasource_type}")
 print(f"Tables: {', '.join(ontology_config['tables'].keys())}")
 
 # ============================================================================
@@ -204,6 +207,59 @@ def delete_ontology(ontology_id, ontology_name):
         print(f"  [WARN] Could not delete Ontology {ontology_name}: {resp.status_code}")
         return False
 
+def build_lakehouse_elements(tables_config: dict) -> list:
+    """Build the full Fabric element hierarchy for a lakehouse datasource.
+
+    Returns the element tree: [Files, Tables > dbo > tables > columns]
+    with all tables and columns marked as selected.
+    """
+    files_node = {
+        "id": str(uuid.uuid4()),
+        "display_name": "Files",
+        "type": "lakehouse_files",
+        "is_selected": False,
+        "children": []
+    }
+
+    table_nodes = []
+    for table_name, table_def in tables_config.items():
+        col_nodes = [
+            {
+                "id": str(uuid.uuid4()),
+                "display_name": col_name,
+                "type": "lakehouse_tables.column",
+                "is_selected": True,
+                "children": []
+            }
+            for col_name in table_def["columns"]
+        ]
+        table_nodes.append({
+            "id": str(uuid.uuid4()),
+            "display_name": table_name,
+            "type": "lakehouse_tables.table",
+            "is_selected": True,
+            "children": col_nodes
+        })
+
+    dbo_node = {
+        "id": str(uuid.uuid4()),
+        "display_name": "dbo",
+        "type": "lakehouse_tables.schema",
+        "is_selected": True,
+        "children": table_nodes
+    }
+
+    tables_node = {
+        "id": str(uuid.uuid4()),
+        "display_name": "Tables",
+        "type": "lakehouse_tables",
+        "is_selected": True,
+        "children": [dbo_node]
+    }
+
+    return [files_node, tables_node]
+
+
 def b64encode(content):
     """Encode content to base64"""
     if isinstance(content, dict):
@@ -238,15 +294,23 @@ with open(suffix_file, "w") as f:
     f.write(str(new_suffix))
 
 lakehouse_name = f"lakehouse_{SOLUTION_NAME}_{new_suffix}"
+use_lakehouse_datasource = (args.datasource_type == "lakehouse")
+
 ontology_name = f"ontology_{SOLUTION_NAME}_{new_suffix}"
+ontology_id = None
 
 # ============================================================================
 # Step 1: Create Lakehouse
 # ============================================================================
 
-total_steps = 6 if args.skip_data_agent else 8
+# Calculate total steps dynamically
+total_steps = 5  # Always: Lakehouse, Workspace, Upload, Notebook, Ontology
+if not args.skip_data_agent:
+    total_steps += 2  # Data Agent + Publish
+total_steps += 1  # Save
+step = 1
 
-print(f"\n[1/{total_steps}] Creating Lakehouse...")
+print(f"\n[{step}/{total_steps}] Creating Lakehouse...")
 
 existing_lakehouse = find_item("Lakehouse", lakehouse_name)
 if existing_lakehouse:
@@ -277,7 +341,8 @@ time.sleep(5)
 # Step 2: Get Workspace Name (needed for OneLake path)
 # ============================================================================
 
-print(f"\n[2/{total_steps}] Getting workspace info...")
+step += 1
+print(f"\n[{step}/{total_steps}] Getting workspace info...")
 resp = make_request("GET", f"{FABRIC_API}/workspaces/{WORKSPACE_ID}")
 if resp.status_code != 200:
     print(f"  [FAIL] Failed to get workspace info: {resp.text}")
@@ -289,7 +354,8 @@ print(f"  Workspace name: {workspace_name}")
 # Step 3: Upload CSV Files to Lakehouse
 # ============================================================================
 
-print(f"\n[3/{total_steps}] Uploading CSV files to Lakehouse...")
+step += 1
+print(f"\n[{step}/{total_steps}] Uploading CSV files to Lakehouse...")
 
 credential = AzureCliCredential()
 account_url = f"https://{ONELAKE_URL}"
@@ -328,7 +394,8 @@ time.sleep(10)
 # Step 4: Load CSV Files as Delta Tables via Fabric Notebook
 # ============================================================================
 
-print(f"\n[4/{total_steps}] Loading CSV files as Delta tables via Fabric Notebook...")
+step += 1
+print(f"\n[{step}/{total_steps}] Loading CSV files as Delta tables via Fabric Notebook...")
 
 table_names = list(ontology_config["tables"].keys())
 spark_code_lines = [
@@ -460,7 +527,8 @@ time.sleep(30)
 # Step 5: Create Ontology (using dedicated ontologies API)
 # ============================================================================
 
-print(f"\n[5/{total_steps}] Creating Ontology...")
+step += 1
+print(f"\n[{step}/{total_steps}] Creating Ontology...")
 
 existing_ontology = find_ontology(ontology_name)
 if existing_ontology:
@@ -763,7 +831,8 @@ data_agent_name = None
 
 if not args.skip_data_agent:
     data_agent_name = f"dataagent_{SOLUTION_NAME}_{new_suffix}"
-    print(f"\n[6/{total_steps}] Creating Data Agent...")
+    step += 1
+    print(f"\n[{step}/{total_steps}] Creating Data Agent...")
 
     # Check if Data Agent already exists
     existing_da = find_item("DataAgent", data_agent_name)
@@ -801,32 +870,49 @@ if not args.skip_data_agent:
             "aiInstructions": ai_instructions
         }
 
-        # 3. datasource.json (ontology reference with entity elements)
-        da_source_name = f"ontology-{ontology_name}"
-        elements = []
-        for table_name, table_def in ontology_config["tables"].items():
-            entity_name = table_name.title().replace("_", "")
-            col_list = ",".join(table_def["columns"])
-            elements.append({
-                "id": entity_name,
-                "is_selected": True,
-                "display_name": entity_name,
-                "type": "ontology.entity",
-                "description": col_list,
-                "children": []
-            })
+        # 3. datasource.json (ontology or lakehouse reference)
+        if use_lakehouse_datasource:
+            da_source_name = f"lakehouse-{lakehouse_name}"
+            # Build the full element hierarchy so tables are selected at creation time
+            elements = build_lakehouse_elements(ontology_config["tables"])
 
-        datasource = {
-            "$schema": f"{DA_SCHEMA_BASE}/dataSource/1.0.0/schema.json",
-            "artifactId": ontology_id,
-            "workspaceId": WORKSPACE_ID,
-            "dataSourceInstructions": None,
-            "displayName": ontology_name,
-            "type": "ontology",
-            "userDescription": None,
-            "metadata": {},
-            "elements": elements
-        }
+            datasource = {
+                "$schema": f"{DA_SCHEMA_BASE}/dataSource/1.0.0/schema.json",
+                "artifactId": lakehouse_id,
+                "workspaceId": WORKSPACE_ID,
+                "dataSourceInstructions": None,
+                "displayName": lakehouse_name,
+                "type": "lakehouse",
+                "userDescription": None,
+                "metadata": {},
+                "elements": elements
+            }
+        else:
+            da_source_name = f"ontology-{ontology_name}"
+            elements = []
+            for table_name, table_def in ontology_config["tables"].items():
+                entity_name = table_name.title().replace("_", "")
+                col_list = ",".join(table_def["columns"])
+                elements.append({
+                    "id": entity_name,
+                    "is_selected": True,
+                    "display_name": entity_name,
+                    "type": "ontology.entity",
+                    "description": col_list,
+                    "children": []
+                })
+
+            datasource = {
+                "$schema": f"{DA_SCHEMA_BASE}/dataSource/1.0.0/schema.json",
+                "artifactId": ontology_id,
+                "workspaceId": WORKSPACE_ID,
+                "dataSourceInstructions": None,
+                "displayName": ontology_name,
+                "type": "ontology",
+                "userDescription": None,
+                "metadata": {},
+                "elements": elements
+            }
 
         # 4. fewshots.json (sample questions, if available)
         fewshots = {"$schema": f"{DA_SCHEMA_BASE}/fewShots/1.0.0/schema.json", "fewShots": []}
@@ -852,6 +938,7 @@ if not args.skip_data_agent:
             if fewshots["fewShots"]:
                 print(f"  Loaded {len(fewshots['fewShots'])} fewshot questions")
 
+        # Build definition parts (same structure for both datasource types)
         da_definition_parts = [
             {"path": "Files/Config/data_agent.json", "payload": b64encode(data_agent_config), "payloadType": "InlineBase64"},
             {"path": "Files/Config/draft/stage_config.json", "payload": b64encode(stage_config), "payloadType": "InlineBase64"},
@@ -861,10 +948,6 @@ if not args.skip_data_agent:
             da_definition_parts.append(
                 {"path": f"Files/Config/draft/{da_source_name}/fewshots.json", "payload": b64encode(fewshots), "payloadType": "InlineBase64"}
             )
-
-        print(f"  Creating '{data_agent_name}' with {len(da_definition_parts)} definition parts...")
-        print(f"  Datasource: ontology {ontology_name} ({len(elements)} entities)")
-
         da_payload = {
             "displayName": data_agent_name,
             "description": f"Data Agent for {ontology_config['name']}",
@@ -872,8 +955,24 @@ if not args.skip_data_agent:
                 "parts": da_definition_parts
             }
         }
+        if use_lakehouse_datasource:
+            table_count = len(ontology_config.get("tables", {}))
+            datasource_label = f"lakehouse {lakehouse_name}"
+            print(f"  Creating '{data_agent_name}' with {len(da_definition_parts)} definition parts...")
+            print(f"  Datasource: {datasource_label} ({table_count} tables pre-selected)")
+        else:
+            datasource_label = f"ontology {ontology_name}"
+            print(f"  Creating '{data_agent_name}' with {len(da_definition_parts)} definition parts...")
+            print(f"  Datasource: {datasource_label} ({len(elements)} entities)")
 
         url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents"
+
+        # Save payload for debugging regardless of outcome
+        da_debug_path = os.path.join(config_dir, "data_agent_payload_debug.json")
+        with open(da_debug_path, "w") as f:
+            json.dump(da_payload, f, indent=2)
+        print(f"  Payload saved to {da_debug_path} for debugging")
+
         resp = make_request("POST", url, json=da_payload)
 
         if resp.status_code == 201:
@@ -934,8 +1033,9 @@ if not args.skip_data_agent:
         # Save definition parts for debugging
         if data_agent_id:
             da_def_path = os.path.join(config_dir, "data_agent_definition_parts.json")
+            saved_parts = da_payload.get("definition", {}).get("parts", [])
             with open(da_def_path, "w") as f:
-                json.dump(da_definition_parts, f)
+                json.dump(saved_parts, f)
             print(f"  [OK] Saved definition parts")
 else:
     print(f"\n[--] Skipping Data Agent creation (--skip-data-agent)")
@@ -945,7 +1045,8 @@ else:
 # ============================================================================
 
 if not args.skip_data_agent and data_agent_id:
-    print(f"\n[7/{total_steps}] Publishing Data Agent as MCP server...")
+    step += 1
+    print(f"\n[{step}/{total_steps}] Publishing Data Agent as MCP server...")
 
     try:
         # Get current definition
@@ -1027,15 +1128,17 @@ if not args.skip_data_agent and data_agent_id:
         print(f"  [WARN] Failed to publish Data Agent: {e}")
         print(f"         You can publish manually in the Fabric portal")
         print(f"         Open the Data Agent > Home tab > Publish")
-elif not args.skip_data_agent:
-    print(f"\n[7/{total_steps}] Skipping publish (Data Agent not created)")
+
+if not args.skip_data_agent and not data_agent_id:
+    step += 1
+    print(f"\n[{step}/{total_steps}] Skipping publish (Data Agent not created)")
 
 # ============================================================================
 # Step 8: Save IDs for later scripts
 # ============================================================================
 
-save_step = total_steps
-print(f"\n[{save_step}/{total_steps}] Saving configuration...")
+step += 1
+print(f"\n[{step}/{total_steps}] Saving configuration...")
 
 ids_path = os.path.join(config_dir, "fabric_ids.json")
 fabric_ids = {
@@ -1045,6 +1148,7 @@ fabric_ids = {
     "ontology_name": ontology_name,
     "data_agent_id": data_agent_id,
     "data_agent_name": data_agent_name,
+    "datasource_type": args.datasource_type,
     "solution_name": SOLUTION_NAME,
     "created_at": datetime.now().isoformat()
 }
@@ -1062,10 +1166,13 @@ print(f"{'='*60}")
 
 da_summary = ""
 if data_agent_id:
+    datasource_label = f"lakehouse {lakehouse_name}" if use_lakehouse_datasource else f"ontology {ontology_name}"
+    item_count = len(ontology_config['tables'])
+    item_type = "tables" if use_lakehouse_datasource else "entities"
     da_summary = f"""
 Data Agent: {data_agent_name}
   ID: {data_agent_id}
-  Datasource: ontology {ontology_name} ({len(ontology_config['tables'])} entities)"""
+  Datasource: {datasource_label} ({item_count} {item_type})"""
 elif not args.skip_data_agent:
     da_summary = """
 Data Agent: Not created (API error - create manually in Fabric portal)"""
@@ -1073,14 +1180,16 @@ else:
     da_summary = """
 Data Agent: Skipped (--skip-data-agent)"""
 
+ontology_summary = f"""
+Ontology: {ontology_name}
+  ID: {ontology_id}
+  Entities: {', '.join([t.title().replace('_', '') for t in ontology_config['tables'].keys()])}"""
+
 print(f"""
 Lakehouse: {lakehouse_name}
   ID: {lakehouse_id}
   Data: {len(uploaded_files)} CSV files uploaded and loaded as Delta tables
-  
-Ontology: {ontology_name}
-  ID: {ontology_id}
-  Entities: {', '.join([t.title().replace('_', '') for t in ontology_config['tables'].keys()])}
+{ontology_summary}
 {da_summary}
 
 IDs saved to: {ids_path}
