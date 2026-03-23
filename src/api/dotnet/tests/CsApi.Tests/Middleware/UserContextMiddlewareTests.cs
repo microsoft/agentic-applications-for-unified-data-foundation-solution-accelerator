@@ -64,8 +64,8 @@ public class UserContextMiddlewareTests
         await middleware.InvokeAsync(httpContext);
 
         // Assert
-        Assert.True(httpContext.Items.ContainsKey(nameof(UserContext)));
-        var storedUser = httpContext.Items[nameof(UserContext)] as UserContext;
+        Assert.True(httpContext.Items.TryGetValue(nameof(UserContext), out var storedUserObj));
+        var storedUser = storedUserObj as UserContext;
         Assert.NotNull(storedUser);
         Assert.Equal(expectedUser.UserPrincipalId, storedUser.UserPrincipalId);
         Assert.Equal(expectedUser.UserName, storedUser.UserName);

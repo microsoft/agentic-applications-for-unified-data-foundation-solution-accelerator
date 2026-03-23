@@ -17,7 +17,7 @@ public class HeaderUserContextAccessor : IUserContextAccessor
         if (ctx == null) return new UserContext();
 
         var headers = ctx.Request.Headers;
-        var hasPrincipal = headers.ContainsKey("x-ms-client-principal-id");
+        var hasPrincipal = headers.TryGetValue("x-ms-client-principal-id", out var userPrincipalIdValues);
 
         if (!hasPrincipal)
         {
@@ -35,7 +35,7 @@ public class HeaderUserContextAccessor : IUserContextAccessor
 
         return new UserContext
         {
-            UserPrincipalId = headers["x-ms-client-principal-id"].ToString(),
+            UserPrincipalId = userPrincipalIdValues.ToString(),
             UserName = headers["x-ms-client-principal-name"].ToString(),
             AuthProvider = headers["x-ms-client-principal-idp"].ToString(),
             AuthToken = headers.TryGetValue("x-ms-token-aad-id-token", out var token) ? token.ToString() : null,
