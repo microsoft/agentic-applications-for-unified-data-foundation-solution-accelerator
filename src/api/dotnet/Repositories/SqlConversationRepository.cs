@@ -96,7 +96,6 @@ public class SqlConversationRepository : ISqlConversationRepository
         
         // Check if conversation exists
         const string existsSql = "SELECT userId FROM hst_conversations WHERE conversation_id=@c";
-        string? foundUserId = null;
         using (var check = new SqlCommand(existsSql, (SqlConnection)conn))
         {
             check.Parameters.Add(new SqlParameter("@c", id));
@@ -108,7 +107,6 @@ public class SqlConversationRepository : ISqlConversationRepository
             var result = check.ExecuteScalar();
             if (result != null)
             {
-                foundUserId = result.ToString() ?? string.Empty;
                  return (id, false); // Conversation exists and user has permission
             }
         }
@@ -418,7 +416,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         }
         
         // Delete messages first, then conversations
-        var messagesDeleted = delMsgCmd.ExecuteNonQuery();
+        delMsgCmd.ExecuteNonQuery();
         var conversationsDeleted = delConvCmd.ExecuteNonQuery();
         
         return conversationsDeleted;

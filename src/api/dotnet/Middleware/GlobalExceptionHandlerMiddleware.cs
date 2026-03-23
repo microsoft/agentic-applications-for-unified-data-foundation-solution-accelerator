@@ -118,7 +118,7 @@ public class GlobalExceptionHandlerMiddleware
             HttpRequestException httpEx when httpEx.Message.Contains("timeout") => 
                 (StatusCodes.Status408RequestTimeout, "Request Timeout", "External service request timed out."),
             
-            HttpRequestException httpEx => 
+            HttpRequestException _ => 
                 (StatusCodes.Status502BadGateway, "Bad Gateway", "External service error."),
             
             TaskCanceledException => 
