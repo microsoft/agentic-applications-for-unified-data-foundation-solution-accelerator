@@ -211,14 +211,9 @@ public class SqlConversationRepository : ISqlConversationRepository
             bool filterByUser = !string.IsNullOrEmpty(userId);
             // REDUNDANT: Detailed user listing logging
             // Console.WriteLine($"Listing conversations for user '{userId}' (filterByUser={filterByUser})");
-            if (filterByUser)
-            {
-                sql = "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations WHERE userId=@userId ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
-            }
-            else
-            {
-                sql = "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
-            }
+            sql = filterByUser
+                ? "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations WHERE userId=@userId ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY"
+                : "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
             using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
             {
                 if (filterByUser)
@@ -270,16 +265,9 @@ public class SqlConversationRepository : ISqlConversationRepository
         // Console.WriteLine($"Reading messages for user '{userId}' and conversation '{conversationId}' (filterByUser={filterByUser})");
         if (string.IsNullOrEmpty(conversationId))
             return new List<ChatMessage>();
-        if (filterByUser)
-        {
-            sql = $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE userId=@userId AND conversation_id=@conversationId ORDER BY updatedAt {order}";
-        }
-        else
-        {   
-            // REDUNDANT: Filter logic logging
-            // Console.WriteLine("No userId provided, reading messages without user filter.");
-            sql = $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE conversation_id=@conversationId ORDER BY updatedAt {order}";
-        }
+        sql = filterByUser
+            ? $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE userId=@userId AND conversation_id=@conversationId ORDER BY updatedAt {order}"
+            : $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE conversation_id=@conversationId ORDER BY updatedAt {order}";
         var list = new List<ChatMessage>();
         using var conn = await CreateConnectionAsync();
         using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
