@@ -87,26 +87,42 @@ def fabric_request(method, url, **kwargs):
 
 
 def assign_fabric_roles():
-    """Assign Fabric workspace Contributor role to the Foundry project's system-assigned identity."""
+    """Assign Fabric workspace Contributor role.
+
+    When USE_DATA_AGENT is true, assigns the role to the Foundry project's
+    system-assigned identity (FOUNDRY_PROJECT_PID).
+    Otherwise, assigns the role to the API managed identity (API_PID).
+    """
     FABRIC_API = "https://api.fabric.microsoft.com/v1"
     WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
 
-    print("\n[1/2] Assigning Fabric workspace role to Foundry project's system-assigned identity...")
+    print("\n[1/2] Assigning Fabric workspace role...")
 
     if not WORKSPACE_ID:
         print("  [SKIP] FABRIC_WORKSPACE_ID not set")
         return
 
-    # Get Foundry project's system-assigned identity principal ID from env
-    foundry_principal_id = os.getenv("FOUNDRY_PROJECT_PID")
-    if not foundry_principal_id:
-        print("  [SKIP] FOUNDRY_PROJECT_PID not set. Run generate_env_from_azure.py to populate it.")
-        return
+    # Determine which principal to assign based on USE_DATA_AGENT
+    use_data_agent = os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes")
+    if use_data_agent:
+        principal_id = os.getenv("FOUNDRY_PROJECT_PID")
+        principal_label = "Foundry project system-assigned identity"
+        if not principal_id:
+            print("  [SKIP] FOUNDRY_PROJECT_PID not set. Run generate_env_from_azure.py to populate it.")
+            return
+    else:
+        principal_id = os.getenv("API_PID")
+        principal_label = "API managed identity"
+        if not principal_id:
+            print("  [SKIP] API_PID not set. Run generate_env_from_azure.py to populate it.")
+            return
+
+    print(f"  Assigning Contributor role to {principal_label} ({principal_id})")
 
     fabric_ra_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/roleAssignments"
     roleassignment_json = {
         "principal": {
-            "id": foundry_principal_id,
+            "id": principal_id,
             "type": "ServicePrincipal"
         },
         "role": "Contributor"
