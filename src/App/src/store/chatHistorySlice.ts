@@ -23,7 +23,10 @@ const dedupeConversationsById = (conversations: Conversation[]): Conversation[] 
     if (!conversation?.id) {
       return;
     }
-    uniqueById.set(conversation.id, conversation);
+    // Prefer the first occurrence of a given conversation ID
+    if (!uniqueById.has(conversation.id)) {
+      uniqueById.set(conversation.id, conversation);
+    }
   });
 
   return Array.from(uniqueById.values());
