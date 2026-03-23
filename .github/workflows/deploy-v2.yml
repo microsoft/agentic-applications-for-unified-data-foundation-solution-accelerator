@@ -125,7 +125,7 @@ jobs:
       cleanup_resources: ${{ steps.validate.outputs.cleanup_resources }}
       run_e2e_tests: ${{ steps.validate.outputs.run_e2e_tests }}
       azure_env_log_analytics_workspace_rid: ${{ steps.validate.outputs.azure_env_log_analytics_workspace_rid }}
-      azure_existing_ai_project_resource_id: ${{ steps.validate.outputs.azure_existing_ai_project_resource_id }}
+      azure_env_foundry_project_rid: ${{ steps.validate.outputs.azure_env_foundry_project_rid }}
       existing_webapp_url: ${{ steps.validate.outputs.existing_webapp_url }}
     steps:
       - name: Validate Workflow Input Parameters
@@ -303,7 +303,7 @@ jobs:
           echo "cleanup_resources=$CLEANUP_RESOURCES" >> $GITHUB_OUTPUT
           echo "run_e2e_tests=$TEST_OPTION" >> $GITHUB_OUTPUT
           echo "azure_env_log_analytics_workspace_rid=$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID" >> $GITHUB_OUTPUT
-          echo "azure_existing_ai_project_resource_id=$INPUT_AZURE_ENV_FOUNDRY_PROJECT_RID" >> $GITHUB_OUTPUT
+          echo "azure_env_foundry_project_rid=$INPUT_AZURE_ENV_FOUNDRY_PROJECT_RID" >> $GITHUB_OUTPUT
           echo "existing_webapp_url=$INPUT_EXISTING_WEBAPP_URL" >> $GITHUB_OUTPUT
 
   Run:
@@ -321,7 +321,7 @@ jobs:
       cleanup_resources: ${{ needs.validate-inputs.outputs.cleanup_resources == 'true' }}
       run_e2e_tests: ${{ needs.validate-inputs.outputs.run_e2e_tests || 'GoldenPath-Testing' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: ${{ needs.validate-inputs.outputs.azure_env_log_analytics_workspace_rid || '' }}
-      AZURE_ENV_FOUNDRY_PROJECT_RID: ${{ needs.validate-inputs.outputs.azure_existing_ai_project_resource_id || '' }}
+      AZURE_ENV_FOUNDRY_PROJECT_RID: ${{ needs.validate-inputs.outputs.azure_env_foundry_project_rid || '' }}
       existing_webapp_url: ${{ needs.validate-inputs.outputs.existing_webapp_url || '' }}
       trigger_type: ${{ github.event_name }}
     secrets: inherit

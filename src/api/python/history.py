@@ -312,7 +312,7 @@ def init_openai_client():
             get_azure_credential(), "https://cognitiveservices.azure.com/.default")
 
         if not AZURE_GPT_MODEL_NAME:
-            raise ValueError("AZURE_ENV_GPT_MODEL_NAME (or AZURE_OPENAI_MODEL) is required")
+            raise ValueError("AZURE_ENV_GPT_MODEL_NAME (or AZURE_OPENAI_DEPLOYMENT_MODEL) is required")
 
         return AsyncAzureOpenAI(
             api_version=AZURE_OPENAI_API_VERSION,

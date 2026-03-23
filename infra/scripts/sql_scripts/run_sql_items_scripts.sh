@@ -12,12 +12,12 @@ usecase="$6"
 # Get parameters from azd env, if not provided
 if [ -z "$sqlServer" ]; then
     # Support both new and legacy environment variable names for backward compatibility
-    sqlServer=$(azd env get-value SQLDB_SERVER 2>/dev/null || azd env get-value AZURE_SQLDB_SERVER 2>/dev/null || echo "")
+    sqlServer=$(azd env get-value AZURE_SQLDB_SERVER 2>/dev/null || azd env get-value SQLDB_SERVER 2>/dev/null || echo "")
 fi
 
 if [ -z "$sqlDatabase" ]; then
     # Support both new and legacy environment variable names for backward compatibility
-    sqlDatabase=$(azd env get-value SQLDB_DATABASE 2>/dev/null || azd env get-value AZURE_SQLDB_DATABASE 2>/dev/null || echo "")
+    sqlDatabase=$(azd env get-value AZURE_SQLDB_DATABASE 2>/dev/null || azd env get-value SQLDB_DATABASE 2>/dev/null || echo "")
 fi
 
 if [ -z "$backend_app_uid" ]; then
