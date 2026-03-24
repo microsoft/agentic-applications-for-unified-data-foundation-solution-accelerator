@@ -39,24 +39,7 @@ AZURE_ENV_ONLY = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
 
 router = APIRouter()
 
-# # Configure logging
-# logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.INFO)
-
-# # Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
-# logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
-#     logging.WARNING
-# )
-# logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
-
-# # Reduce Azure Monitor internal logs
-# logging.getLogger("azure.monitor.opentelemetry").setLevel(logging.ERROR)
-
-# # Suppress info logs from OpenTelemetry exporter
-# logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
-#     logging.ERROR
-# )
 
 
 class ExpCache(TTLCache):

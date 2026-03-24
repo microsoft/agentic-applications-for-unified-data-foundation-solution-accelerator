@@ -26,21 +26,7 @@ from agent_framework.exceptions import ServiceResponseException
 
 router = APIRouter()
 
-# Configure logging
-# logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.INFO)
-
-# Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
-# logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
-#     logging.WARNING
-# )
-# logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
-
-# # Suppress info logs from OpenTelemetry exporter
-# logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
-#     logging.ERROR
-# )
 
 # Azure AI Foundry configuration
 AZURE_AI_AGENT_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
