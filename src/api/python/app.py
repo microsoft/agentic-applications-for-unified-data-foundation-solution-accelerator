@@ -12,6 +12,7 @@ import logging
 from contextvars import ContextVar
 
 from azure.monitor.opentelemetry import configure_azure_monitor
+import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -137,5 +138,4 @@ app = build_app()
 
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
