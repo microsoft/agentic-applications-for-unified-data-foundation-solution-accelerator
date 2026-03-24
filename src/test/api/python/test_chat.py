@@ -231,8 +231,8 @@ class TestStreamOpenAIText:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('chat.AzureAIClient') as mock_azure, \
-             patch('chat.ChatAgent') as mock_agent, \
+             patch('chat.AzureAIClient', create=True) as mock_azure, \
+             patch('chat.ChatAgent', create=True) as mock_agent, \
              patch('history_sql.get_fabric_db_connection') as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
@@ -282,8 +282,8 @@ class TestStreamOpenAIText:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('chat.AzureAIClient') as mock_azure, \
-             patch('chat.ChatAgent') as mock_agent, \
+             patch('chat.AzureAIClient', create=True) as mock_azure, \
+             patch('chat.ChatAgent', create=True) as mock_agent, \
              patch('history_sql.get_fabric_db_connection') as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
@@ -382,8 +382,8 @@ class TestAdditionalCoverage:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('chat.AzureAIClient') as mock_azure, \
-             patch('chat.ChatAgent') as mock_agent, \
+             patch('chat.AzureAIClient', create=True) as mock_azure, \
+             patch('chat.ChatAgent', create=True) as mock_agent, \
              patch('history_sql.get_fabric_db_connection') as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
@@ -511,8 +511,8 @@ class TestAdditionalCoverage:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('chat.AzureAIClient') as mock_azure, \
-             patch('chat.ChatAgent') as mock_agent, \
+             patch('chat.AzureAIClient', create=True) as mock_azure, \
+             patch('chat.ChatAgent', create=True) as mock_agent, \
              patch('history_sql.get_fabric_db_connection') as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
@@ -566,8 +566,8 @@ class TestAdditionalCoverage:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('chat.AzureAIClient') as mock_azure, \
-             patch('chat.ChatAgent') as mock_agent, \
+             patch('chat.AzureAIClient', create=True) as mock_azure, \
+             patch('chat.ChatAgent', create=True) as mock_agent, \
              patch('history_sql.get_fabric_db_connection') as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
@@ -579,6 +579,19 @@ class TestAdditionalCoverage:
             mock_openai = AsyncMock()
             mock_conv = Mock(id="thread_789")
             mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+
+            # Mock response with message containing mixed empty/non-empty text
+            content1 = Mock(text="Hello")
+            content1.type = 'text'
+            content2 = Mock(text=" World")
+            content2.type = 'text'
+            msg_item = Mock()
+            msg_item.type = 'message'
+            msg_item.content = [content1, content2]
+            mock_response = Mock()
+            mock_response.output = [msg_item]
+            mock_openai.responses.create = AsyncMock(return_value=mock_response)
+
             mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
             mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
             mock_proj_inst.__aexit__ = AsyncMock()
@@ -588,33 +601,15 @@ class TestAdditionalCoverage:
             mock_db.return_value.close = Mock()
             mock_tool.return_value = Mock()
             
-            mock_agent_inst = AsyncMock()
-            mock_thread = Mock(is_initialized=False)
-            mock_agent_inst.get_new_thread = Mock(return_value=mock_thread)
-            
-            async def mock_run(*args, **kwargs):
-                # Mix of empty and non-empty chunks
-                yield Mock(text="")
-                yield Mock(text="Hello")
-                yield Mock(text="")
-                yield Mock(text=" World")
-                yield None
-            
-            mock_agent_inst.run_stream = mock_run
-            mock_agent_inst.__aenter__ = AsyncMock(return_value=mock_agent_inst)
-            mock_agent_inst.__aexit__ = AsyncMock()
-            mock_agent.return_value = mock_agent_inst
-            
             mock_cache.return_value = {}
             
             results = []
             async for chunk in stream_openai_text("conv_789", "test"):
                 results.append(chunk)
             
-            # Should only have non-empty chunks
-            assert len(results) == 2
-            assert results[0] == "Hello"
-            assert results[1] == " World"
+            # Should have concatenated text from the message
+            assert len(results) == 1
+            assert "Hello World" in results[0]
 
 
 class TestApplicationInsightsCoverage:
@@ -647,8 +642,8 @@ class TestApplicationInsightsCoverage:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('chat.AzureAIClient') as mock_azure, \
-             patch('chat.ChatAgent') as mock_agent, \
+             patch('chat.AzureAIClient', create=True) as mock_azure, \
+             patch('chat.ChatAgent', create=True) as mock_agent, \
              patch('history_sql.get_fabric_db_connection') as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:

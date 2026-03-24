@@ -29,12 +29,17 @@ def test_env_vars(monkeypatch):
 
 @pytest.fixture
 def app_instance(test_env_vars):
-    """Create a FastAPI app instance for testing."""
-    for mod in ('chat', 'history', 'history_sql'):
-        if mod not in sys.modules:
+    """Create a FastAPI app instance for testing.
+    
+    Ensures chat/history/history_sql modules are mocked before importing app,
+    since they depend on agent_framework which may not be installed in test env.
+    """
+    for mod_name in ('chat', 'history', 'history_sql'):
+        if mod_name not in sys.modules or not isinstance(sys.modules[mod_name], MagicMock):
             m = MagicMock()
             m.router = MagicMock(routes=[], tags=[])
-            sys.modules[mod] = m
+            sys.modules[mod_name] = m
+
     from app import build_app
     return build_app()
 
