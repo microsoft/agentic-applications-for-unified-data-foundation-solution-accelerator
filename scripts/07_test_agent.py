@@ -3,6 +3,7 @@
 Unified test script that automatically detects SQL backend from agent config.
 
 Modes:
+    - Fabric Data Agent mode: All SQL handled by MCP tool (no local SQL needed)
     - Fabric mode: Executes SQL against Fabric Lakehouse
     - Azure SQL mode: Executes SQL against Azure SQL Database
     - Both modes: Native AI Search handles document queries automatically
@@ -41,7 +42,6 @@ from azure.identity import DefaultAzureCredential
 from azure.identity.aio import DefaultAzureCredential as AsyncDefaultAzureCredential
 from azure.ai.projects.aio import AIProjectClient
 from agent_framework.azure import AzureAIProjectAgentProvider
-import pyodbc
 import requests
 
 # Suppress informational warnings from agent_framework about runtime
@@ -94,42 +94,54 @@ if not CHAT_AGENT_NAME:
 
 # Determine SQL mode from saved config
 SQL_MODE = agent_ids.get("sql_mode", "azure_sql")
-USE_FABRIC = SQL_MODE == "fabric"
+USE_FABRIC = SQL_MODE in ("fabric", "fabric_data_agent")
+USE_DATA_AGENT = SQL_MODE == "fabric_data_agent"
 
 # For Fabric mode, load additional config
 LAKEHOUSE_NAME = None
 LAKEHOUSE_ID = None
 SQL_ENDPOINT = None
 
-if USE_FABRIC:
+if USE_FABRIC and not USE_DATA_AGENT:
     fabric_ids_path = os.path.join(config_dir, "fabric_ids.json")
     if os.path.exists(fabric_ids_path):
         with open(fabric_ids_path) as f:
             fabric_ids = json.load(f)
         LAKEHOUSE_NAME = fabric_ids.get("lakehouse_name")
         LAKEHOUSE_ID = fabric_ids.get("lakehouse_id")
-else:
+elif not USE_FABRIC and not USE_DATA_AGENT:
     # Use Azure SQL config from agent_ids or environment
     SQL_SERVER = agent_ids.get("sql_server") or SQL_SERVER
     SQL_DATABASE = agent_ids.get("sql_database") or SQL_DATABASE
 
-if not USE_FABRIC and (not SQL_SERVER or not SQL_DATABASE):
+# Only require SQL config when not using Data Agent (MCP handles SQL server-side)
+if not USE_DATA_AGENT and not USE_FABRIC and (not SQL_SERVER or not SQL_DATABASE):
     print("ERROR: Azure SQL not configured")
     print("       Set SQLDB_SERVER and SQLDB_DATABASE")
     sys.exit(1)
+
+# Only import pyodbc when needed (not in Data Agent mode)
+if not USE_DATA_AGENT:
+    import pyodbc
 
 # ============================================================================
 # Print Configuration
 # ============================================================================
 
 print(f"\n{'='*60}")
-if USE_FABRIC:
+if USE_DATA_AGENT:
+    print("AI Agent Chat (Fabric Data Agent MCP + Native Search)")
+elif USE_FABRIC:
     print("AI Agent Chat (Fabric SQL + Native Search)")
 else:
     print("AI Agent Chat (Azure SQL + Native Search)")
 print(f"{'='*60}")
 print(f"Chat Agent: {CHAT_AGENT_NAME}")
-if USE_FABRIC:
+if USE_DATA_AGENT:
+    print(f"SQL Mode: Fabric Data Agent (MCP)")
+    print(f"Data Agent: {agent_ids.get('data_agent_name', 'N/A')}")
+    print(f"MCP Endpoint: {agent_ids.get('data_agent_mcp_endpoint', 'N/A')}")
+elif USE_FABRIC:
     print("SQL Mode: Fabric Lakehouse")
     print(f"Lakehouse: {LAKEHOUSE_NAME}")
 else:
@@ -139,7 +151,7 @@ else:
 print("Type 'quit' to exit, 'help' for sample questions\n")
 
 # ============================================================================
-# SQL Connection Functions
+# SQL Connection Functions (not used in Data Agent mode)
 # ============================================================================
 
 credential = DefaultAzureCredential()
@@ -336,7 +348,10 @@ def show_help():
     print("\nSample questions to try:")
     for i, q in enumerate(sample_questions, 1):
         print(f"  {i}. {q}")
-    print("\n  SQL questions use execute_sql tool")
+    if USE_DATA_AGENT:
+        print("\n  SQL questions use Fabric Data Agent (MCP) tool")
+    else:
+        print("\n  SQL questions use execute_sql tool")
     print("  Search questions use AI Search automatically")
     print("  Combined questions use both tools")
     print()
@@ -394,10 +409,14 @@ async def main():
         provider = AzureAIProjectAgentProvider(project_client=project_client)
 
         # Get agent with tools using provider
-        agent = await provider.get_agent(
-            name=CHAT_AGENT_NAME,
-            tools=execute_sql
-        )
+        # In Data Agent mode, no local tools needed (MCP handles SQL server-side)
+        if USE_DATA_AGENT:
+            agent = await provider.get_agent(name=CHAT_AGENT_NAME)
+        else:
+            agent = await provider.get_agent(
+                name=CHAT_AGENT_NAME,
+                tools=execute_sql
+            )
 
         # Create conversation for context continuity
         openai_client = project_client.get_openai_client()

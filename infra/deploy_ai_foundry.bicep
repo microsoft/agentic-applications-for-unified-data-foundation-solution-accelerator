@@ -601,3 +601,6 @@ output applicationInsightsConnectionString string = applicationInsights.properti
 
 @description('The resource ID of the AI Foundry account.')
 output aiFoundryResourceId string = !empty(azureExistingAIProjectResourceId) ? azureExistingAIProjectResourceId : aiServices.id
+
+@description('The principal ID of the AI Foundry project managed identity.')
+output aiProjectPrincipalId string = !empty(existingAIProjectName) ? existingOpenAiProject.outputs.aiProjectPrincipalId : aiProject.identity.principalId

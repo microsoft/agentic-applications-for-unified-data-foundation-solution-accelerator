@@ -171,6 +171,33 @@ def get_ai_foundry_project(resource_group: str) -> tuple[str, str]:
     return "", ""
 
 
+def get_foundry_project_principal_id(resource_group: str, project_name: str) -> str:
+    """Get the system-assigned identity principal ID of the AI Foundry project."""
+    if not project_name:
+        return ""
+
+    # AI Foundry projects live under Microsoft.CognitiveServices/accounts/<account>/projects/<project>
+    projects = run_az_command([
+        "resource", "list",
+        "--resource-group", resource_group,
+        "--resource-type", "Microsoft.CognitiveServices/accounts/projects",
+    ])
+    if not projects or not isinstance(projects, list):
+        return ""
+
+    for project in projects:
+        # Name format is "account/project" — match the project segment
+        proj_name = project.get("name", "").split("/")[-1]
+        if proj_name == project_name:
+            resource_id = project.get("id", "")
+            if resource_id:
+                details = run_az_command(["resource", "show", "--ids", resource_id])
+                if details and isinstance(details, dict):
+                    identity = details.get("identity", {})
+                    return identity.get("principalId", "")
+    return ""
+
+
 def get_cosmos_db_account(resource_group: str) -> str:
     """Get CosmosDB account name."""
     resources = get_resources_by_type(resource_group, "Microsoft.DocumentDB/databaseAccounts")
@@ -330,6 +357,7 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
         "AZURE_OPENAI_EMBEDDING_MODEL", "AZURE_EMBEDDING_MODEL",
         # AI Foundry
         "AZURE_AI_AGENT_ENDPOINT", "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "AZURE_AI_PROJECT_NAME",
+        "FOUNDRY_PROJECT_PID",
         # AI Search
         "AZURE_AI_SEARCH_ENDPOINT", "AZURE_AI_SEARCH_NAME", "AZURE_AI_SEARCH_INDEX",
         "AZURE_AI_SEARCH_CONNECTION_NAME", "AZURE_AI_SEARCH_CONNECTION_ID",
@@ -382,14 +410,24 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
             _log(f"  Found MID_DISPLAY_NAME: {mid_name}")
     
     # Derive AZURE_AI_PROJECT_NAME from AZURE_AI_AGENT_ENDPOINT if not present
-    if "AZURE_AI_PROJECT_NAME" not in settings:
+    derived_project_name = settings.get("AZURE_AI_PROJECT_NAME", "")
+    if not derived_project_name:
         agent_endpoint = settings.get("AZURE_AI_AGENT_ENDPOINT", "")
         if agent_endpoint and "/projects/" in agent_endpoint:
-            project_name = agent_endpoint.split("/projects/")[-1].rstrip("/")
-            if project_name:
-                lines.append(f"AZURE_AI_PROJECT_NAME={project_name}")
-                _log(f"  Found AZURE_AI_PROJECT_NAME: {project_name}")
+            derived_project_name = agent_endpoint.split("/projects/")[-1].rstrip("/")
+            if derived_project_name:
+                lines.append(f"AZURE_AI_PROJECT_NAME={derived_project_name}")
+                _log(f"  Found AZURE_AI_PROJECT_NAME: {derived_project_name}")
     
+    # Derive FOUNDRY_PROJECT_PID from AI Foundry project if not present
+    if "FOUNDRY_PROJECT_PID" not in settings:
+        if derived_project_name:
+            _log(f"  Fetching FOUNDRY_PROJECT_PID for project '{derived_project_name}'...")
+            foundry_pid = get_foundry_project_principal_id(resource_group, derived_project_name)
+            if foundry_pid:
+                lines.append(f"FOUNDRY_PROJECT_PID={foundry_pid}")
+                _log(f"  Found FOUNDRY_PROJECT_PID: {foundry_pid}")
+
     # Derive WEB_APP_URL from frontend app service if not present
     if "WEB_APP_URL" not in settings:
         web_app_url, _ = get_app_service(resource_group, "app-", exclude="api")
@@ -442,6 +480,9 @@ def generate_env_content(resource_group: str) -> str:
     project_endpoint, project_name = get_ai_foundry_project(resource_group)
     _log(f"  Found AI Foundry project: {project_name or 'not found'}")
     
+    foundry_project_pid = get_foundry_project_principal_id(resource_group, project_name)
+    _log(f"  Found Foundry project PID: {foundry_project_pid or 'not found'}")
+    
     cosmos_account = get_cosmos_db_account(resource_group)
     _log(f"  Found CosmosDB: {cosmos_account or 'not found'}")
     
@@ -485,6 +526,7 @@ def generate_env_content(resource_group: str) -> str:
         f"AZURE_AI_AGENT_ENDPOINT={project_endpoint}",
         f"AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME={chat_model}",
         f"AZURE_AI_PROJECT_NAME={project_name}",
+        f"FOUNDRY_PROJECT_PID={foundry_project_pid}",
         "",
         "# --- Azure AI Search ---",
         f"AZURE_AI_SEARCH_ENDPOINT={search_endpoint}",

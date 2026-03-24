@@ -12,7 +12,7 @@ Prerequisites:
 
 What this script does:
     - Fabric mode (AZURE_ENV_ONLY=false):
-        1. Assigns Fabric workspace Contributor role to backend service principal
+        1. Assigns Fabric workspace Contributor role to Foundry project's system-assigned identity
         2. Gets Fabric SQL endpoint and updates App Service settings
     - Azure SQL mode (AZURE_ENV_ONLY=true):
         1. Assigns Azure SQL db_datareader/db_datawriter roles to API managed identity
@@ -75,7 +75,7 @@ def get_fabric_headers(max_retries=3, retry_delay=5):
 def fabric_request(method, url, **kwargs):
     """Make Fabric API request with retry logic for 429 rate limiting."""
     max_retries = 5
-    for attempt in range(max_retries):
+    for _ in range(max_retries):
         response = requests.request(method, url, headers=get_fabric_headers(), **kwargs)
         if response.status_code == 429:
             retry_after = int(response.headers.get("Retry-After", 30))
@@ -87,25 +87,42 @@ def fabric_request(method, url, **kwargs):
 
 
 def assign_fabric_roles():
-    """Assign Fabric workspace Contributor role to the backend service principal."""
+    """Assign Fabric workspace Contributor role.
+
+    When USE_DATA_AGENT is true, assigns the role to the Foundry project's
+    system-assigned identity (FOUNDRY_PROJECT_PID).
+    Otherwise, assigns the role to the API managed identity (API_PID).
+    """
     FABRIC_API = "https://api.fabric.microsoft.com/v1"
     WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
-    BACKEND_APP_PID = os.getenv("API_PID") or os.getenv("BACKEND_APP_PID")
 
-    print("\n[1/2] Assigning Fabric workspace role to backend app...")
+    print("\n[1/2] Assigning Fabric workspace role...")
 
     if not WORKSPACE_ID:
         print("  [SKIP] FABRIC_WORKSPACE_ID not set")
         return
-    if not BACKEND_APP_PID:
-        print("  [SKIP] API_PID / BACKEND_APP_PID not set")
-        print("         Set API_PID in .env to enable automatic role assignment")
-        return
+
+    # Determine which principal to assign based on USE_DATA_AGENT
+    use_data_agent = os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes")
+    if use_data_agent:
+        principal_id = os.getenv("FOUNDRY_PROJECT_PID")
+        principal_label = "Foundry project system-assigned identity"
+        if not principal_id:
+            print("  [SKIP] FOUNDRY_PROJECT_PID not set. Run generate_env_from_azure.py to populate it.")
+            return
+    else:
+        principal_id = os.getenv("API_PID")
+        principal_label = "API managed identity"
+        if not principal_id:
+            print("  [SKIP] API_PID not set. Run generate_env_from_azure.py to populate it.")
+            return
+
+    print(f"  Assigning Contributor role to {principal_label} ({principal_id})")
 
     fabric_ra_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/roleAssignments"
     roleassignment_json = {
         "principal": {
-            "id": BACKEND_APP_PID,
+            "id": principal_id,
             "type": "ServicePrincipal"
         },
         "role": "Contributor"
@@ -141,8 +158,7 @@ def update_fabric_app_settings():
             if not os.path.exists(fabric_ids_path):
                 fabric_ids_path = os.path.join(data_dir, "fabric_ids.json")
             if os.path.exists(fabric_ids_path):
-                import json
-                with open(fabric_ids_path) as f:
+                with open(fabric_ids_path, encoding="utf-8") as f:
                     fabric_ids = json.load(f)
                 LAKEHOUSE_ID = LAKEHOUSE_ID or fabric_ids.get("lakehouse_id")
                 LAKEHOUSE_NAME = LAKEHOUSE_NAME or fabric_ids.get("lakehouse_name")
@@ -175,17 +191,16 @@ def update_fabric_app_settings():
         # Save to fabric_ids.json
         try:
             from load_env import get_data_folder
-            import json
             data_dir = get_data_folder()
             config_dir = os.path.join(data_dir, "config")
             fabric_ids_path = os.path.join(config_dir, "fabric_ids.json")
             if not os.path.exists(fabric_ids_path):
                 fabric_ids_path = os.path.join(data_dir, "fabric_ids.json")
             if os.path.exists(fabric_ids_path):
-                with open(fabric_ids_path) as f:
+                with open(fabric_ids_path, encoding="utf-8") as f:
                     fabric_ids = json.load(f)
                 fabric_ids["sql_endpoint"] = fabric_sql_endpoint
-                with open(fabric_ids_path, "w") as f:
+                with open(fabric_ids_path, "w", encoding="utf-8") as f:
                     json.dump(fabric_ids, f, indent=2)
         except Exception:
             pass
@@ -345,41 +360,6 @@ def assign_sql_roles():
         print(f"  [FAIL] SQL role assignment failed: {e}")
 
 
-def restart_app_service():
-    """Update App Service with a dummy setting to trigger a restart."""
-    from datetime import datetime, timezone
-
-    subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
-    resource_group = os.getenv("RESOURCE_GROUP_NAME")
-    app_name = os.getenv("API_APP_NAME")
-
-    print("\n[2/2] Restarting App Service to apply new permissions...")
-
-    if not subscription_id or not resource_group or not app_name:
-        print("  [SKIP] Missing AZURE_SUBSCRIPTION_ID, RESOURCE_GROUP_NAME, or API_APP_NAME")
-        return
-
-    try:
-        from azure.mgmt.web import WebSiteManagementClient
-
-        web_client = WebSiteManagementClient(credential, subscription_id)
-
-        current = web_client.web_apps.list_application_settings(resource_group, app_name)
-        props = dict(current.properties or {})
-
-        # Set a dummy value with timestamp to force App Service restart
-        props["LAST_DEPLOYMENT_TIMESTAMP"] = datetime.now(timezone.utc).isoformat()
-
-        web_client.web_apps.update_application_settings(
-            resource_group,
-            app_name,
-            {"properties": props}
-        )
-
-        print("  [OK] App Service settings updated - restart triggered")
-    except Exception as e:
-        print(f"  [WARN] Failed to restart App Service: {e}")
-
 
 # ============================================================================
 # Assign Cosmos DB Role (always runs)
@@ -446,7 +426,7 @@ def assign_cosmos_role():
                 account_name=cosmosdb_account,
             )
             if existing:
-                print(f"  [OK] Cosmos DB Data Contributor role already assigned - skipping")
+                print("  [OK] Cosmos DB Data Contributor role already assigned - skipping")
         except Exception:
             # Role doesn't exist yet, create it
             role_params = SqlRoleAssignmentCreateUpdateParameters(
@@ -466,7 +446,7 @@ def assign_cosmos_role():
         print("  [WARN] azure-mgmt-cosmosdb not installed. Run: pip install azure-mgmt-cosmosdb")
     except Exception as e:
         print(f"  [WARN] Cosmos DB role assignment failed: {e}")
-        print(f"         This is non-critical - continuing...")
+        print("         This is non-critical - continuing...")
 
 
 # ============================================================================
@@ -495,7 +475,7 @@ def update_agent_app_settings():
             print("       Run 06_create_agent.py first.")
             return
 
-        with open(agent_ids_path) as f:
+        with open(agent_ids_path, encoding="utf-8") as f:
             agent_ids = json.load(f)
 
         chat_agent_name = agent_ids.get("chat_agent_name")
@@ -536,11 +516,11 @@ def update_agent_app_settings():
             {"properties": props}
         )
 
-        print(f"\n  Settings updated:")
+        print("\n  Settings updated:")
         for key, value in new_settings.items():
             print(f"    {key}: {value}")
 
-        print(f"\n  [OK] App Service agent settings updated successfully!")
+        print("\n  [OK] App Service agent settings updated successfully!")
 
     except Exception as e:
         print(f"\n  [WARN] Failed to update App Service agent settings: {e}")
