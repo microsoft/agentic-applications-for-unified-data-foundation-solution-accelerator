@@ -5,7 +5,7 @@
 - Azure subscription with Contributor access & Role Based Access Control access
 - [Visual Studio Code](https://code.visualstudio.com/download)
 - [Azure Developer CLI (azd)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)
-- [Python 3.10+](https://www.python.org/downloads/)
+- [Python 3.10 to 3.13](https://www.python.org/downloads/)
 - [Git](https://git-scm.com/downloads)
 - [Microsoft ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver16)
 

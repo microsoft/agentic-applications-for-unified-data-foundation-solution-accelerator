@@ -102,7 +102,7 @@ def create_guide():
     pdf.section_header('Prerequisites')
     pdf.bullet_item('Azure subscription with Contributor access & Role Based Access Control access')
     pdf.bullet_item('Microsoft Fabric workspace (F2+ capacity) with admin permissions')
-    pdf.bullet_item('VS Code, Azure Developer CLI (aka.ms/azd), Python 3.10+, Git')
+    pdf.bullet_item('VS Code, Azure Developer CLI (aka.ms/azd), Python 3.10 to 3.13, Git')
     
     # Deployment Steps
     pdf.section_header('Quick Start')
