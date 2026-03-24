@@ -3,7 +3,6 @@ Unit tests for the attach_trace_attributes middleware in app.py.
 """
 # pylint: disable=redefined-outer-name
 
-import json
 import os
 import sys
 from unittest.mock import patch, MagicMock
@@ -31,6 +30,11 @@ def test_env_vars(monkeypatch):
 @pytest.fixture
 def app_instance(test_env_vars):
     """Create a FastAPI app instance for testing."""
+    for mod in ('chat', 'history', 'history_sql'):
+        if mod not in sys.modules:
+            m = MagicMock()
+            m.router = MagicMock(routes=[], tags=[])
+            sys.modules[mod] = m
     from app import build_app
     return build_app()
 
