@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using CsApi.Models;
 using CsApi.Auth;
@@ -249,9 +250,25 @@ public class SqlConversationRepository : ISqlConversationRepository
             //     Console.WriteLine($"  - {conv.ConversationId}: '{conv.Title}' (user: {conv.UserId}) [created: {conv.CreatedAt}, updated: {conv.UpdatedAt}]");
             // }
         }
+        catch (SqlException ex)
+        {
+            _logger.LogError(ex, "SQL error listing conversations for user {UserId}", userId);
+        }
+        catch (DbException ex)
+        {
+            _logger.LogError(ex, "Database error listing conversations for user {UserId}", userId);
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogWarning(ex, "Timeout listing conversations for user {UserId}", userId);
+        }
+        catch (OperationCanceledException)
+        {
+            // Request was cancelled, no logging needed
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error listing conversations for user {UserId}", userId);
+            _logger.LogError(ex, "Unexpected error listing conversations for user {UserId}", userId);
         }
         return list;
     }
@@ -293,7 +310,7 @@ public class SqlConversationRepository : ISqlConversationRepository
                         // Try to deserialize content as JSON first
                         content = JsonSerializer.Deserialize<JsonElement>(contentRaw);
                     } 
-                    catch 
+                    catch (JsonException)
                     { 
                         // If parsing fails, treat as string
                         content = JsonSerializer.SerializeToElement(contentRaw);
@@ -308,9 +325,14 @@ public class SqlConversationRepository : ISqlConversationRepository
                     { 
                         citations = JsonSerializer.Deserialize<JsonElement>(citationsStr);
                     } 
-                    catch 
+                    catch (JsonException)
                     { 
                         // If parsing fails, treat as null
+                        citations = null;
+                    }
+                    catch (NotSupportedException)
+                    {
+                        // Handle cases where the data type is not supported for deserialization
                         citations = null;
                     }
                 }
@@ -525,9 +547,20 @@ public class SqlConversationRepository : ISqlConversationRepository
                 results.Add(row);
             }
         }
+        catch (OperationCanceledException)
+        {
+            // Preserve cancellation semantics for callers
+            throw;
+        }
+        catch (SqlException ex)
+        {
+            _logger.LogError(ex, "SQL error executing chat query");
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error executing chat query");
+            _logger.LogError(ex, "Unexpected error executing chat query");
+            throw;
         }
         return JsonSerializer.Serialize(results);
     }

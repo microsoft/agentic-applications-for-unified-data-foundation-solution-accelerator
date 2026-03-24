@@ -263,6 +263,11 @@ public class HistoryFabController : ControllerBase
         {
             return Forbid();
         }
+        catch (OperationCanceledException)
+        {
+            // Treat request cancellations distinctly so they are not logged as server errors
+            return Problem(statusCode:400, title:"Request Cancelled", detail:"The operation was cancelled.");
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating conversation {ConversationId}", req.Conversation_Id);

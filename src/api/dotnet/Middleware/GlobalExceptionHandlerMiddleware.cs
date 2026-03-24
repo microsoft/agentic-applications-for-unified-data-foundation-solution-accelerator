@@ -29,6 +29,11 @@ public class GlobalExceptionHandlerMiddleware
         {
             await _next(context);
         }
+        catch (OperationCanceledException)
+        {
+            // Client disconnected - don't log as error, don't try to write response
+            context.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
+        }
         catch (Exception ex)
         {
             await HandleExceptionAsync(context, ex);

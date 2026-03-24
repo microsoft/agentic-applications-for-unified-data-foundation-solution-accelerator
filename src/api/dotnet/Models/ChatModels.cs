@@ -31,7 +31,7 @@ public class ChatMessage
                 ? Content.GetString() ?? string.Empty
                 : Content.GetRawText();
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
         {
             return string.Empty;
         }
@@ -45,7 +45,7 @@ public class ChatMessage
             // First try to parse as JSON to preserve structure
             Content = JsonSerializer.Deserialize<JsonElement>(content);
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
         {
             // If not JSON, store as string
             Content = JsonSerializer.SerializeToElement(content);
@@ -61,7 +61,7 @@ public class ChatMessage
                 ? JsonSerializer.Serialize(Content.GetString() ?? string.Empty)
                 : Content.GetRawText();
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
         {
             return JsonSerializer.Serialize(string.Empty);
         }
@@ -93,7 +93,7 @@ public class ChatMessage
                 return new List<string> { Citations.Value.GetRawText() };
             }
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
         {
             return new List<string>();
         }
@@ -109,7 +109,7 @@ public class ChatMessage
         {
             return Citations.Value.GetRawText();
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
         {
             return "";
         }

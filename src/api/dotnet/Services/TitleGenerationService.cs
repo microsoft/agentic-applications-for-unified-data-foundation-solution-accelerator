@@ -47,7 +47,7 @@ public class TitleGenerationService : ITitleGenerationService
                 return await GenerateTitleWithAgentAsync(_titleAgentName, messages, cancellationToken);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not TaskCanceledException)
         {
             _logger.LogWarning(ex, "Error generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
             return GenerateFallbackTitle(messages);
@@ -133,6 +133,11 @@ public class TitleGenerationService : ITitleGenerationService
 
             _logger.LogWarning("Agent {titleAgentName} returned empty or null title, using fallback", titleAgentName);
             return GenerateFallbackTitle(messages);
+        }
+        catch (OperationCanceledException oce) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation(oce, "Title generation was canceled for agent {titleAgentName}.", titleAgentName);
+            throw;
         }
         catch (Exception ex)
         {

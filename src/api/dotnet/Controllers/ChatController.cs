@@ -116,6 +116,10 @@ public class ChatController : ControllerBase
                 await Response.Body.FlushAsync(ct);
             }
         }
+        catch (OperationCanceledException)
+        {
+            // Client disconnected - don't log as error, don't try to write response
+        }
         catch (RequestFailedException ex)
         {
             var errorEnvelope = new { error = ex.Message };
