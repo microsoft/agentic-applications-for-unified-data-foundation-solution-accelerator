@@ -59,13 +59,8 @@ def should_mock_modules():
         if 'history' in arg.lower() and 'test_history' in arg.lower():
             return False
     
-    # Mock if testing app.py or if no specific test file mentioned
-    for arg in sys.argv:
-        if 'test_app' in arg.lower():
-            return True
-    
-    # Default: don't mock to allow real modules to load
-    return False
+    # Default: mock modules to prevent import errors from agent_framework
+    return True
 
 
 def should_mock_azure_sdk():
