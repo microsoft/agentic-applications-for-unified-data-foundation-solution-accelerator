@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "5438000383371982786"
+      "templateHash": "17539657414635965014"
     }
   },
   "parameters": {
@@ -648,7 +648,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "3748083939897813133"
+              "templateHash": "15171341847985441100"
             }
           },
           "parameters": {
@@ -2921,7 +2921,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "6142656233168095303"
+              "templateHash": "13102491909160505927"
             }
           },
           "parameters": {
@@ -3001,7 +3001,7 @@
             "existingAIServicesName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[8], '')]",
             "existingAIProjectName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[10], '')]",
             "imageName": "[format('DOCKER|{0}.azurecr.io/da-api:{1}', parameters('acrName'), parameters('imageTag'))]",
-            "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
+            "reactAppLayoutConfig": "{\n  \"appConfig\": {\n      \"CHAT_CHATHISTORY\": {\n        \"CHAT\": 70,\n        \"CHATHISTORY\": 30\n      }\n    }\n  }\n}"
           },
           "resources": [
             {
@@ -3758,7 +3758,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "16962628422975924470"
+              "templateHash": "13110594575107685913"
             }
           },
           "parameters": {
@@ -3831,7 +3831,7 @@
             "existingAIServicesName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[8], '')]",
             "existingAIProjectName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[10], '')]",
             "imageName": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('acrName'), parameters('imageTag'))]",
-            "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
+            "reactAppLayoutConfig": "{\n  \"appConfig\": {\n      \"CHAT_CHATHISTORY\": {\n        \"CHAT\": 70,\n        \"CHATHISTORY\": 30\n      }\n    }\n  }\n}"
           },
           "resources": [
             {
