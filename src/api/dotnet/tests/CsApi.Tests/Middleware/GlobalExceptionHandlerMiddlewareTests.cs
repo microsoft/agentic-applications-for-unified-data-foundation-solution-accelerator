@@ -192,7 +192,7 @@ public class GlobalExceptionHandlerMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_TaskCanceledException_Returns408()
+    public async Task InvokeAsync_TaskCanceledException_Returns499()
     {
         // Arrange
         RequestDelegate next = context => throw new TaskCanceledException();
@@ -204,7 +204,7 @@ public class GlobalExceptionHandlerMiddlewareTests
         await middleware.InvokeAsync(httpContext);
 
         // Assert
-        Assert.Equal(408, httpContext.Response.StatusCode);
+        Assert.Equal(499, httpContext.Response.StatusCode);
     }
 
     [Fact]
@@ -255,7 +255,8 @@ public class GlobalExceptionHandlerMiddlewareTests
 
         // Assert
         memoryStream.Position = 0;
-        var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
+        using var reader = new StreamReader(memoryStream);
+        var responseBody = await reader.ReadToEndAsync();
         Assert.Contains("stackTrace", responseBody);
     }
 
@@ -275,7 +276,8 @@ public class GlobalExceptionHandlerMiddlewareTests
 
         // Assert
         memoryStream.Position = 0;
-        var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
+        using var reader = new StreamReader(memoryStream);
+        var responseBody = await reader.ReadToEndAsync();
         Assert.DoesNotContain("stackTrace", responseBody);
     }
 
@@ -326,10 +328,11 @@ public class GlobalExceptionHandlerMiddlewareTests
 
         // Assert
         memoryStream.Position = 0;
-        var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
+        using var reader = new StreamReader(memoryStream);
+        var responseBody = await reader.ReadToEndAsync();
         
         // Should be valid JSON
-        var jsonDoc = JsonDocument.Parse(responseBody);
+        using var jsonDoc = JsonDocument.Parse(responseBody);
         Assert.NotNull(jsonDoc);
     }
 
@@ -349,7 +352,8 @@ public class GlobalExceptionHandlerMiddlewareTests
 
         // Assert
         memoryStream.Position = 0;
-        var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
+        using var reader = new StreamReader(memoryStream);
+        var responseBody = await reader.ReadToEndAsync();
         Assert.Contains("/api/test", responseBody);
     }
 
@@ -393,7 +397,8 @@ public class GlobalExceptionHandlerMiddlewareTests
 
         // Assert
         memoryStream.Position = 0;
-        var responseBody = await new StreamReader(memoryStream).ReadToEndAsync();
+        using var reader = new StreamReader(memoryStream);
+        var responseBody = await reader.ReadToEndAsync();
         Assert.Contains("innerException", responseBody);
     }
 }
