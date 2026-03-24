@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 import os
@@ -12,6 +11,7 @@ from pydantic import BaseModel, ConfigDict
 import pyodbc
 from azure.identity.aio import AzureCliCredential
 from azure.monitor.events.extension import track_event
+from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
@@ -20,18 +20,39 @@ from opentelemetry.trace import Status, StatusCode
 from auth.auth_utils import get_authenticated_user_details
 from auth.azure_credential_utils import get_azure_credential_async
 
-from agent_framework import ChatAgent
-from agent_framework.azure import AzureAIClient
-from agent_framework.exceptions import ServiceResponseException
+from azure.core.exceptions import HttpResponseError
 
 router = APIRouter()
 
 logger = logging.getLogger(__name__)
 
+# Check if the Application Insights Instrumentation Key is set in the environment variables
+instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+if instrumentation_key:
+    # Configure Application Insights if the Instrumentation Key is found
+    configure_azure_monitor(connection_string=instrumentation_key)
+    logging.info("Historyfab API: Application Insights configured with the provided Instrumentation Key")
+else:
+    # Log a warning if the Instrumentation Key is not found
+    logging.warning("Historyfab API: No Application Insights Instrumentation Key found. Skipping configuration")
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+
+# Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
+logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
+    logging.WARNING
+)
+logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
+
+# Suppress info logs from OpenTelemetry exporter
+logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
+    logging.WARNING
+)
+
 # Azure AI Foundry configuration
 AZURE_AI_AGENT_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
 AGENT_NAME_TITLE = os.getenv("AGENT_NAME_TITLE")
-AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME = os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME")
 
 # Database configuration
 
@@ -251,27 +272,13 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
 class SqlQueryTool(BaseModel):
     """SQL query tool for executing database queries using Agent Framework."""
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    pyodbc_conn: pyodbc.Connection
 
     async def run_sql_query(self, sql_query):
         """Execute parameterized SQL query and return results as list of dictionaries."""
-        conn = None
         # Connect to the database
-        cursor = None
         try:
-            logger.info("Chat Agent - Executing SQL query: %s", sql_query)
-            conn = None
-            max_retries = 3
-            for attempt in range(1, max_retries + 1):
-                conn = await get_db_connection()
-                if conn:
-                    break
-                logger.warning("Database connection attempt %d/%d failed", attempt, max_retries)
-                if attempt < max_retries:
-                    await asyncio.sleep(2 ** attempt)  # Exponential backoff: 2s, 4s
-            if not conn:
-                logger.error("Failed to establish database connection after %d attempts", max_retries)
-                raise Exception("Database connection failed")
-            cursor = conn.cursor()
+            cursor = self.pyodbc_conn.cursor()
             cursor.execute(sql_query)
             columns = [desc[0] for desc in cursor.description]
             result = []
@@ -286,15 +293,17 @@ class SqlQueryTool(BaseModel):
                         row_dict[col_name] = value
                 result.append(row_dict)
             logger.info("Chat Agent - Result of SQL query: %s", result)
-            return json.dumps(result, default=str) if result and len(result) > 0 else "No results found."
+            return result
         except Exception as e:
-            logger.error("Chat Agent - Error executing SQL query: %s", e)
-            return f"SQL query failed with error: {str(e)}. Please fix the query and try again."
+            logging.error("Error executing SQL query: %s", e)
+            return None
         finally:
             if cursor:
                 cursor.close()
-            if conn:
-                conn.close()
+
+    async def execute_sql(self, sql_query):
+        """Alias for run_sql_query. Execute SQL query and return results as list of dictionaries."""
+        return await self.run_sql_query(sql_query)
 
 
 # Configuration variable
@@ -564,30 +573,32 @@ async def generate_title(conversation_messages):
             logger.warning("Azure AI Agent endpoint not configured, using fallback title generation")
             return generate_fallback_title(conversation_messages)
 
-        credential = await get_azure_credential_async()
-        try:
-            async with AIProjectClient(
-                endpoint=AZURE_AI_AGENT_ENDPOINT,
-                credential=credential
-            ) as project_client:
-                chat_client = AzureAIClient(
-                    project_client=project_client,
-                    agent_name=AGENT_NAME_TITLE,
-                    use_latest_version=True,
-                    model_deployment_name=AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME,
-                )
+        async with AIProjectClient(
+            endpoint=AZURE_AI_AGENT_ENDPOINT,
+            credential=await get_azure_credential_async()
+        ) as project_client:
+            openai_client = project_client.get_openai_client()
+            conversation = await openai_client.conversations.create()
 
-                async with ChatAgent(
-                    chat_client=chat_client,
-                    tool_choice="none",
-                ) as chat_agent:
-                    thread = chat_agent.get_new_thread()
-                    result = await chat_agent.run(messages=final_prompt, thread=thread)
-                    return str(result).strip() if result is not None else generate_fallback_title(conversation_messages)
-        finally:
-            await credential.close()
-    except ServiceResponseException as sre:
-        logger.warning("ServiceResponseException generating title with Azure AI Foundry agent: %s", sre)
+            response = await openai_client.responses.create(
+                conversation=conversation.id,
+                input=final_prompt,
+                extra_body={"agent": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
+            )
+
+            # Extract text from response output
+            result_text = ""
+            for item in response.output:
+                if getattr(item, 'type', None) == 'message':
+                    if hasattr(item, 'content') and item.content is not None:
+                        for content in item.content:
+                            if hasattr(content, 'text'):
+                                result_text += content.text
+
+            return result_text.strip() if result_text else generate_fallback_title(conversation_messages)
+
+    except HttpResponseError as sre:
+        logger.warning("HttpResponseError generating title with Azure AI Foundry agent: %s", sre)
         return generate_fallback_title(conversation_messages)
 
     except Exception as e:

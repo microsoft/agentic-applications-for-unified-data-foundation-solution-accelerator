@@ -1,17 +1,46 @@
+@description('The principal ID to assign the role to.')
 param principalId string = ''
+
+@description('The resource ID of the role definition to assign.')
 param roleDefinitionId string
+
+@description('A unique name for the role assignment.')
 param roleAssignmentName string = ''
+
+@description('The name of the AI Services account.')
 param aiServicesName string
+
+@description('The name of the AI project under the AI Services account.')
 param aiProjectName string = ''
+
+@description('The Azure region for the AI Services account.')
 param aiLocation string=''
+
+@description('The kind of AI Services account (e.g., AIServices).')
 param aiKind string=''
+
+@description('The SKU name for the AI Services account.')
 param aiSkuName string=''
+
+@description('Whether to enable system-assigned managed identity on the AI Services account.')
 param enableSystemAssignedIdentity bool = false
+
+@description('The custom subdomain name for the AI Services account.')
 param customSubDomainName string = ''
+
+@description('The public network access setting for the AI Services account.')
 param publicNetworkAccess string = ''
+
+@description('The default network action for the AI Services account.')
 param defaultNetworkAction string = ''
+
+@description('Virtual network rules for the AI Services account.')
 param vnetRules array = []
+
+@description('IP rules for the AI Services account.')
 param ipRules array = []
+
+@description('Array of AI model deployments to create.')
 param aiModelDeployments array = []
 
 resource aiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = if (!enableSystemAssignedIdentity) {
@@ -96,10 +125,12 @@ resource roleAssignmentToFoundry 'Microsoft.Authorization/roleAssignments@2022-0
 
 // ========== Outputs ==========
 
+@description('The principal ID of the AI Services system-assigned managed identity.')
 output aiServicesPrincipalId string = enableSystemAssignedIdentity
   ? aiServicesWithIdentity.identity.principalId
   : aiServices.identity.principalId
 
+@description('The principal ID of the AI Project system-assigned managed identity.')
 output aiProjectPrincipalId string = !empty(aiProjectName)
   ? (enableSystemAssignedIdentity
       ? aiProjectWithIdentity.identity.principalId
