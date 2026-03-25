@@ -7,7 +7,7 @@ environment:
 name: agentic-applications-for-unified-data-foundation
 
 requiredVersions:
-  azd: ">= 1.15.0"
+  azd: ">= 1.15.0 != 1.23.9"
 
 metadata:
   template: agentic-applications-for-unified-data-foundation@1.1
