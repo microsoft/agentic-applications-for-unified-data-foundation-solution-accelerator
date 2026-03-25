@@ -39,7 +39,45 @@ If a step fails, suggest solutions based on the error message.
 
 ### 1. Configure Fabric workspace
 
-#### 1a. Create a Fabric capacity in Azure
+#### 1a. Enable Ontology and required features in Fabric Admin Portal
+
+!!! warning "Fabric IQ must be enabled"
+    You **must** enable Ontology and related preview features in the Fabric Admin Portal before proceeding. Without these settings, the Ontology item will not appear in your workspace and the Data Agent will not function.
+
+Follow these steps to enable the required tenant settings:
+
+1. Navigate to the [Fabric Admin Portal](https://app.fabric.microsoft.com/admin-portal).
+    - If you don't see the Admin Portal option, ensure you have **Fabric Admin** or **Global Admin** permissions on your tenant.
+
+2. In the left-hand navigation pane, select **Tenant settings**.
+
+3. **Enable Ontology (preview)**:
+    - In the Tenant settings page, use the search bar at the top and search for **Ontology**.
+    - Locate the **Ontology (preview)** setting.
+    - Toggle the setting to **Enabled**.
+    - Choose whether to enable it for **The entire organization** or for **Specific security groups** based on your needs.
+    - Click **Apply**.
+
+4. **Enable Graph (preview)**:
+    - Search for **Graph** in the Tenant settings search bar.
+    - Locate the **Graph (preview)** setting.
+    - Toggle the setting to **Enabled**.
+    - Choose the appropriate scope (entire organization or specific security groups).
+    - Click **Apply**.
+
+5. **Enable Copilot and Azure OpenAI Service**:
+    - Search for **Copilot** in the Tenant settings search bar.
+    - Locate the **Copilot and Azure OpenAI Service** setting.
+    - Toggle the setting to **Enabled**.
+    - Choose the appropriate scope.
+    - Click **Apply**.
+
+!!! note "Propagation delay"
+    These settings may take **up to 15 minutes** to take effect across your tenant. If you don't see the Ontology or Data Agent options in your workspace immediately, wait and refresh the page.
+
+For detailed instructions, refer to the official documentation: [Fabric IQ Tenant Settings](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings).
+
+#### 1b. Create a Fabric capacity in Azure
 
 !!! tip "Already have a Fabric capacity?"
     If you already have a Fabric capacity (F8+), you can **skip this step** and use your existing capacity.
@@ -47,7 +85,7 @@ If a step fails, suggest solutions based on the error message.
 Follow the instructions here:
 **[Create a Fabric capacity in Azure →](../01-deploy/02a-create-fabric-capacity.md)**
 
-#### 1b. Create a Fabric workspace
+#### 1c. Create a Fabric workspace
 
 !!! tip "Already have a Fabric workspace?"
     If you already have a Fabric workspace linked to a Fabric capacity, you can **skip this step** and use your existing workspace.
@@ -55,20 +93,7 @@ Follow the instructions here:
 Follow the instructions here:
 **[Create a Fabric workspace →](../01-deploy/02b-create-fabric-workspace.md)**
 
-#### 1c. Verify workspace settings
-
-!!! warning "Fabric IQ must be enabled"
-    Ensure that Fabric IQ is enabled on your tenant before proceeding. This setting is configured in the **Fabric Admin Portal**.
-    
-    1. Go to [Fabric Admin Portal](https://app.fabric.microsoft.com/admin-portal) → **Tenant settings**.
-    2. Search for and enable both of the following preview features:
-        - **Ontology (preview)**
-        - **Graph (preview)**
-        - **Data agent item types (preview)**
-        - **Copilot and Azure OpenAI Service**
-    3. These settings may take a upto 15 minutes to take effect.
-    
-    For detailed instructions, refer to the official documentation: [Fabric IQ Tenant Settings](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings).
+#### 1d. Verify workspace settings
 
 1. Open your newly created workspace or an existing workspace.
 2. Click the **Workspace settings** gear icon (⚙️) in the top-right area.
@@ -214,18 +239,12 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 
 ### 7. Test the Fabric Data Agent
 
-1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
-2. Copy the Ontology name from your workspace
-3. Select "New item" → Search for "Data Agent" → select data agent, provide a name and click create
-4. Add data source → Search & select your Ontology resource for this workshop
-5. Click Agent instructions from top menu and add the below agent instructions:
-    ```
-    You are a helpful assistant that can answer user questions using data.
-    Support group by in GQL.
-    ```
-5. Click Publish from the top menu and select Publish. 
+1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace.
+2. Open the Data Agent named `dataagent_<solution-name>_<suffix>`.
+3. If you do not see the Data Agent immediately, wait a few minutes and refresh the workspace.
+4. Ask the sample questions below.
 
-> Note: The Ontology set up may take up to 15 minutes so retry after some time if you don't see good responses. 
+> Note: The Ontology setup may take up to 15 minutes to fully propagate, so retry after some time if you do not see good responses.
 
 **Sample questions to try:**
 
