@@ -267,6 +267,9 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
       AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
       APP_ENV: 'Prod'
+      AZURE_BASIC_LOGGING_LEVEL: 'INFO'
+      AZURE_PACKAGE_LOGGING_LEVEL: 'WARNING'
+      AZURE_LOGGING_PACKAGES: ''
 
       AGENT_NAME_CHAT: ''
       AGENT_NAME_TITLE: ''

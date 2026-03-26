@@ -121,7 +121,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   properties: {
     Application_Type: 'web'
     publicNetworkAccessForIngestion: 'Enabled'
-    publicNetworkAccessForQuery: 'Disabled'
+    publicNetworkAccessForQuery: 'Enabled'
     WorkspaceResourceId: useExisting ? existingLogAnalyticsWorkspace.id : logAnalytics.id
   }
 }
