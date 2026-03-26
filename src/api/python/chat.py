@@ -506,8 +506,7 @@ async def conversation(request: Request):
                 status_code=400
             )
 
-        logger.info("POST /chat called: conversation_id=%s, query_length=%d",
-                     conversation_id, len(query) if query else 0)
+        logger.info("POST /chat called: conversation_id=%s, query_length=%d", conversation_id, len(query) if query else 0)
 
         # Track chat request initiation
         track_event_if_configured("ChatRequestReceived", {
