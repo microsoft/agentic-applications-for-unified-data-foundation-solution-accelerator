@@ -11,7 +11,6 @@ from pydantic import BaseModel, ConfigDict
 import pyodbc
 from azure.identity.aio import AzureCliCredential
 from azure.monitor.events.extension import track_event
-from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
@@ -25,30 +24,6 @@ from azure.core.exceptions import HttpResponseError
 router = APIRouter()
 
 logger = logging.getLogger(__name__)
-
-# Check if the Application Insights Instrumentation Key is set in the environment variables
-instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
-if instrumentation_key:
-    # Configure Application Insights if the Instrumentation Key is found
-    configure_azure_monitor(connection_string=instrumentation_key)
-    logging.info("Historyfab API: Application Insights configured with the provided Instrumentation Key")
-else:
-    # Log a warning if the Instrumentation Key is not found
-    logging.warning("Historyfab API: No Application Insights Instrumentation Key found. Skipping configuration")
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
-# Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
-logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
-    logging.WARNING
-)
-logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
-
-# Suppress info logs from OpenTelemetry exporter
-logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
-    logging.WARNING
-)
 
 # Azure AI Foundry configuration
 AZURE_AI_AGENT_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
@@ -899,6 +874,11 @@ async def list_conversations(
         raise
     except Exception as e:
         logger.exception("Exception in /historyfab/list: %s", str(e))
+        track_event_if_configured("ListConversationsError", {
+            "user_id": locals().get("user_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -965,6 +945,12 @@ async def get_conversation_messages_endpoint(request: Request, id: str = Query(.
         raise
     except Exception as e:
         logger.exception("Exception in /historyfab/read: %s", str(e))
+        track_event_if_configured("ReadConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1029,6 +1015,12 @@ async def delete_conversation_endpoint(request: Request, id: str = Query(...)):
         raise
     except Exception as e:
         logger.exception("Exception in /historyfab/delete: %s", str(e))
+        track_event_if_configured("DeleteConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1090,6 +1082,11 @@ async def delete_all_conversations_endpoint(request: Request):
         raise
     except Exception as e:
         logging.exception("Exception in /historyfab/delete_all: %s", str(e))
+        track_event_if_configured("DeleteAllConversationsError", {
+            "user_id": locals().get("user_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1164,6 +1161,12 @@ async def rename_conversation_endpoint(request: Request):
         raise
     except Exception as e:
         logger.exception("Exception in /historyfab/rename: %s", str(e))
+        track_event_if_configured("RenameConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1201,13 +1204,14 @@ async def update_conversation_endpoint(request: Request):
         update_response = await update_conversation(user_id, request_json)
 
         if not update_response:
-            if user_id:
-                track_event_if_configured("ConversationUpdated", {
-                    "user_id": user_id,
-                    "conversation_id": conversation_id,
-                    "title": update_response["title"]
-                })
             raise HTTPException(status_code=500, detail="Failed to update conversation")
+
+        if user_id:
+            track_event_if_configured("ConversationUpdated", {
+                "user_id": user_id,
+                "conversation_id": conversation_id,
+                "title": update_response["title"]
+            })
 
         return JSONResponse(
             content={
@@ -1224,6 +1228,12 @@ async def update_conversation_endpoint(request: Request):
         raise
     except Exception as e:
         logger.exception("Exception in /historyfab/update: %s", str(e))
+        track_event_if_configured("UpdateConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)

@@ -172,9 +172,10 @@ class TestConversationEndpoint:
         mock_request = AsyncMock(spec=Request)
         mock_request.json = AsyncMock(return_value={"conversation_id": "123"})
         
-        response = await conversation(mock_request)
-        assert isinstance(response, JSONResponse)
-        assert response.status_code == 400
+        with patch('chat.get_authenticated_user_details', return_value={"user_principal_id": "test_user"}):
+            response = await conversation(mock_request)
+            assert isinstance(response, JSONResponse)
+            assert response.status_code == 400
     
     @pytest.mark.asyncio
     async def test_missing_conversation_id(self):
@@ -184,9 +185,10 @@ class TestConversationEndpoint:
         mock_request = AsyncMock(spec=Request)
         mock_request.json = AsyncMock(return_value={"query": "test"})
         
-        response = await conversation(mock_request)
-        assert isinstance(response, JSONResponse)
-        assert response.status_code == 400
+        with patch('chat.get_authenticated_user_details', return_value={"user_principal_id": "test_user"}):
+            response = await conversation(mock_request)
+            assert isinstance(response, JSONResponse)
+            assert response.status_code == 400
     
     @pytest.mark.asyncio
     async def test_successful_request(self):
@@ -202,7 +204,8 @@ class TestConversationEndpoint:
         async def mock_stream():
             yield '{"data": "test"}\n\n'
         
-        with patch('chat.stream_chat_request', return_value=mock_stream()), \
+        with patch('chat.get_authenticated_user_details', return_value={"user_principal_id": "test_user"}), \
+             patch('chat.stream_chat_request', return_value=mock_stream()), \
              patch('chat.track_event_if_configured'):
             
             response = await conversation(mock_request)
@@ -216,9 +219,10 @@ class TestConversationEndpoint:
         mock_request = AsyncMock(spec=Request)
         mock_request.json = AsyncMock(side_effect=Exception("Test error"))
         
-        response = await conversation(mock_request)
-        assert isinstance(response, JSONResponse)
-        assert response.status_code == 500
+        with patch('chat.track_event_if_configured'):
+            response = await conversation(mock_request)
+            assert isinstance(response, JSONResponse)
+            assert response.status_code == 500
 
 
 class TestStreamOpenAIText:
@@ -463,7 +467,7 @@ class TestAdditionalCoverage:
         """Test that dict chunks are properly converted to JSON."""
         from chat import stream_chat_request
         
-        async def mock_stream(conv_id, query):
+        async def mock_stream(conv_id, query, user_id=""):
             yield {"type": "content", "text": "Hello"}
             yield {"type": "content", "text": " World"}
         
@@ -493,16 +497,21 @@ class TestAdditionalCoverage:
         async def mock_stream():
             yield '{"data": "test"}\n\n'
         
-        with patch('chat.stream_chat_request', return_value=mock_stream()), \
+        with patch('chat.get_authenticated_user_details', return_value={"user_principal_id": "test_user"}), \
+             patch('chat.stream_chat_request', return_value=mock_stream()), \
              patch('chat.track_event_if_configured') as mock_track:
             
             await conversation(mock_request)
             
-            # Should call track_event
-            mock_track.assert_called_once()
-            call_args = mock_track.call_args
-            assert call_args[0][0] == "ChatStreamSuccess"
-            assert "conversation_id" in call_args[0][1]
+            # Should call track_event for ChatRequestReceived and ChatStreamSuccess
+            assert mock_track.call_count == 2
+            call_args_list = mock_track.call_args_list
+            assert call_args_list[0][0][0] == "ChatRequestReceived"
+            assert "conversation_id" in call_args_list[0][0][1]
+            assert "user_id" in call_args_list[0][0][1]
+            assert call_args_list[1][0][0] == "ChatStreamSuccess"
+            assert "conversation_id" in call_args_list[1][0][1]
+            assert "user_id" in call_args_list[1][0][1]
     
     @pytest.mark.asyncio
     async def test_stream_openai_text_creates_new_conversation(self):
@@ -706,7 +715,9 @@ class TestCoverageBoost:
         async def mock_gen():
             yield '{"data": "response"}\n\n'
         
-        with patch('chat.stream_chat_request', return_value=mock_gen()):
+        with patch('chat.get_authenticated_user_details', return_value={"user_principal_id": "test_user"}), \
+             patch('chat.stream_chat_request', return_value=mock_gen()), \
+             patch('chat.track_event_if_configured'):
             response = await conversation(mock_request)
             
             # Should return StreamingResponse
