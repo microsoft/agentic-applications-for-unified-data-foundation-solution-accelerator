@@ -1,16 +1,17 @@
 """
-08_test_agent.py - Test AI Foundry Agent with SQL + Native AI Search
+07_test_agent.py - Test AI Foundry Agent with SQL + Native AI Search
 Unified test script that automatically detects SQL backend from agent config.
 
 Modes:
+    - Fabric Data Agent mode: All SQL handled by MCP tool (no local SQL needed)
     - Fabric mode: Executes SQL against Fabric Lakehouse
     - Azure SQL mode: Executes SQL against Azure SQL Database
     - Both modes: Native AI Search handles document queries automatically
 
 Usage:
-    python 08_test_agent.py           # Clean output (default)
-    python 08_test_agent.py -v         # Verbose: show SQL queries, search details
-    python 08_test_agent.py --agent-name <name>
+    python 07_test_agent.py           # Clean output (default)
+    python 07_test_agent.py -v         # Verbose: show SQL queries, search details
+    python 07_test_agent.py --agent-name <name>
 
 The script reads sql_mode from agent_ids.json to determine which SQL backend to use.
 """
@@ -41,7 +42,6 @@ from azure.identity import DefaultAzureCredential
 from azure.identity.aio import DefaultAzureCredential as AsyncDefaultAzureCredential
 from azure.ai.projects.aio import AIProjectClient
 from agent_framework.azure import AzureAIProjectAgentProvider
-import pyodbc
 import requests
 
 # Suppress informational warnings from agent_framework about runtime
@@ -79,7 +79,7 @@ if not os.path.exists(config_dir):
 agent_ids_path = os.path.join(config_dir, "agent_ids.json")
 if not os.path.exists(agent_ids_path):
     print("ERROR: agent_ids.json not found")
-    print("       Run 07_create_agent.py first")
+    print("       Run 06_create_agent.py first")
     sys.exit(1)
 
 with open(agent_ids_path) as f:
@@ -89,57 +89,69 @@ with open(agent_ids_path) as f:
 CHAT_AGENT_NAME = args.agent_name or agent_ids.get("chat_agent_name")
 if not CHAT_AGENT_NAME:
     print("ERROR: No agent name found")
-    print("       Run 07_create_agent.py first or provide --agent-name")
+    print("       Run 06_create_agent.py first or provide --agent-name")
     sys.exit(1)
 
 # Determine SQL mode from saved config
 SQL_MODE = agent_ids.get("sql_mode", "azure_sql")
-USE_FABRIC = SQL_MODE == "fabric"
+USE_FABRIC = SQL_MODE in ("fabric", "fabric_data_agent")
+USE_DATA_AGENT = SQL_MODE == "fabric_data_agent"
 
 # For Fabric mode, load additional config
 LAKEHOUSE_NAME = None
 LAKEHOUSE_ID = None
 SQL_ENDPOINT = None
 
-if USE_FABRIC:
+if USE_FABRIC and not USE_DATA_AGENT:
     fabric_ids_path = os.path.join(config_dir, "fabric_ids.json")
     if os.path.exists(fabric_ids_path):
         with open(fabric_ids_path) as f:
             fabric_ids = json.load(f)
         LAKEHOUSE_NAME = fabric_ids.get("lakehouse_name")
         LAKEHOUSE_ID = fabric_ids.get("lakehouse_id")
-else:
+elif not USE_FABRIC and not USE_DATA_AGENT:
     # Use Azure SQL config from agent_ids or environment
     SQL_SERVER = agent_ids.get("sql_server") or SQL_SERVER
     SQL_DATABASE = agent_ids.get("sql_database") or SQL_DATABASE
 
-if not USE_FABRIC and (not SQL_SERVER or not SQL_DATABASE):
+# Only require SQL config when not using Data Agent (MCP handles SQL server-side)
+if not USE_DATA_AGENT and not USE_FABRIC and (not SQL_SERVER or not SQL_DATABASE):
     print("ERROR: Azure SQL not configured")
     print("       Set SQLDB_SERVER and SQLDB_DATABASE")
     sys.exit(1)
+
+# Only import pyodbc when needed (not in Data Agent mode)
+if not USE_DATA_AGENT:
+    import pyodbc
 
 # ============================================================================
 # Print Configuration
 # ============================================================================
 
 print(f"\n{'='*60}")
-if USE_FABRIC:
+if USE_DATA_AGENT:
+    print("AI Agent Chat (Fabric Data Agent MCP + Native Search)")
+elif USE_FABRIC:
     print("AI Agent Chat (Fabric SQL + Native Search)")
 else:
     print("AI Agent Chat (Azure SQL + Native Search)")
 print(f"{'='*60}")
 print(f"Chat Agent: {CHAT_AGENT_NAME}")
-if USE_FABRIC:
-    print(f"SQL Mode: Fabric Lakehouse")
+if USE_DATA_AGENT:
+    print(f"SQL Mode: Fabric Data Agent (MCP)")
+    print(f"Data Agent: {agent_ids.get('data_agent_name', 'N/A')}")
+    print(f"MCP Endpoint: {agent_ids.get('data_agent_mcp_endpoint', 'N/A')}")
+elif USE_FABRIC:
+    print("SQL Mode: Fabric Lakehouse")
     print(f"Lakehouse: {LAKEHOUSE_NAME}")
 else:
-    print(f"SQL Mode: Azure SQL Database")
+    print("SQL Mode: Azure SQL Database")
     print(f"SQL Server: {SQL_SERVER}")
     print(f"SQL Database: {SQL_DATABASE}")
 print("Type 'quit' to exit, 'help' for sample questions\n")
 
 # ============================================================================
-# SQL Connection Functions
+# SQL Connection Functions (not used in Data Agent mode)
 # ============================================================================
 
 credential = DefaultAzureCredential()
@@ -160,8 +172,11 @@ def get_fabric_sql_endpoint():
             props = data.get("properties", {})
             sql_props = props.get("sqlEndpointProperties", {})
             return sql_props.get("connectionString")
+        elif VERBOSE:
+            print(f"[Fabric] API error response: {resp.text}")
     except Exception as e:
         print(f"Warning: Could not get Fabric SQL endpoint: {e}")
+        traceback.print_exc()
     return None
 
 
@@ -181,12 +196,21 @@ def get_azure_sql_connection():
     
     try:
         connection_string = f"DRIVER={{{driver18}}};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};"
-        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-        return conn
-    except Exception:
-        connection_string = f"DRIVER={{{driver17}}};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};"
-        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-        return conn
+        return pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+    except Exception as e:
+        if VERBOSE:
+            print(f"[Azure SQL] {driver18} failed: {e}")
+            print(f"[Azure SQL] Falling back to {driver17}...")
+        try:
+            connection_string = f"DRIVER={{{driver17}}};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};"
+            conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+            if VERBOSE:
+                print(f"[Azure SQL] Connected successfully using {driver17}")
+            return conn
+        except Exception as e2:
+            print(f"[Azure SQL] {driver17} also failed: {e2}")
+            traceback.print_exc()
+            raise
 
 
 def get_fabric_sql_connection():
@@ -208,12 +232,20 @@ def get_fabric_sql_connection():
     SQL_COPT_SS_ACCESS_TOKEN = 1256
     
     connection_string = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={SQL_ENDPOINT};DATABASE={LAKEHOUSE_NAME};Encrypt=yes;TrustServerCertificate=no"
-    conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-    return conn
+    try:
+        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+        return conn
+    except Exception as e:
+        if VERBOSE:
+            print(f"[Fabric SQL] Connection failed: {e}")
+            traceback.print_exc()
+        raise
 
 
 def execute_sql(sql_query: str) -> str:
     """Execute SQL query and return results."""
+    if VERBOSE:
+        print(f"\n[SQL] Executing query:\n{sql_query}")
     try:
         if USE_FABRIC:
             conn = get_fabric_sql_connection()
@@ -241,15 +273,14 @@ def execute_sql(sql_query: str) -> str:
         result_lines.append(f"\n({len(rows)} rows returned)")
         
         conn.close()
-        return "\n".join(result_lines)
+        result = "\n".join(result_lines)
+        if VERBOSE:
+            print(f"\n[SQL] Results:\n{result}")
+        return result
         
     except Exception as e:
+        traceback.print_exc()
         return f"SQL Error: {str(e)}"
-
-
-# ============================================================================
-# Initialize Client
-# ============================================================================
 
 
 # ============================================================================
@@ -317,7 +348,10 @@ def show_help():
     print("\nSample questions to try:")
     for i, q in enumerate(sample_questions, 1):
         print(f"  {i}. {q}")
-    print("\n  SQL questions use execute_sql tool")
+    if USE_DATA_AGENT:
+        print("\n  SQL questions use Fabric Data Agent (MCP) tool")
+    else:
+        print("\n  SQL questions use execute_sql tool")
     print("  Search questions use AI Search automatically")
     print("  Combined questions use both tools")
     print()
@@ -339,6 +373,9 @@ async def chat(user_message: str, conversation_id: str, agent):
         text_output = ""
         citations: list[dict] = []
 
+        if VERBOSE:
+            print(f"\n[Agent] Sending message to '{CHAT_AGENT_NAME}' (conversation: {conversation_id[:8]}...)")
+
         async for chunk in agent.run(user_message, stream=True, conversation_id=conversation_id):
             # Collect citations from Azure AI Search responses
             for content in getattr(chunk, "contents", []):
@@ -354,20 +391,6 @@ async def chat(user_message: str, conversation_id: str, agent):
 
         if text_output:
             print(f"\nAssistant: {text_output}")
-
-        # # Print search citations
-        # if citations:
-        #     print("\n📚 Search Citations:")
-        #     seen_doc_ids = set()
-        #     print("   (Showing unique documents cited in this response)")
-        #     print("   " + "-"*40)
-        #     for citation in citations:
-        #         # URL is directly on the citation object, fallback to additional_properties.get_url
-        #         url = citation.get("url") or (citation.get("additional_properties") or {}).get("get_url", "N/A")
-        #         title = citation.get("title", "N/A")
-        #         if title not in seen_doc_ids:
-        #             seen_doc_ids.add(title)
-        #             print(f"   - {title}: {url}")
 
         return text_output
         
@@ -386,10 +409,14 @@ async def main():
         provider = AzureAIProjectAgentProvider(project_client=project_client)
 
         # Get agent with tools using provider
-        agent = await provider.get_agent(
-            name=CHAT_AGENT_NAME,
-            tools=execute_sql
-        )
+        # In Data Agent mode, no local tools needed (MCP handles SQL server-side)
+        if USE_DATA_AGENT:
+            agent = await provider.get_agent(name=CHAT_AGENT_NAME)
+        else:
+            agent = await provider.get_agent(
+                name=CHAT_AGENT_NAME,
+                tools=execute_sql
+            )
 
         # Create conversation for context continuity
         openai_client = project_client.get_openai_client()

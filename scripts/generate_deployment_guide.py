@@ -102,7 +102,7 @@ def create_guide():
     pdf.section_header('Prerequisites')
     pdf.bullet_item('Azure subscription with Contributor access & Role Based Access Control access')
     pdf.bullet_item('Microsoft Fabric workspace (F2+ capacity) with admin permissions')
-    pdf.bullet_item('VS Code, Azure Developer CLI (aka.ms/azd), Python 3.10+, Git')
+    pdf.bullet_item('VS Code, Azure Developer CLI (aka.ms/azd), Python 3.10 to 3.13, Git')
     
     # Deployment Steps
     pdf.section_header('Quick Start')
@@ -127,10 +127,10 @@ def create_guide():
     
     pdf.step(6, 'Build the solution (~5 min)',
         'python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>',
-        'Azure-only mode? Use: python scripts/00_build_solution.py --from 04')
+        'Azure-only mode? Use: python scripts/00_build_solution.py --from 03')
     
     pdf.step(7, 'Test the agent',
-        'python scripts/08_test_agent.py')
+        'python scripts/07_test_agent.py')
     
     pdf.step(8, 'Launch the application',
         'Open the app URL shown in the azd up output in your browser')

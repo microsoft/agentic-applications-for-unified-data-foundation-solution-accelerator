@@ -913,11 +913,10 @@ Next steps:
   1. Update .env: DATA_FOLDER={data_dir}
   2. Run the pipeline:
      python scripts/02_create_fabric_items.py
-     python scripts/03_load_fabric_data.py
-     python scripts/04_generate_agent_prompt.py
-     python scripts/06_upload_to_search.py
-     python scripts/07_create_foundry_agent.py
-     python scripts/08_test_agent.py
+     python scripts/03_generate_agent_prompt.py
+     python scripts/05_upload_to_search.py
+     python scripts/06_create_agent.py
+     python scripts/07_test_agent.py
 """)
 
 # ============================================================================

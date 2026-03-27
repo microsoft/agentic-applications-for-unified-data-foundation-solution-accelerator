@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "5438000383371982786"
+      "templateHash": "450930550810961603"
     }
   },
   "parameters": {
@@ -648,7 +648,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "3748083939897813133"
+              "templateHash": "8705800521152012001"
             }
           },
           "parameters": {
@@ -2391,6 +2391,13 @@
                 "description": "The resource ID of the AI Foundry account."
               },
               "value": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), parameters('azureExistingAIProjectResourceId'), resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName')))]"
+            },
+            "aiProjectPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "The principal ID of the AI Foundry project managed identity."
+              },
+              "value": "[if(not(empty(variables('existingAIProjectName'))), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'assignOpenAIRoleToAISearchExisting'), '2025-04-01').outputs.aiProjectPrincipalId.value, reference(resourceId('Microsoft.CognitiveServices/accounts/projects', variables('aiServicesName'), variables('aiProjectName')), '2025-04-01-preview', 'full').identity.principalId)]"
             }
           }
         }
@@ -5023,6 +5030,13 @@
         "description": "Azure AI Services resource name"
       },
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesName.value]"
+    },
+    "FOUNDRY_PROJECT_PID": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure AI Foundry project managed identity principal ID"
+      },
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiProjectPrincipalId.value]"
     },
     "BACKEND_RUNTIME_STACK": {
       "type": "string",
