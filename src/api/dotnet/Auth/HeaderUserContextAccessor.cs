@@ -36,8 +36,8 @@ public class HeaderUserContextAccessor : IUserContextAccessor
         return new UserContext
         {
             UserPrincipalId = userPrincipalIdValues.ToString(),
-            UserName = headers["x-ms-client-principal-name"].ToString(),
-            AuthProvider = headers["x-ms-client-principal-idp"].ToString(),
+            UserName = headers.TryGetValue("x-ms-client-principal-name", out var userName) ? userName.ToString() : null,
+            AuthProvider = headers.TryGetValue("x-ms-client-principal-idp", out var authProvider) ? authProvider.ToString() : null,
             AuthToken = headers.TryGetValue("x-ms-token-aad-id-token", out var token) ? token.ToString() : null,
             ClientPrincipalB64 = headers.TryGetValue("x-ms-client-principal", out var cp) ? cp.ToString() : null,
             AadIdToken = headers.TryGetValue("x-ms-token-aad-id-token", out var idt) ? idt.ToString() : null
