@@ -367,16 +367,16 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
             # Citation tracking
             citations = []
             first_chunk = True
-            citation_marker_map = {}  # Maps original markers to sequential numbers
-            citation_counter = 0
+            # citation_marker_map = {}  # Maps original markers to sequential numbers
+            # citation_counter = 0
 
-            def replace_citation_marker(match):
-                nonlocal citation_counter
-                marker = match.group(0)
-                if marker not in citation_marker_map:
-                    citation_counter += 1
-                    citation_marker_map[marker] = citation_counter
-                return f"[{citation_marker_map[marker]}]"
+            # def replace_citation_marker(match):
+            #     nonlocal citation_counter
+            #     marker = match.group(0)
+            #     if marker not in citation_marker_map:
+            #         citation_counter += 1
+            #         citation_marker_map[marker] = citation_counter
+            #     return f"[{citation_marker_map[marker]}]"
 
             # Stream response using agent_framework - handles function calls automatically
             async for chunk in agent.run(query, stream=True, conversation_id=conv_id):

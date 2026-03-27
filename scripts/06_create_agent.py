@@ -734,8 +734,8 @@ def create_agents(project_client, instructions, title_instructions, agent_tools)
             existing_title_agent = project_client.agents.get(TITLE_AGENT_NAME)
             if existing_title_agent:
                 project_client.agents.delete(TITLE_AGENT_NAME)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: Unable to delete existing title agent '{TITLE_AGENT_NAME}'. It may not exist or deletion may have failed. Details: {e}")
 
         # Create title agent
         title_agent_definition = PromptAgentDefinition(

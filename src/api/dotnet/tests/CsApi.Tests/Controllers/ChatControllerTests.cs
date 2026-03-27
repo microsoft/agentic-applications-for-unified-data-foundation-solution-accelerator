@@ -3,6 +3,8 @@ using CsApi.Interfaces;
 using CsApi.Models;
 using CsApi.Repositories;
 using CsApi.Services;
+using CsApi.Utils;
+using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -33,11 +35,19 @@ public class ChatControllerTests
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"])
             .Returns("https://test.azure.com");
 
+        var threadCache = new ExpCache<string, AgentThread>(
+            maxSize: 1000,
+            ttlSeconds: 3600.0,
+            _mockConfiguration.Object,
+            NullLogger<ExpCache<string, AgentThread>>.Instance,
+            azureAIEndpoint: "https://test.azure.com");
+
         _controller = new ChatController(
             _mockUserContext.Object,
             _mockRepo.Object,
             _mockConfiguration.Object,
-            NullLogger<ChatController>.Instance);
+            NullLogger<ChatController>.Instance,
+            threadCache);
 
         // Setup default HttpContext
         var httpContext = new DefaultHttpContext();

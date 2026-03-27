@@ -201,7 +201,6 @@ with open(sql_filename, 'r', encoding='utf-8') as f:
 cursor.commit()
 conn.close()
 
-
 file_path = "../fabric_scripts/sql_files/tables.json"
 
 time.sleep(60)

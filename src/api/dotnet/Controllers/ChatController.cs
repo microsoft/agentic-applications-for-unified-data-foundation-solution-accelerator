@@ -10,6 +10,7 @@ using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using Azure;
+using Microsoft.Extensions.Configuration;
 
 namespace CsApi.Controllers;
 
@@ -23,21 +24,15 @@ public class ChatController : ControllerBase
     private readonly ILogger<ChatController> _logger;
 
     // Thread cache to maintain conversation context like Python ExpCache  
-    private static ExpCache<string, AgentThread>? _threadCache;
+    private readonly ExpCache<string, AgentThread> _threadCache;
 
-    public ChatController(IUserContextAccessor userContextAccessor, ISqlConversationRepository sqlRepo, IConfiguration configuration, ILogger<ChatController> logger)
+    public ChatController(IUserContextAccessor userContextAccessor, ISqlConversationRepository sqlRepo, IConfiguration configuration, ILogger<ChatController> logger, ExpCache<string, AgentThread> threadCache)
     { 
         _userContextAccessor = userContextAccessor; 
         _sqlRepo = sqlRepo;
         _configuration = configuration;
         _logger = logger;
-        
-        // Initialize thread cache with Azure AI endpoint if not already initialized
-        if (_threadCache == null)
-        {
-            var endpoint = configuration["AZURE_AI_AGENT_ENDPOINT"] ?? string.Empty;
-            _threadCache = new ExpCache<string, AgentThread>(maxSize: 1000, ttlSeconds: 3600.0, configuration, logger, azureAIEndpoint: endpoint);
-        }
+        _threadCache = threadCache;
     }
 
     /// <summary>
@@ -67,7 +62,7 @@ public class ChatController : ControllerBase
         AIAgent agent = agentService.Agent;
 
         AgentThread? thread = null;
-        if (_threadCache?.TryGet(convId, out var cachedThread) == true)
+        if (_threadCache.TryGet(convId, out var cachedThread) == true)
         {
             thread = cachedThread;
         }
@@ -92,7 +87,7 @@ public class ChatController : ControllerBase
                 .ConfigureAwait(false);
 
             thread = chatClientAgent.GetNewThread(conversationResponse.Id);
-            _threadCache?.Set(convId, thread);
+            _threadCache.Set(convId, thread);
         }
 
         try
