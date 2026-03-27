@@ -3,13 +3,9 @@ import {
   historyReadResponse,
 } from "../configs/StaticData";
 import {
-  AppConfig,
-  ChartConfigItem,
   ChatMessage,
   Conversation,
   ConversationRequest,
-  CosmosDBHealth,
-  CosmosDBStatus,
 } from "../types/AppTypes";
 import { ApiErrorHandler } from "../utils/errorHandler";
 import { getApiBaseUrl, isWorkShopDeployment } from "../config";

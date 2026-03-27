@@ -9,6 +9,17 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Suppress verbose ASP.NET MVC/Routing/CORS logs, keep request finished logs
+builder.Logging.AddFilter("Microsoft.AspNetCore.Mvc", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Routing", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Cors", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Information);
+
+// Suppress verbose Azure Monitor/OpenTelemetry exporter logs
+builder.Logging.AddFilter("Azure.Monitor", LogLevel.Critical);
+builder.Logging.AddFilter("Azure.Core", LogLevel.Warning);
+builder.Logging.AddFilter("OpenTelemetry", LogLevel.Warning);
+
 // CORS - allow all origins (adjust if needed)
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] {"*"};
 const string CorsPolicyName = "UiCors";

@@ -1,5 +1,6 @@
 // Creates Azure dependent resources for Azure AI studio
 
+@minLength(3)
 @description('The name of the solution, used as a base for naming all resources.')
 param solutionName string
 
@@ -58,7 +59,7 @@ var applicationInsightsName = '${abbrs.managementGovernance.applicationInsights}
 var location = solutionLocation //'eastus2'
 var aiProjectName = '${abbrs.ai.aiFoundryProject}${solutionName}'
 var aiSearchName = '${abbrs.ai.aiSearch}${solutionName}'
-var storageName = '${abbrs.storage.storageAccount}${toLower(replace(solutionName, '-', ''))}'
+var storageName = take('${abbrs.storage.storageAccount}${toLower(replace(solutionName, '-', ''))}', 24)
 var aiSearchConnectionName = 'search-connection-${solutionName}'
 
 var aiModelDeployments = concat([
