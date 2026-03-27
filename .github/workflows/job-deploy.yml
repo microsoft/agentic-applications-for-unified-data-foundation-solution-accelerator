@@ -26,7 +26,7 @@ on:
         type: 'string'
         required: false
         default: 'python'
-      AZURE_ENV_USE_CASE:
+      USE_CASE:
         description: 'Specify use cases to deploy'
         type: 'string'
         required: false
@@ -56,12 +56,12 @@ on:
         required: false
         default: ''
         type: string
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID:
         description: 'Log Analytics Workspace ID (Optional)'
         required: false
         default: ''
         type: string
-      AZURE_EXISTING_AI_PROJECT_RESOURCE_ID:
+      AZURE_ENV_FOUNDRY_PROJECT_RID:
         description: 'AI Project Resource ID (Optional)'
         required: false
         default: ''
@@ -132,13 +132,13 @@ jobs:
           INPUT_AZURE_LOCATION: ${{ inputs.azure_location }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.resource_group_name }}
           INPUT_BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
-          INPUT_AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
+          INPUT_USE_CASE: ${{ inputs.USE_CASE }}
           INPUT_EXP: ${{ inputs.EXP }}
           INPUT_BUILD_DOCKER_IMAGE: ${{ inputs.build_docker_image }}
           INPUT_CLEANUP_RESOURCES: ${{ inputs.cleanup_resources }}
           INPUT_RUN_E2E_TESTS: ${{ inputs.run_e2e_tests }}
-          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
-          INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
+          INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
+          INPUT_AZURE_ENV_FOUNDRY_PROJECT_RID: ${{ inputs.AZURE_ENV_FOUNDRY_PROJECT_RID }}
           INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
           INPUT_DOCKER_IMAGE_TAG: ${{ inputs.docker_image_tag }}
         run: |
@@ -178,13 +178,13 @@ jobs:
             fi
           fi
           
-          # Validate AZURE_ENV_USE_CASE (optional, alphanumeric with hyphens if provided)
-          if [[ -n "$INPUT_AZURE_ENV_USE_CASE" ]]; then
-            if [[ ! "$INPUT_AZURE_ENV_USE_CASE" =~ ^[a-zA-Z0-9-]+$ ]]; then
-              echo "❌ ERROR: AZURE_ENV_USE_CASE '$INPUT_AZURE_ENV_USE_CASE' is invalid. Must contain only alphanumerics and hyphens"
+          # Validate USE_CASE (optional, alphanumeric with hyphens if provided)
+          if [[ -n "$INPUT_USE_CASE" ]]; then
+            if [[ ! "$INPUT_USE_CASE" =~ ^[a-zA-Z0-9-]+$ ]]; then
+              echo "❌ ERROR: USE_CASE '$INPUT_USE_CASE' is invalid. Must contain only alphanumerics and hyphens"
               VALIDATION_FAILED=true
             else
-              echo "✅ AZURE_ENV_USE_CASE: '$INPUT_AZURE_ENV_USE_CASE' is valid"
+              echo "✅ USE_CASE: '$INPUT_USE_CASE' is valid"
             fi
           fi
           
@@ -223,27 +223,27 @@ jobs:
             fi
           fi
           
-          # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID (Azure Resource ID format)
-          if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" ]]; then
-            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
-              echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID is invalid. Must be a valid Azure Resource ID format:"
+          # Validate AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID (Azure Resource ID format)
+          if [[ -n "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID" ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/[Mm]icrosoft\.[Oo]perational[Ii]nsights/[Ww]orkspaces/[^/]+$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID is invalid. Must be a valid Azure Resource ID format:"
               echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.OperationalInsights/workspaces/{workspaceName}"
-              echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID'"
+              echo "   Got: '$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID'"
               VALIDATION_FAILED=true
             else
-              echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: Valid Resource ID format"
+              echo "✅ AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: Valid Resource ID format"
             fi
           fi
           
-          # Validate AZURE_EXISTING_AI_PROJECT_RESOURCE_ID (Azure Resource ID format)
-          if [[ -n "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" ]]; then
-            if [[ ! "$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/([Mm]icrosoft\.[Mm]achine[Ll]earning[Ss]ervices/([Ww]orkspaces|[Pp]rojects)/[^/]+|[Mm]icrosoft\.[Cc]ognitive[Ss]ervices/[Aa]ccounts/[^/]+/[Pp]rojects/[^/]+)$ ]]; then
-              echo "❌ ERROR: AZURE_EXISTING_AI_PROJECT_RESOURCE_ID is invalid. Must be a valid Azure Resource ID format:"
+          # Validate AZURE_ENV_FOUNDRY_PROJECT_RID (Azure Resource ID format)
+          if [[ -n "$INPUT_AZURE_ENV_FOUNDRY_PROJECT_RID" ]]; then
+            if [[ ! "$INPUT_AZURE_ENV_FOUNDRY_PROJECT_RID" =~ ^/subscriptions/[a-fA-F0-9-]+/[Rr]esource[Gg]roups/[^/]+/providers/([Mm]icrosoft\.[Mm]achine[Ll]earning[Ss]ervices/([Ww]orkspaces|[Pp]rojects)/[^/]+|[Mm]icrosoft\.[Cc]ognitive[Ss]ervices/[Aa]ccounts/[^/]+/[Pp]rojects/[^/]+)$ ]]; then
+              echo "❌ ERROR: AZURE_ENV_FOUNDRY_PROJECT_RID is invalid. Must be a valid Azure Resource ID format:"
               echo "   /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.CognitiveServices/accounts/{accountName}/projects/{projectName}"
-              echo "   Got: '$INPUT_AZURE_EXISTING_AI_PROJECT_RESOURCE_ID'"
+              echo "   Got: '$INPUT_AZURE_ENV_FOUNDRY_PROJECT_RID'"
               VALIDATION_FAILED=true
             else
-              echo "✅ AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: Valid Resource ID format"
+              echo "✅ AZURE_ENV_FOUNDRY_PROJECT_RID: Valid Resource ID format"
             fi
           fi
           
@@ -287,8 +287,8 @@ jobs:
         shell: bash
         env:
           INPUT_EXP: ${{ inputs.EXP }}
-          INPUT_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
-          INPUT_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
+          INPUT_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
+          INPUT_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_ENV_FOUNDRY_PROJECT_RID }}
         run: |
           echo "🔍 Validating EXP configuration..."
           
@@ -618,14 +618,14 @@ jobs:
           CLEANUP_RESOURCES: ${{ env.CLEANUP_RESOURCES }}
           BUILD_DOCKER_IMAGE: ${{ env.BUILD_DOCKER_IMAGE }}
           BRANCH_NAME: ${{ env.BRANCH_NAME }}
-          AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
+          USE_CASE: ${{ inputs.USE_CASE }}
         run: |
           echo "## 📋 Workflow Configuration Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Configuration | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|---------------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Branch** | \`$BRANCH_NAME\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Use Case** | \`$AZURE_ENV_USE_CASE\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Use Case** | \`$USE_CASE\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Backend Runtime** | \`${BACKEND_RUNTIME_STACK}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **EXP Enabled** | ${{ steps.configure_exp.outputs.EXP_ENABLED == 'true' && '✅ Yes' || '❌ No' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Run E2E Tests** | \`$RUN_E2E_TESTS\` |" >> $GITHUB_STEP_SUMMARY
@@ -664,9 +664,9 @@ jobs:
       BUILD_DOCKER_IMAGE: ${{ inputs.build_docker_image || 'false' }}
       EXP: ${{ needs.azure-setup.outputs.EXP_ENABLED }}
       BACKEND_RUNTIME_STACK: ${{ needs.azure-setup.outputs.BACKEND_RUNTIME_STACK }}
-      AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
-      AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
+      USE_CASE: ${{ inputs.USE_CASE }}
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
+      AZURE_ENV_FOUNDRY_PROJECT_RID: ${{ inputs.AZURE_ENV_FOUNDRY_PROJECT_RID }}
     secrets: inherit
 
   deploy-windows:
@@ -683,7 +683,7 @@ jobs:
       BUILD_DOCKER_IMAGE: ${{ inputs.build_docker_image || 'false' }}
       EXP: ${{ needs.azure-setup.outputs.EXP_ENABLED }}
       BACKEND_RUNTIME_STACK: ${{ needs.azure-setup.outputs.BACKEND_RUNTIME_STACK }}
-      AZURE_ENV_USE_CASE: ${{ inputs.AZURE_ENV_USE_CASE }}
-      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
-      AZURE_EXISTING_AI_PROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AI_PROJECT_RESOURCE_ID }}
+      USE_CASE: ${{ inputs.USE_CASE }}
+      AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID }}
+      AZURE_ENV_FOUNDRY_PROJECT_RID: ${{ inputs.AZURE_ENV_FOUNDRY_PROJECT_RID }}
     secrets: inherit

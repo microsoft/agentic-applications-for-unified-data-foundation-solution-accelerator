@@ -7,11 +7,11 @@ ENV_NAME="$2"
 AZURE_LOCATION="$3"
 AZURE_RESOURCE_GROUP="$4"
 USE_LOCAL_BUILD="$5"
-AZURE_ENV_IMAGETAG="$6"
+AZURE_ENV_IMAGE_TAG="$6"
 
 # Validate required parameters
 if [[ -z "$AZURE_SUBSCRIPTION_ID" || -z "$ENV_NAME" || -z "$AZURE_LOCATION" || -z "$AZURE_RESOURCE_GROUP" ]]; then
-    echo "Missing required arguments. Usage: docker-build.sh <AZURE_SUBSCRIPTION_ID> <ENV_NAME> <AZURE_LOCATION> <AZURE_RESOURCE_GROUP> <USE_LOCAL_BUILD> <AZURE_ENV_IMAGETAG>"
+    echo "Missing required arguments. Usage: docker-build.sh <AZURE_SUBSCRIPTION_ID> <ENV_NAME> <AZURE_LOCATION> <AZURE_RESOURCE_GROUP> <USE_LOCAL_BUILD> <AZURE_ENV_IMAGE_TAG>"
     exit 1
 fi
 
@@ -24,7 +24,7 @@ if [[ "${USE_LOCAL_BUILD,,}" != "true" ]]; then
     exit 0
 fi
 
-AZURE_ENV_IMAGETAG=${AZURE_ENV_IMAGETAG:-latest_v2}
+AZURE_ENV_IMAGE_TAG=${AZURE_ENV_IMAGE_TAG:-latest_v2}
 
 echo "Local Build enabled. Starting build process."
 
@@ -104,7 +104,7 @@ build_and_push_image() {
 }
 
 # STEP 8: Build and push images with provided tag
-build_and_push_image "da-api" "$APIAPP_DOCKERFILE_PATH" "$APIAPP_CONTEXT_PATH" "$AZURE_ENV_IMAGETAG"
-build_and_push_image "da-app" "$WEBAPP_DOCKERFILE_PATH" "$WEBAPP_CONTEXT_PATH" "$AZURE_ENV_IMAGETAG"
+build_and_push_image "da-api" "$APIAPP_DOCKERFILE_PATH" "$APIAPP_CONTEXT_PATH" "$AZURE_ENV_IMAGE_TAG"
+build_and_push_image "da-app" "$WEBAPP_DOCKERFILE_PATH" "$WEBAPP_CONTEXT_PATH" "$AZURE_ENV_IMAGE_TAG"
 
-echo -e "\nAll Docker images built and pushed successfully with tag: $AZURE_ENV_IMAGETAG"
+echo -e "\nAll Docker images built and pushed successfully with tag: $AZURE_ENV_IMAGE_TAG"

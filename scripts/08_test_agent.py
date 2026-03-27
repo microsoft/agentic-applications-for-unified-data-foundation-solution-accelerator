@@ -57,8 +57,9 @@ ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
 
 # SQL Configuration
 FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
-SQL_SERVER = os.getenv("SQLDB_SERVER")
-SQL_DATABASE = os.getenv("SQLDB_DATABASE")
+# Support both new and legacy environment variable names for backward compatibility
+SQL_SERVER = os.getenv("AZURE_SQLDB_SERVER") or os.getenv("SQLDB_SERVER")
+SQL_DATABASE = os.getenv("AZURE_SQLDB_DATABASE") or os.getenv("SQLDB_DATABASE")
 
 if not ENDPOINT:
     print("ERROR: AZURE_AI_AGENT_ENDPOINT not set")
@@ -115,7 +116,7 @@ else:
 
 if not USE_FABRIC and (not SQL_SERVER or not SQL_DATABASE):
     print("ERROR: Azure SQL not configured")
-    print("       Set SQLDB_SERVER and SQLDB_DATABASE")
+    print("       Set AZURE_SQLDB_SERVER and AZURE_SQLDB_DATABASE")
     sys.exit(1)
 
 # ============================================================================
