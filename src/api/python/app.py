@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from opentelemetry import trace
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from chat import router as chat_router
 from history import router as history_router
@@ -135,6 +136,7 @@ def build_app() -> FastAPI:
 
 
 app = build_app()
+FastAPIInstrumentor.instrument_app(app, excluded_urls="health")
 
 
 if __name__ == "__main__":
