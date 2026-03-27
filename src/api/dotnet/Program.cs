@@ -4,6 +4,8 @@ using CsApi.Middleware;
 using CsApi.Repositories;
 using CsApi.Services;
 using CsApi.Converters;
+using CsApi.Utils;
+using Microsoft.Agents.AI;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 
@@ -63,6 +65,18 @@ builder.Services.AddScoped<ISqlConversationRepository, SqlConversationRepository
 builder.Services.AddScoped<ITitleGenerationService, TitleGenerationService>();
 builder.Services.AddSingleton<IAgentFrameworkService, AgentFrameworkService>();
 builder.Services.AddSingleton<IAzureCredentialFactory, AzureCredentialFactory>();
+builder.Services.AddSingleton(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var logger = sp.GetRequiredService<ILogger<ExpCache<string, AgentThread>>>();
+    var endpoint = configuration["AZURE_AI_AGENT_ENDPOINT"] ?? string.Empty;
+    return new ExpCache<string, AgentThread>(
+        maxSize: 1000,
+        ttlSeconds: 3600.0,
+        configuration,
+        logger,
+        azureAIEndpoint: endpoint);
+});
 
 var app = builder.Build();
 
