@@ -124,6 +124,22 @@ if should_mock_azure_sdk():
     sys.modules['azure.ai.projects.operations._patch'] = MagicMock()
     sys.modules['azure.ai.projects.operations._patch_datasets'] = MagicMock()
     sys.modules['azure.ai.projects._client'] = MagicMock()
+    
+    # Mock agent_framework to prevent import errors
+    mock_agent_framework = MagicMock()
+    mock_agent_framework_azure = MagicMock()
+    mock_agent_framework_azure.AzureAIProjectAgentProvider = MagicMock()
+    mock_agent_framework_core = MagicMock()
+    mock_agent_framework_core.ChatAgent = MagicMock()
+    mock_agent_framework_core.AgentThread = MagicMock()
+    mock_agent_framework.azure = mock_agent_framework_azure
+    mock_agent_framework.core = mock_agent_framework_core
+    
+    sys.modules['agent_framework'] = mock_agent_framework
+    sys.modules['agent_framework.azure'] = mock_agent_framework_azure
+    sys.modules['agent_framework.core'] = mock_agent_framework_core
+    sys.modules['agent_framework.azure.ai'] = MagicMock()
+    sys.modules['agent_framework.azure.ai.foundry'] = MagicMock()
 
 
 # Conditionally create mock modules before they are imported by app.py
