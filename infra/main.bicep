@@ -440,6 +440,9 @@ output AZURE_AI_PROJECT_NAME string = aifoundry.outputs.aiProjectName
 @description('Azure AI Services resource name')
 output AI_SERVICE_NAME string = aifoundry.outputs.aiServicesName
 
+@description('Azure AI Foundry project managed identity principal ID')
+output FOUNDRY_PROJECT_PID string = aifoundry.outputs.aiProjectPrincipalId
+
 @description('Backend runtime stack (python or dotnet)')
 output BACKEND_RUNTIME_STACK string = backendRuntimeStack
 

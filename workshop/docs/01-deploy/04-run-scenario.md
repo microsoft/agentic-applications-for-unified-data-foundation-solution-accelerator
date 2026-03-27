@@ -14,7 +14,7 @@ python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-worksp
 
 Azure Only Mode (if you ran `azd env set AZURE_ENV_ONLY true` before deploying)
 ```bash
-python scripts/00_build_solution.py --from 04
+python scripts/00_build_solution.py --from 03
 ```
 
 > **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
@@ -23,24 +23,21 @@ This uses the `data/default` folder and runs all setup steps:
 
 | Step | What Happens | Time |
 |------|--------------|------|
-| 02 | Create Fabric Lakehouse | ~30s |
-| 03 | Load data into Fabric | ~1min |
-| 04 | Generate Agent Prompt | ~5s |
-| 06 | Upload documents to AI Search | ~1min |
-| 07 | Create Foundry Agent | ~10s |
+| 02 | Create Fabric Lakehouse, Ontology, and Data Agent | ~1.5min |
+| 03 | Generate Agent Prompt | ~5s |
+| 05 | Upload documents to AI Search | ~1min |
+| 06 | Create Foundry Agent | ~10s |
 
 ## Expected Output
 
 ```
-> [02] Create Fabric Lakehouse... OK
-> [03] Load Data into Fabric... OK
-> [04] Generate Agent Prompt... OK
-> [06] Upload to AI Search... OK
-> [07] Create Foundry Agent... OK
+> [02] Create Fabric Lakehouse & Load Data... OK (90.5s)
+> [03] Generate Agent Prompt... OK (5.2s)
+> [05] Upload to AI Search... OK (60.3s)
+> [06] Create Foundry Agent... OK (10.1s)
 
-Done! 5/5 steps completed
-Next: python scripts/08_test_agent.py
-
+> ✓ Done! 4/4 steps completed
+> Next: python scripts/07_test_agent.py
 ```
 
 <!-- ## Create the Ontology
@@ -49,26 +46,20 @@ Before testing the Fabric Data Agent, set up an Ontology in Microsoft Fabric for
 
 Follow the step-by-step guide: **[Create Ontology](05-ontology-creation.md)** to set up the default use case. -->
 
-This sets up entity types (Tickets, Inspections), data bindings from your Lakehouse tables, and relationships between them.
+This sets up entity types (Tickets, Inspections), data bindings from your Lakehouse tables, relationships between them, and the Fabric Data Agent.
 
 ## Test the Fabric Data Agent
-1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace
-2. Copy the Ontology name from your workspace
-3. Select "New item" 
-4. Search for and select "Data Agent" 
-5. Select add data source and search & select your Ontology resource created in the previous step. 
-6. Select Agent instructions and paste the below instructions. 
-``` 
-You are a helpful assistant that can answer user questions using data.
-Support group by in GQL.
-```
+1. Go to your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace.
+2. Open the Data Agent named `dataagent_<solution-name>_<suffix>`.
+3. If you do not see the Data Agent immediately, wait a few minutes and refresh the workspace.
+4. Ask test questions in the Data Agent or continue with the CLI-based agent test below.
 
-> Note: The Ontology set up may take up to 15 minutes so retry after some time if you don't see good responses. 
+> Note: The Ontology setup may take up to 15 minutes to fully propagate, so retry after some time if you do not see good responses.
 
 ## Test the Agent
 
 ```bash
-python scripts/08_test_agent.py
+python scripts/07_test_agent.py
 ```
 
 ### Sample Conversation

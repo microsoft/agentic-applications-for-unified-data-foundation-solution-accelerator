@@ -3,10 +3,10 @@
 Uploads PDF files from the data folder to Azure AI Search with page-aware chunking.
 
 Usage:
-    python 06_upload_to_search.py
+    python 05_upload_to_search.py
 
 Prerequisites:
-    - Run 01_generate_sample_data.py (creates PDF files in data folder)
+    - Run 01_generate_data.py (creates PDF files in data folder)
     - Azure AI Search endpoint configured via azd or .env
     - Embedding model deployed in Azure AI Foundry
 

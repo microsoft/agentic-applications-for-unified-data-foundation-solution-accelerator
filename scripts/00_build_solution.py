@@ -7,25 +7,24 @@ Usage:
     python scripts/00_build_solution.py
     
     # Start from a specific step
-    python scripts/00_build_solution.py --from 06
+    python scripts/00_build_solution.py --from 05
 
     # Bring your own data (skips AI data generation)
     python scripts/00_build_solution.py --custom-data data/customdata
 
 Steps (Fabric SQL mode):
     01  - Generate sample data
-    02  - Create Fabric Lakehouse
-    03  - Load data into Fabric
-    04  - Generate agent prompt
-    06  - Upload documents to AI Search
-    07  - Create Foundry Agent (Fabric SQL + Search)
+    02  - Create Fabric Lakehouse & Load Data
+    03  - Generate agent prompt
+    05  - Upload documents to AI Search
+    06  - Create Foundry Agent (Fabric SQL + Search)
 
 Steps (Azure-only mode):
     01  - Generate sample data
-    04  - Generate agent prompt
-    05  - Upload data to Azure SQL
-    06  - Upload documents to AI Search
-    07  - Create Foundry Agent (Azure SQL + Search)
+    03  - Generate agent prompt
+    04  - Upload data to Azure SQL
+    05  - Upload documents to AI Search
+    06  - Create Foundry Agent (Azure SQL + Search)
 
 Custom Data mode (--custom-data):
     Skips step 01 and uses your own data from the specified folder.
@@ -52,18 +51,17 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 STEPS = {
     "01": {"script": "01_generate_data.py", "name": "Generate Sample Data", "time": "~2min"},
-    "02": {"script": "02_create_fabric_items.py", "name": "Create Fabric Lakehouse", "time": "~30s", "fabric": True},
-    "03": {"script": "03_load_fabric_data.py", "name": "Load Data into Fabric", "time": "~1min", "fabric": True},
-    "04": {"script": "04_generate_agent_prompt.py", "name": "Generate Agent Prompt", "time": "~5s"},
-    "05": {"script": "05_upload_to_sql.py", "name": "Upload to Azure SQL", "time": "~30s", "azure_only": True},
-    "06": {"script": "06_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
-    "07": {"script": "07_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
-    "09": {"script": "09_app_deployment.py", "name": "App Deployment Config", "time": "~15s", "deploy_app": True},
+    "02": {"script": "02_create_fabric_items.py", "name": "Create Fabric Lakehouse & Load Data", "time": "~1.5min", "fabric": True},
+    "03": {"script": "03_generate_agent_prompt.py", "name": "Generate Agent Prompt", "time": "~5s"},
+    "04": {"script": "04_upload_to_sql.py", "name": "Upload to Azure SQL", "time": "~30s", "azure_only": True},
+    "05": {"script": "05_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
+    "06": {"script": "06_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
+    "08": {"script": "08_app_deployment.py", "name": "App Deployment Config", "time": "~15s", "deploy_app": True},
 }
 
 # Pipeline order by mode
-FABRIC_PIPELINE = ["01", "02", "03", "04", "06", "07", "09"]
-AZURE_ONLY_PIPELINE = ["01", "04", "05", "06", "07", "09"]
+FABRIC_PIPELINE = ["01", "02", "03", "05", "06", "08"]
+AZURE_ONLY_PIPELINE = ["01", "03", "04", "05", "06", "08"]
 
 # ============================================================================
 # Parse Arguments
@@ -75,8 +73,8 @@ parser = argparse.ArgumentParser(
     epilog="""
 Examples:
   python scripts/00_build_solution.py                # Full Fabric mode or SQL mode
-  python scripts/00_build_solution.py --from 06      # Start from step 06
-  python scripts/00_build_solution.py --only 07      # Run only specific steps
+  python scripts/00_build_solution.py --from 05      # Start from step 05
+  python scripts/00_build_solution.py --only 06      # Run only specific steps
   python scripts/00_build_solution.py -g rg-myproject-dev  # Pre-provisioned infra
   python scripts/00_build_solution.py --fabric-workspace-id <id>  # Pass Fabric workspace ID
   python scripts/00_build_solution.py --custom-data data/customdata  # Use your own data
@@ -99,7 +97,7 @@ parser.add_argument("--clean", action="store_true",
                     help="Clean and recreate artifacts")
 
 parser.add_argument("--from", dest="from_step", type=str,
-                    help="Start from this step (e.g., --from 06)")
+                    help="Start from this step (e.g., --from 05)")
 parser.add_argument("--only", nargs="+", type=str,
                     help="Run only these steps (e.g., --only 07)")
 
@@ -129,10 +127,11 @@ if args.resource_group:
     print(f"\nFetching settings from resource group: {args.resource_group}")
     generate_script = os.path.join(script_dir, "generate_env_from_azure.py")
     
-    result = subprocess.run(
-        [sys.executable, generate_script, "--resource-group", args.resource_group],
-        cwd=script_dir
-    )
+    gen_cmd = [sys.executable, generate_script, "--resource-group", args.resource_group]
+    if args.quiet:
+        gen_cmd.append("--quiet")
+    
+    result = subprocess.run(gen_cmd, cwd=script_dir)
     
     if result.returncode == 0:
         print("✓ Environment configured from Azure.")
@@ -280,7 +279,7 @@ if args.from_step:
 
 # Append app deployment step if AZURE_ENV_DEPLOY_APP is true
 if not deploy_app:
-    pipeline = [s for s in pipeline if s != "09"]
+    pipeline = [s for s in pipeline if s != "08"]
 
 # ============================================================================
 # Validate Scripts Exist
@@ -412,7 +411,7 @@ def run_step(step_id):
     if step_id == "02" and args.clean:
         cmd.append("--clean")
     
-    if step_id == "07" and azure_only:
+    if step_id == "06" and azure_only:
         cmd.append("--azure-only")
     
     # Run the script
@@ -482,7 +481,7 @@ web_app_url = os.getenv("WEB_APP_URL", "")
 if args.quiet:
     print(f"\n✓ Done! {successful}/{len(pipeline)} steps completed in {total_elapsed:.1f}s")
     if failed == 0:
-        print(f"  Next: python scripts/08_test_agent.py")
+        print(f"  Next: python scripts/07_test_agent.py")
     else:
         print(f"  Some steps failed. Check output above.")
         sys.exit(1)
@@ -497,7 +496,7 @@ else:
     if failed == 0:
         print(f"""
 Next step - Test the agent:
-  python scripts/08_test_agent.py
+  python scripts/07_test_agent.py
 
 Sample questions to try:
   - "How many outages occurred last month?"
@@ -508,5 +507,5 @@ Sample questions to try:
         print("\nSome steps failed. Check the output above for errors.")
         sys.exit(1)
 
-if web_app_url and "09" in pipeline:
+if web_app_url and "08" in pipeline:
     print(f"🚀 Your app is live! Open it here: {web_app_url}")

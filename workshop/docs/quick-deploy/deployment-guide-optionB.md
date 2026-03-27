@@ -5,7 +5,7 @@
 - Azure subscription with Contributor access & Role Based Access Control access
 - [Visual Studio Code](https://code.visualstudio.com/download)
 - [Azure Developer CLI (azd)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)
-- [Python 3.10+](https://www.python.org/downloads/)
+- [Python 3.10 to 3.13](https://www.python.org/downloads/)
 - [Git](https://git-scm.com/downloads)
 - [Microsoft ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server?view=sql-server-ver16)
 
@@ -130,7 +130,7 @@ az login
 > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
 ```bash
-python scripts/00_build_solution.py --from 04
+python scripts/00_build_solution.py --from 03
 ```
 
 > **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
@@ -138,7 +138,7 @@ python scripts/00_build_solution.py --from 04
 ### 6. Test the agent
 
 ```bash
-python scripts/08_test_agent.py
+python scripts/07_test_agent.py
 ```
 
 **Sample questions to try:**
@@ -175,7 +175,7 @@ Instead of using AI-generated sample data, you can run the entire lab with **you
 2. Run the build with `--custom-data`:
 
     ```bash
-    python scripts/00_build_solution.py --custom-data data/customdata --from 04
+    python scripts/00_build_solution.py --custom-data data/customdata --from 03
     ```
 
     You will be prompted for your **Industry** and **Use Case**. The script will auto-generate the config, skip step 01 (AI data generation), and run the remaining pipeline steps.
