@@ -138,7 +138,7 @@ try:
             FABRIC_SQL_DATABASE = '{' + sqldb['properties']['databaseName'] + '}'
             FABRIC_SQL_SERVER = sqldb['properties']['serverFqdn'].replace(',1433','')
     # print(sqldb_id)
-except Exception:
+except Exception: 
     for sqldb in sqlsdbs_res['value']:
         if sqldb['displayName'] == sqldb_name:
             sqldb_id = sqldb['id']
@@ -279,6 +279,7 @@ else:
         sql_script = f.read()
         cursor.execute(sql_script)  
     cursor.commit()
+
 
 file_path = "infra/scripts/fabric_scripts/data/tables.json"
 

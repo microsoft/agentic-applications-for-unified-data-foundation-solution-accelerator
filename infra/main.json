@@ -5,16 +5,25 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "12754796816629833052"
+      "templateHash": "450930550810961603"
     }
   },
   "parameters": {
     "environmentName": {
       "type": "string",
+      "defaultValue": "agenticappudf",
       "minLength": 3,
       "maxLength": 20,
       "metadata": {
-        "description": "A unique prefix for all resources in this deployment. This should be 3-20 characters long:"
+        "description": "A unique  application/solution name for all resources in this deployment. This should be 3-20 characters long:"
+      }
+    },
+    "solutionUniqueText": {
+      "type": "string",
+      "defaultValue": "[substring(uniqueString(subscription().id, resourceGroup().name, parameters('environmentName')), 0, 5)]",
+      "maxLength": 5,
+      "metadata": {
+        "description": "Optional. A unique text value for the solution."
       }
     },
     "existingLogAnalyticsWorkspaceId": {
@@ -442,10 +451,10 @@
     "abbrs": "[variables('$fxv#0')]",
     "shouldDeployApp": "[or(not(parameters('isWorkshop')), parameters('deployApp'))]",
     "solutionLocation": "[if(empty(parameters('AZURE_LOCATION')), resourceGroup().location, parameters('AZURE_LOCATION'))]",
-    "uniqueId": "[toLower(uniqueString(subscription().id, parameters('environmentName'), variables('solutionLocation')))]",
-    "solutionPrefix": "[format('da{0}', padLeft(take(variables('uniqueId'), 12), 12, '0'))]",
+    "solutionSuffix": "[toLower(trim(replace(replace(replace(replace(replace(replace(format('{0}{1}', parameters('environmentName'), parameters('solutionUniqueText')), '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))]",
     "deployerInfo": "[deployer()]",
     "deployingUserPrincipalId": "[variables('deployerInfo').objectId]",
+    "existingTags": "[coalesce(resourceGroup().tags, createObject())]",
     "landingText": "[if(equals(parameters('usecase'), 'Retail-sales-analysis'), 'You can ask questions around sales, products and orders.', 'You can ask questions around customer policies, claims and communications.')]"
   },
   "resources": [
@@ -455,7 +464,7 @@
       "apiVersion": "2021-04-01",
       "name": "default",
       "properties": {
-        "tags": "[shallowMerge(createArray(resourceGroup().tags, createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name)))]"
+        "tags": "[union(variables('existingTags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name, 'Type', 'Non-WAF'))]"
       }
     },
     {
@@ -470,10 +479,10 @@
         "mode": "Incremental",
         "parameters": {
           "miName": {
-            "value": "[format('{0}{1}', variables('abbrs').security.managedIdentity, variables('solutionPrefix'))]"
+            "value": "[format('{0}{1}', variables('abbrs').security.managedIdentity, variables('solutionSuffix'))]"
           },
           "solutionName": {
-            "value": "[variables('solutionPrefix')]"
+            "value": "[variables('solutionSuffix')]"
           },
           "solutionLocation": {
             "value": "[variables('solutionLocation')]"
@@ -486,14 +495,14 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "5758098080919866163"
+              "templateHash": "3472930527601001530"
             }
           },
           "parameters": {
             "solutionName": {
               "type": "string",
               "minLength": 3,
-              "maxLength": 15,
+              "maxLength": 25,
               "metadata": {
                 "description": "Solution Name"
               }
@@ -538,7 +547,7 @@
             {
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "apiVersion": "2023-01-31",
-              "name": "[format('{0}-backend-app-mi', parameters('solutionName'))]",
+              "name": "[format('id-backend-app-mi-{0}', parameters('solutionName'))]",
               "location": "[parameters('solutionLocation')]",
               "tags": {
                 "app": "[parameters('solutionName')]",
@@ -565,10 +574,10 @@
                 "description": "The backend app managed identity details including id, objectId, clientId, and name."
               },
               "value": {
-                "id": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-backend-app-mi', parameters('solutionName')))]",
-                "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-backend-app-mi', parameters('solutionName'))), '2023-01-31').principalId]",
-                "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-backend-app-mi', parameters('solutionName'))), '2023-01-31').clientId]",
-                "name": "[format('{0}-backend-app-mi', parameters('solutionName'))]"
+                "id": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-backend-app-mi-{0}', parameters('solutionName')))]",
+                "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-backend-app-mi-{0}', parameters('solutionName'))), '2023-01-31').principalId]",
+                "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-backend-app-mi-{0}', parameters('solutionName'))), '2023-01-31').clientId]",
+                "name": "[format('id-backend-app-mi-{0}', parameters('solutionName'))]"
               }
             }
           }
@@ -587,7 +596,7 @@
         "mode": "Incremental",
         "parameters": {
           "solutionName": {
-            "value": "[variables('solutionPrefix')]"
+            "value": "[variables('solutionSuffix')]"
           },
           "solutionLocation": {
             "value": "[parameters('aiDeploymentsLocation')]"
@@ -639,12 +648,13 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "7108958563053125681"
+              "templateHash": "8705800521152012001"
             }
           },
           "parameters": {
             "solutionName": {
               "type": "string",
+              "minLength": 3,
               "metadata": {
                 "description": "The name of the solution, used as a base for naming all resources."
               }
@@ -989,7 +999,7 @@
             "location": "[parameters('solutionLocation')]",
             "aiProjectName": "[format('{0}{1}', variables('abbrs').ai.aiFoundryProject, parameters('solutionName'))]",
             "aiSearchName": "[format('{0}{1}', variables('abbrs').ai.aiSearch, parameters('solutionName'))]",
-            "storageName": "[format('{0}{1}', variables('abbrs').storage.storageAccount, toLower(replace(parameters('solutionName'), '-', '')))]",
+            "storageName": "[take(format('{0}{1}', variables('abbrs').storage.storageAccount, toLower(replace(parameters('solutionName'), '-', ''))), 24)]",
             "aiSearchConnectionName": "[format('search-connection-{0}', parameters('solutionName'))]",
             "aiModelDeployments": "[concat(createArray(createObject('name', parameters('gptModelName'), 'model', parameters('gptModelName'), 'sku', createObject('name', parameters('deploymentType'), 'capacity', parameters('gptDeploymentCapacity')), 'version', parameters('gptModelVersion'), 'raiPolicyName', 'Microsoft.Default')), if(parameters('isWorkshop'), createArray(createObject('name', parameters('embeddingModel'), 'model', parameters('embeddingModel'), 'sku', createObject('name', 'GlobalStandard', 'capacity', parameters('embeddingDeploymentCapacity')), 'raiPolicyName', 'Microsoft.Default')), createArray()))]",
             "useExisting": "[not(empty(parameters('existingLogAnalyticsWorkspaceId')))]",
@@ -2409,7 +2419,7 @@
         "mode": "Incremental",
         "parameters": {
           "accountName": {
-            "value": "[format('{0}{1}', variables('abbrs').databases.cosmosDBDatabase, variables('solutionPrefix'))]"
+            "value": "[format('{0}{1}', variables('abbrs').databases.cosmosDBDatabase, variables('solutionSuffix'))]"
           },
           "solutionLocation": {
             "value": "[parameters('secondaryLocation')]"
@@ -2576,10 +2586,10 @@
         "mode": "Incremental",
         "parameters": {
           "serverName": {
-            "value": "[format('{0}{1}', variables('abbrs').databases.sqlDatabaseServer, variables('solutionPrefix'))]"
+            "value": "[format('{0}{1}', variables('abbrs').databases.sqlDatabaseServer, variables('solutionSuffix'))]"
           },
           "sqlDBName": {
-            "value": "[format('{0}{1}', variables('abbrs').databases.sqlDatabase, variables('solutionPrefix'))]"
+            "value": "[format('{0}{1}', variables('abbrs').databases.sqlDatabase, variables('solutionSuffix'))]"
           },
           "solutionLocation": {
             "value": "[parameters('secondaryLocation')]"
@@ -2743,7 +2753,7 @@
             "value": "[variables('solutionLocation')]"
           },
           "HostingPlanName": {
-            "value": "[format('{0}{1}', variables('abbrs').compute.appServicePlan, variables('solutionPrefix'))]"
+            "value": "[format('{0}{1}', variables('abbrs').compute.appServicePlan, variables('solutionSuffix'))]"
           }
         },
         "template": {
@@ -2841,7 +2851,7 @@
         "mode": "Incremental",
         "parameters": {
           "name": {
-            "value": "[format('api-{0}', variables('solutionPrefix'))]"
+            "value": "[format('api-{0}', variables('solutionSuffix'))]"
           },
           "solutionLocation": {
             "value": "[variables('solutionLocation')]"
@@ -2896,7 +2906,7 @@
               "DISPLAY_CHART_DEFAULT": "False",
               "APPLICATIONINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.applicationInsightsConnectionString.value]",
               "DUMMY_TEST": "True",
-              "SOLUTION_NAME": "[variables('solutionPrefix')]",
+              "SOLUTION_NAME": "[variables('solutionSuffix')]",
               "IS_WORKSHOP": "[if(parameters('isWorkshop'), 'True', 'False')]",
               "AZURE_ENV_ONLY": "[if(parameters('azureEnvOnly'), 'True', 'False')]",
               "APP_ENV": "Prod",
@@ -3686,7 +3696,7 @@
         "mode": "Incremental",
         "parameters": {
           "name": {
-            "value": "[format('api-cs-{0}', variables('solutionPrefix'))]"
+            "value": "[format('api-cs-{0}', variables('solutionSuffix'))]"
           },
           "solutionLocation": {
             "value": "[variables('solutionLocation')]"
@@ -3735,7 +3745,7 @@
               "DISPLAY_CHART_DEFAULT": "False",
               "APPLICATIONINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.applicationInsightsConnectionString.value]",
               "DUMMY_TEST": "True",
-              "SOLUTION_NAME": "[variables('solutionPrefix')]",
+              "SOLUTION_NAME": "[variables('solutionSuffix')]",
               "APP_ENV": "Prod",
               "AGENT_NAME_CHAT": "",
               "AGENT_NAME_TITLE": "",
@@ -4494,7 +4504,7 @@
         "mode": "Incremental",
         "parameters": {
           "name": {
-            "value": "[format('{0}{1}', variables('abbrs').compute.webApp, variables('solutionPrefix'))]"
+            "value": "[format('{0}{1}', variables('abbrs').compute.webApp, variables('solutionSuffix'))]"
           },
           "solutionLocation": {
             "value": "[variables('solutionLocation')]"
@@ -4821,9 +4831,9 @@
     "SOLUTION_NAME": {
       "type": "string",
       "metadata": {
-        "description": "Solution prefix used for naming resources"
+        "description": "Solution suffix used for naming resources"
       },
-      "value": "[variables('solutionPrefix')]"
+      "value": "[variables('solutionSuffix')]"
     },
     "RESOURCE_GROUP_NAME": {
       "type": "string",

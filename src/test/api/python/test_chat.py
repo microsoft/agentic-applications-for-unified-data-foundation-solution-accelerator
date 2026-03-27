@@ -534,7 +534,7 @@ class TestAdditionalCoverage:
             mock_tool.return_value = Mock()
             
             mock_agent_inst = AsyncMock()
-            mock_thread = Mock(is_initialized=False)
+            mock_thread = Mock(is_initialized=False, service_thread_id="new_thread_456")
             mock_agent_inst.get_new_thread = Mock(return_value=mock_thread)
             
             async def mock_run(*args, **kwargs):

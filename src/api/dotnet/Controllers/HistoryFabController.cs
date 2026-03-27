@@ -265,8 +265,8 @@ public class HistoryFabController : ControllerBase
         }
         catch (OperationCanceledException)
         {
-            // Treat request cancellations distinctly so they are not logged as server errors
-            return Problem(statusCode:400, title:"Request Cancelled", detail:"The operation was cancelled.");
+            // Client disconnected or request was cancelled
+            return StatusCode(499);
         }
         catch (Exception ex)
         {

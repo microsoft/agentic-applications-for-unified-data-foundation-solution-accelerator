@@ -54,24 +54,30 @@ with open(file_path, "r", encoding="utf-8") as f:
 counter = 1
 insr_str = ''
 tables_str = ''
+schema_guidance = ''
 if usecase == 'retail':
     for table in data['tables']:
-
-        tables_str += f"\n {counter}.Table:dbo.{table['tablename']}\n        Columns: " + ', '.join(table['columns'])
+        tables_str += f"\n    {counter}. Table: dbo.{table['tablename']}\n       Columns: " + ', '.join(table['columns'])
         counter += 1
     # print(tables_str)
 else: 
     for table in data['tables']:
-
-        tables_str += f"\n {counter}. Table: dbo.{table['tablename']}\n        Columns: " + ', '.join([f"{column['name']} ({column['title']})" for column in table['columns']])
+        tables_str += f"\n    {counter}. Table: dbo.{table['tablename']}\n       Columns: " + ', '.join([f"{column['name']} ({column['title']})" for column in table['columns']])
         counter += 1
+    schema_guidance = '''
+**IMPORTANT:** Use column descriptions (in parentheses) to identify correct columns. When no dedicated field exists, search relevant text columns using separate LIKE conditions for each keyword. Do not invent conditions using unrelated fields.'''
+
 
     # print(tables_str)
 
 # Original agent instructions for non-workshop deployment (Fabric SQL only)
 agent_instructions_fabric = '''You are a helpful assistant.
 
-Generate a valid T-SQL query for SQL database in Fabric for the user's request using these tables:''' + tables_str + ''' Use accurate and semantically appropriate T-SQL expressions, data types, functions, aliases, and conversions based strictly on the column definitions and the explicit or implicit intent of the user query.
+Generate a valid T-SQL query for SQL database in Fabric for the user's request using these tables:''' + tables_str + '''
+
+**CRITICAL: Use table and column names EXACTLY as listed above.** Do NOT alter, pluralize, or singularize names.''' + schema_guidance + '''
+
+Use accurate and semantically appropriate T-SQL expressions, data types, functions, aliases, and conversions based strictly on the column definitions and the explicit or implicit intent of the user query.
 Avoid assumptions or defaults not grounded in schema or context.
 Ensure all aggregations, filters, grouping logic, and time-based calculations are precise, logically consistent, and reflect the user's intent without ambiguity.
 Be SQL Server compatible: 

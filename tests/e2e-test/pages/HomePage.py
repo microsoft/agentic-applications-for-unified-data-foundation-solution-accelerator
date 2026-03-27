@@ -217,10 +217,7 @@ class HomePage(BasePage):
                             self.page.wait_for_timeout(2000)
                             logger.info("✓ Started new chat for retry")
                     except Exception as e:
-                        logger.warning(
-                            "Failed to start a new chat for retry; continuing with existing chat.",
-                            exc_info=e,
-                        )
+                        logger.error(f"Error while starting new chat for retry: {str(e)}")
                     self.page.wait_for_timeout(3000)
                 else:
                     error_msg = f"Response validation failed after {max_retries} attempts. Last error: {error_message}"
@@ -242,10 +239,7 @@ class HomePage(BasePage):
                             self.page.wait_for_timeout(2000)
                             logger.info("✓ Started new chat for retry")
                     except Exception as e:
-                        logger.warning(
-                            "Failed to start a new chat for retry after error; continuing with existing chat.",
-                            exc_info=e,
-                        )
+                        logger.error(f"Error while starting new chat for retry: {str(e)}")
                     self.page.wait_for_timeout(3000)
                 else:
                     error_msg = f"Failed to get valid response after {max_retries} attempts. Last error: {str(e)}"
@@ -306,10 +300,7 @@ class HomePage(BasePage):
                                 self.page.wait_for_timeout(3000)
                                 logger.info("✓ Started new chat for question retry")
                         except Exception as e:
-                            logger.warning(
-                                "Failed to start a new chat for question retry; continuing with existing chat.",
-                                exc_info=e,
-                            )                         
+                            logger.error(f"Error while starting new chat for retry: {str(e)}")
 
                     response = self.ask_question_with_retry(question)
                     results.append({

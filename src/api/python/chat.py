@@ -110,6 +110,10 @@ class ExpCache(TTLCache):
         credential = None
         try:
             if thread_conversation_id:
+                # Response IDs (resp_xxx) don't need explicit deletion - they're managed by the API
+                if thread_conversation_id.startswith("resp_"):
+                    logger.info("Skipping deletion for response ID: %s", thread_conversation_id)
+                    return
                 # Get credential and use async context managers to ensure proper cleanup
                 credential = await get_azure_credential_async()
                 async with AIProjectClient(
@@ -117,8 +121,11 @@ class ExpCache(TTLCache):
                     credential=credential
                 ) as project_client:
                     openai_client = project_client.get_openai_client()
-                    await openai_client.conversations.delete(conversation_id=thread_conversation_id)
-                    logger.info("Thread deleted successfully: %s", thread_conversation_id)
+                    try:
+                        await openai_client.conversations.delete(conversation_id=thread_conversation_id)
+                        logger.info("Thread deleted successfully: %s", thread_conversation_id)
+                    finally:
+                        await openai_client.close()
         except Exception as e:
             logger.error("Failed to delete thread %s: %s", thread_conversation_id, e)
         finally:
@@ -160,6 +167,8 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
     try:
         if not query:
             query = "Please provide a query."
+
+        logger.info("Chat request received - query: %s, conversation_id: %s", query, conversation_id)
 
         credential = await get_azure_credential_async()
 
@@ -500,6 +509,8 @@ async def conversation(request: Request):
                 content={"error": "Conversation ID is required"},
                 status_code=400
             )
+
+        logger.info("Chat request received - query: %s, conversation_id: %s", query, conversation_id)
 
         result = await stream_chat_request(conversation_id, query)
         track_event_if_configured(

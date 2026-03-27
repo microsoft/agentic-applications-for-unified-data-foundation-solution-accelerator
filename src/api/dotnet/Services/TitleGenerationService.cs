@@ -1,3 +1,4 @@
+using Azure;
 using CsApi.Interfaces;
 using CsApi.Auth;
 using Azure.AI.Projects;
@@ -47,7 +48,11 @@ public class TitleGenerationService : ITitleGenerationService
                 return await GenerateTitleWithAgentAsync(_titleAgentName, messages, cancellationToken);
             }
         }
-        catch (Exception ex) when (ex is not OperationCanceledException && ex is not TaskCanceledException)
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
             return GenerateFallbackTitle(messages);
@@ -134,14 +139,18 @@ public class TitleGenerationService : ITitleGenerationService
             _logger.LogWarning("Agent {titleAgentName} returned empty or null title, using fallback", titleAgentName);
             return GenerateFallbackTitle(messages);
         }
-        catch (OperationCanceledException oce) when (cancellationToken.IsCancellationRequested)
+        catch (RequestFailedException ex)
         {
-            _logger.LogInformation(oce, "Title generation was canceled for agent {titleAgentName}.", titleAgentName);
+            _logger.LogError(ex, "Azure API error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (OperationCanceledException)
+        {
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
+            _logger.LogError(ex, "Unexpected error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
             return GenerateFallbackTitle(messages);
         }
     }

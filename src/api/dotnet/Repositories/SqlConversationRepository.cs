@@ -37,6 +37,34 @@ public class SqlConversationRepository : ISqlConversationRepository
 
     private async Task<IDbConnection> CreateConnectionAsync()
     {
+        const int maxRetries = 3;
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                return await CreateConnectionCoreAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Database connection attempt {Attempt}/{MaxRetries} failed: {Error}", attempt, maxRetries, ex.Message);
+                if (attempt < maxRetries)
+                {
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt)); // Exponential backoff: 2s, 4s
+                    await Task.Delay(delay);
+                }
+                else
+                {
+                    _logger.LogError(ex, "Failed to establish database connection after {MaxRetries} attempts", maxRetries);
+                    throw;
+                }
+            }
+        }
+        // Should never reach here, but satisfies compiler
+        throw new InvalidOperationException("Failed to establish database connection.");
+    }
+
+    private async Task<IDbConnection> CreateConnectionCoreAsync()
+    {
         var appEnv = (_config["APP_ENV"] ?? "prod").ToLower();
 
         // In prod, fall back to connection string from config (if needed)
@@ -372,38 +400,27 @@ public class SqlConversationRepository : ISqlConversationRepository
             return false; // Permission denied
 
         // 3. Delete conversation and messages
+        string deleteMessagesSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversation_messages WHERE userId=@u AND conversation_id=@c"
+            : "DELETE FROM hst_conversation_messages WHERE conversation_id=@c";
+        string deleteConversationSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversations WHERE userId=@u AND conversation_id=@c"
+            : "DELETE FROM hst_conversations WHERE conversation_id=@c";
+
+        using var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
+        using var delConvCmd = new SqlCommand(deleteConversationSql, (SqlConnection)conn);
+
         if (!string.IsNullOrEmpty(userId))
         {
-            const string deleteMessagesSql = "DELETE FROM hst_conversation_messages WHERE userId=@u AND conversation_id=@c";
-            const string deleteConversationSql = "DELETE FROM hst_conversations WHERE userId=@u AND conversation_id=@c";
-            using (var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn))
-            {
-                delMsgCmd.Parameters.AddWithValue("@u", userId);
-                delMsgCmd.Parameters.AddWithValue("@c", conversationId);
-                delMsgCmd.ExecuteNonQuery();
-            }
-            using (var delConvCmd = new SqlCommand(deleteConversationSql, (SqlConnection)conn))
-            {
-                delConvCmd.Parameters.AddWithValue("@u", userId);
-                delConvCmd.Parameters.AddWithValue("@c", conversationId);
-                return delConvCmd.ExecuteNonQuery() > 0;
-            }
+            delMsgCmd.Parameters.AddWithValue("@u", userId);
+            delConvCmd.Parameters.AddWithValue("@u", userId);
         }
-        else
-        {
-            const string deleteMessagesSql = "DELETE FROM hst_conversation_messages WHERE conversation_id=@c";
-            const string deleteConversationSql = "DELETE FROM hst_conversations WHERE conversation_id=@c";
-            using (var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn))
-            {
-                delMsgCmd.Parameters.AddWithValue("@c", conversationId);
-                delMsgCmd.ExecuteNonQuery();
-            }
-            using (var delConvCmd = new SqlCommand(deleteConversationSql, (SqlConnection)conn))
-            {
-                delConvCmd.Parameters.AddWithValue("@c", conversationId);
-                return delConvCmd.ExecuteNonQuery() > 0;
-            }
-        }
+        delMsgCmd.Parameters.AddWithValue("@c", conversationId);
+        delConvCmd.Parameters.AddWithValue("@c", conversationId);
+
+        delMsgCmd.ExecuteNonQuery();
+        var rows = delConvCmd.ExecuteNonQuery();
+        return rows > 0;
     }
 
     public async Task<int?> DeleteAllAsync(string? userId, CancellationToken ct)
@@ -412,34 +429,27 @@ public class SqlConversationRepository : ISqlConversationRepository
         
         // If userId is provided, delete only that user's conversations
         // If userId is null/empty, allow global delete (all conversations)
+        string deleteMessagesSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversation_messages WHERE userId=@u"
+            : "DELETE FROM hst_conversation_messages";
+        string deleteConversationsSql = !string.IsNullOrEmpty(userId)
+            ? "DELETE FROM hst_conversations WHERE userId=@u"
+            : "DELETE FROM hst_conversations";
+
+        using var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
+        using var delConvCmd = new SqlCommand(deleteConversationsSql, (SqlConnection)conn);
+
         if (!string.IsNullOrEmpty(userId))
         {
-            const string deleteMessagesSql = "DELETE FROM hst_conversation_messages WHERE userId=@u";
-            const string deleteConversationsSql = "DELETE FROM hst_conversations WHERE userId=@u";
-            using (var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn))
-            {
-                delMsgCmd.Parameters.AddWithValue("@u", userId);
-                delMsgCmd.ExecuteNonQuery();
-            }
-            using (var delConvCmd = new SqlCommand(deleteConversationsSql, (SqlConnection)conn))
-            {
-                delConvCmd.Parameters.AddWithValue("@u", userId);
-                return delConvCmd.ExecuteNonQuery();
-            }
+            delMsgCmd.Parameters.AddWithValue("@u", userId);
+            delConvCmd.Parameters.AddWithValue("@u", userId);
         }
-        else
-        {
-            const string deleteMessagesSql = "DELETE FROM hst_conversation_messages";
-            const string deleteConversationsSql = "DELETE FROM hst_conversations";
-            using (var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn))
-            {
-                delMsgCmd.ExecuteNonQuery();
-            }
-            using (var delConvCmd = new SqlCommand(deleteConversationsSql, (SqlConnection)conn))
-            {
-                return delConvCmd.ExecuteNonQuery();
-            }
-        }
+
+        // Delete messages first, then conversations
+        delMsgCmd.ExecuteNonQuery();
+        var conversationsDeleted = delConvCmd.ExecuteNonQuery();
+
+        return conversationsDeleted;
     }
 
     public async Task<bool?> RenameAsync(string? userId, string conversationId, string title, CancellationToken ct)
@@ -462,38 +472,31 @@ public class SqlConversationRepository : ISqlConversationRepository
             return false; // Permission denied
 
         // 3. Update title
+        string updateSql = !string.IsNullOrEmpty(userId)
+            ? "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE userId=@u AND conversation_id=@c"
+            : "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE conversation_id=@c";
+
+        using var updateCmd = new SqlCommand(updateSql, (SqlConnection)conn);
+        updateCmd.Parameters.AddWithValue("@t", title);
+        updateCmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
         if (!string.IsNullOrEmpty(userId))
         {
-            const string updateSql = "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE userId=@u AND conversation_id=@c";
-            using (var updateCmd = new SqlCommand(updateSql, (SqlConnection)conn))
-            {
-                updateCmd.Parameters.AddWithValue("@t", title);
-                updateCmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
-                updateCmd.Parameters.AddWithValue("@u", userId);
-                updateCmd.Parameters.AddWithValue("@c", conversationId);
-                return updateCmd.ExecuteNonQuery() > 0;
-            }
+            updateCmd.Parameters.AddWithValue("@u", userId);
         }
-        else
-        {
-            const string updateSql = "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE conversation_id=@c";
-            using (var updateCmd = new SqlCommand(updateSql, (SqlConnection)conn))
-            {
-                updateCmd.Parameters.AddWithValue("@t", title);
-                updateCmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
-                updateCmd.Parameters.AddWithValue("@c", conversationId);
-                return updateCmd.ExecuteNonQuery() > 0;
-            }
-        }
+        updateCmd.Parameters.AddWithValue("@c", conversationId);
+
+        var rows = updateCmd.ExecuteNonQuery();
+        return rows > 0;
     }
 
     public async Task<string> ExecuteChatQuery(string query, CancellationToken ct)
     {
+        _logger.LogInformation("Chat Agent - Executing SQL query: {Query}", query);
         var results = new List<Dictionary<string, object>>();
+        using var conn = await CreateConnectionAsync();
+        using var cmd = new SqlCommand(query, (SqlConnection)conn);
         try
         {
-            using var conn = await CreateConnectionAsync();
-            using var cmd = new SqlCommand(query, (SqlConnection)conn);
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
@@ -502,7 +505,7 @@ public class SqlConversationRepository : ISqlConversationRepository
                 {
                     var colName = reader.GetName(i);
                     var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                    
+                
                     // Handle data type conversions to match Python SqlQueryTool behavior
                     if (value != null)
                     {
@@ -559,10 +562,17 @@ public class SqlConversationRepository : ISqlConversationRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error executing chat query");
+            _logger.LogError(ex, "Chat Agent - Error executing SQL query: {Query}", query);
             throw;
         }
-        return JsonSerializer.Serialize(results);
+        if (results.Count == 0)
+        {
+            _logger.LogInformation("Chat Agent - SQL query returned no results.");
+            return "No results found.";            
+        }
+        var json = JsonSerializer.Serialize(results);
+        _logger.LogInformation("Chat Agent - Result of SQL query: {Result}", json);
+        return json;
     }
 
     /// <summary>

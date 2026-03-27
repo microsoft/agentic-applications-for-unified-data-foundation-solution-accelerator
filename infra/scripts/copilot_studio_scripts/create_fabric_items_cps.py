@@ -190,6 +190,8 @@ def get_fabric_db_connection():
         return None
 
 conn = get_fabric_db_connection()
+if conn is None:
+    raise SystemExit("Cannot proceed without a connection to Fabric SQL Database.")
 cursor = conn.cursor()
 print(cursor)
 sql_filename = '../fabric_scripts/sql_files/data_sql.sql'
@@ -265,15 +267,14 @@ for notebook_name in notebook_names:
         notebook_json['metadata']['dependencies']['lakehouse']['default_lakehouse_workspace_id'] = lakehouse_res.json()['workspaceId']
         print('lakehouse name: ', notebook_json['metadata']['dependencies']['lakehouse']['default_lakehouse_name'] )
     except Exception as e:
-        print(f"Warning: Unable to set lakehouse dependency in notebook metadata. Details: {e}")
-        
+        print(f"Error setting lakehouse in notebook metadata: {str(e)}")
     
     if environmentId != '':
         try:
             notebook_json['metadata']['dependencies']['environment']['environmentId'] = environmentId
             notebook_json['metadata']['dependencies']['environment']['workspaceId'] = lakehouse_res.json()['workspaceId']
         except Exception as e:
-            print(f"Warning: Unable to set environment dependency in notebook metadata. Details: {e}")
+            print(f"Error setting environment in notebook metadata: {str(e)}")
 
 
     notebook_base64 = base64.b64encode(json.dumps(notebook_json).encode('utf-8'))
@@ -313,7 +314,7 @@ print("pipeline_notebook_id: ", pipeline_notebook_id)
 
 
 pipeline_name = 'notebook_pipeline' + solutionname
-
+# create pipeline item
 pipeline_json = {
     "name": pipeline_name,
     "properties": {

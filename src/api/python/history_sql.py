@@ -186,8 +186,9 @@ async def get_db_connection():
         Connection: Database connection object, or None if connection fails.
     """
     is_workshop = os.getenv("IS_WORKSHOP", "false").lower() == "true"
+    is_azure_only = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
 
-    if is_workshop:
+    if is_workshop and is_azure_only:
         logging.info("Workshop deployment mode: Using Azure SQL Server")
         return await get_azure_sql_connection()
     else:
@@ -293,7 +294,7 @@ class SqlQueryTool(BaseModel):
                     else:
                         row_dict[col_name] = value
                 result.append(row_dict)
-
+            logger.info("Chat Agent - Result of SQL query: %s", result)
             return result
         except Exception as e:
             logging.error("Error executing SQL query: %s", e)
@@ -662,7 +663,6 @@ async def create_conversation(user_id, title="", conversation_id=None):
         Exception: If an error occurs during conversation creation.
     """
     try:
-
         if not conversation_id:
             logger.warning("No conversation_id found, generating a new one.")
             conversation_id = str(uuid.uuid4())
