@@ -16,6 +16,22 @@ const initialState: ChatHistoryState = {
   isHistoryUpdateAPIPending: false,
 };
 
+const dedupeConversationsById = (conversations: Conversation[]): Conversation[] => {
+  const uniqueById = new Map<string, Conversation>();
+
+  conversations.forEach((conversation) => {
+    if (!conversation?.id) {
+      return;
+    }
+    // Prefer the first occurrence of a given conversation ID
+    if (!uniqueById.has(conversation.id)) {
+      uniqueById.set(conversation.id, conversation);
+    }
+  });
+
+  return Array.from(uniqueById.values());
+};
+
 // Async Thunks
 export const fetchChatHistory = createAsyncThunk(
   "chatHistory/fetchList",
@@ -81,9 +97,19 @@ const chatHistorySlice = createSlice({
   initialState,
   reducers: {
     addConversations: (state, action: PayloadAction<Conversation[]>) => {
-      state.list.push(...action.payload);
+      state.list = dedupeConversationsById([...state.list, ...action.payload]);
     },
     addNewConversation: (state, action: PayloadAction<Conversation>) => {
+      const existingIndex = state.list.findIndex((conversation) => conversation.id === action.payload.id);
+      if (existingIndex > -1) {
+        const mergedConversation = {
+          ...state.list[existingIndex],
+          ...action.payload,
+        };
+        state.list.splice(existingIndex, 1);
+        state.list.unshift(mergedConversation);
+        return;
+      }
       state.list.unshift(action.payload);
     },
     updateConversationTitle: (state, action: PayloadAction<{ id: string; newTitle: string }>) => {
@@ -124,11 +150,11 @@ const chatHistorySlice = createSlice({
         const { conversations, offset } = action.payload;
         if (offset === 0) {
           // Replace list for initial fetch
-          state.list = conversations || [];
+          state.list = dedupeConversationsById(conversations || []);
         } else {
           // Append for pagination
           if (conversations) {
-            state.list.push(...conversations);
+            state.list = dedupeConversationsById([...state.list, ...conversations]);
           }
         }
       }
