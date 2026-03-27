@@ -43,6 +43,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--azure-only", action="store_true",
                     help="Use Azure SQL Database instead of Fabric Lakehouse")
+parser.add_argument("--use-data-agent", action="store_true",
+                    help="Use Fabric Data Agent via MCP (requires Fabric configured and Data Agent created)")
 parser.add_argument("--use-knowledge-base", action="store_true",
                     help="Use Foundry IQ Knowledge Base (MCP) instead of Search Connection")
 parser.add_argument("--connection-name", type=str,
@@ -98,8 +100,8 @@ elif FABRIC_WORKSPACE_ID:
 else:
     USE_FABRIC = False
 
-# Data Agent mode — only when Fabric is available and flag is set
-USE_DATA_AGENT = os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes") and USE_FABRIC
+# Data Agent mode — CLI flag overrides env var; only when Fabric is available
+USE_DATA_AGENT = (args.use_data_agent or os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes")) and USE_FABRIC
 
 # Project settings - from .env
 SOLUTION_NAME = os.getenv("SOLUTION_NAME") or os.getenv("AZURE_ENV_NAME", "demo")

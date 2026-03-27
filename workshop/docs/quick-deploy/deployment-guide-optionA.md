@@ -256,7 +256,25 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 
 The web application is already deployed during the initial `azd up` deployment. Open the app URL shown in the deployment output in your browser.
 
-### 9. Customize for Your Industry (Optional)
+### 9. Rerun with Fabric Data Agent (Optional)
+
+By default, the Foundry agent uses `execute_sql` to query Fabric Lakehouse directly. After experiencing the application with the default Foundry agent, you can switch to using the **Fabric Data Agent** (via MCP) by rerunning the agent creation step with the `--use-data-agent` flag:
+
+```bash
+python scripts/06_create_agent.py --use-data-agent
+```
+
+This recreates the Foundry agent with an MCP tool pointing to the Fabric Data Agent instead of `execute_sql`. The Data Agent translates natural language to SQL, which can improve query accuracy for complex questions.
+
+> **Note:** The Fabric Data Agent must already exist (created in step 02 / verified in step 7). Verify it is published by checking your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace.
+
+After recreating the agent, test it via the CLI or refresh the web application to experience the difference:
+
+```bash
+python scripts/07_test_agent.py
+```
+
+### 10. Customize for Your Industry (Optional)
 
 Follow steps in this page to  [Customize for your use case](../02-customize/index.md).
 

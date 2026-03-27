@@ -62,6 +62,24 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 python scripts/07_test_agent.py
 ```
 
+### Rerun with Fabric Data Agent
+
+By default, the Foundry agent uses `execute_sql` to query Fabric Lakehouse directly. To switch to using the **Fabric Data Agent** (via MCP), rerun the agent creation step with the `--use-data-agent` flag:
+
+```bash
+python scripts/06_create_agent.py --use-data-agent
+```
+
+This recreates the Foundry agent with an MCP tool pointing to the Fabric Data Agent instead of `execute_sql`. The Data Agent translates natural language to SQL, which can improve query accuracy for complex questions.
+
+> **Note:** The Fabric Data Agent must already exist (created in step 02). Verify it is published by checking your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace.
+
+After recreating the agent, test it again:
+
+```bash
+python scripts/07_test_agent.py
+```
+
 ### Sample Conversation
 
 ```
