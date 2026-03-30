@@ -63,8 +63,8 @@ const Chat: React.FC<ChatProps> = ({
   const { userMessage, generatingResponse, messages, isStreamingInProgress } = useAppSelector((state) => state.chat);
   const selectedConversationId = useAppSelector((state) => state.app.selectedConversationId);
   const generatedConversationId = useAppSelector((state) => state.app.generatedConversationId);
+  const conversationHistory = useAppSelector((state) => state.chatHistory.list);
   const { isFetchingConvMessages, isHistoryUpdateAPIPending } = useAppSelector((state) => state.chatHistory);
-  const chatHistoryList = useAppSelector((state) => state.chatHistory.list);
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
   const [isChartLoading, setIsChartLoading] = useState(false);
   const abortFuncs = useRef([] as AbortController[]);
@@ -95,27 +95,31 @@ const Chat: React.FC<ChatProps> = ({
 
     try {
       const result = await dispatch(updateConversation({ conversationId: convId, messages: newMessages })).unwrap();
-
-      if (result?.success) {
-        const finalConversationId = result?.data?.conversation_id || convId;
-        const alreadyExistsInHistory = chatHistoryList.some((conversation) => conversation.id === finalConversationId);
+      const savedConversationId = result?.data?.conversation_id;
+      const hasConversationInList = savedConversationId
+        ? conversationHistory.some((conversation) => conversation.id === savedConversationId)
+        : false;
+      
+      if (result?.success && savedConversationId && !hasConversationInList) {
         const newConversation: Conversation = {
-          id: finalConversationId,
+          id: savedConversationId,
           title: result?.data?.title,
           messages: newMessages,
           date: result?.data?.date,
           updatedAt: result?.data?.date,
         };
+        dispatch(addNewConversation(newConversation));
+      }
 
-        if (!alreadyExistsInHistory) {
-          dispatch(addNewConversation(newConversation));
-        }
-        dispatch(setSelectedConversationId(finalConversationId));
+      if (result?.success && savedConversationId && selectedConversationId !== savedConversationId) {
+        dispatch(setSelectedConversationId(savedConversationId));
       }
     } catch {
       // Error saving data to database
+    } finally {
+      dispatch(setGeneratingResponse(false));
     }
-  }, [chatHistoryList, dispatch]);
+  }, [selectedConversationId, conversationHistory, dispatch]);
   const parseCitationFromMessage = useCallback((message: string) => {
   try {
     message = '{' + message;
@@ -311,14 +315,14 @@ const Chat: React.FC<ChatProps> = ({
       }
       
       if (updatedMessages.length > 0) {
-        await saveToDB(updatedMessages, conversationId, 'graph');
+        saveToDB(updatedMessages, conversationId, 'graph');
       }
     } catch (e) {
       // Error in chart API request
 
       if (abortController.signal.aborted) {
         updatedMessages = [newMessage];
-        await saveToDB(updatedMessages, conversationId, 'graph');
+        saveToDB(updatedMessages, conversationId, 'graph');
       } else if (e instanceof Error) {
         alert(e.message);
       } else {
@@ -518,7 +522,7 @@ const Chat: React.FC<ChatProps> = ({
       }
       
       if (updatedMessages.length > 0) {
-        await saveToDB(updatedMessages, conversationId, isChatReq);
+        saveToDB(updatedMessages, conversationId, isChatReq);
       }
     } catch (e) {
       // Error in API request
@@ -528,7 +532,7 @@ const Chat: React.FC<ChatProps> = ({
           ? [newMessage, streamMessage]
           : [newMessage];
         
-        await saveToDB(updatedMessages, conversationId, 'error');
+        saveToDB(updatedMessages, conversationId, 'error');
       } else if (e instanceof Error) {
         alert(e.message);
       } else {

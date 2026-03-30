@@ -16,20 +16,23 @@ const initialState: ChatHistoryState = {
   isHistoryUpdateAPIPending: false,
 };
 
-const dedupeConversationsById = (conversations: Conversation[]): Conversation[] => {
-  const uniqueById = new Map<string, Conversation>();
+const upsertConversationAtTop = (list: Conversation[], conversation: Conversation) => {
+  const existingIndex = list.findIndex((item) => item.id === conversation.id);
 
-  conversations.forEach((conversation) => {
-    if (!conversation?.id) {
-      return;
-    }
-    // Prefer the first occurrence of a given conversation ID
-    if (!uniqueById.has(conversation.id)) {
-      uniqueById.set(conversation.id, conversation);
-    }
-  });
+  if (existingIndex === -1) {
+    list.unshift(conversation);
+    return;
+  }
 
-  return Array.from(uniqueById.values());
+  const existingConversation = list[existingIndex];
+  const updatedConversation: Conversation = {
+    ...existingConversation,
+    ...conversation,
+    messages: conversation.messages.length ? conversation.messages : existingConversation.messages,
+  };
+
+  list.splice(existingIndex, 1);
+  list.unshift(updatedConversation);
 };
 
 // Async Thunks
@@ -97,20 +100,16 @@ const chatHistorySlice = createSlice({
   initialState,
   reducers: {
     addConversations: (state, action: PayloadAction<Conversation[]>) => {
-      state.list = dedupeConversationsById([...state.list, ...action.payload]);
+      action.payload.forEach((conversation) => {
+        const exists = state.list.some((item) => item.id === conversation.id);
+
+        if (!exists) {
+          state.list.push(conversation);
+        }
+      });
     },
     addNewConversation: (state, action: PayloadAction<Conversation>) => {
-      const existingIndex = state.list.findIndex((conversation) => conversation.id === action.payload.id);
-      if (existingIndex > -1) {
-        const mergedConversation = {
-          ...state.list[existingIndex],
-          ...action.payload,
-        };
-        state.list.splice(existingIndex, 1);
-        state.list.unshift(mergedConversation);
-        return;
-      }
-      state.list.unshift(action.payload);
+      upsertConversationAtTop(state.list, action.payload);
     },
     updateConversationTitle: (state, action: PayloadAction<{ id: string; newTitle: string }>) => {
       const index = state.list.findIndex((obj) => obj.id === action.payload.id);
@@ -150,11 +149,11 @@ const chatHistorySlice = createSlice({
         const { conversations, offset } = action.payload;
         if (offset === 0) {
           // Replace list for initial fetch
-          state.list = dedupeConversationsById(conversations || []);
+          state.list = conversations || [];
         } else {
           // Append for pagination
           if (conversations) {
-            state.list = dedupeConversationsById([...state.list, ...conversations]);
+            state.list.push(...conversations);
           }
         }
       }
