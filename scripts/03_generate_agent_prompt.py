@@ -127,7 +127,7 @@ elif args.from_fabric:
         retry_after = int(resp.headers.get("Retry-After", 2))
         print(f"  Waiting for async operation...")
         
-        for attempt in range(15):
+        for _ in range(15):
             time.sleep(retry_after)
             poll_resp = requests.get(location, headers=headers)
             
@@ -185,7 +185,7 @@ elif args.from_fabric:
             
             try:
                 content = json.loads(payload)
-            except:
+            except Exception:
                 continue
             
             # EntityType definition (Ontology format uses numeric IDs in path)

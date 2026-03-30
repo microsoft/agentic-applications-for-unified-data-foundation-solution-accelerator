@@ -20,20 +20,7 @@ from auth.azure_credential_utils import get_azure_credential_async, get_azure_cr
 
 router = APIRouter()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
-logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
-    logging.WARNING
-)
-logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
-
-# Suppress info logs from OpenTelemetry exporter
-logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
-    logging.ERROR
-)
 
 # Configuration variables
 USE_CHAT_HISTORY_ENABLED = os.getenv("USE_CHAT_HISTORY_ENABLED", "false").strip().lower() == "true"
@@ -728,6 +715,11 @@ async def add_conversation_route(request: Request):
 
     except Exception as e:
         logger.exception("Exception in /generate: %s", str(e))
+        track_event_if_configured("GenerateConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -774,6 +766,12 @@ async def update_conversation_route(request: Request):
         )
     except Exception as e:
         logger.exception("Exception in /history/update: %s", str(e))
+        track_event_if_configured("UpdateConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -836,6 +834,11 @@ async def update_message_feedback_route(request: Request):
 
     except Exception as e:
         logger.exception("Exception in /history/message_feedback: %s", str(e))
+        track_event_if_configured("MessageFeedbackError", {
+            "user_id": locals().get("user_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -883,6 +886,12 @@ async def delete_conversation_route(request: Request, id: str = Query(...)):
                 detail=f"Conversation {conversation_id} not found or user does not have permission.")
     except Exception as e:
         logger.exception("Exception in /history/delete: %s", str(e))
+        track_event_if_configured("DeleteConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -928,6 +937,11 @@ async def list_conversations(
 
     except Exception as e:
         logger.exception("Exception in /history/list: %s", str(e))
+        track_event_if_configured("ListConversationsError", {
+            "user_id": locals().get("user_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -977,6 +991,12 @@ async def get_conversation_messages_route(request: Request, id: str = Query(...)
 
     except Exception as e:
         logger.exception("Exception in /history/read: %s", str(e))
+        track_event_if_configured("ReadConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1022,6 +1042,12 @@ async def rename_conversation_route(request: Request):
 
     except Exception as e:
         logger.exception("Exception in /history/rename: %s", str(e))
+        track_event_if_configured("RenameConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1064,6 +1090,11 @@ async def delete_all_conversations(request: Request):
 
     except Exception as e:
         logging.exception("Exception in /history/delete_all: %s", str(e))
+        track_event_if_configured("DeleteAllConversationsError", {
+            "user_id": locals().get("user_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1114,6 +1145,12 @@ async def clear_messages_route(request: Request):
 
     except Exception as e:
         logger.exception("Exception in /history/clear: %s", str(e))
+        track_event_if_configured("ClearMessagesError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1144,6 +1181,10 @@ async def ensure_cosmos_route():
             status_code=200)
     except Exception as e:
         logger.exception("Exception in /history/ensure: %s", str(e))
+        track_event_if_configured("EnsureCosmosError", {
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)

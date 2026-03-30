@@ -103,7 +103,7 @@ When you start the deployment, you will need to set the following parameters:
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
 | **Azure Subscription**                      | The Azure subscription to deploy resources into. Only prompted if you have multiple subscriptions.        | *(auto-selected if only one)* |
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
-| **AI Model Location**                        | The region where AI model will be created            | *(empty)              |
+| **AI Model Location**                        | The region where AI model will be created            | *(empty)*              |
 
 *Different tenant? Use: `azd auth login --tenant-id <tenant-id>`*
 

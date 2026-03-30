@@ -358,6 +358,11 @@ public class SqlConversationRepository : ISqlConversationRepository
                         // If parsing fails, treat as null
                         citations = null;
                     }
+                    catch (NotSupportedException)
+                    {
+                        // Handle cases where the data type is not supported for deserialization
+                        citations = null;
+                    }
                 }
                 
                 list.Add(new ChatMessage
@@ -544,6 +549,16 @@ public class SqlConversationRepository : ISqlConversationRepository
                 }
                 results.Add(row);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Preserve cancellation semantics for callers
+            throw;
+        }
+        catch (SqlException ex)
+        {
+            _logger.LogError(ex, "SQL error executing chat query");
+            throw;
         }
         catch (Exception ex)
         {

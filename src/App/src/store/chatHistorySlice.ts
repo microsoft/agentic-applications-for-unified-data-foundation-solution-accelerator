@@ -16,6 +16,25 @@ const initialState: ChatHistoryState = {
   isHistoryUpdateAPIPending: false,
 };
 
+const upsertConversationAtTop = (list: Conversation[], conversation: Conversation) => {
+  const existingIndex = list.findIndex((item) => item.id === conversation.id);
+
+  if (existingIndex === -1) {
+    list.unshift(conversation);
+    return;
+  }
+
+  const existingConversation = list[existingIndex];
+  const updatedConversation: Conversation = {
+    ...existingConversation,
+    ...conversation,
+    messages: conversation.messages.length ? conversation.messages : existingConversation.messages,
+  };
+
+  list.splice(existingIndex, 1);
+  list.unshift(updatedConversation);
+};
+
 // Async Thunks
 export const fetchChatHistory = createAsyncThunk(
   "chatHistory/fetchList",
@@ -81,10 +100,16 @@ const chatHistorySlice = createSlice({
   initialState,
   reducers: {
     addConversations: (state, action: PayloadAction<Conversation[]>) => {
-      state.list.push(...action.payload);
+      action.payload.forEach((conversation) => {
+        const exists = state.list.some((item) => item.id === conversation.id);
+
+        if (!exists) {
+          state.list.push(conversation);
+        }
+      });
     },
     addNewConversation: (state, action: PayloadAction<Conversation>) => {
-      state.list.unshift(action.payload);
+      upsertConversationAtTop(state.list, action.payload);
     },
     updateConversationTitle: (state, action: PayloadAction<{ id: string; newTitle: string }>) => {
       const index = state.list.findIndex((obj) => obj.id === action.payload.id);

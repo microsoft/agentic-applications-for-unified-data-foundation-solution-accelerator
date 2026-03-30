@@ -115,7 +115,7 @@ args.quiet = not args.verbose
 
 # Load environment from azd + project .env
 from load_env import load_all_env
-azd_loaded, project_loaded = load_all_env()
+load_all_env()
 
 # ============================================================================
 # Generate .env from Azure if resource group provided
