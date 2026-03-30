@@ -683,8 +683,8 @@ class TestGenerateTitleFunction:
         mock_agent = MagicMock()
         mock_agent.invoke_sync.return_value = "AI Generated Title"
         
-        with patch('history_sql.ChatAgent', return_value=mock_agent):
-            with patch('history_sql.AzureAIClient'):
+        with patch('history_sql.ChatAgent', return_value=mock_agent, create=True):
+            with patch('history_sql.AzureAIClient', create=True):
                 with patch('history_sql.AZURE_AI_AGENT_ENDPOINT', 'http://test'):
                     result = await generate_title(messages)
                     assert isinstance(result, str)
@@ -1620,8 +1620,8 @@ class TestMessageContentProcessing:
         
         with patch('history_sql.AZURE_AI_AGENT_ENDPOINT', 'http://test'), \
              patch('history_sql.AIProjectClient') as mock_client, \
-             patch('history_sql.AzureAIClient'), \
-             patch('history_sql.ChatAgent'):
+             patch('history_sql.AzureAIClient', create=True), \
+             patch('history_sql.ChatAgent', create=True):
             # Make the context manager raise ServiceResponseException
             mock_instance = MagicMock()
             mock_instance.__aenter__.side_effect = Exception("ServiceResponseException")
@@ -1889,8 +1889,8 @@ class TestGenerateTitleEdgeCases:
         
         with patch('history_sql.AZURE_AI_AGENT_ENDPOINT', 'http://test'), \
              patch('history_sql.AIProjectClient') as mock_client, \
-             patch('history_sql.AzureAIClient') as mock_ai_client, \
-             patch('history_sql.ChatAgent') as mock_agent:
+             patch('history_sql.AzureAIClient', create=True) as mock_ai_client, \
+             patch('history_sql.ChatAgent', create=True) as mock_agent:
             # Setup mocks
             mock_project = MagicMock()
             mock_client.return_value.__aenter__.return_value = mock_project
