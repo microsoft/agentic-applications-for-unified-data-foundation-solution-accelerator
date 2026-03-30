@@ -25,6 +25,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Module-level verbosity flag (set by main())
+_verbose = True
+
+
+def _log(msg: str) -> None:
+    """Print a message only if verbose mode is enabled."""
+    if _verbose:
+        print(msg)
+
 
 def get_az_command() -> str:
     """Get the Azure CLI command, handling Windows .cmd extension."""
@@ -162,6 +171,33 @@ def get_ai_foundry_project(resource_group: str) -> tuple[str, str]:
     return "", ""
 
 
+def get_foundry_project_principal_id(resource_group: str, project_name: str) -> str:
+    """Get the system-assigned identity principal ID of the AI Foundry project."""
+    if not project_name:
+        return ""
+
+    # AI Foundry projects live under Microsoft.CognitiveServices/accounts/<account>/projects/<project>
+    projects = run_az_command([
+        "resource", "list",
+        "--resource-group", resource_group,
+        "--resource-type", "Microsoft.CognitiveServices/accounts/projects",
+    ])
+    if not projects or not isinstance(projects, list):
+        return ""
+
+    for project in projects:
+        # Name format is "account/project" — match the project segment
+        proj_name = project.get("name", "").split("/")[-1]
+        if proj_name == project_name:
+            resource_id = project.get("id", "")
+            if resource_id:
+                details = run_az_command(["resource", "show", "--ids", resource_id])
+                if details and isinstance(details, dict):
+                    identity = details.get("identity", {})
+                    return identity.get("principalId", "")
+    return ""
+
+
 def get_cosmos_db_account(resource_group: str) -> str:
     """Get CosmosDB account name."""
     resources = get_resources_by_type(resource_group, "Microsoft.DocumentDB/databaseAccounts")
@@ -240,13 +276,15 @@ def get_principal_id_from_client_id(client_id: str) -> str:
     return ""
 
 
-def get_app_service(resource_group: str, name_contains: str) -> tuple[str, str]:
+def get_app_service(resource_group: str, name_contains: str, exclude: str = "") -> tuple[str, str]:
     """Get App Service URL and name."""
     resources = get_resources_by_type(resource_group, "Microsoft.Web/sites")
     
     for resource in resources:
         name = resource["name"]
         if name_contains.lower() in name.lower():
+            if exclude and exclude.lower() in name.lower():
+                continue
             details = run_az_command([
                 "webapp", "show",
                 "--name", name,
@@ -295,14 +333,14 @@ def find_api_app_service(resource_group: str) -> tuple[str, str]:
 
 def generate_env_from_app_service(resource_group: str, app_name: str) -> str | None:
     """Generate .env content from App Service application settings."""
-    print(f"Fetching application settings from App Service: {app_name}")
+    _log(f"Fetching application settings from App Service: {app_name}")
     
     settings = get_app_service_settings(resource_group, app_name)
     if not settings:
-        print("  No application settings found")
+        _log("  No application settings found")
         return None
     
-    print(f"  Found {len(settings)} application settings")
+    _log(f"  Found {len(settings)} application settings")
     
     # Get subscription ID from current account
     account = run_az_command(["account", "show"])
@@ -319,6 +357,7 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
         "AZURE_OPENAI_EMBEDDING_MODEL", "AZURE_EMBEDDING_MODEL",
         # AI Foundry
         "AZURE_AI_AGENT_ENDPOINT", "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "AZURE_AI_PROJECT_NAME",
+        "FOUNDRY_PROJECT_PID",
         # AI Search
         "AZURE_AI_SEARCH_ENDPOINT", "AZURE_AI_SEARCH_NAME", "AZURE_AI_SEARCH_INDEX",
         "AZURE_AI_SEARCH_CONNECTION_NAME", "AZURE_AI_SEARCH_CONNECTION_ID",
@@ -357,27 +396,46 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
     if "API_UID" in settings and "API_PID" not in settings:
         api_uid = settings.get("API_UID", "")
         if api_uid:
-            print(f"  Fetching API_PID from API_UID...")
+            _log(f"  Fetching API_PID from API_UID...")
             api_pid = get_principal_id_from_client_id(api_uid)
             if api_pid:
                 lines.append(f"API_PID={api_pid}")
-                print(f"  Found API_PID: {api_pid}")
+                _log(f"  Found API_PID: {api_pid}")
     
     # Derive MID_DISPLAY_NAME from managed identity if not present
     if "MID_DISPLAY_NAME" not in settings:
         mid_name, _, _ = get_managed_identity(resource_group)
         if mid_name:
             lines.append(f"MID_DISPLAY_NAME={mid_name}")
-            print(f"  Found MID_DISPLAY_NAME: {mid_name}")
+            _log(f"  Found MID_DISPLAY_NAME: {mid_name}")
     
     # Derive AZURE_AI_PROJECT_NAME from AZURE_AI_AGENT_ENDPOINT if not present
-    if "AZURE_AI_PROJECT_NAME" not in settings:
+    derived_project_name = settings.get("AZURE_AI_PROJECT_NAME", "")
+    if not derived_project_name:
         agent_endpoint = settings.get("AZURE_AI_AGENT_ENDPOINT", "")
         if agent_endpoint and "/projects/" in agent_endpoint:
-            project_name = agent_endpoint.split("/projects/")[-1].rstrip("/")
-            if project_name:
-                lines.append(f"AZURE_AI_PROJECT_NAME={project_name}")
-                print(f"  Found AZURE_AI_PROJECT_NAME: {project_name}")
+            derived_project_name = agent_endpoint.split("/projects/")[-1].rstrip("/")
+            if derived_project_name:
+                lines.append(f"AZURE_AI_PROJECT_NAME={derived_project_name}")
+                _log(f"  Found AZURE_AI_PROJECT_NAME: {derived_project_name}")
+    
+    # Derive FOUNDRY_PROJECT_PID from AI Foundry project if not present
+    if "FOUNDRY_PROJECT_PID" not in settings:
+        if derived_project_name:
+            _log(f"  Fetching FOUNDRY_PROJECT_PID for project '{derived_project_name}'...")
+            foundry_pid = get_foundry_project_principal_id(resource_group, derived_project_name)
+            if foundry_pid:
+                lines.append(f"FOUNDRY_PROJECT_PID={foundry_pid}")
+                _log(f"  Found FOUNDRY_PROJECT_PID: {foundry_pid}")
+
+    # Derive WEB_APP_URL from frontend app service if not present
+    if "WEB_APP_URL" not in settings:
+        web_app_url, _ = get_app_service(resource_group, "app-", exclude="api")
+        if not web_app_url:
+            web_app_url, _ = get_app_service(resource_group, "web")
+        if web_app_url:
+            lines.append(f"WEB_APP_URL={web_app_url}")
+            _log(f"  Found WEB_APP_URL: {web_app_url}")
     
     # Add any other AZURE_* or relevant vars we might have missed
     for key, value in sorted(settings.items()):
@@ -406,7 +464,7 @@ def infer_solution_name(resource_group: str, resources: list) -> str:
 
 def generate_env_content(resource_group: str) -> str:
     """Generate .env file content from Azure resources."""
-    print(f"Fetching resources from resource group: {resource_group}")
+    _log(f"Fetching resources from resource group: {resource_group}")
     
     # Get subscription ID from current account
     account = run_az_command(["account", "show"])
@@ -414,26 +472,32 @@ def generate_env_content(resource_group: str) -> str:
     
     # Collect all resource info
     search_endpoint, search_name = get_ai_search_endpoint(resource_group)
-    print(f"  Found AI Search: {search_name or 'not found'}")
+    _log(f"  Found AI Search: {search_name or 'not found'}")
     
     openai_endpoint, chat_model, embedding_model = get_openai_endpoint(resource_group)
-    print(f"  Found OpenAI endpoint: {openai_endpoint or 'not found'}")
+    _log(f"  Found OpenAI endpoint: {openai_endpoint or 'not found'}")
     
     project_endpoint, project_name = get_ai_foundry_project(resource_group)
-    print(f"  Found AI Foundry project: {project_name or 'not found'}")
+    _log(f"  Found AI Foundry project: {project_name or 'not found'}")
+    
+    foundry_project_pid = get_foundry_project_principal_id(resource_group, project_name)
+    _log(f"  Found Foundry project PID: {foundry_project_pid or 'not found'}")
     
     cosmos_account = get_cosmos_db_account(resource_group)
-    print(f"  Found CosmosDB: {cosmos_account or 'not found'}")
+    _log(f"  Found CosmosDB: {cosmos_account or 'not found'}")
     
     sql_server, sql_db = get_sql_server(resource_group)
-    print(f"  Found SQL Server: {sql_server or 'not found'}")
+    _log(f"  Found SQL Server: {sql_server or 'not found'}")
     
     mid_name, mid_client_id, mid_principal_id = get_managed_identity(resource_group)
-    print(f"  Found Managed Identity: {mid_name or 'not found'}")
+    _log(f"  Found Managed Identity: {mid_name or 'not found'}")
     
-    web_app_url, _ = get_app_service(resource_group, "web")
-    api_app_name, _ = get_app_service(resource_group, "api")
-    print(f"  Found Web App: {web_app_url or 'not found'}")
+    web_app_url, _ = get_app_service(resource_group, "app-")
+    if not web_app_url:
+        # Frontend app may be named app-<suffix> (not containing "web")
+        web_app_url, _ = get_app_service(resource_group, "app-", exclude="api")
+    api_app_name, _ = get_app_service(resource_group, "api-")
+    _log(f"  Found Web App: {web_app_url or 'not found'}")
     
     # Infer solution name
     all_resources = run_az_command(["resource", "list", "--resource-group", resource_group]) or []
@@ -462,6 +526,7 @@ def generate_env_content(resource_group: str) -> str:
         f"AZURE_AI_AGENT_ENDPOINT={project_endpoint}",
         f"AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME={chat_model}",
         f"AZURE_AI_PROJECT_NAME={project_name}",
+        f"FOUNDRY_PROJECT_PID={foundry_project_pid}",
         "",
         "# --- Azure AI Search ---",
         f"AZURE_AI_SEARCH_ENDPOINT={search_endpoint}",
@@ -611,8 +676,17 @@ def main():
         action="store_true",
         help="Skip App Service and query individual resources instead"
     )
+    parser.add_argument(
+        "--quiet", "-q",
+        action="store_true",
+        help="Suppress verbose output (show only errors and final status)"
+    )
     
     args = parser.parse_args()
+    
+    # Set module-level verbosity
+    global _verbose
+    _verbose = not args.quiet
     
     # Check Azure CLI is logged in
     account = run_az_command(["account", "show"])
@@ -620,7 +694,7 @@ def main():
         print("Error: Please login to Azure CLI first: az login", file=sys.stderr)
         sys.exit(1)
     
-    print(f"Using Azure subscription: {account.get('name', 'unknown')}")
+    _log(f"Using Azure subscription: {account.get('name', 'unknown')}")
     
     env_content = None
     
@@ -634,13 +708,13 @@ def main():
         if app_name:
             env_content = generate_env_from_app_service(args.resource_group, app_name)
             if env_content:
-                print(f"\n✓ Generated from App Service: {app_name}")
+                _log(f"\n✓ Generated from App Service: {app_name}")
         else:
-            print("No API App Service found, falling back to resource discovery...")
+            _log("No API App Service found, falling back to resource discovery...")
     
     # Fall back to querying individual resources
     if not env_content:
-        print("Querying individual Azure resources...")
+        _log("Querying individual Azure resources...")
         env_content = generate_env_content(args.resource_group)
     
     # Determine output path
@@ -652,16 +726,16 @@ def main():
     
     # Merge with existing .env file (preserve values not from API)
     if env_path.exists():
-        print(f"\nMerging with existing: {env_path}")
+        _log(f"\nMerging with existing: {env_path}")
         existing_content = env_path.read_text()
         merged_content = merge_env_content(existing_content, env_content)
         env_path.write_text(merged_content)
-        print(f"Updated: {env_path}")
+        _log(f"Updated: {env_path}")
     else:
         # New file: add default Fabric settings and agent IDs
         full_content = env_content + get_default_env_content()
         env_path.write_text(full_content)
-        print(f"\nGenerated: {env_path}")
+        _log(f"\nGenerated: {env_path}")
     
     # Also create azd environment if requested
     if args.azd_env:
@@ -675,19 +749,19 @@ def main():
             existing_content = azd_env_path.read_text()
             merged_content = merge_env_content(existing_content, env_content)
             azd_env_path.write_text(merged_content)
-            print(f"Updated (merged): {azd_env_path}")
+            _log(f"Updated (merged): {azd_env_path}")
         else:
             # New file - include defaults
             azd_env_path.write_text(env_content + get_default_env_content())
-            print(f"Generated: {azd_env_path}")
+            _log(f"Generated: {azd_env_path}")
         
         # Create config.json
         config_path = azure_dir / "config.json"
         config_path.write_text(json.dumps({"defaultEnvironment": args.azd_env}, indent=2))
-        print(f"Generated: {config_path}")
+        _log(f"Generated: {config_path}")
     
-    print("\nDone! Review the generated .env file and fill in any missing values.")
-    print("Note: FABRIC_WORKSPACE_ID must be set manually if using Fabric.")
+    _log("\nDone! Review the generated .env file and fill in any missing values.")
+    _log("Note: FABRIC_WORKSPACE_ID must be set manually if using Fabric.")
 
 
 if __name__ == "__main__":
