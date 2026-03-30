@@ -19,13 +19,13 @@ from opentelemetry.trace import Status, StatusCode
 # Azure SDK
 from azure.core.exceptions import HttpResponseError
 from azure.monitor.events.extension import track_event
-from azure.monitor.opentelemetry import configure_azure_monitor
 from azure.ai.projects.aio import AIProjectClient
 
 # Agent Framework
 from agent_framework.azure import AzureAIProjectAgentProvider
 
 # Azure Auth
+from auth.auth_utils import get_authenticated_user_details
 from auth.azure_credential_utils import get_azure_credential_async
 
 load_dotenv()
@@ -40,39 +40,12 @@ AZURE_ENV_ONLY = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
 
 router = APIRouter()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Suppress informational warnings from agent_framework about runtime
 # tool/structured_output overrides not being supported by AzureAIClient.
 agent_log_level = os.getenv("AGENT_FRAMEWORK_LOG_LEVEL", "ERROR").upper()
 logging.getLogger("agent_framework.azure").setLevel(getattr(logging, agent_log_level, logging.ERROR))
-
-
-# Check if the Application Insights Instrumentation Key is set in the environment variables
-instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
-if instrumentation_key:
-    # Configure Application Insights if the Instrumentation Key is found
-    configure_azure_monitor(connection_string=instrumentation_key)
-    logging.info("Application Insights configured with the provided Instrumentation Key")
-else:
-    # Log a warning if the Instrumentation Key is not found
-    logging.warning("No Application Insights Instrumentation Key found. Skipping configuration")
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
-# Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
-logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
-    logging.WARNING
-)
-logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
-
-# Suppress info logs from OpenTelemetry exporter
-logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
-    logging.WARNING
-)
 
 
 class ExpCache(TTLCache):
@@ -155,11 +128,13 @@ def get_thread_cache():
     return thread_cache
 
 
-async def stream_openai_text(conversation_id: str, query: str) -> StreamingResponse:
+async def stream_openai_text(conversation_id: str, query: str, user_id: str = "") -> StreamingResponse:
     """
     Get a streaming text response from OpenAI using azure-ai-projects SDK.
     Uses responses.create() with conversation caching for chat history continuity.
     """
+    logger.info("stream_openai_text called: conversation_id=%s, query_length=%d",
+                conversation_id, len(query) if query else 0)
     complete_response = ""
     credential = None
     db_connection = None
@@ -282,6 +257,14 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
                 logger.warning("Max iterations reached for conversation %s", conversation_id)
                 yield "\n\n(Response processing reached maximum iterations)"
 
+            logger.info("Streaming complete for conversation %s: response_length=%d",
+                        conversation_id, len(complete_response))
+            track_event_if_configured("ChatResponseCompleted", {
+                "conversation_id": conversation_id,
+                "user_id": user_id,
+                "response_length": str(len(complete_response)),
+            })
+
     except HttpResponseError as e:
         complete_response = str(e)
         if "Rate limit is exceeded" in str(e) or e.status_code == 429:
@@ -293,7 +276,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
 
     except Exception as e:
         complete_response = str(e)
-        logger.error("Error in stream_openai_text: %s", e)
+        logger.exception("Error in stream_openai_text: %s", e)
         cache = get_thread_cache()
         thread_conversation_id = cache.pop(conversation_id, None)
         if thread_conversation_id is not None:
@@ -312,7 +295,7 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-async def stream_openai_text_workshop(conversation_id: str, query: str) -> StreamingResponse:
+async def stream_openai_text_workshop(conversation_id: str, query: str, user_id: str = "") -> StreamingResponse:
     """
     Get a streaming text response from OpenAI with workshop mode using AzureAIProjectAgentProvider.
     Uses agent_framework to handle function calls (SQL) and search tools automatically.
@@ -403,6 +386,15 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
 
             cache[conversation_id] = conv_id
 
+            logger.info("Streaming complete for conversation %s: response_length=%d, citation_count=%d",
+                        conversation_id, len(complete_response), len(citations))
+            track_event_if_configured("ChatResponseCompleted", {
+                "conversation_id": conversation_id,
+                "user_id": user_id,
+                "response_length": str(len(complete_response)),
+                "citation_count": str(len(citations)),
+            })
+
             # Yield citations at end of stream
             if citations:
                 citation_list = []
@@ -426,7 +418,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
 
     except Exception as e:
         complete_response = str(e)
-        logger.error("Error in stream_openai_text_workshop: %s", e)
+        logger.exception("Error in stream_openai_text_workshop: %s", e)
         cache = get_thread_cache()
         conv_id = cache.pop(conversation_id, None)
         if conv_id is not None:
@@ -445,16 +437,18 @@ async def stream_openai_text_workshop(conversation_id: str, query: str) -> Strea
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-async def stream_chat_request(conversation_id, query):
+async def stream_chat_request(conversation_id, query, user_id: str = ""):
     """
     Handles streaming chat requests.
     """
+    logger.info("stream_chat_request called: conversation_id=%s", conversation_id)
+
     async def generate():
         try:
             assistant_content = ""
             # Use workshop function if IS_WORKSHOP is enabled
             stream_func = stream_openai_text_workshop if IS_WORKSHOP else stream_openai_text
-            async for chunk in stream_func(conversation_id, query):
+            async for chunk in stream_func(conversation_id, query, user_id=user_id):
                 if isinstance(chunk, dict):
                     chunk = json.dumps(chunk)  # Convert dict to JSON string
                 assistant_content += str(chunk)
@@ -481,7 +475,7 @@ async def stream_chat_request(conversation_id, query):
                 yield json.dumps({"error": "An error occurred. Please try again later."}) + "\n\n"
 
         except Exception as e:
-            logger.error("Unexpected error: %s", e)
+            logger.exception("Unexpected error: %s", e)
             error_response = {"error": "An error occurred while processing the request."}
             yield json.dumps(error_response) + "\n\n"
 
@@ -496,6 +490,8 @@ async def conversation(request: Request):
         request_json = await request.json()
         conversation_id = request_json.get("conversation_id")
         query = request_json.get("query")
+        authenticated_user = get_authenticated_user_details(request_headers=request.headers)
+        user_id = authenticated_user.get("user_principal_id", "")
 
         # Validate required parameters
         if not query:
@@ -510,17 +506,32 @@ async def conversation(request: Request):
                 status_code=400
             )
 
-        logger.info("Chat request received - query: %s, conversation_id: %s", query, conversation_id)
+        logger.info("POST /chat called: conversation_id=%s, query_length=%d", conversation_id, len(query) if query else 0)
 
-        result = await stream_chat_request(conversation_id, query)
+        # Track chat request initiation
+        track_event_if_configured("ChatRequestReceived", {
+            "conversation_id": conversation_id,
+            "user_id": user_id
+        })
+
+        result = await stream_chat_request(conversation_id, query, user_id=user_id)
         track_event_if_configured(
             "ChatStreamSuccess",
-            {"conversation_id": conversation_id, "query": query}
+            {"conversation_id": conversation_id, "user_id": user_id, "query": query}
         )
         return StreamingResponse(result, media_type="application/json-lines")
 
     except Exception as ex:
         logger.exception("Error in conversation endpoint: %s", str(ex))
+
+        # Track specific error type
+        track_event_if_configured("ChatRequestError", {
+            "conversation_id": request_json.get("conversation_id") if 'request_json' in locals() else "",
+            "user_id": locals().get("user_id", ""),
+            "error": str(ex),
+            "error_type": type(ex).__name__
+        })
+
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(ex)
