@@ -6,7 +6,7 @@ This module provides a unified way to load configuration:
 2. Project-specific settings from project root .env (Fabric, industry, etc.)
 
 Azure services (from azd):
-    - AZURE_AI_PROJECT_ENDPOINT
+    - AZURE_AI_AGENT_ENDPOINT
     - AZURE_AI_ENDPOINT  
     - AZURE_OPENAI_ENDPOINT
     - AZURE_AI_SEARCH_ENDPOINT
@@ -80,13 +80,25 @@ def load_all_env():
     Load both azd and project environment variables.
     
     Priority:
-    1. azd environment (Azure service endpoints)
-    2. Project .env (Fabric, industry settings)
+    1. azd environment (Azure service endpoints) - if .azure folder exists
+    2. Project scripts/.env (Azure endpoints + Fabric/industry settings)
+    
+    When infra is pre-provisioned without 'azd up', the .azure folder won't exist.
+    In this case, scripts/.env should contain ALL settings (Azure + project).
+    Use generate_env_from_azure.py to create this file from existing resources.
     
     Returns tuple (azd_loaded, project_loaded)
     """
     azd_loaded = load_azd_env()
     project_loaded = load_project_env()
+    
+    # If neither loaded, provide guidance
+    if not azd_loaded and not project_loaded:
+        print("⚠️  No environment configuration found.")
+        print("   Options:")
+        print("   1. Run 'azd up' to deploy infrastructure")
+        print("   2. Run 'python scripts/generate_env_from_azure.py -g <resource-group>'")
+        print("      to generate .env from existing Azure resources")
     
     return azd_loaded, project_loaded
 
@@ -165,7 +177,7 @@ def print_env_status():
     
     # Azure services (from azd)
     azure_vars = [
-        ("AZURE_AI_PROJECT_ENDPOINT", "AI Foundry Project"),
+        ("AZURE_AI_AGENT_ENDPOINT", "AI Foundry Project"),
         ("AZURE_AI_ENDPOINT", "AI Services"),
         ("AZURE_OPENAI_ENDPOINT", "OpenAI"),
         ("AZURE_AI_SEARCH_ENDPOINT", "AI Search"),

@@ -77,33 +77,9 @@ Before customer meetings, prepare 5-7 questions:
 !!! tip "Let customers ask questions"
     After your prepared questions, let customers ask their own questions. This shows the solution handles real scenarios, not just scripted ones.
 
-## Deploy the Web Application (Optional)
+## Launch the Web Application
 
-If you want to deploy a web UI for your solution:
-
-### Step 1: Enable app deployment and deploy
-
-```bash
-azd env set AZURE_ENV_DEPLOY_APP true
-azd up
-```
-
-!!! warning "Wait for Completion"
-    Deployment takes 5-7 minutes. Don't proceed until you see the success message with the web app URL.
-
-### Step 2: Set up app permissions
-
-Run step 09 to assign roles and configure the deployed application:
-
-```bash
-python scripts/00_build_solution.py --from 09
-```
-
-This sets up Cosmos DB permissions, agent configuration, and — depending on your mode — Fabric workspace roles or Azure SQL roles for the app service.
-
-### Step 3: Access the application
-
-After deployment completes, the web app URL will be displayed in the output. Open it in your browser to interact with the agent through a chat interface.
+The web application is already deployed during the initial `azd up` deployment. Open the app URL shown in the deployment output in your browser to interact with the agent through a chat interface.
 
 ## Checkpoint
 

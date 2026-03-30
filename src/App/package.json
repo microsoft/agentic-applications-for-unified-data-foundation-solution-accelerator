@@ -18,7 +18,7 @@
     "@types/node": "^24.0.8",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
-    "axios": "^1.10.0",
+    "axios": "^1.13.5",
     "chart.js": "^4.5.0",
     "d3": "^7.9.0",
     "d3-cloud": "^1.2.7",
@@ -63,5 +63,8 @@
   "devDependencies": {
     "@types/chart.js": "^2.9.41",
     "@types/lodash-es": "^4.17.12"
+  },
+  "overrides": {
+    "minimatch": "^10.2.1"
   }
 }

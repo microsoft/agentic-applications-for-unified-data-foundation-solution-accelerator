@@ -1,19 +1,27 @@
-name: Deploy-Test-Cleanup (v2) Windows
+name: Deploy-Test-Cleanup (v2)
 
 on:
-  # pull_request:
-  #   branches:
-  #     - main
-  # workflow_run:
-  #   workflows: ["Build Docker and Optional Push - Agentic Applications for Unified Data Foundation"]
-  #   types:
-  #     - completed
-  #   branches:
-  #     - main
-  #     - dev
-  #     - demo
+  pull_request:
+    branches:
+      - main
+  workflow_run:
+    workflows: ["Build Docker and Optional Push - Agentic Applications for Unified Data Foundation"]
+    types:
+      - completed
+    branches:
+      - main
+      - dev
+      - demo
   workflow_dispatch:
     inputs:
+      runner_os:
+        description: 'Deployment Environment'
+        required: false
+        type: choice
+        options:
+          - 'codespace'
+          - 'Local'
+        default: 'codespace'
       azure_location:
         description: 'Azure Location For Deployment'
         required: false
@@ -42,8 +50,9 @@ on:
           - 'dotnet'
         required: false
         default: 'python'
+
       AZURE_ENV_USE_CASE:
-        description: 'Specify use cases to deploy'
+        description: 'Specify Use case to deploy'
         type: 'choice'
         options:
           - 'Retail-sales-analysis'
@@ -56,7 +65,7 @@ on:
         default: false
         type: boolean
       build_docker_image:
-        description: 'Build And Push Docker Image (Optional)'
+        description: 'Build & Push Docker Image (Optional)'
         required: false
         default: false
         type: boolean
@@ -93,17 +102,20 @@ on:
         default: ''
         type: string
         
-  # schedule:
-  #   - cron: "0 5,17 * * *" # Runs at 5:00 AM and 5:00 PM GMT
+  schedule:
+    - cron: "0 5,17 * * *" # Runs at 5:00 AM and 5:00 PM GMT
+
 permissions:
   contents: read
   actions: read
+  id-token: write
   
 jobs:
   validate-inputs:
     runs-on: ubuntu-latest
     outputs:
       validation_passed: ${{ steps.validate.outputs.passed }}
+      runner_os: ${{ steps.validate.outputs.runner_os }}
       azure_location: ${{ steps.validate.outputs.azure_location }}
       resource_group_name: ${{ steps.validate.outputs.resource_group_name }}
       backend_runtime_stack: ${{ steps.validate.outputs.backend_runtime_stack }}
@@ -120,6 +132,7 @@ jobs:
         id: validate
         shell: bash
         env:
+          INPUT_RUNNER_OS: ${{ github.event.inputs.runner_os }}
           INPUT_AZURE_LOCATION: ${{ github.event.inputs.azure_location }}
           INPUT_RESOURCE_GROUP_NAME: ${{ github.event.inputs.resource_group_name }}
           INPUT_BACKEND_RUNTIME_STACK: ${{ github.event.inputs.BACKEND_RUNTIME_STACK }}
@@ -134,6 +147,20 @@ jobs:
         run: |
           echo "🔍 Validating workflow input parameters..."
           VALIDATION_FAILED=false
+          
+          # Resolve runner_os from Deployment Environment selection
+          DEPLOY_ENV="${INPUT_RUNNER_OS:-codespace}"
+          if [[ "$DEPLOY_ENV" == "codespace" ]]; then
+            RUNNER_OS="ubuntu-latest"
+            echo "✅ Deployment Environment: 'codespace' → runner: ubuntu-latest"
+          elif [[ "$DEPLOY_ENV" == "Local" ]]; then
+            RUNNER_OS="windows-latest"
+            echo "✅ Deployment Environment: 'Local' → runner: windows-latest"
+          else
+            echo "❌ ERROR: Deployment Environment must be 'codespace' or 'Local', got: '$DEPLOY_ENV'"
+            VALIDATION_FAILED=true
+            RUNNER_OS="ubuntu-latest"
+          fi
           
           # Validate azure_location (Azure region format)
           LOCATION="${INPUT_AZURE_LOCATION:-australiaeast}"
@@ -266,6 +293,7 @@ jobs:
           
           # Output validated values
           echo "passed=true" >> $GITHUB_OUTPUT
+          echo "runner_os=$RUNNER_OS" >> $GITHUB_OUTPUT
           echo "azure_location=$LOCATION" >> $GITHUB_OUTPUT
           echo "resource_group_name=$INPUT_RESOURCE_GROUP_NAME" >> $GITHUB_OUTPUT
           echo "backend_runtime_stack=$RUNTIME_STACK" >> $GITHUB_OUTPUT
@@ -283,7 +311,7 @@ jobs:
     if: needs.validate-inputs.outputs.validation_passed == 'true'
     uses: ./.github/workflows/deploy-orchestrator.yml
     with:
-      runner_os: windows-latest
+      runner_os: ${{ needs.validate-inputs.outputs.runner_os || 'ubuntu-latest' }}
       azure_location: ${{ needs.validate-inputs.outputs.azure_location || 'australiaeast' }}
       resource_group_name: ${{ needs.validate-inputs.outputs.resource_group_name || '' }}
       BACKEND_RUNTIME_STACK: ${{ needs.validate-inputs.outputs.backend_runtime_stack || 'python' }}

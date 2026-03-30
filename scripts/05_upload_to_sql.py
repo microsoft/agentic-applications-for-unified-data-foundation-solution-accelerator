@@ -23,6 +23,7 @@ import os
 import struct
 import sys
 import json
+import numpy as np
 import pandas as pd
 import pyodbc
 from datetime import datetime
@@ -163,38 +164,74 @@ def create_table_from_ontology(cursor, table_name: str, table_config: dict, df: 
     return True
 
 
-def load_data_to_table(cursor, conn, table_name: str, df: pd.DataFrame, batch_size: int = 1000):
-    """Load DataFrame data into SQL table using batch inserts."""
+def _convert_value(val):
+    """Convert numpy/pandas types to native Python types for pyodbc compatibility."""
+    if val is None or (isinstance(val, float) and np.isnan(val)):
+        return None
+    if pd.isna(val):
+        return None
+    if isinstance(val, (np.integer,)):
+        return int(val)
+    if isinstance(val, (np.floating,)):
+        return float(val)
+    if isinstance(val, (np.bool_,)):
+        return 1 if val else 0
+    if isinstance(val, (pd.Timestamp, np.datetime64)):
+        # Convert to Python datetime
+        ts = pd.Timestamp(val)
+        if pd.isna(ts):
+            return None
+        return ts.to_pydatetime()
+    if isinstance(val, bool):
+        return 1 if val else 0
+    return val
+
+
+def load_data_to_table(cursor, conn, table_name: str, df: pd.DataFrame, table_config: dict = None, batch_size: int = 5000):
+    """
+    Load DataFrame data into SQL table using optimized batch inserts.
+    
+    Uses fast_executemany for significantly faster bulk inserts (10-100x speedup)
+    and vectorized DataFrame operations instead of row-by-row iteration.
+    """
     if df.empty:
         print(f"  [WARN] No data to load for {table_name}")
         return 0
     
-    columns = df.columns.tolist()
+    # Pre-process DataFrame: convert date/datetime columns from strings
+    df_processed = df.copy()
+    if table_config:
+        types = table_config.get('types', {})
+        for col, col_type in types.items():
+            if col in df_processed.columns:
+                if col_type in ('DateTime', 'Date'):
+                    # Parse datetime strings to proper datetime objects
+                    df_processed[col] = pd.to_datetime(df_processed[col], errors='coerce')
+                elif col_type == 'Boolean':
+                    # Convert boolean to int for SQL BIT
+                    df_processed[col] = df_processed[col].astype(bool).astype(int)
+    
+    columns = df_processed.columns.tolist()
     column_list = ', '.join([f'[{col}]' for col in columns])
     placeholders = ', '.join(['?' for _ in columns])
     insert_sql = f'INSERT INTO [dbo].[{table_name}] ({column_list}) VALUES ({placeholders})'
     
+    # Enable fast_executemany for dramatically faster bulk inserts
+    cursor.fast_executemany = True
+    
+    # Convert DataFrame to list of tuples with proper type conversion
+    # This handles numpy types -> Python native types for pyodbc compatibility
+    data = [
+        tuple(_convert_value(val) for val in row)
+        for row in df_processed.itertuples(index=False, name=None)
+    ]
+    
     rows_inserted = 0
-    batch = []
+    total_rows = len(data)
     
-    for _, row in df.iterrows():
-        values = []
-        for val in row:
-            if pd.isna(val):
-                values.append(None)
-            elif isinstance(val, bool):
-                values.append(1 if val else 0)
-            else:
-                values.append(val)
-        batch.append(tuple(values))
-        
-        if len(batch) >= batch_size:
-            cursor.executemany(insert_sql, batch)
-            rows_inserted += len(batch)
-            batch = []
-    
-    # Insert remaining rows
-    if batch:
+    # Insert in batches
+    for i in range(0, total_rows, batch_size):
+        batch = data[i:i + batch_size]
         cursor.executemany(insert_sql, batch)
         rows_inserted += len(batch)
     
@@ -337,7 +374,7 @@ def main():
         print(f"    Created table [dbo].[{table_name}]")
         
         # Load data
-        rows = load_data_to_table(cursor, conn, table_name, df)
+        rows = load_data_to_table(cursor, conn, table_name, df, table_config)
         print(f"    Inserted {rows} rows")
         
         # Identify date columns and adjust dates

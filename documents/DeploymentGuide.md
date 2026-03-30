@@ -224,6 +224,10 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
       ```sh
       azd env set AZURE_ENV_USE_CASE Insurance-improve-customer-meetings
       ```
+    **NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
+    ```bash 
+    azd config set provision.preflight off
+    ```
 
 2. Provision and deploy all the resources:
 

@@ -1,6 +1,9 @@
 targetScope = 'resourceGroup'
 
+@description('The environment name used to generate unique resource names.')
 param environmentName string
+
+@description('The Azure region where the container registry will be deployed.')
 param solutionLocation string = resourceGroup().location
 
 var uniqueId = toLower(uniqueString(subscription().id, environmentName, solutionLocation))
@@ -39,6 +42,9 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' =
   }
 }
  
+@description('The name of the created container registry (without hyphens).')
 output createdAcrName string = containerRegistryNameCleaned
+
+@description('The resource ID of the container registry.')
 output createdAcrId string = containerRegistry.id
  

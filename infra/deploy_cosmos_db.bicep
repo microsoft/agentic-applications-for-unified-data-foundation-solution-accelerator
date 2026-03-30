@@ -1,7 +1,8 @@
+@description('The Azure region where the Cosmos DB account will be deployed.')
 param solutionLocation string
-// param keyVaultName string
-param accountName string 
-// var accountName = '${ solutionName }-cosmos'
+
+@description('The name of the Cosmos DB account.')
+param accountName string
 var databaseName = 'db_conversation_history'
 var collectionName = 'conversations'
 
@@ -13,9 +14,11 @@ var containers = [
   }
 ]
 
+@description('The type of Cosmos DB account to create.')
 @allowed([ 'GlobalDocumentDB', 'MongoDB', 'Parse' ])
 param kind string = 'GlobalDocumentDB'
 
+@description('Tags to apply to the Cosmos DB resources.')
 param tags object = {}
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' = {
@@ -64,50 +67,11 @@ resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2022-05-15
   ]
 }
 
-// resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
-//   name: keyVaultName
-// }
-
-// resource AZURE_COSMOSDB_ACCOUNT 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-//   parent: keyVault
-//   name: 'AZURE-COSMOSDB-ACCOUNT'
-//   properties: {
-//     value: cosmos.name
-//   }
-// }
-
-// resource AZURE_COSMOSDB_ACCOUNT_KEY 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-//   parent: keyVault
-//   name: 'AZURE-COSMOSDB-ACCOUNT-KEY'
-//   properties: {
-//     value: cosmos.listKeys().primaryMasterKey
-//   }
-// }
-
-// resource AZURE_COSMOSDB_DATABASE 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-//   parent: keyVault
-//   name: 'AZURE-COSMOSDB-DATABASE'
-//   properties: {
-//     value: databaseName
-//   }
-// }
-
-// resource AZURE_COSMOSDB_CONVERSATIONS_CONTAINER 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-//   parent: keyVault
-//   name: 'AZURE-COSMOSDB-CONVERSATIONS-CONTAINER'
-//   properties: {
-//     value: collectionName
-//   }
-// }
-
-// resource AZURE_COSMOSDB_ENABLE_FEEDBACK 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
-//   parent: keyVault
-//   name: 'AZURE-COSMOSDB-ENABLE-FEEDBACK'
-//   properties: {
-//     value: 'True'
-//   }
-// }
-
+@description('The name of the created Cosmos DB account.')
 output cosmosAccountName string = cosmos.name
+
+@description('The name of the Cosmos DB database.')
 output cosmosDatabaseName string = databaseName
+
+@description('The name of the Cosmos DB container.')
 output cosmosContainerName string = collectionName
