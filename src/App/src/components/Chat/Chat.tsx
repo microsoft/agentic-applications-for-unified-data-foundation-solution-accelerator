@@ -65,7 +65,7 @@ const Chat: React.FC<ChatProps> = ({
   const generatedConversationId = useAppSelector((state) => state.app.generatedConversationId);
   const { isFetchingConvMessages, isHistoryUpdateAPIPending } = useAppSelector((state) => state.chatHistory);
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
-  const [isChartLoading, setIsChartLoading] = useState(false)
+  const [isChartLoading, setIsChartLoading] = useState(false);
   const abortFuncs = useRef([] as AbortController[]);
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   
@@ -92,14 +92,6 @@ const Chat: React.FC<ChatProps> = ({
       return;
     }
     const isNewConversation = !selectedConversationId;
-
-    if (false) {  // Disabled: chart display default
-      setIsChartLoading(true);
-      setTimeout(()=>{
-        makeApiRequestForChart('show in a graph by default', convId)
-      },5000)
-
-    }
 
     try {
       const result = await dispatch(updateConversation({ conversationId: convId, messages: newMessages })).unwrap();
@@ -462,8 +454,14 @@ const Chat: React.FC<ChatProps> = ({
           updatedMessages = [newMessage, errorMessage];
         } else if (isChartQuery(userMessage)) {
           try {
+            // Workshop mode: single complete response chunk — parse directly
+            // Non-workshop mode: multiple streaming chunks concatenated — split and take last segment
+            let chartTextToParse: string;
             const splitRunningText = runningText.split("}{");
-            const parsedChartResponse = JSON.parse("{" + splitRunningText[splitRunningText.length - 1]);
+            chartTextToParse = splitRunningText.length > 1
+              ? "{" + splitRunningText[splitRunningText.length - 1]
+              : splitRunningText[0];
+            const parsedChartResponse = JSON.parse(chartTextToParse);
             
             const rawChartContent = parsedChartResponse?.choices[0]?.messages[0]?.content;
             

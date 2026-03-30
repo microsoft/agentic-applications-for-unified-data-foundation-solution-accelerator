@@ -1,0 +1,26 @@
+=== DATABASE SCHEMA ===
+
+customers(customer_id*:str, name:str, city:str, signup_date:date)
+technicians(technician_id*:str, name:str, department:str, hire_date:date)
+network_nodes(node_id*:str, node_type:str, location:str, status:str, last_maintenance_date:date)
+tickets(ticket_id*:str, customer_id:str, technician_id:str, node_id:str, priority:str, status:str, issue_type:str, date_created:date, date_resolved:date)
+outages(outage_id*:str, node_id:str, start_date:date, duration_hours:int, severity:str)
+work_orders(work_order_id*:str, ticket_id:str, technician_id:str, type:str, status:str, date_created:date, date_completed:date, duration_hours:int)
+maintenance_records(maintenance_id*:str, node_id:str, technician_id:str, maintenance_type:str, date_performed:date)
+service_sla_metrics(sla_id*:str, ticket_id:str, response_time_hours:int, resolution_time_hours:int)
+
+JOINS:
+  tickets.customer_id -> customers.customer_id
+  tickets.technician_id -> technicians.technician_id
+  tickets.node_id -> network_nodes.node_id
+  outages.node_id -> network_nodes.node_id
+  work_orders.ticket_id -> tickets.ticket_id
+  work_orders.technician_id -> technicians.technician_id
+  maintenance_records.node_id -> network_nodes.node_id
+  maintenance_records.technician_id -> technicians.technician_id
+  service_sla_metrics.ticket_id -> tickets.ticket_id
+
+RULES:
+- Use T-SQL syntax
+- Key columns marked with *
+- Types: str=string, int=integer, num=decimal

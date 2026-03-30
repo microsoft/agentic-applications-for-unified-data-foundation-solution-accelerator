@@ -20,9 +20,7 @@ from opentelemetry.trace import Status, StatusCode
 from auth.auth_utils import get_authenticated_user_details
 from auth.azure_credential_utils import get_azure_credential_async
 
-from agent_framework import ChatAgent
-from agent_framework.azure import AzureAIClient
-from agent_framework.exceptions import ServiceResponseException
+from azure.core.exceptions import HttpResponseError
 
 router = APIRouter()
 
@@ -76,9 +74,48 @@ def track_event_if_configured(event_name: str, event_data: dict):
         logging.warning("Skipping track_event for %s as Application Insights is not configured", event_name)
 
 
+async def get_azure_sql_connection():
+    """
+    Get a connection to Azure SQL Server using DefaultAzureCredential.
+
+    Returns:
+        Connection: Database connection object for Azure SQL.
+    """
+    sql_server = os.getenv("SQLDB_SERVER")
+    sql_database = os.getenv("SQLDB_DATABASE")
+    driver18 = "ODBC Driver 18 for SQL Server"
+    driver17 = "ODBC Driver 17 for SQL Server"
+    api_uid = os.getenv("API_UID", "")
+
+    credential = await get_azure_credential_async(client_id=api_uid)
+    token = await credential.get_token("https://database.windows.net/.default")
+    await credential.close()
+
+    token_bytes = token.token.encode("utf-16-LE")
+    token_struct = struct.pack(
+        f"<I{len(token_bytes)}s",
+        len(token_bytes),
+        token_bytes
+    )
+    SQL_COPT_SS_ACCESS_TOKEN = 1256
+
+    try:
+        connection_string = f"DRIVER={{{driver18}}};SERVER={sql_server};DATABASE={sql_database};"
+        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+        return conn
+    except Exception:
+        try:
+            connection_string = f"DRIVER={{{driver17}}};SERVER={sql_server};DATABASE={sql_database};"
+            conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+            return conn
+        except Exception as e:
+            logging.info("AZURE-SQL: Failed to connect to Azure SQL Database: %s", e)
+            return None
+
+
 async def get_fabric_db_connection():
     """
-    Get a connection to the SQL database.
+    Get a connection to the Fabric SQL database.
 
     Returns:
         Connection: Database connection object, or None if connection fails.
@@ -138,6 +175,27 @@ async def get_fabric_db_connection():
         return None
 
 
+async def get_db_connection():
+    """
+    Get a database connection based on deployment mode.
+
+    When IS_WORKSHOP is true, uses Azure SQL Server.
+    When IS_WORKSHOP is false or not set, uses Fabric SQL.
+
+    Returns:
+        Connection: Database connection object, or None if connection fails.
+    """
+    is_workshop = os.getenv("IS_WORKSHOP", "false").lower() == "true"
+    is_azure_only = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
+
+    if is_workshop and is_azure_only:
+        logging.info("Workshop deployment mode: Using Azure SQL Server")
+        return await get_azure_sql_connection()
+    else:
+        logging.info("Standard deployment mode: Using Fabric SQL")
+        return await get_fabric_db_connection()
+
+
 async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     """
     Execute a SQL non-query operation like DELETE, INSERT, or UPDATE.
@@ -149,7 +207,10 @@ async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     Returns:
         bool: True if the operation was successful, False otherwise.
     """
-    conn = await get_fabric_db_connection()
+    conn = await get_db_connection()
+    if conn is None:
+        logging.error("Failed to establish database connection")
+        return False
     cursor = None
     try:
         cursor = conn.cursor()
@@ -162,7 +223,8 @@ async def run_nonquery_params(sql_query, params: Tuple[Any, ...] = ()):
     finally:
         if cursor:
             cursor.close()
-        conn.close()
+        if conn:
+            conn.close()
 
 
 async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
@@ -177,7 +239,10 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
         list: List of dictionaries containing query results, or None if an error occurs.
     """
     # Connect to the database
-    conn = await get_fabric_db_connection()
+    conn = await get_db_connection()
+    if conn is None:
+        logging.error("Failed to establish database connection")
+        return None
     cursor = None
     try:
         cursor = conn.cursor()
@@ -202,7 +267,8 @@ async def run_query_params(sql_query, params: Tuple[Any, ...] = ()):
     finally:
         if cursor:
             cursor.close()
-        conn.close()
+        if conn:
+            conn.close()
 
 
 class SqlQueryTool(BaseModel):
@@ -228,7 +294,7 @@ class SqlQueryTool(BaseModel):
                     else:
                         row_dict[col_name] = value
                 result.append(row_dict)
-
+            logger.info("Chat Agent - Result of SQL query: %s", result)
             return result
         except Exception as e:
             logging.error("Error executing SQL query: %s", e)
@@ -236,6 +302,10 @@ class SqlQueryTool(BaseModel):
         finally:
             if cursor:
                 cursor.close()
+
+    async def execute_sql(self, sql_query):
+        """Alias for run_sql_query. Execute SQL query and return results as list of dictionaries."""
+        return await self.run_sql_query(sql_query)
 
 
 # Configuration variable
@@ -509,22 +579,28 @@ async def generate_title(conversation_messages):
             endpoint=AZURE_AI_AGENT_ENDPOINT,
             credential=await get_azure_credential_async()
         ) as project_client:
-            chat_client = AzureAIClient(
-                project_client=project_client,
-                agent_name=AGENT_NAME_TITLE,
-                use_latest_version=True,
+            openai_client = project_client.get_openai_client()
+            conversation = await openai_client.conversations.create()
+
+            response = await openai_client.responses.create(
+                conversation=conversation.id,
+                input=final_prompt,
+                extra_body={"agent": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
             )
 
-            async with ChatAgent(
-                chat_client=chat_client,
-                tool_choice="none",
-            ) as chat_agent:
-                thread = chat_agent.get_new_thread()
-                result = await chat_agent.run(messages=final_prompt, thread=thread)
-                return str(result).strip() if result is not None else generate_fallback_title(conversation_messages)
+            # Extract text from response output
+            result_text = ""
+            for item in response.output:
+                if getattr(item, 'type', None) == 'message':
+                    if hasattr(item, 'content') and item.content is not None:
+                        for content in item.content:
+                            if hasattr(content, 'text'):
+                                result_text += content.text
 
-    except ServiceResponseException as sre:
-        logger.warning("ServiceResponseException generating title with Azure AI Foundry agent: %s", sre)
+            return result_text.strip() if result_text else generate_fallback_title(conversation_messages)
+
+    except HttpResponseError as sre:
+        logger.warning("HttpResponseError generating title with Azure AI Foundry agent: %s", sre)
         return generate_fallback_title(conversation_messages)
 
     except Exception as e:
@@ -587,10 +663,6 @@ async def create_conversation(user_id, title="", conversation_id=None):
         Exception: If an error occurs during conversation creation.
     """
     try:
-        # if not user_id:
-        #     logger.warning("No User ID found, cannot create conversation.")
-        #     return None
-
         if not conversation_id:
             logger.warning("No conversation_id found, generating a new one.")
             conversation_id = str(uuid.uuid4())
@@ -628,10 +700,6 @@ async def create_message(uuid, conversation_id, user_id, input_message: dict):
         Exception: If an error occurs during message creation.
     """
     try:
-        # if not user_id:
-        #     logger.warning("No User ID found, cannot create message.")
-        #     return None
-
         if not conversation_id:
             logger.warning("No conversation_id found, cannot create conversation message.")
             return None
@@ -710,11 +778,6 @@ async def update_conversation(user_id: str, request_json: dict):
         conversation_id = request_json.get("conversation_id")
         messages = request_json.get("messages", [])
 
-        # if not user_id:
-        #     logger.warning("No User ID found, cannot update conversation.")
-        #     return None
-
-        # conversation = None
         query = "SELECT * FROM hst_conversations where conversation_id = ?"
         conversation = await run_query_params(query, (conversation_id,))
 
@@ -995,12 +1058,6 @@ async def delete_all_conversations_endpoint(request: Request):
             request_headers=request.headers)
         user_id = authenticated_user["user_principal_id"]
 
-        # if not user_id:
-        #     track_event_if_configured("DeleteAllConversationsValidationError", {
-        #         "error": "user_id is missing",
-        #         "user_id": user_id
-        #     })
-        #     raise HTTPException(status_code=400, detail="user_id is required")
         # Get all user conversations
         conversations = await get_conversations(user_id, offset=0, limit=None)
         if not conversations:

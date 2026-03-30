@@ -27,12 +27,11 @@ public class ChatMessage
     {
         try
         {
-            if (Content.ValueKind == JsonValueKind.String)
-                return Content.GetString() ?? string.Empty;
-            else
-                return Content.GetRawText();
+            return Content.ValueKind == JsonValueKind.String
+                ? Content.GetString() ?? string.Empty
+                : Content.GetRawText();
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
         {
             return string.Empty;
         }
@@ -46,7 +45,7 @@ public class ChatMessage
             // First try to parse as JSON to preserve structure
             Content = JsonSerializer.Deserialize<JsonElement>(content);
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
         {
             // If not JSON, store as string
             Content = JsonSerializer.SerializeToElement(content);
@@ -58,19 +57,11 @@ public class ChatMessage
     {
         try
         {
-            if (Content.ValueKind == JsonValueKind.String)
-            {
-                // If it's already a string, we might need to serialize it as JSON
-                var stringValue = Content.GetString() ?? string.Empty;
-                return JsonSerializer.Serialize(stringValue);
-            }
-            else
-            {
-                // For objects or arrays, return the raw JSON
-                return Content.GetRawText();
-            }
+            return Content.ValueKind == JsonValueKind.String
+                ? JsonSerializer.Serialize(Content.GetString() ?? string.Empty)
+                : Content.GetRawText();
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
         {
             return JsonSerializer.Serialize(string.Empty);
         }
@@ -102,7 +93,7 @@ public class ChatMessage
                 return new List<string> { Citations.Value.GetRawText() };
             }
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
         {
             return new List<string>();
         }
@@ -118,7 +109,7 @@ public class ChatMessage
         {
             return Citations.Value.GetRawText();
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
         {
             return "";
         }

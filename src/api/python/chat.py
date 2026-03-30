@@ -17,14 +17,13 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 # Azure SDK
-from azure.ai.agents.models import TruncationObject
+from azure.core.exceptions import HttpResponseError
 from azure.monitor.events.extension import track_event
 from azure.monitor.opentelemetry import configure_azure_monitor
 from azure.ai.projects.aio import AIProjectClient
 
-from agent_framework import ChatAgent
-from agent_framework.azure import AzureAIClient
-from agent_framework.exceptions import ServiceResponseException
+# Agent Framework
+from agent_framework.azure import AzureAIProjectAgentProvider
 
 # Azure Auth
 from auth.azure_credential_utils import get_azure_credential_async
@@ -35,11 +34,21 @@ load_dotenv()
 HOST_NAME = "Agentic Applications for Unified Data Foundation"
 HOST_INSTRUCTIONS = "Answer questions about Sales, Products and Orders data."
 
+# Workshop mode configuration
+IS_WORKSHOP = os.getenv("IS_WORKSHOP", "false").lower() == "true"
+AZURE_ENV_ONLY = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
+
 router = APIRouter()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Suppress informational warnings from agent_framework about runtime
+# tool/structured_output overrides not being supported by AzureAIClient.
+agent_log_level = os.getenv("AGENT_FRAMEWORK_LOG_LEVEL", "ERROR").upper()
+logging.getLogger("agent_framework.azure").setLevel(getattr(logging, agent_log_level, logging.ERROR))
+
 
 # Check if the Application Insights Instrumentation Key is set in the environment variables
 instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
@@ -101,6 +110,10 @@ class ExpCache(TTLCache):
         credential = None
         try:
             if thread_conversation_id:
+                # Response IDs (resp_xxx) don't need explicit deletion - they're managed by the API
+                if thread_conversation_id.startswith("resp_"):
+                    logger.info("Skipping deletion for response ID: %s", thread_conversation_id)
+                    return
                 # Get credential and use async context managers to ensure proper cleanup
                 credential = await get_azure_credential_async()
                 async with AIProjectClient(
@@ -108,8 +121,11 @@ class ExpCache(TTLCache):
                     credential=credential
                 ) as project_client:
                     openai_client = project_client.get_openai_client()
-                    await openai_client.conversations.delete(conversation_id=thread_conversation_id)
-                    logger.info("Thread deleted successfully: %s", thread_conversation_id)
+                    try:
+                        await openai_client.conversations.delete(conversation_id=thread_conversation_id)
+                        logger.info("Thread deleted successfully: %s", thread_conversation_id)
+                    finally:
+                        await openai_client.close()
         except Exception as e:
             logger.error("Failed to delete thread %s: %s", thread_conversation_id, e)
         finally:
@@ -141,9 +157,9 @@ def get_thread_cache():
 
 async def stream_openai_text(conversation_id: str, query: str) -> StreamingResponse:
     """
-    Get a streaming text response from OpenAI.
+    Get a streaming text response from OpenAI using azure-ai-projects SDK.
+    Uses responses.create() with conversation caching for chat history continuity.
     """
-    thread = None
     complete_response = ""
     credential = None
     db_connection = None
@@ -151,6 +167,8 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
     try:
         if not query:
             query = "Please provide a query."
+
+        logger.info("Chat request received - query: %s, conversation_id: %s", query, conversation_id)
 
         credential = await get_azure_credential_async()
 
@@ -161,55 +179,117 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
 
             cache = get_thread_cache()
             thread_conversation_id = cache.get(conversation_id, None)
-            truncation_strategy = TruncationObject(type="last_messages", last_messages=4)
 
-            from history_sql import SqlQueryTool, get_fabric_db_connection
-            db_connection = await get_fabric_db_connection()
+            # Get database connection
+            from history_sql import SqlQueryTool, get_db_connection
+            db_connection = await get_db_connection()
             if not db_connection:
                 logger.error("Failed to establish database connection")
                 raise Exception("Database connection failed")
 
             custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
-            my_tools = [custom_tool.run_sql_query]
 
-            # Create chat client with existing agent
-            chat_client = AzureAIClient(
-                project_client=project_client,
-                agent_name=os.getenv("AGENT_NAME_CHAT"),
-                use_latest_version=True,
+            openai_client = project_client.get_openai_client()
+
+            # Create or reuse conversation for chat history continuity
+            if not thread_conversation_id:
+                conversation = await openai_client.conversations.create()
+                thread_conversation_id = conversation.id
+                cache[conversation_id] = thread_conversation_id
+
+            # Initial request to the agent
+            response = await openai_client.responses.create(
+                conversation=thread_conversation_id,
+                input=query,
+                extra_body={"agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
             )
 
-            async with ChatAgent(
-                chat_client=chat_client,
-                tools=my_tools,
-                tool_choice="auto",
-                store=True,
-            ) as chat_agent:
+            # Process response - handle function calls iteratively
+            max_iterations = 10
+            iteration = 0
 
-                if thread_conversation_id:
-                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
-                    assert thread.is_initialized
-                else:
-                    # Create a conversation using openAI client
-                    openai_client = project_client.get_openai_client()
-                    conversation = await openai_client.conversations.create()
-                    thread_conversation_id = conversation.id
-                    thread = chat_agent.get_new_thread(service_thread_id=thread_conversation_id)
-                    cache[conversation_id] = thread_conversation_id
+            while iteration < max_iterations:
+                iteration += 1
 
-                async for chunk in chat_agent.run_stream(messages=query, thread=thread, truncation_strategy=truncation_strategy):
-                    if chunk is not None and chunk.text != "":
-                        complete_response += chunk.text
-                        yield chunk.text
+                function_calls = []
+                text_output = ""
 
-    except ServiceResponseException as e:
+                for item in response.output:
+                    item_type = getattr(item, 'type', None)
+
+                    if item_type == 'function_call':
+                        function_calls.append(item)
+                    elif item_type == 'message':
+                        if hasattr(item, 'content') and item.content is not None:
+                            for content in item.content:
+                                if hasattr(content, 'text'):
+                                    text_output += content.text
+                    elif item_type == 'azure_ai_search_call':
+                        args_str = getattr(item, 'arguments', '{}')
+                        try:
+                            args = json.loads(args_str) if args_str else {}
+                            logger.info("AI Search query: %s", args.get('query', 'unknown'))
+                        except Exception:
+                            logger.info("AI Search called")
+                    elif item_type in ('azure_ai_search_call_output', 'mcp_call_output'):
+                        logger.info("Search/knowledge base retrieval completed")
+                    elif item_type == 'mcp_call':
+                        logger.info("Knowledge Base MCP call: %s", getattr(item, 'name', 'unknown'))
+
+                # If no function calls, yield text and break
+                if not function_calls:
+                    if text_output:
+                        complete_response += text_output
+                        yield text_output
+                    break
+
+                # Handle function calls
+                tool_outputs = []
+                for fc in function_calls:
+                    func_name = fc.name
+                    func_args = json.loads(fc.arguments)
+                    logger.info("Calling function: %s", func_name)
+
+                    if func_name == "run_sql_query":
+                        sql_query = func_args.get("sql_query", "")
+                        logger.info("Executing SQL query: %s", sql_query[:100])
+                        result = await custom_tool.run_sql_query(sql_query=sql_query)
+                        logger.info("SQL query completed")
+                        if result is None:
+                            result_str = "No results returned"
+                        elif isinstance(result, (list, dict)):
+                            result_str = json.dumps(result, ensure_ascii=False)
+                        else:
+                            result_str = str(result)
+                    else:
+                        result_str = f"Unknown function: {func_name}"
+                        logger.warning("Unknown function called: %s", func_name)
+
+                    tool_outputs.append({
+                        "type": "function_call_output",
+                        "call_id": fc.call_id,
+                        "output": result_str
+                    })
+
+                # Submit tool outputs and get next response
+                response = await openai_client.responses.create(
+                    conversation=thread_conversation_id,
+                    input=tool_outputs,
+                    extra_body={"agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
+                )
+
+            if iteration >= max_iterations:
+                logger.warning("Max iterations reached for conversation %s", conversation_id)
+                yield "\n\n(Response processing reached maximum iterations)"
+
+    except HttpResponseError as e:
         complete_response = str(e)
-        if "Rate limit is exceeded" in str(e):
+        if "Rate limit is exceeded" in str(e) or e.status_code == 429:
             logger.error("Rate limit error: %s", e)
-            raise ServiceResponseException(f"Rate limit is exceeded. {str(e)}") from e
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=f"Rate limit is exceeded. {str(e)}") from e
         else:
             logger.error("RuntimeError: %s", e)
-            raise ServiceResponseException(f"An unexpected runtime error occurred: {str(e)}") from e
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"An unexpected runtime error occurred: {str(e)}") from e
 
     except Exception as e:
         complete_response = str(e)
@@ -232,6 +312,139 @@ async def stream_openai_text(conversation_id: str, query: str) -> StreamingRespo
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
+async def stream_openai_text_workshop(conversation_id: str, query: str) -> StreamingResponse:
+    """
+    Get a streaming text response from OpenAI with workshop mode using AzureAIProjectAgentProvider.
+    Uses agent_framework to handle function calls (SQL) and search tools automatically.
+    Uses Fabric SQL when AZURE_ENV_ONLY is false, otherwise uses Azure SQL.
+    """
+    complete_response = ""
+    credential = None
+    db_connection = None
+
+    try:
+        if not query:
+            query = "Please provide a query."
+
+        credential = await get_azure_credential_async()
+
+        async with AIProjectClient(
+            endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
+            credential=credential
+        ) as project_client:
+            cache = get_thread_cache()
+            conv_id = cache.get(conversation_id, None)
+
+            # Get database connection based on AZURE_ENV_ONLY flag
+            from history_sql import SqlQueryTool, get_azure_sql_connection, get_fabric_db_connection
+
+            if AZURE_ENV_ONLY:
+                logger.info("Workshop mode: Using Azure SQL Database")
+                db_connection = await get_azure_sql_connection()
+            else:
+                logger.info("Workshop mode: Using Fabric Lakehouse SQL")
+                db_connection = await get_fabric_db_connection()
+
+            if not db_connection:
+                logger.warning("Failed to establish database connection")
+
+            custom_tool = SqlQueryTool(pyodbc_conn=db_connection) if db_connection else None
+
+            # Create provider and get agent with tools
+            provider = AzureAIProjectAgentProvider(project_client=project_client)
+            agent = await provider.get_agent(
+                name=os.getenv("AGENT_NAME_CHAT"),
+                tools=custom_tool.execute_sql if custom_tool else None
+            )
+
+            # Create or retrieve conversation
+            if not conv_id:
+                openai_client = project_client.get_openai_client()
+                conv = await openai_client.conversations.create()
+                conv_id = conv.id
+                cache[conversation_id] = conv_id
+
+            # Citation tracking
+            citations = []
+            first_chunk = True
+            citation_marker_map = {}  # Maps original markers to sequential numbers
+            citation_counter = 0
+
+            def replace_citation_marker(match):
+                nonlocal citation_counter
+                marker = match.group(0)
+                if marker not in citation_marker_map:
+                    citation_counter += 1
+                    citation_marker_map[marker] = citation_counter
+                return f"[{citation_marker_map[marker]}]"
+
+            # Stream response using agent_framework - handles function calls automatically
+            async for chunk in agent.run(query, stream=True, conversation_id=conv_id):
+                # # Collect citations from Azure AI Search responses
+                # for content in getattr(chunk, "contents", []):
+                #     annotations = getattr(content, "annotations", [])
+                #     if annotations:
+                #         citations.extend(annotations)
+
+                chunk_text = str(chunk.text) if chunk.text else ""
+
+                # Remove citation markers like 【4:0†source】 from response text until citation issue resolved
+                chunk_text = re.sub(r'【\d+:\d+†[^】]+】', '', chunk_text)
+                # Replace citation markers like 【4:0†source】 with [1], [2], etc.
+                # chunk_text = re.sub(r'【\d+:\d+†[^】]+】', replace_citation_marker, chunk_text)
+
+                if chunk_text:
+                    complete_response += chunk_text
+                    if first_chunk:
+                        first_chunk = False
+                        yield "{ \"answer\": " + chunk_text
+                    else:
+                        yield chunk_text
+
+            cache[conversation_id] = conv_id
+
+            # Yield citations at end of stream
+            if citations:
+                citation_list = []
+                seen_doc_ids = set()
+
+                for citation in citations:
+                    # URL is directly on the citation object, fallback to additional_properties.get_url
+                    url = citation.get("url") or (citation.get("additional_properties") or {}).get("get_url") or "N/A"
+                    title = citation.get("title", "N/A")
+
+                    # Skip duplicate citations based on title
+                    if title in seen_doc_ids:
+                        continue
+                    seen_doc_ids.add(title)
+
+                    citation_list.append(json.dumps({"url": url, "title": title}))
+
+                yield ", \"citations\": [" + ",".join(citation_list) + "]}"
+            else:
+                yield ", \"citations\": []}"
+
+    except Exception as e:
+        complete_response = str(e)
+        logger.error("Error in stream_openai_text_workshop: %s", e)
+        cache = get_thread_cache()
+        conv_id = cache.pop(conversation_id, None)
+        if conv_id is not None:
+            corrupt_key = f"{conversation_id}_corrupt_{random.randint(1000, 9999)}"
+            cache[corrupt_key] = conv_id
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error streaming OpenAI text") from e
+
+    finally:
+        if db_connection:
+            db_connection.close()
+        if credential is not None:
+            await credential.close()
+        # Provide a fallback response when no data is received from OpenAI.
+        if complete_response == "":
+            logger.info("No response received from OpenAI.")
+            yield "I cannot answer this question with the current data. Please rephrase or add more details."
+
+
 async def stream_chat_request(conversation_id, query):
     """
     Handles streaming chat requests.
@@ -239,7 +452,9 @@ async def stream_chat_request(conversation_id, query):
     async def generate():
         try:
             assistant_content = ""
-            async for chunk in stream_openai_text(conversation_id, query):
+            # Use workshop function if IS_WORKSHOP is enabled
+            stream_func = stream_openai_text_workshop if IS_WORKSHOP else stream_openai_text
+            async for chunk in stream_func(conversation_id, query):
                 if isinstance(chunk, dict):
                     chunk = json.dumps(chunk)  # Convert dict to JSON string
                 assistant_content += str(chunk)
@@ -252,17 +467,17 @@ async def stream_chat_request(conversation_id, query):
                     }
                     yield json.dumps(response, ensure_ascii=False) + "\n\n"
 
-        except ServiceResponseException as e:
-            error_message = str(e)
+        except HTTPException as e:
+            error_message = str(e.detail) if hasattr(e, 'detail') else str(e)
             retry_after = "sometime"
-            if "Rate limit is exceeded" in error_message:
+            if "Rate limit is exceeded" in error_message or e.status_code == 429:
                 match = re.search(r"Try again in (\d+) seconds.", error_message)
                 if match:
                     retry_after = f"{match.group(1)} seconds"
                 logger.error("Rate limit error: %s", error_message)
                 yield json.dumps({"error": f"Rate limit is exceeded. Try again in {retry_after}."}) + "\n\n"
             else:
-                logger.error("ServiceResponseException: %s", error_message)
+                logger.error("HttpResponseError: %s", error_message)
                 yield json.dumps({"error": "An error occurred. Please try again later."}) + "\n\n"
 
         except Exception as e:
@@ -294,6 +509,8 @@ async def conversation(request: Request):
                 content={"error": "Conversation ID is required"},
                 status_code=400
             )
+
+        logger.info("Chat request received - query: %s, conversation_id: %s", query, conversation_id)
 
         result = await stream_chat_request(conversation_id, query)
         track_event_if_configured(

@@ -205,6 +205,30 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     azd auth login --tenant-id <tenant-id>
     ```
 
+    > **Note**: This solution accelerator now supports two modes (standard and workshop). By default it will run in workshop mode. If you do not want to run the workshop please set IS_WORKSHOP run the below azd command to set the workshop to false. 
+
+      ```sh
+      azd env set IS_WORKSHOP false
+      ```
+    
+      In standard mode, by default the backend API is configured to Python.
+      To use dotnet instead, run the below command.
+
+      ```sh
+      azd env set BACKEND_RUNTIME_STACK dotnet
+      ```
+      
+      In standard mode, by default the use case is set to Retail Sales.
+      To switch to Insurance, run the below command.
+
+      ```sh
+      azd env set AZURE_ENV_USE_CASE Insurance-improve-customer-meetings
+      ```
+    **NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
+    ```bash 
+    azd config set provision.preflight off
+    ```
+
 2. Provision and deploy all the resources:
 
     ```shell
@@ -213,12 +237,12 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 3. Provide an `azd` environment name (e.g., "daapp").
 4. Select a subscription from your Azure account and choose a location that has quota for all the resources.
-5. Choose the programming language for the backend API:
+<!--5. Choose the programming language for the backend API:
    - **Python**
    - **.NET (dotnet)**
 6. Choose the use case: 
    - **Retail-sales-analysis**
-   - **Insurance-improve-customer-meetings** 
+   - **Insurance-improve-customer-meetings** -->
 
    This deployment will take *7-10 minutes* to provision the resources in your account and set up the solution with sample data.
    
@@ -259,8 +283,21 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     ```
     If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
     ```Shell
-    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group>
+    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <ai-project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group> <usecase> [<is-workshop>]
     ```
+
+    **Step 10 Parameter Reference:**
+
+    | Parameter | azd env Variable | Format / Example |
+    |---|---|---|
+    | `<ai-project-endpoint>` | `AZURE_AI_PROJECT_ENDPOINT` | URL starting with `https://` (e.g., `https://<ai-service>.services.ai.azure.com/api/projects/<project>`) |
+    | `<solution-name>` | `SOLUTION_NAME` | Alphanumeric string (e.g., `da5fi6dninkrjn`) |
+    | `<gpt-model-name>` | `AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME` | Model name (e.g., `gpt-4o-mini`, `gpt-4o`, `gpt-4`) |
+    | `<ai-foundry-resource-id>` | `AI_FOUNDRY_RESOURCE_ID` | Full resource ID starting with `/subscriptions/...` |
+    | `<api-app-name>` | `API_APP_NAME` | App Service name (e.g., `api-cs-<solutionname>`) |
+    | `<resource-group>` | `AZURE_RESOURCE_GROUP` | Resource group name (e.g., `rg-<envname>`) |
+    | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
+    | `<is-workshop>` | `IS_WORKSHOP` | `true` or `false` (defaults to `false`) |
 
 11. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
     ```Shell
@@ -269,8 +306,21 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
     If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
     ```Shell
-    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup>
+    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup> <usecase>
     ```
+
+    **Step 11 Parameter Reference:**
+
+    | Parameter | azd env Variable | Format / Example |
+    |---|---|---|
+    | `<fabric-workspaceId>` | *(user-provided)* | GUID (e.g., `5bxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxx246`) |
+    | `<solutionname>` | `SOLUTION_NAME` | Alphanumeric string (e.g., `da5fi6dninkrjn`) |
+    | `<ai-foundry-name>` | `AI_SERVICE_NAME` | AI Foundry account name (e.g., `aisa-<solutionname>`) |
+    | `<backend-api-mid-principal>` | `API_PID` | Managed identity Principal (Object) ID — GUID |
+    | `<backend-api-mid-client>` | `API_UID` | Managed identity Client ID — GUID |
+    | `<api-app-name>` | `API_APP_NAME` | App Service name (e.g., `api-cs-<solutionname>`) |
+    | `<resourcegroup>` | `RESOURCE_GROUP_NAME` | Resource group name (e.g., `rg-<envname>`) |
+    | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
 
 12. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
