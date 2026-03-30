@@ -72,6 +72,7 @@ namespace CsApi.Utils
                 // First, try to remove expired items
                 var expiredItems = _cache
                     .Where(kvp => kvp.Value.ExpiresAt <= now)
+                    .Where(kvp => _cache.ContainsKey(kvp.Key))
                     .ToList();
                 
                 foreach (var kvp in expiredItems)
@@ -91,7 +92,10 @@ namespace CsApi.Utils
                         .Take(excessCount)
                         .ToList();
 
-                    foreach (var kvp in oldestItems)
+                    var candidates = oldestItems
+                        .Where(kvp => _cache.ContainsKey(kvp.Key))
+                        .ToList();
+                    foreach (var kvp in candidates)
                     {
                         if (_cache.TryRemove(kvp.Key, out var removedItem))
                         {
@@ -129,6 +133,7 @@ namespace CsApi.Utils
             var now = DateTime.UtcNow;
             var expiredItems = _cache
                 .Where(kvp => kvp.Value.ExpiresAt <= now)
+                .Where(kvp => _cache.ContainsKey(kvp.Key))
                 .ToList();
 
             foreach (var kvp in expiredItems)

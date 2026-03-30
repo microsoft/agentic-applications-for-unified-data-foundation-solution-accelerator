@@ -249,26 +249,24 @@ class TestStreamOpenAIText:
             mock_openai = AsyncMock()
             mock_conv = Mock(id="thread_123")
             mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+            
+            # Mock responses.create() with proper output structure
+            mock_content = Mock()
+            mock_content.text = "Response"
+            mock_output_item = Mock()
+            mock_output_item.type = 'message'
+            mock_output_item.content = [mock_content]
+            mock_response = Mock()
+            mock_response.output = [mock_output_item]
+            mock_openai.responses.create = AsyncMock(return_value=mock_response)
+            
             mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
             mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
             mock_proj_inst.__aexit__ = AsyncMock()
             mock_project.return_value = mock_proj_inst
             
             mock_db.return_value = Mock()
-            mock_db.return_value.close = Mock()
             mock_tool.return_value = Mock()
-            
-            mock_agent_inst = AsyncMock()
-            mock_thread = Mock(is_initialized=False)
-            mock_agent_inst.get_new_thread = Mock(return_value=mock_thread)
-            
-            async def mock_run(*args, **kwargs):
-                yield Mock(text="Response")
-            
-            mock_agent_inst.run_stream = mock_run
-            mock_agent_inst.__aenter__ = AsyncMock(return_value=mock_agent_inst)
-            mock_agent_inst.__aexit__ = AsyncMock()
-            mock_agent.return_value = mock_agent_inst
             
             mock_cache.return_value = {}
             
@@ -299,28 +297,19 @@ class TestStreamOpenAIText:
             mock_openai = AsyncMock()
             mock_conv = Mock(id="thread_123")
             mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+            
+            # Mock empty response (no message content)
+            mock_response = Mock()
+            mock_response.output = []  # Empty output
+            mock_openai.responses.create = AsyncMock(return_value=mock_response)
+            
             mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
             mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
             mock_proj_inst.__aexit__ = AsyncMock()
             mock_project.return_value = mock_proj_inst
             
             mock_db.return_value = Mock()
-            mock_db.return_value.close = Mock()
             mock_tool.return_value = Mock()
-            
-            mock_agent_inst = AsyncMock()
-            mock_thread = Mock(is_initialized=False)
-            mock_agent_inst.get_new_thread = Mock(return_value=mock_thread)
-            
-            async def mock_run(*args, **kwargs):
-                # Empty generator
-                return
-                yield
-            
-            mock_agent_inst.run_stream = mock_run
-            mock_agent_inst.__aenter__ = AsyncMock(return_value=mock_agent_inst)
-            mock_agent_inst.__aexit__ = AsyncMock()
-            mock_agent.return_value = mock_agent_inst
             
             mock_cache.return_value = {}
             
@@ -396,26 +385,26 @@ class TestAdditionalCoverage:
             mock_cred.return_value.close = AsyncMock()
             
             mock_proj_inst = AsyncMock()
+            mock_openai = AsyncMock()
+            # No need to create conversation - using cached thread
+            
+            # Mock responses.create() with proper output structure
+            mock_content = Mock()
+            mock_content.text = "Response from cached thread"
+            mock_output_item = Mock()
+            mock_output_item.type = 'message'
+            mock_output_item.content = [mock_content]
+            mock_response = Mock()
+            mock_response.output = [mock_output_item]
+            mock_openai.responses.create = AsyncMock(return_value=mock_response)
+            
+            mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
             mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
             mock_proj_inst.__aexit__ = AsyncMock()
             mock_project.return_value = mock_proj_inst
             
             mock_db.return_value = Mock()
-            mock_db.return_value.close = Mock()
             mock_tool.return_value = Mock()
-            
-            mock_agent_inst = AsyncMock()
-            # Mock thread as already initialized
-            mock_thread = Mock(is_initialized=True)
-            mock_agent_inst.get_new_thread = Mock(return_value=mock_thread)
-            
-            async def mock_run(*args, **kwargs):
-                yield Mock(text="Response from cached thread")
-            
-            mock_agent_inst.run_stream = mock_run
-            mock_agent_inst.__aenter__ = AsyncMock(return_value=mock_agent_inst)
-            mock_agent_inst.__aexit__ = AsyncMock()
-            mock_agent.return_value = mock_agent_inst
             
             # Mock cache with existing thread ID
             mock_cache_dict = {"conv_123": "existing_thread_123"}
@@ -427,7 +416,8 @@ class TestAdditionalCoverage:
             
             # Should use cached thread
             assert len(results) > 0
-            assert mock_thread.is_initialized
+            # conversations.create should NOT be called since thread is cached
+            mock_openai.conversations.create.assert_not_called()
     
     @pytest.mark.asyncio
     async def test_stream_openai_text_db_connection_failure(self):
@@ -533,26 +523,24 @@ class TestAdditionalCoverage:
             mock_openai = AsyncMock()
             mock_conv = Mock(id="new_thread_456")
             mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+            
+            # Mock responses.create() with proper output structure
+            mock_content = Mock()
+            mock_content.text = "New conversation response"
+            mock_output_item = Mock()
+            mock_output_item.type = 'message'
+            mock_output_item.content = [mock_content]
+            mock_response = Mock()
+            mock_response.output = [mock_output_item]
+            mock_openai.responses.create = AsyncMock(return_value=mock_response)
+            
             mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
             mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
             mock_proj_inst.__aexit__ = AsyncMock()
             mock_project.return_value = mock_proj_inst
             
             mock_db.return_value = Mock()
-            mock_db.return_value.close = Mock()
             mock_tool.return_value = Mock()
-            
-            mock_agent_inst = AsyncMock()
-            mock_thread = Mock(is_initialized=False, service_thread_id="new_thread_456")
-            mock_agent_inst.get_new_thread = Mock(return_value=mock_thread)
-            
-            async def mock_run(*args, **kwargs):
-                yield Mock(text="New conversation response")
-            
-            mock_agent_inst.run_stream = mock_run
-            mock_agent_inst.__aenter__ = AsyncMock(return_value=mock_agent_inst)
-            mock_agent_inst.__aexit__ = AsyncMock()
-            mock_agent.return_value = mock_agent_inst
             
             # Mock empty cache (no existing thread)
             mock_cache_dict = {}
@@ -607,7 +595,6 @@ class TestAdditionalCoverage:
             mock_project.return_value = mock_proj_inst
             
             mock_db.return_value = Mock()
-            mock_db.return_value.close = Mock()
             mock_tool.return_value = Mock()
             
             mock_cache.return_value = {}
@@ -661,26 +648,25 @@ class TestApplicationInsightsCoverage:
             mock_cred.return_value.close = AsyncMock()
             
             mock_proj_inst = AsyncMock()
+            mock_openai = AsyncMock()
+            
+            # Mock responses.create() with proper output structure
+            mock_content = Mock()
+            mock_content.text = "Cached thread response"
+            mock_output_item = Mock()
+            mock_output_item.type = 'message'
+            mock_output_item.content = [mock_content]
+            mock_response = Mock()
+            mock_response.output = [mock_output_item]
+            mock_openai.responses.create = AsyncMock(return_value=mock_response)
+            
+            mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
             mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
             mock_proj_inst.__aexit__ = AsyncMock()
             mock_project.return_value = mock_proj_inst
             
             mock_db.return_value = Mock()
-            mock_db.return_value.close = Mock()
             mock_tool.return_value = Mock()
-            
-            mock_agent_inst = AsyncMock()
-            # Thread is already initialized
-            mock_thread = Mock(is_initialized=True)
-            mock_agent_inst.get_new_thread = Mock(return_value=mock_thread)
-            
-            async def mock_run(*args, **kwargs):
-                yield Mock(text="Cached thread response")
-            
-            mock_agent_inst.run_stream = mock_run
-            mock_agent_inst.__aenter__ = AsyncMock(return_value=mock_agent_inst)
-            mock_agent_inst.__aexit__ = AsyncMock()
-            mock_agent.return_value = mock_agent_inst
             
             # Mock cache with existing thread
             mock_cache_dict = {"conv_cached": "existing_thread_999"}
@@ -692,8 +678,8 @@ class TestApplicationInsightsCoverage:
             
             # Should use existing thread
             assert len(results) > 0
-            # assert was called on is_initialized
-            assert mock_thread.is_initialized
+            # conversations.create should NOT be called since thread is cached
+            mock_openai.conversations.create.assert_not_called()
     
 
 

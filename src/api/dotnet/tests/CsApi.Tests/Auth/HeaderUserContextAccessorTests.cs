@@ -107,8 +107,8 @@ public class HeaderUserContextAccessorTests
 
         // Assert
         Assert.Equal("user-789", result.UserPrincipalId);
-        Assert.Equal(string.Empty, result.UserName);
-        Assert.Equal(string.Empty, result.AuthProvider);
+        Assert.Null(result.UserName);
+        Assert.Null(result.AuthProvider);
         Assert.Null(result.AuthToken);
     }
 
