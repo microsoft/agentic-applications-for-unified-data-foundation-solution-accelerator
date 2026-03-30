@@ -12,6 +12,9 @@ Usage:
     # Bring your own data (skips AI data generation)
     python scripts/00_build_solution.py --custom-data data/customdata
 
+    # Rerun agent creation with Fabric Data Agent
+    python scripts/00_build_solution.py --from 06 --use-data-agent
+
 Steps (Fabric SQL mode):
     01  - Generate sample data
     02  - Create Fabric Lakehouse & Load Data
@@ -35,7 +38,7 @@ Custom Data mode (--custom-data):
 
 Both modes always use:
     - Native AzureAISearchTool for document search
-    - execute_sql function tool for structured data
+    - execute_sql function tool for structured data (or Fabric Data Agent if --use-data-agent)
 """
 
 import argparse
@@ -75,6 +78,7 @@ Examples:
   python scripts/00_build_solution.py                # Full Fabric mode or SQL mode
   python scripts/00_build_solution.py --from 05      # Start from step 05
   python scripts/00_build_solution.py --only 06      # Run only specific steps
+  python scripts/00_build_solution.py --from 06 --use-data-agent  # Rerun agent with Fabric Data Agent
   python scripts/00_build_solution.py -g rg-myproject-dev  # Pre-provisioned infra
   python scripts/00_build_solution.py --fabric-workspace-id <id>  # Pass Fabric workspace ID
   python scripts/00_build_solution.py --custom-data data/customdata  # Use your own data
@@ -95,6 +99,8 @@ parser.add_argument("--custom-data", type=str,
                          "Config is auto-generated from your CSV files.")
 parser.add_argument("--clean", action="store_true",
                     help="Clean and recreate artifacts")
+parser.add_argument("--use-data-agent", action="store_true",
+                    help="Use Fabric Data Agent via MCP instead of execute_sql (sets USE_DATA_AGENT=true for step 06)")
 
 parser.add_argument("--from", dest="from_step", type=str,
                     help="Start from this step (e.g., --from 05)")
@@ -112,6 +118,13 @@ args = parser.parse_args()
 
 # Quiet mode is default (verbose must be explicitly requested)
 args.quiet = not args.verbose
+
+# Set USE_DATA_AGENT env var (and persist to .env) BEFORE loading env,
+# so it survives reload_env() calls during the pipeline.
+if args.use_data_agent:
+    os.environ["USE_DATA_AGENT"] = "true"
+    from dotenv import set_key as _set_key
+    _set_key(os.path.join(script_dir, ".env"), "USE_DATA_AGENT", "true")
 
 # Load environment from azd + project .env
 from load_env import load_all_env

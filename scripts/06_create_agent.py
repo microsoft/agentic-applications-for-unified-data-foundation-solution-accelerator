@@ -3,7 +3,7 @@
 Unified script that automatically selects the SQL backend and search mode based on configuration.
 
 SQL Modes:
-    - Fabric Data Agent mode: Uses Fabric Data Agent via MCP (--use-data-agent with Fabric configured)
+    - Fabric Data Agent mode: Uses Fabric Data Agent via MCP (USE_DATA_AGENT=true with Fabric configured)
     - Fabric execute_sql mode: Uses FunctionTool with Fabric Lakehouse SQL endpoint
     - Azure SQL mode: Uses Azure SQL Database (--azure-only or no Fabric configured)
 
@@ -13,7 +13,7 @@ Search Modes:
 
 Usage:
     python 06_create_agent.py                          # Auto-detect SQL (execute_sql), KB search
-    python 06_create_agent.py --use-data-agent         # Fabric Data Agent MCP + KB search
+    USE_DATA_AGENT=true python 06_create_agent.py      # Fabric Data Agent MCP + KB search
     python 06_create_agent.py --azure-only             # Force Azure SQL + KB search
     python 06_create_agent.py --use-knowledge-base     # (always True by default)
 
@@ -32,6 +32,7 @@ Environment Variables (from azd):
     - AZURE_AI_SEARCH_INDEX: AI Search index name
     - SQLDB_SERVER, SQLDB_DATABASE: Azure SQL (for azure-only mode)
     - FABRIC_WORKSPACE_ID: Fabric workspace (for Fabric mode)
+    - USE_DATA_AGENT: Set to 'true' to use Fabric Data Agent via MCP (set by 00_build_solution.py --use-data-agent)
 """
 
 import os
@@ -43,8 +44,6 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--azure-only", action="store_true",
                     help="Use Azure SQL Database instead of Fabric Lakehouse")
-parser.add_argument("--use-data-agent", action="store_true",
-                    help="Use Fabric Data Agent via MCP (requires Fabric configured and Data Agent created)")
 parser.add_argument("--use-knowledge-base", action="store_true",
                     help="Use Foundry IQ Knowledge Base (MCP) instead of Search Connection")
 parser.add_argument("--connection-name", type=str,
@@ -100,8 +99,8 @@ elif FABRIC_WORKSPACE_ID:
 else:
     USE_FABRIC = False
 
-# Data Agent mode — CLI flag overrides env var; only when Fabric is available
-USE_DATA_AGENT = (args.use_data_agent or os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes")) and USE_FABRIC
+# Data Agent mode — env var only; only when Fabric is available
+USE_DATA_AGENT = os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes") and USE_FABRIC
 
 # Project settings - from .env
 SOLUTION_NAME = os.getenv("SOLUTION_NAME") or os.getenv("AZURE_ENV_NAME", "demo")

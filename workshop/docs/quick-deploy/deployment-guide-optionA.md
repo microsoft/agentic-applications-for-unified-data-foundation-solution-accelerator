@@ -258,17 +258,19 @@ The web application is already deployed during the initial `azd up` deployment. 
 
 ### 9. Rerun with Fabric Data Agent (Optional)
 
-By default, the Foundry agent uses `execute_sql` to query Fabric Lakehouse directly. After experiencing the application with the default Foundry agent, you can switch to using the **Fabric Data Agent** (via MCP) by rerunning the agent creation step with the `--use-data-agent` flag:
+By default, the app queries your data using direct SQL. Once you've tried out the application, you can switch to using the **Fabric Data Agent**.
+
+To make the switch, rerun the build starting from step 06 with the `--use-data-agent` flag:
 
 ```bash
-python scripts/06_create_agent.py --use-data-agent
+python scripts/00_build_solution.py --from 06 --use-data-agent
 ```
 
-This recreates the Foundry agent with an MCP tool pointing to the Fabric Data Agent instead of `execute_sql`. The Data Agent translates natural language to SQL, which can improve query accuracy for complex questions.
+This swaps out the default query method and connects the app to the Fabric Data Agent instead.
 
-> **Note:** The Fabric Data Agent must already exist (created in step 02 / verified in step 7). Verify it is published by checking your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace.
+> **Note:** The Fabric Data Agent must already exist (it was created in step 02 and you verified it in step 7). Make sure it's published by checking your [Microsoft Fabric](https://app.fabric.microsoft.com/) workspace.
 
-After recreating the agent, test it via the CLI or refresh the web application to experience the difference:
+After the rebuild, test the updated agent or refresh the web app to see the difference:
 
 ```bash
 python scripts/07_test_agent.py
