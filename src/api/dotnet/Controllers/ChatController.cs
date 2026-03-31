@@ -56,7 +56,10 @@ public class ChatController : ControllerBase
         
         var (convId, _) = await _sqlRepo.EnsureConversationAsync(userId ?? string.Empty, request.ConversationId, title: string.Empty, ct);
 
-        _logger.LogInformation("Chat request received - query: {Query}, conversation_id: {ConversationId}", request.Query, convId);
+        // Sanitize user input to prevent log forging attacks
+        var sanitizedQuery = request.Query.Replace(Environment.NewLine, "").Replace("\r", "").Replace("\n", "");
+        var sanitizedConvId = convId.Replace(Environment.NewLine, "").Replace("\r", "").Replace("\n", "");
+        _logger.LogInformation("Chat request received - query: {Query}, conversation_id: {ConversationId}", sanitizedQuery, sanitizedConvId);
         
         // Use Agent Framework AIAgent for RAG/AI response with function tools  
         AIAgent agent = agentService.Agent;
