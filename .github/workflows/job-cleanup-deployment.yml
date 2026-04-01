@@ -74,7 +74,7 @@ jobs:
       API_PID: ${{ inputs.API_PID }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install azd
         uses: Azure/setup-azd@v2

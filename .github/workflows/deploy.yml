@@ -50,7 +50,7 @@ jobs:
       API_PID: ${{ steps.extract_env_values.outputs.API_PID }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run Quota Check
         id: quota-check
@@ -276,7 +276,7 @@ jobs:
       API_PID: ${{ needs.deploy.outputs.API_PID }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Azure Developer CLI
         uses: azure/setup-azd@v2
