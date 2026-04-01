@@ -1,7 +1,5 @@
 using CsApi.Converters;
-using System.Text;
 using System.Text.Json;
-using Xunit;
 
 namespace CsApi.Tests.Converters;
 
@@ -247,7 +245,7 @@ public class PythonCompatibleNullableDateTimeConverterTests
         // Assert
         Assert.NotNull(result);
         Assert.NotNull(result.Value);
-        Assert.Equal(2024, result.Value.Value.Year);
+        Assert.Equal(2024, result.Value!.Value.Year);
     }
 
     [Fact]
@@ -274,7 +272,7 @@ public class PythonCompatibleNullableDateTimeConverterTests
         // Assert
         Assert.NotNull(result);
         Assert.NotNull(result.Value);
-        Assert.Equal(original.Year, result.Value.Value.Year);
+        Assert.Equal(original.Year, result.Value!.Value.Year);
     }
 
     [Fact]
@@ -330,8 +328,8 @@ public class PythonCompatibleNullableDateTimeConverterTests
         // Assert
         Assert.NotNull(result);
         Assert.NotNull(result.Value);
-        Assert.Equal(3, result.Value.Value.Month);
-        Assert.Equal(15, result.Value.Value.Day);
+        Assert.Equal(3, result.Value!.Value.Month);
+        Assert.Equal(15, result.Value!.Value.Day);
     }
 
     [Fact]
@@ -346,8 +344,8 @@ public class PythonCompatibleNullableDateTimeConverterTests
         // Assert
         Assert.NotNull(result);
         Assert.NotNull(result.Value);
-        Assert.Equal(8, result.Value.Value.Month);
-        Assert.Equal(20, result.Value.Value.Day);
+        Assert.Equal(8, result.Value!.Value.Month);
+        Assert.Equal(20, result.Value!.Value.Day);
     }
 
     private class NullableDateTimeWrapper

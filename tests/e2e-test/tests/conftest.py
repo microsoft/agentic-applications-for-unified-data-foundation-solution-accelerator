@@ -194,14 +194,3 @@ def rename_duration_column():
 
 # Register this function to run after everything is done
 atexit.register(rename_duration_column)
-
-
-# Add logs and docstring to report
-# @pytest.hookimpl(hookwrapper=True)
-# def pytest_runtest_makereport(item, call):
-#     outcome = yield
-#     report = outcome.get_result()
-#     report.description = str(item.function.__doc__)
-#     os.makedirs("logs", exist_ok=True)
-#     extra = getattr(report, "extra", [])
-#     report.extra = extra

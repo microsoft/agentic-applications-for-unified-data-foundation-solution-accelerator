@@ -63,9 +63,10 @@ const Chat: React.FC<ChatProps> = ({
   const { userMessage, generatingResponse, messages, isStreamingInProgress } = useAppSelector((state) => state.chat);
   const selectedConversationId = useAppSelector((state) => state.app.selectedConversationId);
   const generatedConversationId = useAppSelector((state) => state.app.generatedConversationId);
+  const conversationHistory = useAppSelector((state) => state.chatHistory.list);
   const { isFetchingConvMessages, isHistoryUpdateAPIPending } = useAppSelector((state) => state.chatHistory);
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
-  const [isChartLoading, setIsChartLoading] = useState(false)
+  const [isChartLoading, setIsChartLoading] = useState(false);
   const abortFuncs = useRef([] as AbortController[]);
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   
@@ -91,36 +92,34 @@ const Chat: React.FC<ChatProps> = ({
     if (!convId || !newMessages.length) {
       return;
     }
-    const isNewConversation = !selectedConversationId;
-
-    if (false) {  // Disabled: chart display default
-      setIsChartLoading(true);
-      setTimeout(()=>{
-        makeApiRequestForChart('show in a graph by default', convId)
-      },5000)
-
-    }
 
     try {
       const result = await dispatch(updateConversation({ conversationId: convId, messages: newMessages })).unwrap();
+      const savedConversationId = result?.data?.conversation_id;
+      const hasConversationInList = savedConversationId
+        ? conversationHistory.some((conversation) => conversation.id === savedConversationId)
+        : false;
       
-      if (isNewConversation && result?.success) {
+      if (result?.success && savedConversationId && !hasConversationInList) {
         const newConversation: Conversation = {
-          id: result?.data?.conversation_id,
+          id: savedConversationId,
           title: result?.data?.title,
-          messages: messages,
+          messages: newMessages,
           date: result?.data?.date,
           updatedAt: result?.data?.date,
         };
         dispatch(addNewConversation(newConversation));
-        dispatch(setSelectedConversationId(result?.data?.conversation_id));
+      }
+
+      if (result?.success && savedConversationId && selectedConversationId !== savedConversationId) {
+        dispatch(setSelectedConversationId(savedConversationId));
       }
     } catch {
       // Error saving data to database
     } finally {
       dispatch(setGeneratingResponse(false));
     }
-  }, [selectedConversationId, messages, dispatch]);
+  }, [selectedConversationId, conversationHistory, dispatch]);
   const parseCitationFromMessage = useCallback((message: string) => {
   try {
     message = '{' + message;

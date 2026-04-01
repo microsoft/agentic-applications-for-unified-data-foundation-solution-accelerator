@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using Azure;
+using Microsoft.Extensions.Logging;
 using Microsoft.Agents.AI;
 using CsApi.Auth;
 using Azure.AI.Projects;
@@ -19,14 +21,16 @@ namespace CsApi.Utils
         private readonly double _ttlSeconds;
         private readonly string _azureAIEndpoint;
         private readonly IConfiguration _configuration;
+        private readonly ILogger _logger;
 
-        public ExpCache(int maxSize, double ttlSeconds, IConfiguration configuration, string azureAIEndpoint = "")
+        public ExpCache(int maxSize, double ttlSeconds, IConfiguration configuration, ILogger logger, string azureAIEndpoint = "")
         {
             _cache = new ConcurrentDictionary<TKey, CacheItem>();
             _maxSize = maxSize;
             _ttlSeconds = ttlSeconds;
             _azureAIEndpoint = azureAIEndpoint;
             _configuration = configuration;
+            _logger = logger;
         }
 
         public bool TryGet(TKey key, out TValue value)
@@ -68,6 +72,7 @@ namespace CsApi.Utils
                 // First, try to remove expired items
                 var expiredItems = _cache
                     .Where(kvp => kvp.Value.ExpiresAt <= now)
+                    .Where(kvp => _cache.ContainsKey(kvp.Key))
                     .ToList();
                 
                 foreach (var kvp in expiredItems)
@@ -87,7 +92,10 @@ namespace CsApi.Utils
                         .Take(excessCount)
                         .ToList();
 
-                    foreach (var kvp in oldestItems)
+                    var candidates = oldestItems
+                        .Where(kvp => _cache.ContainsKey(kvp.Key))
+                        .ToList();
+                    foreach (var kvp in candidates)
                     {
                         if (_cache.TryRemove(kvp.Key, out var removedItem))
                         {
@@ -125,6 +133,7 @@ namespace CsApi.Utils
             var now = DateTime.UtcNow;
             var expiredItems = _cache
                 .Where(kvp => kvp.Value.ExpiresAt <= now)
+                .Where(kvp => _cache.ContainsKey(kvp.Key))
                 .ToList();
 
             foreach (var kvp in expiredItems)
@@ -161,12 +170,20 @@ namespace CsApi.Utils
                     }
                     else
                     {
-                        Console.WriteLine($"ExpCache: AgentThread is not ChatClientAgentThread, actual type: {agentThread.GetType().Name}");
+                        _logger.LogWarning("ExpCache: AgentThread is not ChatClientAgentThread, actual type: {ActualType}", agentThread.GetType().Name);
                     }
+                }
+                catch (InvalidOperationException ex)
+                {
+                    _logger.LogWarning(ex, "ExpCache: Configuration error deleting thread");
+                }
+                catch (RequestFailedException ex)
+                {
+                    _logger.LogWarning(ex, "ExpCache: Azure API error deleting thread");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"ExpCache: Failed to delete thread: {ex.Message}");
+                    _logger.LogError(ex, "ExpCache: Unexpected error deleting thread");
                 }
             }
         }

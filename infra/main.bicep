@@ -3,8 +3,12 @@ targetScope = 'resourceGroup'
 var abbrs = loadJsonContent('./abbreviations.json')
 @minLength(3)
 @maxLength(20)
-@description('A unique prefix for all resources in this deployment. This should be 3-20 characters long:')
-param environmentName string
+@description('A unique  application/solution name for all resources in this deployment. This should be 3-20 characters long:')
+param environmentName string = 'agenticappudf'
+
+@maxLength(5)
+@description('Optional. A unique text value for the solution.')
+param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, environmentName), 0, 5)
 
 @description('Optional: Existing Log Analytics Workspace Resource ID')
 param existingLogAnalyticsWorkspaceId string = ''
@@ -92,7 +96,15 @@ var shouldDeployApp = !isWorkshop || deployApp
 param AZURE_LOCATION string=''
 var solutionLocation = empty(AZURE_LOCATION) ? resourceGroup().location : AZURE_LOCATION
 
-var uniqueId = toLower(uniqueString(subscription().id, environmentName, solutionLocation))
+var solutionSuffix = toLower(trim(replace(
+  replace(
+    replace(replace(replace(replace('${environmentName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
+    ' ',
+    ''
+  ),
+  '*',
+  ''
+)))
 
 @allowed([
   'australiaeast'
@@ -117,14 +129,13 @@ var uniqueId = toLower(uniqueString(subscription().id, environmentName, solution
 @description('Location for AI Foundry deployment. This is the location where the AI Foundry resources will be deployed.')
 param aiDeploymentsLocation string
 
-var solutionPrefix = 'da${padLeft(take(uniqueId, 12), 12, '0')}'
-
 @description('Name of the Azure Container Registry')
 param acrName string = isWorkshop ? 'dataagentscontainerregworkshop' : 'dataagentscontainerreg'
 
 //Get the current deployer's information
 var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
+var existingTags = resourceGroup().tags ?? {}
 
 @description('The principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC.')
 @allowed(['User', 'ServicePrincipal'])
@@ -134,12 +145,15 @@ param deployingUserPrincipalType string = 'User'
 resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorkshop) {
   name: 'default'
   properties: {
-    tags: {
-      ...resourceGroup().tags
-      TemplateName: 'Unified Data Analysis Agents'
-      CreatedBy: createdBy
-      DeploymentName: deployment().name
-    }
+   tags: union(
+      existingTags,
+      {
+        TemplateName: 'Unified Data Analysis Agents'
+        CreatedBy: createdBy
+        DeploymentName: deployment().name
+        Type: 'Non-WAF'
+      }
+    )
   }
 }
 
@@ -147,8 +161,8 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorksh
 module managedIdentityModule 'deploy_managed_identity.bicep' = {
   name: 'deploy_managed_identity'
   params: {
-    miName:'${abbrs.security.managedIdentity}${solutionPrefix}'
-    solutionName: solutionPrefix
+    miName:'${abbrs.security.managedIdentity}${solutionSuffix}'
+    solutionName: solutionSuffix
     solutionLocation: solutionLocation
   }
   scope: resourceGroup(resourceGroup().name)
@@ -158,7 +172,7 @@ module managedIdentityModule 'deploy_managed_identity.bicep' = {
 module aifoundry 'deploy_ai_foundry.bicep' = {
   name: 'deploy_ai_foundry'
   params: {
-    solutionName: solutionPrefix
+    solutionName: solutionSuffix
     solutionLocation: aiDeploymentsLocation
     deploymentType: deploymentType
     gptModelName: gptModelName
@@ -181,7 +195,7 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
 module cosmosDBModule 'deploy_cosmos_db.bicep' = if (isWorkshop && deployApp) {
   name: 'deploy_cosmos_db'
   params: {
-    accountName: '${abbrs.databases.cosmosDBDatabase}${solutionPrefix}'
+    accountName: '${abbrs.databases.cosmosDBDatabase}${solutionSuffix}'
     solutionLocation: secondaryLocation
   }
   scope: resourceGroup(resourceGroup().name)
@@ -191,8 +205,8 @@ module cosmosDBModule 'deploy_cosmos_db.bicep' = if (isWorkshop && deployApp) {
 module sqlDBModule 'deploy_sql_db.bicep' = if(isWorkshop && azureEnvOnly) {
   name: 'deploy_sql_db'
   params: {
-    serverName: '${abbrs.databases.sqlDatabaseServer}${solutionPrefix}'
-    sqlDBName: '${abbrs.databases.sqlDatabase}${solutionPrefix}'
+    serverName: '${abbrs.databases.sqlDatabaseServer}${solutionSuffix}'
+    sqlDBName: '${abbrs.databases.sqlDatabase}${solutionSuffix}'
     solutionLocation: secondaryLocation
     managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
     deployerPrincipalId: deployingUserPrincipalId
@@ -204,7 +218,7 @@ module hostingplan 'deploy_app_service_plan.bicep' = if (shouldDeployApp) {
   name: 'deploy_app_service_plan'
   params: {
     solutionLocation: solutionLocation
-    HostingPlanName: '${abbrs.compute.appServicePlan}${solutionPrefix}'
+    HostingPlanName: '${abbrs.compute.appServicePlan}${solutionSuffix}'
   }
 }
 
@@ -212,7 +226,7 @@ module hostingplan 'deploy_app_service_plan.bicep' = if (shouldDeployApp) {
 module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
   name: 'deploy_backend_docker'
   params: {
-    name: 'api-${solutionPrefix}'
+    name: 'api-${solutionSuffix}'
     solutionLocation: solutionLocation
     imageTag: imageTag
     acrName: acrName
@@ -249,10 +263,13 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
       DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: aifoundry.outputs.applicationInsightsConnectionString
       DUMMY_TEST: 'True'
-      SOLUTION_NAME: solutionPrefix
+      SOLUTION_NAME: solutionSuffix
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
       AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
       APP_ENV: 'Prod'
+      AZURE_BASIC_LOGGING_LEVEL: 'INFO'
+      AZURE_PACKAGE_LOGGING_LEVEL: 'WARNING'
+      AZURE_LOGGING_PACKAGES: ''
 
       AGENT_NAME_CHAT: ''
       AGENT_NAME_TITLE: ''
@@ -269,7 +286,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
 module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
   name: 'deploy_backend_csapi_docker'
   params: {
-    name: 'api-cs-${solutionPrefix}'
+    name: 'api-cs-${solutionSuffix}'
     solutionLocation: solutionLocation
     imageTag: imageTag
     acrName: acrName
@@ -301,7 +318,7 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
       DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: aifoundry.outputs.applicationInsightsConnectionString
       DUMMY_TEST: 'True'
-      SOLUTION_NAME: solutionPrefix
+      SOLUTION_NAME: solutionSuffix 
       APP_ENV: 'Prod'
 
       AGENT_NAME_CHAT: ''
@@ -320,7 +337,7 @@ var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions ar
 module frontend_docker 'deploy_frontend_docker.bicep' = if (shouldDeployApp) {
   name: 'deploy_frontend_docker'
   params: {
-    name: '${abbrs.compute.webApp}${solutionPrefix}'
+    name: '${abbrs.compute.webApp}${solutionSuffix}'
     solutionLocation:solutionLocation
     imageTag: imageTag
     acrName: acrName
@@ -339,8 +356,8 @@ module frontend_docker 'deploy_frontend_docker.bicep' = if (shouldDeployApp) {
 // Outputs
 // ============================================================================
 
-@description('Solution prefix used for naming resources')
-output SOLUTION_NAME string = solutionPrefix
+@description('Solution suffix used for naming resources')
+output SOLUTION_NAME string = solutionSuffix
 
 @description('Name of the deployed resource group')
 output RESOURCE_GROUP_NAME string = resourceGroup().name

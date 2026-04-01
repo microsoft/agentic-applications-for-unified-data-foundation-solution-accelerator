@@ -11,7 +11,6 @@ from pydantic import BaseModel, ConfigDict
 import pyodbc
 from azure.identity.aio import AzureCliCredential
 from azure.monitor.events.extension import track_event
-from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
@@ -24,33 +23,7 @@ from azure.core.exceptions import HttpResponseError
 
 router = APIRouter()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Check if the Application Insights Instrumentation Key is set in the environment variables
-instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
-if instrumentation_key:
-    # Configure Application Insights if the Instrumentation Key is found
-    configure_azure_monitor(connection_string=instrumentation_key)
-    logging.info("Historyfab API: Application Insights configured with the provided Instrumentation Key")
-else:
-    # Log a warning if the Instrumentation Key is not found
-    logging.warning("Historyfab API: No Application Insights Instrumentation Key found. Skipping configuration")
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
-# Suppress INFO logs from 'azure.core.pipeline.policies.http_logging_policy'
-logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
-    logging.WARNING
-)
-logging.getLogger("azure.identity.aio._internal").setLevel(logging.WARNING)
-
-# Suppress info logs from OpenTelemetry exporter
-logging.getLogger("azure.monitor.opentelemetry.exporter.export._base").setLevel(
-    logging.WARNING
-)
 
 # Azure AI Foundry configuration
 AZURE_AI_AGENT_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
@@ -186,8 +159,9 @@ async def get_db_connection():
         Connection: Database connection object, or None if connection fails.
     """
     is_workshop = os.getenv("IS_WORKSHOP", "false").lower() == "true"
+    is_azure_only = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
 
-    if is_workshop:
+    if is_workshop and is_azure_only:
         logging.info("Workshop deployment mode: Using Azure SQL Server")
         return await get_azure_sql_connection()
     else:
@@ -293,7 +267,7 @@ class SqlQueryTool(BaseModel):
                     else:
                         row_dict[col_name] = value
                 result.append(row_dict)
-
+            logger.info("Chat Agent - Result of SQL query: %s", result)
             return result
         except Exception as e:
             logging.error("Error executing SQL query: %s", e)
@@ -662,10 +636,6 @@ async def create_conversation(user_id, title="", conversation_id=None):
         Exception: If an error occurs during conversation creation.
     """
     try:
-        # if not user_id:
-        #     logger.warning("No User ID found, cannot create conversation.")
-        #     return None
-
         if not conversation_id:
             logger.warning("No conversation_id found, generating a new one.")
             conversation_id = str(uuid.uuid4())
@@ -703,10 +673,6 @@ async def create_message(uuid, conversation_id, user_id, input_message: dict):
         Exception: If an error occurs during message creation.
     """
     try:
-        # if not user_id:
-        #     logger.warning("No User ID found, cannot create message.")
-        #     return None
-
         if not conversation_id:
             logger.warning("No conversation_id found, cannot create conversation message.")
             return None
@@ -785,11 +751,6 @@ async def update_conversation(user_id: str, request_json: dict):
         conversation_id = request_json.get("conversation_id")
         messages = request_json.get("messages", [])
 
-        # if not user_id:
-        #     logger.warning("No User ID found, cannot update conversation.")
-        #     return None
-
-        # conversation = None
         query = "SELECT * FROM hst_conversations where conversation_id = ?"
         conversation = await run_query_params(query, (conversation_id,))
 
@@ -913,6 +874,11 @@ async def list_conversations(
         raise
     except Exception as e:
         logger.exception("Exception in /historyfab/list: %s", str(e))
+        track_event_if_configured("ListConversationsError", {
+            "user_id": locals().get("user_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -979,6 +945,12 @@ async def get_conversation_messages_endpoint(request: Request, id: str = Query(.
         raise
     except Exception as e:
         logger.exception("Exception in /historyfab/read: %s", str(e))
+        track_event_if_configured("ReadConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1043,6 +1015,12 @@ async def delete_conversation_endpoint(request: Request, id: str = Query(...)):
         raise
     except Exception as e:
         logger.exception("Exception in /historyfab/delete: %s", str(e))
+        track_event_if_configured("DeleteConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1070,12 +1048,6 @@ async def delete_all_conversations_endpoint(request: Request):
             request_headers=request.headers)
         user_id = authenticated_user["user_principal_id"]
 
-        # if not user_id:
-        #     track_event_if_configured("DeleteAllConversationsValidationError", {
-        #         "error": "user_id is missing",
-        #         "user_id": user_id
-        #     })
-        #     raise HTTPException(status_code=400, detail="user_id is required")
         # Get all user conversations
         conversations = await get_conversations(user_id, offset=0, limit=None)
         if not conversations:
@@ -1110,6 +1082,11 @@ async def delete_all_conversations_endpoint(request: Request):
         raise
     except Exception as e:
         logging.exception("Exception in /historyfab/delete_all: %s", str(e))
+        track_event_if_configured("DeleteAllConversationsError", {
+            "user_id": locals().get("user_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1184,6 +1161,12 @@ async def rename_conversation_endpoint(request: Request):
         raise
     except Exception as e:
         logger.exception("Exception in /historyfab/rename: %s", str(e))
+        track_event_if_configured("RenameConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
@@ -1221,13 +1204,14 @@ async def update_conversation_endpoint(request: Request):
         update_response = await update_conversation(user_id, request_json)
 
         if not update_response:
-            if user_id:
-                track_event_if_configured("ConversationUpdated", {
-                    "user_id": user_id,
-                    "conversation_id": conversation_id,
-                    "title": update_response["title"]
-                })
             raise HTTPException(status_code=500, detail="Failed to update conversation")
+
+        if user_id:
+            track_event_if_configured("ConversationUpdated", {
+                "user_id": user_id,
+                "conversation_id": conversation_id,
+                "title": update_response["title"]
+            })
 
         return JSONResponse(
             content={
@@ -1244,6 +1228,12 @@ async def update_conversation_endpoint(request: Request):
         raise
     except Exception as e:
         logger.exception("Exception in /historyfab/update: %s", str(e))
+        track_event_if_configured("UpdateConversationError", {
+            "user_id": locals().get("user_id", ""),
+            "conversation_id": locals().get("conversation_id", ""),
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
         span = trace.get_current_span()
         if span is not None:
             span.record_exception(e)
