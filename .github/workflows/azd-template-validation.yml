@@ -31,6 +31,8 @@ jobs:
           AZURE_ENV_NAME: azd-${{ vars.AZURE_ENV_NAME }}-${{ env.HHMM }}
           AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AZURE_ENV_AI_DEPLOYMENTS_LOCATION: ${{ vars.AZURE_ENV_AI_DEPLOYMENTS_LOCATION }}
+          AZURE_ENV_USE_CASE: ${{ vars.AZURE_ENV_USE_CASE }}
           DEPLOYING_USER_PRINCIPAL_TYPE: ServicePrincipal
 
       - name: Print result
