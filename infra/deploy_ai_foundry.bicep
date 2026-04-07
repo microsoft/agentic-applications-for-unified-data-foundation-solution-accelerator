@@ -197,6 +197,9 @@ resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments
     name: aiModeldeployment.sku.name
     capacity: aiModeldeployment.sku.capacity
   }
+  dependsOn: [
+    aiProject
+  ]
 }]
 
 resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' = if(isWorkshop) {
