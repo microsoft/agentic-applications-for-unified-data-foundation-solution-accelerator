@@ -63,7 +63,7 @@ from azure.ai.projects import AIProjectClient
 from azure.ai.projects.models import (
     PromptAgentDefinition,
     FunctionTool,
-    AzureAISearchAgentTool,
+    AzureAISearchTool,
     AzureAISearchToolResource,
     AISearchIndexResource,
     MCPTool,
@@ -523,7 +523,7 @@ def build_search_tool(use_knowledge_base, search_endpoint, kb_name, kb_mcp_conne
         print(f"  Added Knowledge Base MCP tool: {kb_name}")
         return tool
 
-    tool = AzureAISearchAgentTool(
+    tool = AzureAISearchTool(
         azure_ai_search=AzureAISearchToolResource(
             indexes=[
                 AISearchIndexResource(
@@ -692,8 +692,8 @@ def create_agents(project_client, instructions, title_instructions, agent_tools)
             tools=agent_tools
         )
 
-        chat_agent = project_client.agents.create(
-            name=CHAT_AGENT_NAME,
+        chat_agent = project_client.agents.create_version(
+            agent_name=CHAT_AGENT_NAME,
             definition=agent_definition
         )
 
@@ -744,8 +744,8 @@ def create_agents(project_client, instructions, title_instructions, agent_tools)
             tools=[]
         )
 
-        title_agent = project_client.agents.create(
-            name=TITLE_AGENT_NAME,
+        title_agent = project_client.agents.create_version(
+            agent_name=TITLE_AGENT_NAME,
             definition=title_agent_definition
         )
 

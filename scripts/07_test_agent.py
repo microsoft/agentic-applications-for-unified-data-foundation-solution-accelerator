@@ -40,14 +40,28 @@ load_all_env()
 
 from azure.identity import DefaultAzureCredential
 from azure.identity.aio import DefaultAzureCredential as AsyncDefaultAzureCredential
-from azure.ai.projects.aio import AIProjectClient
-from agent_framework.azure import AzureAIProjectAgentProvider
+from agent_framework.foundry import FoundryAgent
+from agent_framework_foundry._agent import _FoundryAgentChatClient
 import requests
 
+
+class _HostedAgentChatClient(_FoundryAgentChatClient):
+    """Custom client that keeps function tools for local invocation
+    but does not send them to the API (server-managed agent already has tools)."""
+
+    async def _prepare_options(self, messages, options, **kwargs):
+        run_options = await super()._prepare_options(messages, options, **kwargs)
+        # Remove tools from the API request; locally registered tools remain
+        # in the options dict for the FunctionInvocationLayer to resolve.
+        run_options.pop("tools", None)
+        run_options.pop("tool_choice", None)
+        run_options.pop("parallel_tool_calls", None)
+        return run_options
+
 # Suppress informational warnings from agent_framework about runtime
-# tool/structured_output overrides not being supported by AzureAIClient.
+# tool/structured_output overrides not being supported.
 agent_log_level = os.getenv("AGENT_FRAMEWORK_LOG_LEVEL", "ERROR").upper()
-logging.getLogger("agent_framework.azure").setLevel(getattr(logging, agent_log_level, logging.ERROR))
+logging.getLogger("agent_framework.foundry").setLevel(getattr(logging, agent_log_level, logging.ERROR))
 
 # ============================================================================
 # Configuration
@@ -360,13 +374,13 @@ def show_help():
 # Chat Loop
 # ============================================================================
 
-async def chat(user_message: str, conversation_id: str, agent):
+async def chat(user_message: str, session, agent):
     """Send a message to the agent and handle function calls.
     
     Args:
         user_message: The user's input message
-        conversation_id: The conversation ID to maintain context across turns
-        agent: The agent instance from AzureAIProjectAgentProvider
+        session: The AgentSession to maintain context across turns
+        agent: The FoundryAgent instance
     """
     
     try:
@@ -374,23 +388,57 @@ async def chat(user_message: str, conversation_id: str, agent):
         citations: list[dict] = []
 
         if VERBOSE:
-            print(f"\n[Agent] Sending message to '{CHAT_AGENT_NAME}' (conversation: {conversation_id[:8]}...)")
+            print(f"\n[Agent] Sending message to '{CHAT_AGENT_NAME}'")
 
-        async for chunk in agent.run(user_message, stream=True, conversation_id=conversation_id):
-            # Collect citations from Azure AI Search responses
-            for content in getattr(chunk, "contents", []):
-                annotations = getattr(content, "annotations", [])
-                if annotations:
-                    citations.extend(annotations)
+        async for chunk in agent.run(user_message, stream=True, session=session):
+            # chat_update = getattr(chunk, "raw_representation", None)
+            # raw = getattr(chat_update, "raw_representation", None) if chat_update else None
+            # if raw is not None and getattr(raw, "type", None) == "response.output_text.annotation.added":
+            #     ann = getattr(raw, "annotation", None)
+            #     if ann is not None:
+            #         ann_type = ann.get("type") if isinstance(ann, dict) else getattr(ann, "type", None)
+            #         if ann_type == "url_citation":
+            #             if isinstance(ann, dict):
+            #                 _title = ann.get("title")
+            #                 _url = ann.get("url")
+            #                 _start = ann.get("start_index")
+            #                 _end = ann.get("end_index")
+            #             else:
+            #                 _title = getattr(ann, "title", None)
+            #                 _url = getattr(ann, "url", None)
+            #                 _start = getattr(ann, "start_index", None)
+            #                 _end = getattr(ann, "end_index", None)
+            #             citations.append({
+            #                 "title": _title,
+            #                 "url": _url,
+            #                 "start_index": _start,
+            #                 "end_index": _end,
+            #             })
+
+            # # Also collect any annotations the SDK did parse into contents
+            # for content in getattr(chunk, "contents", []):
+            #     for ann in getattr(content, "annotations", None) or []:
+            #         citations.append(dict(ann))
 
             chunk_text = str(chunk.text) if chunk.text else ""
             # Remove citation markers like 【4:0†source】 from response text
-            chunk_text = re.sub(r'【\d+:\d+†[^】]+】', '', chunk_text)
+            #chunk_text = re.sub(r'【\d+:\d+†[^】]+】', '', chunk_text)
             if chunk_text:
                 text_output += chunk_text
 
         if text_output:
             print(f"\nAssistant: {text_output}")
+
+        # if citations:
+        #     print("\nSources:")
+        #     seen = set()
+        #     for c in citations:
+        #         title = c.get("title") or c.get("url") or "Unknown"
+        #         url = c.get("url", "")
+        #         key = (title, url)
+        #         if key not in seen:
+        #             seen.add(key)
+        #             print(f"  - {title}" + (f"  ({url})" if url else ""))
 
         return text_output
         
@@ -401,26 +449,26 @@ async def chat(user_message: str, conversation_id: str, agent):
 
 
 async def main():
-    async with (
-        AsyncDefaultAzureCredential() as async_credential,
-        AIProjectClient(endpoint=ENDPOINT, credential=async_credential) as project_client,
-    ):
-        # Create provider for agent management
-        provider = AzureAIProjectAgentProvider(project_client=project_client)
-
-        # Get agent with tools using provider
+    async with AsyncDefaultAzureCredential() as async_credential:
+        # Create FoundryAgent for the service-managed agent
         # In Data Agent mode, no local tools needed (MCP handles SQL server-side)
         if USE_DATA_AGENT:
-            agent = await provider.get_agent(name=CHAT_AGENT_NAME)
+            agent = FoundryAgent(
+                project_endpoint=ENDPOINT,
+                agent_name=CHAT_AGENT_NAME,
+                credential=async_credential,
+            )
         else:
-            agent = await provider.get_agent(
-                name=CHAT_AGENT_NAME,
-                tools=execute_sql
+            agent = FoundryAgent(
+                project_endpoint=ENDPOINT,
+                agent_name=CHAT_AGENT_NAME,
+                credential=async_credential,
+                tools=execute_sql,
+                client_type=_HostedAgentChatClient,
             )
 
-        # Create conversation for context continuity
-        openai_client = project_client.get_openai_client()
-        conversation = await openai_client.conversations.create()
+        # Create session for context continuity
+        session = agent.create_session()
 
         print("-" * 60)
 
@@ -447,8 +495,8 @@ async def main():
                         user_input = sample_questions[idx]
                         print(f"  → {user_input}")
                 
-                # Pass the persistent conversation ID to maintain context
-                await chat(user_input, conversation.id, agent)
+                # Pass the persistent session to maintain context
+                await chat(user_input, session, agent)
                 
             except KeyboardInterrupt:
                 print("\n\nGoodbye!")
@@ -456,12 +504,5 @@ async def main():
             except EOFError:
                 print("\nGoodbye!")
                 break
-
-        # Cleanup conversation when done
-        try:
-            await openai_client.conversations.delete(conversation_id=conversation.id)
-            print("\nConversation cleaned up.")
-        except Exception:
-            pass  # Ignore cleanup errors
 
 asyncio.run(main())

@@ -6,10 +6,9 @@
 azure-identity==1.23.0
 
 # Azure AI Foundry SDK
-azure-ai-projects==2.0.0b3
+azure-ai-projects==2.0.1
 azure-ai-agents==1.2.0b5
-agent-framework-core==1.0.0rc2
-agent-framework-azure-ai==1.0.0rc2
+agent-framework-foundry==1.0.0
 
 # Azure Storage (OneLake uploads)
 azure-storage-file-datalake==12.20.0
@@ -48,4 +47,4 @@ azure-mgmt-cosmosdb==9.6.0
 azure-mgmt-resource==23.3.0
 
 # Environment variables
-python-dotenv==1.1.0
+python-dotenv==1.2.2
