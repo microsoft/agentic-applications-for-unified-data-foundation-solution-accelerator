@@ -81,6 +81,7 @@ var aiModelDeployments = concat([
       name: 'GlobalStandard'
       capacity: embeddingDeploymentCapacity
     }
+    version: '1'
     raiPolicyName: 'Microsoft.Default'
   }
 ] : [])
@@ -188,6 +189,7 @@ resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments
     model: {
       format: 'OpenAI'
       name: aiModeldeployment.model
+      version: !empty(aiModeldeployment.version) ? aiModeldeployment.version : null
     }
     raiPolicyName: aiModeldeployment.raiPolicyName
   }
