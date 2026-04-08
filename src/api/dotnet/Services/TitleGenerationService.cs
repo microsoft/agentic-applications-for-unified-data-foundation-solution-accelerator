@@ -48,14 +48,15 @@ public class TitleGenerationService : ITitleGenerationService
                 return await GenerateTitleWithAgentAsync(_titleAgentName, messages, cancellationToken);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
         catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
             _logger.LogWarning(ex, "Timeout/cancellation occurred while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
             return GenerateFallbackTitle(messages);
+        }
+        catch (OperationCanceledException)
+        {
+            // User cancellation - propagate
+            throw;
         }
         catch (RequestFailedException ex)
         {
@@ -67,7 +68,7 @@ public class TitleGenerationService : ITitleGenerationService
             _logger.LogWarning(ex, "Invalid operation while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
             return GenerateFallbackTitle(messages);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not RequestFailedException && ex is not InvalidOperationException)
         {
             _logger.LogWarning(ex, "Error generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
             return GenerateFallbackTitle(messages);
@@ -173,7 +174,7 @@ public class TitleGenerationService : ITitleGenerationService
             _logger.LogError(ex, "Invalid endpoint URI generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
             return GenerateFallbackTitle(messages);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not RequestFailedException && ex is not InvalidOperationException && ex is not UriFormatException)
         {
             _logger.LogError(ex, "Unexpected error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
             return GenerateFallbackTitle(messages);

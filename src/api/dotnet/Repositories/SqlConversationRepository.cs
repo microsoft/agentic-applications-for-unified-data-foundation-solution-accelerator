@@ -294,7 +294,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         {
             // Request was cancelled, no logging needed
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not SqlException && ex is not DbException && ex is not TimeoutException)
         {
             _logger.LogError(ex, "Unexpected error listing conversations for user {UserId}", userId);
             throw;
@@ -561,7 +561,7 @@ public class SqlConversationRepository : ISqlConversationRepository
             _logger.LogError(ex, "SQL error executing chat query");
             throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not SqlException)
         {
             _logger.LogError(ex, "Chat Agent - Error executing SQL query: {Query}", query);
             throw;

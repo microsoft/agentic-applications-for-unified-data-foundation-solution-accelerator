@@ -102,7 +102,7 @@ namespace CsApi.Services
             {
                 return "Query was cancelled.";
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex) when (ex is not OperationCanceledException && ex is not SqlException && ex is not DbException && ex is not TimeoutException)
             {
                 _logger.LogError(ex, "Unexpected SQL query execution error");
                 return $"SQL query failed with error: {ex.Message}. Please fix the query and try again.";
