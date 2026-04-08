@@ -70,12 +70,7 @@ namespace CsApi.Utils
                 var now = DateTime.UtcNow;
                 
                 // First, try to remove expired items
-                var expiredItems = _cache
-                    .Where(kvp => kvp.Value.ExpiresAt <= now)
-                    .Where(kvp => _cache.ContainsKey(kvp.Key))
-                    .ToList();
-                
-                foreach (var kvp in expiredItems)
+                foreach (var kvp in _cache.Where(kvp => kvp.Value.ExpiresAt <= now))
                 {
                     if (_cache.TryRemove(kvp.Key, out var removedItem))
                     {
@@ -89,13 +84,9 @@ namespace CsApi.Utils
                     var excessCount = _cache.Count - _maxSize;
                     var oldestItems = _cache
                         .OrderBy(kvp => kvp.Value.CreatedAt)
-                        .Take(excessCount)
-                        .ToList();
+                        .Take(excessCount);
 
-                    var candidates = oldestItems
-                        .Where(kvp => _cache.ContainsKey(kvp.Key))
-                        .ToList();
-                    foreach (var kvp in candidates)
+                    foreach (var kvp in oldestItems)
                     {
                         if (_cache.TryRemove(kvp.Key, out var removedItem))
                         {
@@ -131,12 +122,7 @@ namespace CsApi.Utils
         public async Task ForceCleanupAsync()
         {
             var now = DateTime.UtcNow;
-            var expiredItems = _cache
-                .Where(kvp => kvp.Value.ExpiresAt <= now)
-                .Where(kvp => _cache.ContainsKey(kvp.Key))
-                .ToList();
-
-            foreach (var kvp in expiredItems)
+            foreach (var kvp in _cache.Where(kvp => kvp.Value.ExpiresAt <= now))
             {
                 if (_cache.TryRemove(kvp.Key, out var removedItem))
                 {
