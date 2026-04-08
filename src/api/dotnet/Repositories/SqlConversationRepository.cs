@@ -297,6 +297,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error listing conversations for user {UserId}", userId);
+            throw;
         }
         return list;
     }

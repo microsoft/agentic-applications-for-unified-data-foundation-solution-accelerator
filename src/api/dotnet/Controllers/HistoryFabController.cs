@@ -213,6 +213,11 @@ public class HistoryFabController : ControllerBase
                     var generatedTitle = await _titleService.GenerateTitleAsync(req.Messages, ct);
                     await _repo.UpdateConversationTitleAsync(user, convId, generatedTitle, ct);
                 }
+                catch (OperationCanceledException)
+                {
+                    // Request was cancelled, skip title update
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Failed to generate title for conversation {ConversationId}", convId);
@@ -266,7 +271,7 @@ public class HistoryFabController : ControllerBase
         catch (OperationCanceledException)
         {
             // Client disconnected or request was cancelled
-            return StatusCode(499);
+            return Problem(statusCode:400, title:"Request Cancelled", detail:"The operation was cancelled.");
         }
         catch (Exception ex)
         {

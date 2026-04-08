@@ -181,6 +181,14 @@ namespace CsApi.Utils
                 {
                     _logger.LogWarning(ex, "ExpCache: Azure API error deleting thread");
                 }
+                catch (UriFormatException ex)
+                {
+                    _logger.LogError(ex, "ExpCache: Invalid endpoint URI while deleting thread");
+                }
+                catch (ArgumentException ex)
+                {
+                    _logger.LogError(ex, "ExpCache: Invalid argument while deleting thread");
+                }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "ExpCache: Unexpected error deleting thread");

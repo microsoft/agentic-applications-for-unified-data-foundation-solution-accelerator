@@ -52,6 +52,21 @@ public class TitleGenerationService : ITitleGenerationService
         {
             throw;
         }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "Timeout/cancellation occurred while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (RequestFailedException ex)
+        {
+            _logger.LogWarning(ex, "Azure request failed while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
@@ -147,6 +162,16 @@ public class TitleGenerationService : ITitleGenerationService
         catch (OperationCanceledException)
         {
             throw;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Invalid operation generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (UriFormatException ex)
+        {
+            _logger.LogError(ex, "Invalid endpoint URI generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
+            return GenerateFallbackTitle(messages);
         }
         catch (Exception ex)
         {
