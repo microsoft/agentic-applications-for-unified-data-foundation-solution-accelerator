@@ -65,7 +65,7 @@ public class ChatController : ControllerBase
         AIAgent agent = agentService.Agent;
 
         AgentThread? thread = null;
-        if (_threadCache.TryGet(convId, out var cachedThread) == true)
+        if (_threadCache.TryGet(convId, out var cachedThread))
         {
             thread = cachedThread;
         }
