@@ -493,7 +493,7 @@ public class SqlConversationRepository : ISqlConversationRepository
     public async Task<string> ExecuteChatQuery(string query, CancellationToken ct)
     {
         _logger.LogInformation("Chat Agent - Executing SQL query: {Query}", query);
-        var results = new List<Dictionary<string, object>>();
+        var results = new List<Dictionary<string, object?>>();
         using var conn = await CreateConnectionAsync();
         using var cmd = new SqlCommand(query, (SqlConnection)conn);
         try
@@ -501,7 +501,7 @@ public class SqlConversationRepository : ISqlConversationRepository
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                var row = new Dictionary<string, object>();
+                var row = new Dictionary<string, object?>();
                 for (int i = 0; i < reader.FieldCount; i++)
                 {
                     var colName = reader.GetName(i);
