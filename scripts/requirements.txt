@@ -15,7 +15,7 @@ agent-framework-azure-ai==1.0.0rc2
 azure-storage-file-datalake==12.20.0
 
 # HTTP requests (Fabric REST API)
-requests==2.32.5
+requests==2.33.0
 
 # Data generation (AI-generated scripts use these)
 pandas==2.3.0
@@ -24,7 +24,7 @@ pandas==2.3.0
 fpdf2==2.8.5
 
 # PDF reading (for AI Search upload)
-pypdf==6.6.2
+pypdf==6.9.2
 
 # Azure AI Search (preview - required for Foundry IQ knowledge base support)
 azure-search-documents==11.7.0b2

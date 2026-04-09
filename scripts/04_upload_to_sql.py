@@ -6,7 +6,7 @@ Usage:
     python 06a_upload_to_sql.py [--data-folder <PATH>]
 
 Prerequisites:
-    - Run 01_generate_sample_data.py (creates CSV files in data folder)
+    - Run 01_generate_data.py (creates CSV files in data folder)
     - Azure CLI logged in (az login)
     - AZURE_SQLDB_SERVER and AZURE_SQLDB_DATABASE set in azd environment
 

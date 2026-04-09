@@ -121,7 +121,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   properties: {
     Application_Type: 'web'
     publicNetworkAccessForIngestion: 'Enabled'
-    publicNetworkAccessForQuery: 'Disabled'
+    publicNetworkAccessForQuery: 'Enabled'
     WorkspaceResourceId: useExisting ? existingLogAnalyticsWorkspace.id : logAnalytics.id
   }
 }
@@ -602,3 +602,6 @@ output applicationInsightsConnectionString string = applicationInsights.properti
 
 @description('The resource ID of the AI Foundry account.')
 output aiFoundryResourceId string = !empty(azureExistingAIProjectResourceId) ? azureExistingAIProjectResourceId : aiServices.id
+
+@description('The principal ID of the AI Foundry project managed identity.')
+output aiProjectPrincipalId string = !empty(existingAIProjectName) ? existingOpenAiProject.outputs.aiProjectPrincipalId : aiProject.identity.principalId
