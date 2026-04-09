@@ -3,10 +3,6 @@ name: "Create Release"
 on:
   push:
     branches: ["main"]
-    paths-ignore:
-      - 'documents/**'
-      - 'workshop/**'
-      - '**/*.md'
 
   workflow_dispatch:
 
