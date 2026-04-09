@@ -222,7 +222,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
       To switch to Insurance, run the below command.
 
       ```sh
-      azd env set AZURE_ENV_USE_CASE Insurance-improve-customer-meetings
+      azd env set USE_CASE Insurance-improve-customer-meetings
       ```
     **NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
     ```bash 

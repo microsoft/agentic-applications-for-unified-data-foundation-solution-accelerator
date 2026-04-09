@@ -238,10 +238,10 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
     enableCosmosDb: shouldDeployApp && isWorkshop
     appSettings: {
-      AZURE_OPENAI_DEPLOYMENT_MODEL: gptModelName
-      AZURE_OPENAI_EMBEDDING_MODEL: embeddingModel
+      AZURE_ENV_GPT_MODEL_NAME: gptModelName
+      AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_RESOURCE: aifoundry.outputs.aiServicesName
       AZURE_AI_AGENT_ENDPOINT: aifoundry.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
@@ -251,9 +251,9 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: isWorkshop ? cosmosDBModule!.outputs.cosmosContainerName : ''
       AZURE_COSMOSDB_DATABASE: isWorkshop? cosmosDBModule!.outputs.cosmosDatabaseName : ''
       AZURE_COSMOSDB_ENABLE_FEEDBACK: isWorkshop ? 'True' : ''
-      SQLDB_DATABASE: (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
-      SQLDB_SERVER: (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
-      SQLDB_USER_MID: (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
+      AZURE_SQLDB_DATABASE: (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
+      AZURE_SQLDB_SERVER: (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
+      AZURE_SQLDB_USER_MID: (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'knowledge_index' : ''
@@ -296,10 +296,10 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
     aiServicesName: aifoundry.outputs.aiServicesName
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
     appSettings: {
-      AZURE_OPENAI_DEPLOYMENT_MODEL: gptModelName
-      AZURE_OPENAI_EMBEDDING_MODEL: embeddingModel
+      AZURE_ENV_GPT_MODEL_NAME: gptModelName
+      AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
-      AZURE_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
       AZURE_OPENAI_RESOURCE: aifoundry.outputs.aiServicesName
       AZURE_AI_AGENT_ENDPOINT: aifoundry.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
@@ -372,22 +372,22 @@ output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = isWorkshop ? 'conversatio
 output AZURE_COSMOSDB_DATABASE string = isWorkshop ? 'db_conversation_history' : ''
 
 @description('GPT model deployment name (e.g., gpt-4o-mini)')
-output AZURE_OPENAI_DEPLOYMENT_MODEL string = gptModelName
+output AZURE_ENV_GPT_MODEL_NAME string = gptModelName
 
 @description('Azure OpenAI service endpoint URL')
 output AZURE_OPENAI_ENDPOINT string = aifoundry.outputs.aiServicesTarget
 
 @description('Embedding model deployment name for vector search')
-output AZURE_OPENAI_EMBEDDING_MODEL string = embeddingModel
+output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = embeddingModel
 
 @description('Azure SQL database name (Azure-only mode)')
-output SQLDB_DATABASE string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
+output AZURE_SQLDB_DATABASE string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
 
 @description('Azure SQL server fully qualified domain name (Azure-only mode)')
-output SQLDB_SERVER string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
+output AZURE_SQLDB_SERVER string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
 
 @description('Managed identity client ID for SQL authentication (Azure-only mode)')
-output SQLDB_USER_MID string = (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
+output AZURE_SQLDB_USER_MID string = (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
 
 @description('Backend API managed identity client ID')
 output API_UID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
