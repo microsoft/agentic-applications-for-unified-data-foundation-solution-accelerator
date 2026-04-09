@@ -266,14 +266,15 @@ def update_fabric_app_settings():
 
 def assign_sql_roles():
     """Assign Azure SQL db_datareader/db_datawriter roles to the API managed identity."""
-    sql_server = os.getenv("SQLDB_SERVER")
-    sql_database = os.getenv("SQLDB_DATABASE")
+    # Support both new and legacy environment variable names for backward compatibility
+    sql_server = os.getenv("AZURE_SQLDB_SERVER") or os.getenv("SQLDB_SERVER")
+    sql_database = os.getenv("AZURE_SQLDB_DATABASE") or os.getenv("SQLDB_DATABASE")
     api_mid_name = os.getenv("MID_DISPLAY_NAME")
 
     print("\n[1/2] Assigning Azure SQL roles to API managed identity...")
 
     if not sql_server or not sql_database:
-        print("  [SKIP] SQLDB_SERVER or SQLDB_DATABASE not set")
+        print("  [SKIP] AZURE_SQLDB_SERVER or AZURE_SQLDB_DATABASE not set")
         return
     if not api_mid_name:
         print("  [SKIP] MID_DISPLAY_NAME not set")

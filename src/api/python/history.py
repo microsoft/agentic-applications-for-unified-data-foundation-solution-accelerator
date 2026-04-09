@@ -36,8 +36,9 @@ CHAT_HISTORY_ENABLED = (
 )
 
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_DEPLOYMENT_MODEL = os.getenv("AZURE_OPENAI_DEPLOYMENT_MODEL")
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+# Support both new and legacy environment variable names for backward compatibility
+AZURE_GPT_MODEL_NAME = os.getenv("AZURE_ENV_GPT_MODEL_NAME") or os.getenv("AZURE_OPENAI_DEPLOYMENT_MODEL")
+AZURE_OPENAI_API_VERSION = os.getenv("AZURE_ENV_OPENAI_API_VERSION") or os.getenv("AZURE_OPENAI_API_VERSION")
 AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE")
 
 
@@ -297,8 +298,8 @@ def init_openai_client():
         ad_token_provider = get_bearer_token_provider(
             get_azure_credential(), "https://cognitiveservices.azure.com/.default")
 
-        if not AZURE_OPENAI_DEPLOYMENT_MODEL:
-            raise ValueError("AZURE_OPENAI_MODEL is required")
+        if not AZURE_GPT_MODEL_NAME:
+            raise ValueError("AZURE_ENV_GPT_MODEL_NAME (or AZURE_OPENAI_DEPLOYMENT_MODEL) is required")
 
         return AsyncAzureOpenAI(
             api_version=AZURE_OPENAI_API_VERSION,
@@ -326,7 +327,7 @@ async def generate_title(conversation_messages):
     try:
         azure_openai_client = init_openai_client()
         response = await azure_openai_client.chat.completions.create(
-            model=AZURE_OPENAI_DEPLOYMENT_MODEL,
+            model=AZURE_GPT_MODEL_NAME,
             messages=messages,
             temperature=1,
             max_tokens=64,
