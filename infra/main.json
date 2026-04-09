@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "968289726391052514"
+      "templateHash": "5391435421787418149"
     }
   },
   "parameters": {
@@ -648,7 +648,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "13123302028958220725"
+              "templateHash": "4369483223004606662"
             }
           },
           "parameters": {
@@ -1001,7 +1001,7 @@
             "aiSearchName": "[format('{0}{1}', variables('abbrs').ai.aiSearch, parameters('solutionName'))]",
             "storageName": "[take(format('{0}{1}', variables('abbrs').storage.storageAccount, toLower(replace(parameters('solutionName'), '-', ''))), 24)]",
             "aiSearchConnectionName": "[format('search-connection-{0}', parameters('solutionName'))]",
-            "aiModelDeployments": "[concat(createArray(createObject('name', parameters('gptModelName'), 'model', parameters('gptModelName'), 'sku', createObject('name', parameters('deploymentType'), 'capacity', parameters('gptDeploymentCapacity')), 'version', parameters('gptModelVersion'), 'raiPolicyName', 'Microsoft.Default')), if(parameters('isWorkshop'), createArray(createObject('name', parameters('embeddingModel'), 'model', parameters('embeddingModel'), 'sku', createObject('name', 'GlobalStandard', 'capacity', parameters('embeddingDeploymentCapacity')), 'raiPolicyName', 'Microsoft.Default')), createArray()))]",
+            "aiModelDeployments": "[concat(createArray(createObject('name', parameters('gptModelName'), 'model', parameters('gptModelName'), 'sku', createObject('name', parameters('deploymentType'), 'capacity', parameters('gptDeploymentCapacity')), 'version', parameters('gptModelVersion'), 'raiPolicyName', 'Microsoft.Default')), if(parameters('isWorkshop'), createArray(createObject('name', parameters('embeddingModel'), 'model', parameters('embeddingModel'), 'sku', createObject('name', 'GlobalStandard', 'capacity', parameters('embeddingDeploymentCapacity')), 'version', '1', 'raiPolicyName', 'Microsoft.Default')), createArray()))]",
             "useExisting": "[not(empty(parameters('existingLogAnalyticsWorkspaceId')))]",
             "existingLawSubscription": "[if(variables('useExisting'), split(parameters('existingLogAnalyticsWorkspaceId'), '/')[2], '')]",
             "existingLawResourceGroup": "[if(variables('useExisting'), split(parameters('existingLogAnalyticsWorkspaceId'), '/')[4], '')]",
@@ -1111,7 +1111,8 @@
               "properties": {
                 "model": {
                   "format": "OpenAI",
-                  "name": "[variables('aiModelDeployments')[copyIndex()].model]"
+                  "name": "[variables('aiModelDeployments')[copyIndex()].model]",
+                  "version": "[if(not(empty(variables('aiModelDeployments')[copyIndex()].version)), variables('aiModelDeployments')[copyIndex()].version, null())]"
                 },
                 "raiPolicyName": "[variables('aiModelDeployments')[copyIndex()].raiPolicyName]"
               },
@@ -1120,6 +1121,7 @@
                 "capacity": "[variables('aiModelDeployments')[copyIndex()].sku.capacity]"
               },
               "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts/projects', variables('aiServicesName'), variables('aiProjectName'))]",
                 "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName'))]"
               ]
             },
