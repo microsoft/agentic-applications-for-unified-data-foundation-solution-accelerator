@@ -19,8 +19,8 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_GPT_MODEL_CAPACITY`  | integer | `150`                    | Sets the GPT model capacity (minimum: 10).                                 |
 | `AZURE_ENV_IMAGE_TAG`                    | string  | `latest_workshop`        | Sets the container image tag.                                              |
 | `USE_CASE`                      | string  | `Retail-sales-analysis`  | Specifies the use case (allowed: `Retail-sales-analysis`, `Insurance-improve-customer-meetings`). |
-| `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_RID`   | string  | ` `                      | Reuses an existing Log Analytics Workspace. Guide: [Existing Workspace ID](/documents/re-use-log-analytics.md). |
-| `AZURE_ENV_FOUNDRY_PROJECT_RID`   | string  | ` `                      | Reuses an existing AI Foundry project instead of creating a new one.       |
+| `AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID`   | string  | ` `                      | Reuses an existing Log Analytics Workspace. Guide: [Existing Workspace ID](/documents/re-use-log-analytics.md). |
+| `AZURE_EXISTING_AIPROJECT_RESOURCE_ID`   | string  | ` `                      | Reuses an existing AI Foundry project instead of creating a new one.       |
 | `BACKEND_RUNTIME_STACK`                   | string  | `python`                 | Backend language (allowed: `python`, `dotnet`).                            |
 | `AZURE_ENV_AI_SERVICE_LOCATION`       | string  |                          | Location for AI Foundry deployment (e.g., `eastus`, `swedencentral`).      |
 | `AZURE_ENV_CONTAINER_REGISTRY_NAME`       | string  | `dataagentscontainerregworkshop` | Name of the Azure Container Registry to pull images from.           |
