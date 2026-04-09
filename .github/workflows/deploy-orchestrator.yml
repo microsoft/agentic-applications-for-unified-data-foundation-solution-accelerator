@@ -110,6 +110,25 @@ jobs:
       USE_CASE: ${{ inputs.USE_CASE }}
     secrets: inherit
 
+  send-notification:
+    if: "!cancelled()"
+    needs: [docker-build, deploy, e2e-test]
+    uses: ./.github/workflows/job-send-notification.yml
+    with:
+      trigger_type: ${{ inputs.trigger_type }}
+      BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
+      EXP: ${{ inputs.EXP }}
+      run_e2e_tests: ${{ inputs.run_e2e_tests }}
+      existing_webapp_url: ${{ inputs.existing_webapp_url }}
+      deploy_result: ${{ needs.deploy.result }}
+      e2e_test_result: ${{ needs.e2e-test.result }}
+      WEB_APPURL: ${{ needs.deploy.outputs.WEB_APPURL || inputs.existing_webapp_url }}
+      RESOURCE_GROUP_NAME: ${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}
+      QUOTA_FAILED: ${{ needs.deploy.outputs.QUOTA_FAILED }}
+      TEST_SUCCESS: ${{ needs.e2e-test.outputs.TEST_SUCCESS }}
+      TEST_REPORT_URL: ${{ needs.e2e-test.outputs.TEST_REPORT_URL }}
+    secrets: inherit
+
   cleanup-deployment:
     if: "!cancelled() && needs.deploy.outputs.RESOURCE_GROUP_NAME != '' && inputs.existing_webapp_url == '' && (inputs.trigger_type != 'workflow_dispatch' || inputs.cleanup_resources)"
     needs: [docker-build, deploy, e2e-test]
@@ -127,24 +146,4 @@ jobs:
       BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
       SOLUTION_NAME: ${{ needs.deploy.outputs.SOLUTION_NAME }}
       API_PID: ${{ needs.deploy.outputs.API_PID }}
-    secrets: inherit
-
-  send-notification:
-    if: "!cancelled()"
-    needs: [docker-build, deploy, e2e-test, cleanup-deployment]
-    uses: ./.github/workflows/job-send-notification.yml
-    with:
-      trigger_type: ${{ inputs.trigger_type }}
-      BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
-      EXP: ${{ inputs.EXP }}
-      run_e2e_tests: ${{ inputs.run_e2e_tests }}
-      existing_webapp_url: ${{ inputs.existing_webapp_url }}
-      deploy_result: ${{ needs.deploy.result }}
-      e2e_test_result: ${{ needs.e2e-test.result }}
-      WEB_APPURL: ${{ needs.deploy.outputs.WEB_APPURL || inputs.existing_webapp_url }}
-      RESOURCE_GROUP_NAME: ${{ needs.deploy.outputs.RESOURCE_GROUP_NAME }}
-      QUOTA_FAILED: ${{ needs.deploy.outputs.QUOTA_FAILED }}
-      TEST_SUCCESS: ${{ needs.e2e-test.outputs.TEST_SUCCESS }}
-      TEST_REPORT_URL: ${{ needs.e2e-test.outputs.TEST_REPORT_URL }}
-      cleanup_result: ${{ needs.cleanup-deployment.result }}
     secrets: inherit
