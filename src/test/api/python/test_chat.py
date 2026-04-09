@@ -555,8 +555,8 @@ class TestAdditionalCoverage:
             assert mock_cache_dict["new_conv"] == "new_thread_456"
     
     @pytest.mark.asyncio
-    async def test_stream_openai_text_empty_chunks_filtered(self):
-        """Test that responses are generated correctly."""
+    async def test_stream_openai_text_single_content_response(self):
+        """Test that a single content item response is streamed correctly."""
         from chat import stream_openai_text
         
         with patch('chat.get_azure_credential_async') as mock_cred, \

@@ -1904,8 +1904,8 @@ class TestGenerateTitleEdgeCases:
         assert result == "New Conversation"  # Fallback
     
     @pytest.mark.asyncio
-    async def test_generate_title_returns_none_from_agent(self):
-        """Test generate_title when agent returns empty response."""
+    async def test_generate_title_returns_empty_output_from_agent(self):
+        """Test generate_title when agent returns empty output list."""
         from history_sql import generate_title
         
         messages = [{"role": "user", "content": "Test"}]
