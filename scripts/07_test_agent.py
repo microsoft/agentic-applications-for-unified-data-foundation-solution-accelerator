@@ -118,7 +118,7 @@ elif not USE_FABRIC and not USE_DATA_AGENT:
 # Only require SQL config when not using Data Agent (MCP handles SQL server-side)
 if not USE_DATA_AGENT and not USE_FABRIC and (not SQL_SERVER or not SQL_DATABASE):
     print("ERROR: Azure SQL not configured")
-    print("       Set AZURE_SQLDB_SERVER and AZURE_SQLDB_DATABASE")
+    print("       Set AZURE_SQLDB_SERVER (or legacy SQLDB_SERVER) and AZURE_SQLDB_DATABASE (or legacy SQLDB_DATABASE)")
     sys.exit(1)
 
 # Only import pyodbc when needed (not in Data Agent mode)

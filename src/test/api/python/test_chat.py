@@ -11,7 +11,7 @@ Unit tests for chat.py module with 95%+ coverage.
 import json
 import os
 import sys
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastapi import Request
@@ -235,7 +235,7 @@ class TestStreamOpenAIText:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('history_sql.get_db_connection') as mock_db, \
+             patch('history_sql.get_db_connection', new_callable=AsyncMock) as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
             
@@ -264,7 +264,7 @@ class TestStreamOpenAIText:
             mock_proj_inst.__aexit__ = AsyncMock()
             mock_project.return_value = mock_proj_inst
             
-            mock_db.return_value = AsyncMock()
+            mock_db.return_value = MagicMock()
             mock_tool_instance = AsyncMock()
             mock_tool_instance.run_sql_query = AsyncMock(return_value=[])
             mock_tool.return_value = mock_tool_instance
@@ -285,7 +285,7 @@ class TestStreamOpenAIText:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('history_sql.get_db_connection') as mock_db, \
+             patch('history_sql.get_db_connection', new_callable=AsyncMock) as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
             
@@ -308,7 +308,7 @@ class TestStreamOpenAIText:
             mock_proj_inst.__aexit__ = AsyncMock()
             mock_project.return_value = mock_proj_inst
             
-            mock_db.return_value = AsyncMock()
+            mock_db.return_value = MagicMock()
             mock_tool_instance = AsyncMock()
             mock_tool.return_value = mock_tool_instance
             
@@ -376,7 +376,7 @@ class TestAdditionalCoverage:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('history_sql.get_db_connection') as mock_db, \
+             patch('history_sql.get_db_connection', new_callable=AsyncMock) as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
             
@@ -402,7 +402,7 @@ class TestAdditionalCoverage:
             mock_proj_inst.__aexit__ = AsyncMock()
             mock_project.return_value = mock_proj_inst
             
-            mock_db.return_value = AsyncMock()
+            mock_db.return_value = MagicMock()
             mock_tool_instance = AsyncMock()
             mock_tool.return_value = mock_tool_instance
             
@@ -508,7 +508,7 @@ class TestAdditionalCoverage:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('history_sql.get_db_connection') as mock_db, \
+             patch('history_sql.get_db_connection', new_callable=AsyncMock) as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
             
@@ -536,7 +536,7 @@ class TestAdditionalCoverage:
             mock_proj_inst.__aexit__ = AsyncMock()
             mock_project.return_value = mock_proj_inst
             
-            mock_db.return_value = AsyncMock()
+            mock_db.return_value = MagicMock()
             mock_tool_instance = AsyncMock()
             mock_tool.return_value = mock_tool_instance
             
@@ -561,7 +561,7 @@ class TestAdditionalCoverage:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('history_sql.get_db_connection') as mock_db, \
+             patch('history_sql.get_db_connection', new_callable=AsyncMock) as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
             
@@ -589,7 +589,7 @@ class TestAdditionalCoverage:
             mock_proj_inst.__aexit__ = AsyncMock()
             mock_project.return_value = mock_proj_inst
             
-            mock_db.return_value = AsyncMock()
+            mock_db.return_value = MagicMock()
             mock_tool_instance = AsyncMock()
             mock_tool.return_value = mock_tool_instance
             
@@ -634,7 +634,7 @@ class TestApplicationInsightsCoverage:
         
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
-             patch('history_sql.get_db_connection') as mock_db, \
+             patch('history_sql.get_db_connection', new_callable=AsyncMock) as mock_db, \
              patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
             
@@ -660,7 +660,7 @@ class TestApplicationInsightsCoverage:
             mock_proj_inst.__aexit__ = AsyncMock()
             mock_project.return_value = mock_proj_inst
             
-            mock_db.return_value = AsyncMock()
+            mock_db.return_value = MagicMock()
             mock_tool_instance = AsyncMock()
             mock_tool.return_value = mock_tool_instance
             

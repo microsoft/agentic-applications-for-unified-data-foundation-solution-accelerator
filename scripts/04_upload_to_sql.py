@@ -285,12 +285,12 @@ def main():
     # Validate SQL settings
     if not sql_server:
         print("ERROR: SQL Server not configured.")
-        print("       Set AZURE_SQLDB_SERVER in azd environment or pass --sql-server")
+        print("       Set AZURE_SQLDB_SERVER (or legacy SQLDB_SERVER) in azd environment or pass --sql-server")
         sys.exit(1)
     
     if not sql_database:
         print("ERROR: SQL Database not configured.")
-        print("       Set AZURE_SQLDB_DATABASE in azd environment or pass --sql-database")
+        print("       Set AZURE_SQLDB_DATABASE (or legacy SQLDB_DATABASE) in azd environment or pass --sql-database")
         sys.exit(1)
     
     # Get data folder - use arg if provided, else from .env with proper path resolution
