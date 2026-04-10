@@ -155,8 +155,10 @@ jobs:
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
           CLEANUP_STATUS: ${{ steps.cleanup.outputs.CLEANUP_STATUS }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           RESOURCE_GROUP="$INPUT_RESOURCE_GROUP_NAME"
           
           EMAIL_BODY=$(cat <<EOF
@@ -234,7 +236,7 @@ jobs:
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
           INPUT_TEST_REPORT_URL: ${{ inputs.TEST_REPORT_URL }}
         run: |
-          RUN_URL="https://github.com/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}"
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           TEST_REPORT_URL="$INPUT_TEST_REPORT_URL"
           WEBAPP_URL="${INPUT_WEB_APPURL:-$INPUT_EXISTING_WEBAPP_URL}"
           RESOURCE_GROUP="$INPUT_RESOURCE_GROUP_NAME"
@@ -265,7 +267,7 @@ jobs:
           RUN_E2E_TESTS: ${{ env.RUN_E2E_TESTS }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          RUN_URL="https://github.com/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}"
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           EXISTING_URL="$INPUT_EXISTING_WEBAPP_URL"
           TEST_REPORT_URL="$INPUT_TEST_REPORT_URL"
           
@@ -295,7 +297,7 @@ jobs:
           RUN_E2E_TESTS: ${{ env.RUN_E2E_TESTS }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          RUN_URL="https://github.com/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}"
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           EXISTING_URL="$INPUT_EXISTING_WEBAPP_URL"
           TEST_REPORT_URL="$INPUT_TEST_REPORT_URL"
           
