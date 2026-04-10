@@ -1,10 +1,7 @@
-﻿using System.Data;
+using System.Data;
 using System.Data.Common;
-using Microsoft.Data.SqlClient;
+using System.Data.Odbc;
 using CsApi.Models;
-using CsApi.Auth;
-using Azure.Identity;
-using Azure.Core;
 using System.Text.Json;
 
 namespace CsApi.Repositories;
@@ -26,13 +23,11 @@ public class SqlConversationRepository : ISqlConversationRepository
 {
     private readonly IConfiguration _config;
     private readonly ILogger<SqlConversationRepository> _logger;
-    private readonly IAzureCredentialFactory _credentialFactory;
 
-    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger, IAzureCredentialFactory credentialFactory)
+    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger)
     { 
         _config = config; 
         _logger = logger; 
-        _credentialFactory = credentialFactory;
     }
 
     private async Task<IDbConnection> CreateConnectionAsync()
@@ -67,51 +62,40 @@ public class SqlConversationRepository : ISqlConversationRepository
     {
         var appEnv = (_config["APP_ENV"] ?? "prod").ToLower();
 
-        // In prod, fall back to connection string from config (if needed)
+        // In prod, use FABRIC_SQL_CONNECTION_STRING directly
         if (appEnv == "prod")
         {
-            var odbcCs = _config["FABRIC_SQL_CONNECTION_STRING"];
-            
-            // Convert ODBC connection string to SQL Server format
-            if (string.IsNullOrWhiteSpace(odbcCs))
+            var connectionString = _config["FABRIC_SQL_CONNECTION_STRING"];
+
+            if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidOperationException("FABRIC_SQL_CONNECTION_STRING is not configured.");
             }
-            var sqlCs = ConvertOdbcToSqlConnectionString(odbcCs);
-            
-            var sqlConn = new SqlConnection(sqlCs);
-            await sqlConn.OpenAsync();
-            // Console.WriteLine("✅ Connected to Fabric SQL using connection string."); // Verbose logging removed
-            return sqlConn;
+
+            _logger.LogInformation("Connecting to Fabric SQL with ODBC");
+
+            var conn = new OdbcConnection(connectionString);
+            await conn.OpenAsync();
+            return conn;
         }
 
-        // In dev, use Azure AD authentication (no username/password required)
+        // In dev, use ODBC with ActiveDirectoryInteractive authentication
         var db = _config["FABRIC_SQL_DATABASE"]?.Trim(' ', '{', '}');
         var server = _config["FABRIC_SQL_SERVER"];
 
-        // REDUNDANT: Verbose connection info logging
-        // Console.WriteLine($"Using Azure CLI/Azure AD authentication for {server}, database {db}");
-
-        var connectionString =
-            $"Server=tcp:{server},1433;" +
+        var devConnectionString =
+            "Driver={ODBC Driver 18 for SQL Server};" +
+            $"Server={server};" +
             $"Database={db};" +
-            "Encrypt=True;" +
-            "TrustServerCertificate=False;";
+            "Authentication=ActiveDirectoryInteractive;" +
+            "Encrypt=yes;" +
+            "TrustServerCertificate=no;";
 
-        var credential = _credentialFactory.Create();
-        var token = await credential.GetTokenAsync(
-            new TokenRequestContext(new[] { "https://database.windows.net/.default" }), CancellationToken.None);
+        _logger.LogInformation("Connecting to Fabric SQL with ODBC + ActiveDirectoryInteractive authentication (dev)");
 
-        var sqlConnWithToken = new SqlConnection(connectionString)
-        {
-            AccessToken = token.Token
-        };
-
-        await sqlConnWithToken.OpenAsync();
-        // Console.WriteLine("✅ Connected to Fabric SQL using Azure Identity (no username/password)."); // Verbose logging removed
-
-        return sqlConnWithToken;
-
+        var conn2 = new OdbcConnection(devConnectionString);
+        await conn2.OpenAsync();
+        return conn2;
     }
 
 
@@ -124,14 +108,10 @@ public class SqlConversationRepository : ISqlConversationRepository
             userId ?? "NULL", conversationId ?? "NULL", id);
         
         // Check if conversation exists
-        const string existsSql = "SELECT userId FROM hst_conversations WHERE conversation_id=@c";
-        using (var check = new SqlCommand(existsSql, (SqlConnection)conn))
+        const string existsSql = "SELECT userId FROM hst_conversations WHERE conversation_id=?";
+        using (var check = new OdbcCommand(existsSql, (OdbcConnection)conn))
         {
-            check.Parameters.Add(new SqlParameter("@c", id));
-            if (!string.IsNullOrEmpty(userId))
-            {
-                check.Parameters.Add(new SqlParameter("@u", userId));
-            }
+            check.Parameters.AddWithValue("", id);
             
             var result = check.ExecuteScalar();
             if (result != null)
@@ -142,14 +122,15 @@ public class SqlConversationRepository : ISqlConversationRepository
         
         // Conversation doesn't exist, create it
         _logger.LogInformation("EnsureConversationAsync - Creating NEW conversation with id={ConversationId}", id);
-        const string insertSql = "INSERT INTO hst_conversations (userId, conversation_id, title, createdAt, updatedAt) VALUES (@u, @c, @t, @n, @n)";
+        const string insertSql = "INSERT INTO hst_conversations (userId, conversation_id, title, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)";
         var now = DateTime.UtcNow.ToString("o");
-        using (var cmd = new SqlCommand(insertSql, (SqlConnection)conn))
+        using (var cmd = new OdbcCommand(insertSql, (OdbcConnection)conn))
         {
-            cmd.Parameters.Add(new SqlParameter("@u", userId ?? string.Empty));
-            cmd.Parameters.Add(new SqlParameter("@c", id));
-            cmd.Parameters.Add(new SqlParameter("@t", title ?? string.Empty));
-            cmd.Parameters.Add(new SqlParameter("@n", now));
+            cmd.Parameters.AddWithValue("", userId ?? string.Empty);
+            cmd.Parameters.AddWithValue("", id);
+            cmd.Parameters.AddWithValue("", title ?? string.Empty);
+            cmd.Parameters.AddWithValue("", now);
+            cmd.Parameters.AddWithValue("", now);
             var rowsAffected = cmd.ExecuteNonQuery();
             _logger.LogInformation("EnsureConversationAsync - Created conversation, rows affected: {RowsAffected}", rowsAffected);
         }
@@ -163,21 +144,21 @@ public class SqlConversationRepository : ISqlConversationRepository
         
         if (!string.IsNullOrEmpty(userId))
         {
-            sql = "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE userId=@u AND conversation_id=@c";
-            using var cmd = new SqlCommand(sql, (SqlConnection)conn);
-            cmd.Parameters.AddWithValue("@t", title);
-            cmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
-            cmd.Parameters.AddWithValue("@u", userId);
-            cmd.Parameters.AddWithValue("@c", conversationId);
+            sql = "UPDATE hst_conversations SET title=?, updatedAt=? WHERE userId=? AND conversation_id=?";
+            using var cmd = new OdbcCommand(sql, (OdbcConnection)conn);
+            cmd.Parameters.AddWithValue("", title);
+            cmd.Parameters.AddWithValue("", DateTime.UtcNow.ToString("o"));
+            cmd.Parameters.AddWithValue("", userId);
+            cmd.Parameters.AddWithValue("", conversationId);
             cmd.ExecuteNonQuery();
         }
         else
         {
-            sql = "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE conversation_id=@c";
-            using var cmd = new SqlCommand(sql, (SqlConnection)conn);
-            cmd.Parameters.AddWithValue("@t", title);
-            cmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
-            cmd.Parameters.AddWithValue("@c", conversationId);
+            sql = "UPDATE hst_conversations SET title=?, updatedAt=? WHERE conversation_id=?";
+            using var cmd = new OdbcCommand(sql, (OdbcConnection)conn);
+            cmd.Parameters.AddWithValue("", title);
+            cmd.Parameters.AddWithValue("", DateTime.UtcNow.ToString("o"));
+            cmd.Parameters.AddWithValue("", conversationId);
             cmd.ExecuteNonQuery();
         }
     }
@@ -186,7 +167,6 @@ public class SqlConversationRepository : ISqlConversationRepository
     {
         var now = DateTime.UtcNow.ToString("o");
         using var conn = await CreateConnectionAsync();
-        string sql;
         
         // Get citations as JSON string for storage (matches Python behavior)
         var citationsJson = message.GetCitationsAsJsonString();
@@ -196,35 +176,51 @@ public class SqlConversationRepository : ISqlConversationRepository
         
         if (!string.IsNullOrEmpty(userId))
         {
-            sql = @"INSERT INTO hst_conversation_messages (userId, conversation_id, role, content_id, content, citations, feedback, createdAt, updatedAt) 
-    VALUES (@u, @c, @r, @cid, @content, @citations, @feedback, @now, @now); UPDATE hst_conversations SET updatedAt=@now WHERE conversation_id=@c;";
-            using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
+            // INSERT message
+            var insertSql = "INSERT INTO hst_conversation_messages (userId, conversation_id, role, content_id, content, citations, feedback, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            using (var insertCmd = new OdbcCommand(insertSql, (OdbcConnection)conn))
             {
-                cmd.Parameters.AddWithValue("@u", userId);
-                cmd.Parameters.AddWithValue("@c", conversationId);
-                cmd.Parameters.AddWithValue("@r", message.Role);
-                cmd.Parameters.AddWithValue("@cid", message.Id);
-                cmd.Parameters.AddWithValue("@content", contentJson);
-                cmd.Parameters.AddWithValue("@citations", citationsJson);
-                cmd.Parameters.AddWithValue("@feedback", message.Feedback ?? string.Empty);
-                cmd.Parameters.AddWithValue("@now", now);
-                cmd.ExecuteNonQuery();
+                insertCmd.Parameters.AddWithValue("", userId);
+                insertCmd.Parameters.AddWithValue("", conversationId);
+                insertCmd.Parameters.AddWithValue("", message.Role);
+                insertCmd.Parameters.AddWithValue("", message.Id);
+                insertCmd.Parameters.AddWithValue("", contentJson);
+                insertCmd.Parameters.AddWithValue("", citationsJson);
+                insertCmd.Parameters.AddWithValue("", message.Feedback ?? string.Empty);
+                insertCmd.Parameters.AddWithValue("", now);
+                insertCmd.Parameters.AddWithValue("", now);
+                insertCmd.ExecuteNonQuery();
+            }
+            // UPDATE conversation timestamp
+            using (var updateCmd = new OdbcCommand("UPDATE hst_conversations SET updatedAt=? WHERE conversation_id=?", (OdbcConnection)conn))
+            {
+                updateCmd.Parameters.AddWithValue("", now);
+                updateCmd.Parameters.AddWithValue("", conversationId);
+                updateCmd.ExecuteNonQuery();
             }
         }
         else
         {
-            sql = @"INSERT INTO hst_conversation_messages (conversation_id, role, content_id, content, citations, feedback, createdAt, updatedAt) 
-    VALUES (@c, @r, @cid, @content, @citations, @feedback, @now, @now); UPDATE hst_conversations SET updatedAt=@now WHERE conversation_id=@c;";
-            using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
+            // INSERT message
+            var insertSql = "INSERT INTO hst_conversation_messages (conversation_id, role, content_id, content, citations, feedback, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            using (var insertCmd = new OdbcCommand(insertSql, (OdbcConnection)conn))
             {
-                cmd.Parameters.AddWithValue("@c", conversationId);
-                cmd.Parameters.AddWithValue("@r", message.Role);
-                cmd.Parameters.AddWithValue("@cid", message.Id);
-                cmd.Parameters.AddWithValue("@content", contentJson);
-                cmd.Parameters.AddWithValue("@citations", citationsJson);
-                cmd.Parameters.AddWithValue("@feedback", message.Feedback ?? string.Empty);
-                cmd.Parameters.AddWithValue("@now", now);
-                cmd.ExecuteNonQuery();
+                insertCmd.Parameters.AddWithValue("", conversationId);
+                insertCmd.Parameters.AddWithValue("", message.Role);
+                insertCmd.Parameters.AddWithValue("", message.Id);
+                insertCmd.Parameters.AddWithValue("", contentJson);
+                insertCmd.Parameters.AddWithValue("", citationsJson);
+                insertCmd.Parameters.AddWithValue("", message.Feedback ?? string.Empty);
+                insertCmd.Parameters.AddWithValue("", now);
+                insertCmd.Parameters.AddWithValue("", now);
+                insertCmd.ExecuteNonQuery();
+            }
+            // UPDATE conversation timestamp
+            using (var updateCmd = new OdbcCommand("UPDATE hst_conversations SET updatedAt=? WHERE conversation_id=?", (OdbcConnection)conn))
+            {
+                updateCmd.Parameters.AddWithValue("", now);
+                updateCmd.Parameters.AddWithValue("", conversationId);
+                updateCmd.ExecuteNonQuery();
             }
         }
     }
@@ -241,14 +237,14 @@ public class SqlConversationRepository : ISqlConversationRepository
             // REDUNDANT: Detailed user listing logging
             // Console.WriteLine($"Listing conversations for user '{userId}' (filterByUser={filterByUser})");
             sql = filterByUser
-                ? "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations WHERE userId=@userId ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY"
-                : "SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations ORDER BY updatedAt " + order + " OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
-            using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
+                ? $"SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations WHERE userId=? ORDER BY updatedAt {order} OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+                : $"SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations ORDER BY updatedAt {order} OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+            using (var cmd = new OdbcCommand(sql, (OdbcConnection)conn))
             {
                 if (filterByUser)
-                    cmd.Parameters.AddWithValue("@userId", userId);
-                cmd.Parameters.AddWithValue("@offset", offset);
-                cmd.Parameters.AddWithValue("@limit", limit);
+                    cmd.Parameters.AddWithValue("", userId);
+                cmd.Parameters.AddWithValue("", offset);
+                cmd.Parameters.AddWithValue("", limit);
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
@@ -278,7 +274,7 @@ public class SqlConversationRepository : ISqlConversationRepository
             //     Console.WriteLine($"  - {conv.ConversationId}: '{conv.Title}' (user: {conv.UserId}) [created: {conv.CreatedAt}, updated: {conv.UpdatedAt}]");
             // }
         }
-        catch (SqlException ex)
+        catch (OdbcException ex)
         {
             _logger.LogError(ex, "SQL error listing conversations for user {UserId}", userId);
         }
@@ -294,9 +290,10 @@ public class SqlConversationRepository : ISqlConversationRepository
         {
             // Request was cancelled, no logging needed
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not OdbcException && ex is not DbException && ex is not TimeoutException)
         {
             _logger.LogError(ex, "Unexpected error listing conversations for user {UserId}", userId);
+            throw;
         }
         return list;
     }
@@ -311,15 +308,15 @@ public class SqlConversationRepository : ISqlConversationRepository
         if (string.IsNullOrEmpty(conversationId))
             return new List<ChatMessage>();
         sql = filterByUser
-            ? $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE userId=@userId AND conversation_id=@conversationId ORDER BY updatedAt {order}"
-            : $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE conversation_id=@conversationId ORDER BY updatedAt {order}";
+            ? $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE userId=? AND conversation_id=? ORDER BY updatedAt {order}"
+            : $"SELECT role, content, citations, feedback FROM hst_conversation_messages WHERE conversation_id=? ORDER BY updatedAt {order}";
         var list = new List<ChatMessage>();
         using var conn = await CreateConnectionAsync();
-        using (var cmd = new SqlCommand(sql, (SqlConnection)conn))
+        using (var cmd = new OdbcCommand(sql, (OdbcConnection)conn))
         {
             if (filterByUser)
-                cmd.Parameters.AddWithValue("@userId", userId);
-            cmd.Parameters.AddWithValue("@conversationId", conversationId);
+                cmd.Parameters.AddWithValue("", userId);
+            cmd.Parameters.AddWithValue("", conversationId);
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
@@ -382,13 +379,13 @@ public class SqlConversationRepository : ISqlConversationRepository
     public async Task<bool?> DeleteAsync(string? userId, string conversationId, CancellationToken ct)
     {
         // 1. Check if conversation exists
-        const string checkSql = "SELECT userId FROM hst_conversations WHERE conversation_id=@c";
+        const string checkSql = "SELECT userId FROM hst_conversations WHERE conversation_id=?";
         using var conn = await CreateConnectionAsync();
         string? foundUserId;
         
-        using (var checkCmd = new SqlCommand(checkSql, (SqlConnection)conn))
+        using (var checkCmd = new OdbcCommand(checkSql, (OdbcConnection)conn))
         {
-            checkCmd.Parameters.AddWithValue("@c", conversationId);
+            checkCmd.Parameters.AddWithValue("", conversationId);
             var result = checkCmd.ExecuteScalar();
             if (result == null)
                 return null; // Not found
@@ -401,22 +398,22 @@ public class SqlConversationRepository : ISqlConversationRepository
 
         // 3. Delete conversation and messages
         string deleteMessagesSql = !string.IsNullOrEmpty(userId)
-            ? "DELETE FROM hst_conversation_messages WHERE userId=@u AND conversation_id=@c"
-            : "DELETE FROM hst_conversation_messages WHERE conversation_id=@c";
+            ? "DELETE FROM hst_conversation_messages WHERE userId=? AND conversation_id=?"
+            : "DELETE FROM hst_conversation_messages WHERE conversation_id=?";
         string deleteConversationSql = !string.IsNullOrEmpty(userId)
-            ? "DELETE FROM hst_conversations WHERE userId=@u AND conversation_id=@c"
-            : "DELETE FROM hst_conversations WHERE conversation_id=@c";
+            ? "DELETE FROM hst_conversations WHERE userId=? AND conversation_id=?"
+            : "DELETE FROM hst_conversations WHERE conversation_id=?";
 
-        using var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
-        using var delConvCmd = new SqlCommand(deleteConversationSql, (SqlConnection)conn);
+        using var delMsgCmd = new OdbcCommand(deleteMessagesSql, (OdbcConnection)conn);
+        using var delConvCmd = new OdbcCommand(deleteConversationSql, (OdbcConnection)conn);
 
         if (!string.IsNullOrEmpty(userId))
         {
-            delMsgCmd.Parameters.AddWithValue("@u", userId);
-            delConvCmd.Parameters.AddWithValue("@u", userId);
+            delMsgCmd.Parameters.AddWithValue("", userId);
+            delConvCmd.Parameters.AddWithValue("", userId);
         }
-        delMsgCmd.Parameters.AddWithValue("@c", conversationId);
-        delConvCmd.Parameters.AddWithValue("@c", conversationId);
+        delMsgCmd.Parameters.AddWithValue("", conversationId);
+        delConvCmd.Parameters.AddWithValue("", conversationId);
 
         delMsgCmd.ExecuteNonQuery();
         var rows = delConvCmd.ExecuteNonQuery();
@@ -430,19 +427,19 @@ public class SqlConversationRepository : ISqlConversationRepository
         // If userId is provided, delete only that user's conversations
         // If userId is null/empty, allow global delete (all conversations)
         string deleteMessagesSql = !string.IsNullOrEmpty(userId)
-            ? "DELETE FROM hst_conversation_messages WHERE userId=@u"
+            ? "DELETE FROM hst_conversation_messages WHERE userId=?"
             : "DELETE FROM hst_conversation_messages";
         string deleteConversationsSql = !string.IsNullOrEmpty(userId)
-            ? "DELETE FROM hst_conversations WHERE userId=@u"
+            ? "DELETE FROM hst_conversations WHERE userId=?"
             : "DELETE FROM hst_conversations";
 
-        using var delMsgCmd = new SqlCommand(deleteMessagesSql, (SqlConnection)conn);
-        using var delConvCmd = new SqlCommand(deleteConversationsSql, (SqlConnection)conn);
+        using var delMsgCmd = new OdbcCommand(deleteMessagesSql, (OdbcConnection)conn);
+        using var delConvCmd = new OdbcCommand(deleteConversationsSql, (OdbcConnection)conn);
 
         if (!string.IsNullOrEmpty(userId))
         {
-            delMsgCmd.Parameters.AddWithValue("@u", userId);
-            delConvCmd.Parameters.AddWithValue("@u", userId);
+            delMsgCmd.Parameters.AddWithValue("", userId);
+            delConvCmd.Parameters.AddWithValue("", userId);
         }
 
         // Delete messages first, then conversations
@@ -455,12 +452,12 @@ public class SqlConversationRepository : ISqlConversationRepository
     public async Task<bool?> RenameAsync(string? userId, string conversationId, string title, CancellationToken ct)
     {
         // 1. Check if conversation exists
-        const string checkSql = "SELECT userId FROM hst_conversations WHERE conversation_id=@c";
+        const string checkSql = "SELECT userId FROM hst_conversations WHERE conversation_id=?";
         using var conn = await CreateConnectionAsync();
         string? foundUserId;
-        using (var checkCmd = new SqlCommand(checkSql, (SqlConnection)conn))
+        using (var checkCmd = new OdbcCommand(checkSql, (OdbcConnection)conn))
         {
-            checkCmd.Parameters.AddWithValue("@c", conversationId);
+            checkCmd.Parameters.AddWithValue("", conversationId);
             var result = checkCmd.ExecuteScalar();
             if (result == null)
                 return null; // Not found
@@ -473,17 +470,17 @@ public class SqlConversationRepository : ISqlConversationRepository
 
         // 3. Update title
         string updateSql = !string.IsNullOrEmpty(userId)
-            ? "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE userId=@u AND conversation_id=@c"
-            : "UPDATE hst_conversations SET title=@t, updatedAt=@n WHERE conversation_id=@c";
+            ? "UPDATE hst_conversations SET title=?, updatedAt=? WHERE userId=? AND conversation_id=?"
+            : "UPDATE hst_conversations SET title=?, updatedAt=? WHERE conversation_id=?";
 
-        using var updateCmd = new SqlCommand(updateSql, (SqlConnection)conn);
-        updateCmd.Parameters.AddWithValue("@t", title);
-        updateCmd.Parameters.AddWithValue("@n", DateTime.UtcNow.ToString("o"));
+        using var updateCmd = new OdbcCommand(updateSql, (OdbcConnection)conn);
+        updateCmd.Parameters.AddWithValue("", title);
+        updateCmd.Parameters.AddWithValue("", DateTime.UtcNow.ToString("o"));
         if (!string.IsNullOrEmpty(userId))
         {
-            updateCmd.Parameters.AddWithValue("@u", userId);
+            updateCmd.Parameters.AddWithValue("", userId);
         }
-        updateCmd.Parameters.AddWithValue("@c", conversationId);
+        updateCmd.Parameters.AddWithValue("", conversationId);
 
         var rows = updateCmd.ExecuteNonQuery();
         return rows > 0;
@@ -492,15 +489,15 @@ public class SqlConversationRepository : ISqlConversationRepository
     public async Task<string> ExecuteChatQuery(string query, CancellationToken ct)
     {
         _logger.LogInformation("Chat Agent - Executing SQL query: {Query}", query);
-        var results = new List<Dictionary<string, object>>();
+        var results = new List<Dictionary<string, object?>>();
         using var conn = await CreateConnectionAsync();
-        using var cmd = new SqlCommand(query, (SqlConnection)conn);
+        using var cmd = new OdbcCommand(query, (OdbcConnection)conn);
         try
         {
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                var row = new Dictionary<string, object>();
+                var row = new Dictionary<string, object?>();
                 for (int i = 0; i < reader.FieldCount; i++)
                 {
                     var colName = reader.GetName(i);
@@ -555,12 +552,12 @@ public class SqlConversationRepository : ISqlConversationRepository
             // Preserve cancellation semantics for callers
             throw;
         }
-        catch (SqlException ex)
+        catch (OdbcException ex)
         {
             _logger.LogError(ex, "SQL error executing chat query");
             throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not OdbcException)
         {
             _logger.LogError(ex, "Chat Agent - Error executing SQL query: {Query}", query);
             throw;
@@ -574,69 +571,4 @@ public class SqlConversationRepository : ISqlConversationRepository
         _logger.LogInformation("Chat Agent - Result of SQL query: {Result}", json);
         return json;
     }
-
-    /// <summary>
-    /// Converts ODBC connection string format to SQL Server connection string format
-    /// </summary>
-    private string ConvertOdbcToSqlConnectionString(string odbcConnectionString)
-    {
-        if (string.IsNullOrWhiteSpace(odbcConnectionString))
-            throw new ArgumentException("Connection string cannot be null or empty", nameof(odbcConnectionString));
-
-        // Parse ODBC connection string
-        var parts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var pairs = odbcConnectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
-        
-        foreach (var pair in pairs)
-        {
-            var keyValue = pair.Split('=', 2, StringSplitOptions.RemoveEmptyEntries);
-            if (keyValue.Length == 2)
-            {
-                var key = keyValue[0].Trim();
-                var value = keyValue[1].Trim();
-                // Remove curly braces if present
-                if (value.StartsWith("{") && value.EndsWith("}"))
-                    value = value.Trim('{', '}');
-                parts[key] = value;
-            }
-        }
-
-        // Build SQL Server connection string
-        var sqlConnectionString = new List<string>();
-
-        // Map ODBC keywords to SQL Server keywords
-        if (parts.TryGetValue("SERVER", out var server))
-        {
-            sqlConnectionString.Add($"Server=tcp:{server},1433");
-        }
-
-        if (parts.TryGetValue("DATABASE", out var database))
-        {
-            sqlConnectionString.Add($"Database={database}");
-        }
-
-        if (parts.TryGetValue("UID", out var uid))
-        {
-            sqlConnectionString.Add($"User Id={uid}");
-        }
-
-        if (parts.TryGetValue("PWD", out var pwd))
-        {
-            sqlConnectionString.Add($"Password={pwd}");
-        }
-
-        if (parts.TryGetValue("Authentication", out var auth))
-        {
-            sqlConnectionString.Add($"Authentication={auth}");
-        }
-
-        // Add standard settings for Fabric SQL
-        sqlConnectionString.Add("Encrypt=True");
-        sqlConnectionString.Add("TrustServerCertificate=False");
-        sqlConnectionString.Add("Connection Timeout=30");
-
-        var result = string.Join(";", sqlConnectionString);
-        // _logger.LogInformation("Converted ODBC connection string to SQL Server format");
-        return result;
-    }    
 }

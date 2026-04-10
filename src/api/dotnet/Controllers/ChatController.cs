@@ -65,7 +65,7 @@ public class ChatController : ControllerBase
         AIAgent agent = agentService.Agent;
 
         AgentThread? thread = null;
-        if (_threadCache.TryGet(convId, out var cachedThread) == true)
+        if (_threadCache.TryGet(convId, out var cachedThread))
         {
             thread = cachedThread;
         }
@@ -121,7 +121,17 @@ public class ChatController : ControllerBase
         {
             // Client disconnected or request was cancelled - no need to write response
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            var errorEnvelope = new { error = ex.Message };
+            await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
+        }
+        catch (JsonException ex)
+        {
+            var errorEnvelope = new { error = ex.Message };
+            await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
+        }
+        catch (Exception ex) when (ex is not RequestFailedException && ex is not OperationCanceledException && ex is not IOException && ex is not JsonException)
         {
             var errorEnvelope = new { error = ex.Message };
             await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
