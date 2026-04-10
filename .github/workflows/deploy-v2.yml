@@ -4,6 +4,14 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - 'src/**'
+      - 'infra/**'
+      - 'azure.yaml'
+      - '.github/workflows/deploy-v2.yml'
+      - '.github/workflows/deploy-orchestrator.yml'
+      - '.github/workflows/job-*.yml'
+      - '.github/workflows/test-automation-v2.yml'
   workflow_run:
     workflows: ["Build Docker and Optional Push - Agentic Applications for Unified Data Foundation"]
     types:

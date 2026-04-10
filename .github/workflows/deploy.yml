@@ -9,6 +9,7 @@ on:
       - 'infra/**'
       - 'azure.yaml'
       - '.github/workflows/deploy.yml'
+      - '.github/workflows/test-automation.yml'
   workflow_run:
     workflows: ["Build Docker and Optional Push - Agentic Applications for Unified Data Foundation"]
     types:
