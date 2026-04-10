@@ -96,7 +96,9 @@ if should_mock_azure_sdk():
     # Mock Azure AI Agents models to prevent import errors
     mock_ai_agents = MagicMock()
     mock_ai_agents_models = MagicMock()
+    mock_ai_agents_aio = MagicMock()
     mock_ai_agents.models = mock_ai_agents_models
+    mock_ai_agents.aio = mock_ai_agents_aio
     
     # Mock specific classes that are imported
     mock_ai_agents_models.TruncationObject = MagicMock()
@@ -114,6 +116,7 @@ if should_mock_azure_sdk():
     # Register all mocks in sys.modules BEFORE any imports
     sys.modules['azure.ai.agents'] = mock_ai_agents
     sys.modules['azure.ai.agents.models'] = mock_ai_agents_models
+    sys.modules['azure.ai.agents.aio'] = mock_ai_agents_aio
     sys.modules['azure.ai.projects'] = mock_ai_projects
     sys.modules['azure.ai.projects.models'] = mock_ai_projects_models
     sys.modules['azure.ai.projects.models._models'] = mock_ai_projects_models_internal

@@ -32,9 +32,13 @@ REM Parse required variables from .env
 for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
     if "%%A"=="AZURE_RESOURCE_GROUP" set AZURE_RESOURCE_GROUP=%%~B
     if "%%A"=="AZURE_COSMOSDB_ACCOUNT" set AZURE_COSMOSDB_ACCOUNT=%%~B
-    if "%%A"=="SQLDB_SERVER" (
-        set SQLDB_SERVER=%%~B
-        for /f "tokens=1 delims=." %%C in ("%%~B") do set SQLDB_SERVER_NAME=%%C
+    if "%%A"=="AZURE_SQLDB_SERVER" (
+        set AZURE_SQLDB_SERVER=%%~B
+        for /f "tokens=1 delims=." %%C in ("%%~B") do set AZURE_SQLDB_SERVER_NAME=%%C
+    )
+    if "%%A"=="SQLDB_SERVER" if not defined AZURE_SQLDB_SERVER (
+        set AZURE_SQLDB_SERVER=%%~B
+        for /f "tokens=1 delims=." %%C in ("%%~B") do set AZURE_SQLDB_SERVER_NAME=%%C
     )
 )
 
@@ -151,7 +155,7 @@ call az sql server ad-admin create ^
     --display-name %SQLADMIN_USERNAME% ^
     --object-id "%signed_user_id%" ^
     --resource-group %AZURE_RESOURCE_GROUP% ^
-    --server %SQLDB_SERVER_NAME%
+    --server %AZURE_SQLDB_SERVER_NAME%
     --output tsv >nul 2>&1
 echo Azure SQL Server AAD admin role assigned successfully.
 

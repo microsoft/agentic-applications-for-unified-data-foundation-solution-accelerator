@@ -105,7 +105,7 @@ jobs:
             azd env set AZURE_RESOURCE_GROUP "${{ env.RESOURCE_GROUP_NAME }}"
             azd env set AZURE_SUBSCRIPTION_ID "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
             azd env set AZURE_LOCATION="${{ env.AZURE_LOCATION }}"
-            azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="${{ env.AZURE_ENV_OPENAI_LOCATION }}"
+            azd env set AZURE_ENV_AI_SERVICE_LOCATION="${{ env.AZURE_ENV_OPENAI_LOCATION }}"
             azd env set BACKEND_RUNTIME_STACK="${{ env.BACKEND_RUNTIME_STACK }}"
             azd env set SOLUTION_NAME="${{ env.SOLUTION_NAME }}"
             azd env set API_PID="${{ env.API_PID }}"

@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.41.2.15936",
-      "templateHash": "15169639720885287728"
+      "version": "0.42.1.51946",
+      "templateHash": "5391435421787418149"
     }
   },
   "parameters": {
@@ -494,8 +494,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "3472930527601001530"
+              "version": "0.42.1.51946",
+              "templateHash": "10307461230259065083"
             }
           },
           "parameters": {
@@ -647,8 +647,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "2751944493515658289"
+              "version": "0.42.1.51946",
+              "templateHash": "4369483223004606662"
             }
           },
           "parameters": {
@@ -1001,7 +1001,7 @@
             "aiSearchName": "[format('{0}{1}', variables('abbrs').ai.aiSearch, parameters('solutionName'))]",
             "storageName": "[take(format('{0}{1}', variables('abbrs').storage.storageAccount, toLower(replace(parameters('solutionName'), '-', ''))), 24)]",
             "aiSearchConnectionName": "[format('search-connection-{0}', parameters('solutionName'))]",
-            "aiModelDeployments": "[concat(createArray(createObject('name', parameters('gptModelName'), 'model', parameters('gptModelName'), 'sku', createObject('name', parameters('deploymentType'), 'capacity', parameters('gptDeploymentCapacity')), 'version', parameters('gptModelVersion'), 'raiPolicyName', 'Microsoft.Default')), if(parameters('isWorkshop'), createArray(createObject('name', parameters('embeddingModel'), 'model', parameters('embeddingModel'), 'sku', createObject('name', 'GlobalStandard', 'capacity', parameters('embeddingDeploymentCapacity')), 'raiPolicyName', 'Microsoft.Default')), createArray()))]",
+            "aiModelDeployments": "[concat(createArray(createObject('name', parameters('gptModelName'), 'model', parameters('gptModelName'), 'sku', createObject('name', parameters('deploymentType'), 'capacity', parameters('gptDeploymentCapacity')), 'version', parameters('gptModelVersion'), 'raiPolicyName', 'Microsoft.Default')), if(parameters('isWorkshop'), createArray(createObject('name', parameters('embeddingModel'), 'model', parameters('embeddingModel'), 'sku', createObject('name', 'GlobalStandard', 'capacity', parameters('embeddingDeploymentCapacity')), 'version', '1', 'raiPolicyName', 'Microsoft.Default')), createArray()))]",
             "useExisting": "[not(empty(parameters('existingLogAnalyticsWorkspaceId')))]",
             "existingLawSubscription": "[if(variables('useExisting'), split(parameters('existingLogAnalyticsWorkspaceId'), '/')[2], '')]",
             "existingLawResourceGroup": "[if(variables('useExisting'), split(parameters('existingLogAnalyticsWorkspaceId'), '/')[4], '')]",
@@ -1111,7 +1111,8 @@
               "properties": {
                 "model": {
                   "format": "OpenAI",
-                  "name": "[variables('aiModelDeployments')[copyIndex()].model]"
+                  "name": "[variables('aiModelDeployments')[copyIndex()].model]",
+                  "version": "[if(not(empty(variables('aiModelDeployments')[copyIndex()].version)), variables('aiModelDeployments')[copyIndex()].version, null())]"
                 },
                 "raiPolicyName": "[variables('aiModelDeployments')[copyIndex()].raiPolicyName]"
               },
@@ -1120,6 +1121,7 @@
                 "capacity": "[variables('aiModelDeployments')[copyIndex()].sku.capacity]"
               },
               "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts/projects', variables('aiServicesName'), variables('aiProjectName'))]",
                 "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiServicesName'))]"
               ]
             },
@@ -1533,8 +1535,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "16993105740966505250"
+                      "version": "0.42.1.51946",
+                      "templateHash": "176104670941550577"
                     }
                   },
                   "parameters": {
@@ -1665,8 +1667,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "17611628239034995102"
+                      "version": "0.42.1.51946",
+                      "templateHash": "15940656462374031268"
                     }
                   },
                   "parameters": {
@@ -1791,8 +1793,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "312825370778438846"
+                      "version": "0.42.1.51946",
+                      "templateHash": "4631236656784318419"
                     }
                   },
                   "parameters": {
@@ -2053,8 +2055,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "312825370778438846"
+                      "version": "0.42.1.51946",
+                      "templateHash": "4631236656784318419"
                     }
                   },
                   "parameters": {
@@ -2431,8 +2433,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "16063600162233365078"
+              "version": "0.42.1.51946",
+              "templateHash": "1345542987569517937"
             }
           },
           "parameters": {
@@ -2607,8 +2609,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "13662733255787521583"
+              "version": "0.42.1.51946",
+              "templateHash": "4284424173515148533"
             }
           },
           "parameters": {
@@ -2762,8 +2764,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "8356071713215305084"
+              "version": "0.42.1.51946",
+              "templateHash": "5180121198949389556"
             },
             "description": "Creates an Azure App Service plan."
           },
@@ -2882,10 +2884,10 @@
           },
           "appSettings": {
             "value": {
-              "AZURE_OPENAI_DEPLOYMENT_MODEL": "[parameters('gptModelName')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('embeddingModel')]",
+              "AZURE_ENV_GPT_MODEL_NAME": "[parameters('gptModelName')]",
+              "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": "[parameters('embeddingModel')]",
               "AZURE_OPENAI_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesTarget.value]",
-              "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
+              "AZURE_ENV_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_OPENAI_RESOURCE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesName.value]",
               "AZURE_AI_AGENT_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.projectEndpoint.value]",
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
@@ -2895,9 +2897,9 @@
               "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosContainerName.value, '')]",
               "AZURE_COSMOSDB_DATABASE": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosDatabaseName.value, '')]",
               "AZURE_COSMOSDB_ENABLE_FEEDBACK": "[if(parameters('isWorkshop'), 'True', '')]",
-              "SQLDB_DATABASE": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]",
-              "SQLDB_SERVER": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]",
-              "SQLDB_USER_MID": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId, '')]",
+              "AZURE_SQLDB_DATABASE": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]",
+              "AZURE_SQLDB_SERVER": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]",
+              "AZURE_SQLDB_USER_MID": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId, '')]",
               "API_UID": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId]",
               "AZURE_AI_SEARCH_ENDPOINT": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiSearchTarget.value, '')]",
               "AZURE_AI_SEARCH_INDEX": "[if(parameters('isWorkshop'), 'knowledge_index', '')]",
@@ -2927,8 +2929,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "13102491909160505927"
+              "version": "0.42.1.51946",
+              "templateHash": "16506430922588282048"
             }
           },
           "parameters": {
@@ -3008,7 +3010,7 @@
             "existingAIServicesName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[8], '')]",
             "existingAIProjectName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[10], '')]",
             "imageName": "[format('DOCKER|{0}.azurecr.io/da-api:{1}', parameters('acrName'), parameters('imageTag'))]",
-            "reactAppLayoutConfig": "{\n  \"appConfig\": {\n      \"CHAT_CHATHISTORY\": {\n        \"CHAT\": 70,\n        \"CHATHISTORY\": 30\n      }\n    }\n  }\n}"
+            "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
           },
           "resources": [
             {
@@ -3060,8 +3062,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "5691398111935750345"
+                      "version": "0.42.1.51946",
+                      "templateHash": "13815496434466107484"
                     }
                   },
                   "parameters": {
@@ -3194,8 +3196,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.41.2.15936",
-                              "templateHash": "9058595105823719818"
+                              "version": "0.42.1.51946",
+                              "templateHash": "14059865609608429555"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -3273,8 +3275,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "16993105740966505250"
+                      "version": "0.42.1.51946",
+                      "templateHash": "176104670941550577"
                     }
                   },
                   "parameters": {
@@ -3414,8 +3416,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "312825370778438846"
+                      "version": "0.42.1.51946",
+                      "templateHash": "4631236656784318419"
                     }
                   },
                   "parameters": {
@@ -3727,10 +3729,10 @@
           },
           "appSettings": {
             "value": {
-              "AZURE_OPENAI_DEPLOYMENT_MODEL": "[parameters('gptModelName')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('embeddingModel')]",
+              "AZURE_ENV_GPT_MODEL_NAME": "[parameters('gptModelName')]",
+              "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": "[parameters('embeddingModel')]",
               "AZURE_OPENAI_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesTarget.value]",
-              "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
+              "AZURE_ENV_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_OPENAI_RESOURCE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesName.value]",
               "AZURE_AI_AGENT_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.projectEndpoint.value]",
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
@@ -3764,8 +3766,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "13110594575107685913"
+              "version": "0.42.1.51946",
+              "templateHash": "3861058490487788669"
             }
           },
           "parameters": {
@@ -3838,7 +3840,7 @@
             "existingAIServicesName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[8], '')]",
             "existingAIProjectName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[10], '')]",
             "imageName": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('acrName'), parameters('imageTag'))]",
-            "reactAppLayoutConfig": "{\n  \"appConfig\": {\n      \"CHAT_CHATHISTORY\": {\n        \"CHAT\": 70,\n        \"CHATHISTORY\": 30\n      }\n    }\n  }\n}"
+            "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
           },
           "resources": [
             {
@@ -3876,8 +3878,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "5691398111935750345"
+                      "version": "0.42.1.51946",
+                      "templateHash": "13815496434466107484"
                     }
                   },
                   "parameters": {
@@ -4010,8 +4012,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.41.2.15936",
-                              "templateHash": "9058595105823719818"
+                              "version": "0.42.1.51946",
+                              "templateHash": "14059865609608429555"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -4089,8 +4091,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "16993105740966505250"
+                      "version": "0.42.1.51946",
+                      "templateHash": "176104670941550577"
                     }
                   },
                   "parameters": {
@@ -4230,8 +4232,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "312825370778438846"
+                      "version": "0.42.1.51946",
+                      "templateHash": "4631236656784318419"
                     }
                   },
                   "parameters": {
@@ -4538,8 +4540,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "12518244873126064566"
+              "version": "0.42.1.51946",
+              "templateHash": "15310769069660875050"
             }
           },
           "parameters": {
@@ -4623,8 +4625,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.41.2.15936",
-                      "templateHash": "5691398111935750345"
+                      "version": "0.42.1.51946",
+                      "templateHash": "13815496434466107484"
                     }
                   },
                   "parameters": {
@@ -4757,8 +4759,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.41.2.15936",
-                              "templateHash": "9058595105823719818"
+                              "version": "0.42.1.51946",
+                              "templateHash": "14059865609608429555"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -4866,7 +4868,7 @@
       },
       "value": "[if(parameters('isWorkshop'), 'db_conversation_history', '')]"
     },
-    "AZURE_OPENAI_DEPLOYMENT_MODEL": {
+    "AZURE_ENV_GPT_MODEL_NAME": {
       "type": "string",
       "metadata": {
         "description": "GPT model deployment name (e.g., gpt-4o-mini)"
@@ -4880,28 +4882,28 @@
       },
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesTarget.value]"
     },
-    "AZURE_OPENAI_EMBEDDING_MODEL": {
+    "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": {
       "type": "string",
       "metadata": {
         "description": "Embedding model deployment name for vector search"
       },
       "value": "[parameters('embeddingModel')]"
     },
-    "SQLDB_DATABASE": {
+    "AZURE_SQLDB_DATABASE": {
       "type": "string",
       "metadata": {
         "description": "Azure SQL database name (Azure-only mode)"
       },
       "value": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]"
     },
-    "SQLDB_SERVER": {
+    "AZURE_SQLDB_SERVER": {
       "type": "string",
       "metadata": {
         "description": "Azure SQL server fully qualified domain name (Azure-only mode)"
       },
       "value": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]"
     },
-    "SQLDB_USER_MID": {
+    "AZURE_SQLDB_USER_MID": {
       "type": "string",
       "metadata": {
         "description": "Managed identity client ID for SQL authentication (Azure-only mode)"
