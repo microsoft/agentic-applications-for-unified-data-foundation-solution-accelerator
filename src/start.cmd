@@ -36,6 +36,10 @@ for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
         set AZURE_SQLDB_SERVER=%%~B
         for /f "tokens=1 delims=." %%C in ("%%~B") do set AZURE_SQLDB_SERVER_NAME=%%C
     )
+    if "%%A"=="SQLDB_SERVER" if not defined AZURE_SQLDB_SERVER (
+        set AZURE_SQLDB_SERVER=%%~B
+        for /f "tokens=1 delims=." %%C in ("%%~B") do set AZURE_SQLDB_SERVER_NAME=%%C
+    )
 )
 
 REM Copy .env to src/api

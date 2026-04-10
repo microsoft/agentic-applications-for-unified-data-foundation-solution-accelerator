@@ -36,7 +36,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # Environment variables exempt from the AZURE_ENV_ naming convention.
-_ENV_VAR_EXCEPTIONS = {"AZURE_LOCATION", "AZURE_EXISTING_AIPROJECT_RESOURCE_ID", "IS_WORKSHOP"}
+_ENV_VAR_EXCEPTIONS = {
+    "AZURE_LOCATION",
+    "AZURE_EXISTING_AIPROJECT_RESOURCE_ID",
+    "IS_WORKSHOP",
+    "USE_CASE",
+    "BACKEND_RUNTIME_STACK",
+    "DEPLOYING_USER_PRINCIPAL_TYPE",
+}
 
 # ---------------------------------------------------------------------------
 # Bicep param parser
@@ -108,7 +115,7 @@ def parse_parameters_env_vars(json_path: Path) -> dict[str, list[str]]:
         data = json.loads(sanitized)
         params = data.get("parameters", {})
     except json.JSONDecodeError:
-        pass
+        params = {}
 
     # Walk each top-level parameter and scan its entire serialized value
     # for ${VAR} references from the original text.
