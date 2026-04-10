@@ -2,7 +2,13 @@ name: Azure Dev Deploy
 
 on:
   workflow_dispatch:
-
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/**'
+      - 'azure.yaml'
+      - '.github/workflows/azure-dev.yml'
 
 permissions:
   contents: read
