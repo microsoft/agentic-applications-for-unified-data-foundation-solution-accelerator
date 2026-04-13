@@ -286,36 +286,6 @@ async def init_cosmosdb_client():
         raise
 
 
-def init_openai_client():
-    """Initialize and return an Azure OpenAI client."""
-    user_agent = "GitHubSampleWebApp/AsyncAzureOpenAI/1.0.0"
-
-    try:
-        if not AZURE_OPENAI_ENDPOINT and not AZURE_OPENAI_RESOURCE:
-            raise ValueError(
-                "AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE is required")
-
-        endpoint = AZURE_OPENAI_ENDPOINT or f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
-        ad_token_provider = None
-
-        logger.debug("Using Azure AD authentication for OpenAI")
-        ad_token_provider = get_bearer_token_provider(
-            get_azure_credential(), "https://cognitiveservices.azure.com/.default")
-
-        if not AZURE_OPENAI_DEPLOYMENT_MODEL:
-            raise ValueError("AZURE_OPENAI_MODEL is required")
-
-        return AsyncAzureOpenAI(
-            api_version=AZURE_OPENAI_API_VERSION,
-            azure_ad_token_provider=ad_token_provider,
-            default_headers={"x-ms-useragent": user_agent},
-            azure_endpoint=endpoint,
-        )
-    except Exception:
-        logger.exception("Failed to initialize Azure OpenAI client")
-        raise
-
-
 async def generate_title(conversation_messages):
     """Generate a title for a conversation using Azure AI Foundry agent."""
     try:
