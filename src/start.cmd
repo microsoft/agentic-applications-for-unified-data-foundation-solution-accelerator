@@ -99,6 +99,7 @@ for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
     if "%%A"=="FABRIC_SQL_SERVER" set "FABRIC_SQL_SERVER=%%~B"
     if "%%A"=="FABRIC_SQL_DATABASE" set "FABRIC_SQL_DATABASE=%%~B"
     if "%%A"=="FABRIC_SQL_CONNECTION_STRING" set "FABRIC_SQL_CONNECTION_STRING=%%~B"
+    if "%%A"=="USE_CHAT_HISTORY_ENABLED" set "USE_CHAT_HISTORY_ENABLED=%%~B"
     if "%%A"=="SQLDB_SERVER" (
         set "SQLDB_SERVER=%%~B"
         for /f "tokens=1 delims=." %%C in ("%%~B") do set "SQLDB_SERVER_NAME=%%C"
