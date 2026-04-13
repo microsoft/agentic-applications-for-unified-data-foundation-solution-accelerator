@@ -93,6 +93,12 @@ for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
     if "%%A"=="BACKEND_RUNTIME_STACK" set "BACKEND_RUNTIME_STACK=%%~B"
     if "%%A"=="IS_WORKSHOP" set "IS_WORKSHOP=%%~B"
     if "%%A"=="AZURE_ENV_ONLY" set "AZURE_ENV_ONLY=%%~B"
+    if "%%A"=="AGENT_NAME_CHAT" set "AGENT_NAME_CHAT=%%~B"
+    if "%%A"=="AGENT_NAME_TITLE" set "AGENT_NAME_TITLE=%%~B"
+    if "%%A"=="AI_FOUNDRY_RESOURCE_ID" set "AI_FOUNDRY_RESOURCE_ID=%%~B"
+    if "%%A"=="FABRIC_SQL_SERVER" set "FABRIC_SQL_SERVER=%%~B"
+    if "%%A"=="FABRIC_SQL_DATABASE" set "FABRIC_SQL_DATABASE=%%~B"
+    if "%%A"=="FABRIC_SQL_CONNECTION_STRING" set "FABRIC_SQL_CONNECTION_STRING=%%~B"
     if "%%A"=="SQLDB_SERVER" (
         set "SQLDB_SERVER=%%~B"
         for /f "tokens=1 delims=." %%C in ("%%~B") do set "SQLDB_SERVER_NAME=%%C"
@@ -127,12 +133,17 @@ REM ============================================================
 set "AGENT_IDS_FILE=%ROOT_DIR%\data\default\config\agent_ids.json"
 set "FABRIC_IDS_FILE=%ROOT_DIR%\data\default\config\fabric_ids.json"
 
-if exist "%AGENT_IDS_FILE%" (
-    for /f "delims=" %%i in ('powershell -command "(Get-Content '%AGENT_IDS_FILE%' | ConvertFrom-Json).chat_agent_name"') do set "AGENT_NAME_CHAT=%%i"
-    for /f "delims=" %%i in ('powershell -command "(Get-Content '%AGENT_IDS_FILE%' | ConvertFrom-Json).title_agent_name"') do set "AGENT_NAME_TITLE=%%i"
-    echo Loaded agent names: AGENT_NAME_CHAT=!AGENT_NAME_CHAT!, AGENT_NAME_TITLE=!AGENT_NAME_TITLE!
+REM Get agent names from env first, fallback to agent_ids.json
+if not defined AGENT_NAME_CHAT (
+    if exist "%AGENT_IDS_FILE%" (
+        for /f "delims=" %%i in ('powershell -command "(Get-Content '%AGENT_IDS_FILE%' | ConvertFrom-Json).chat_agent_name"') do set "AGENT_NAME_CHAT=%%i"
+        for /f "delims=" %%i in ('powershell -command "(Get-Content '%AGENT_IDS_FILE%' | ConvertFrom-Json).title_agent_name"') do set "AGENT_NAME_TITLE=%%i"
+        echo Loaded agent names from agent_ids.json: AGENT_NAME_CHAT=!AGENT_NAME_CHAT!, AGENT_NAME_TITLE=!AGENT_NAME_TITLE!
+    ) else (
+        echo [WARN] agent_ids.json not found at %AGENT_IDS_FILE%. Agent names will not be configured.
+    )
 ) else (
-    echo [WARN] agent_ids.json not found at %AGENT_IDS_FILE%. Agent names will not be configured.
+    echo Loaded agent names from env: AGENT_NAME_CHAT=!AGENT_NAME_CHAT!, AGENT_NAME_TITLE=!AGENT_NAME_TITLE!
 )
 
 REM Load Fabric SQL settings (needed unless workshop + azure-only mode)
@@ -142,12 +153,16 @@ set "USE_FABRIC_SQL=true"
 if "%IS_WORKSHOP%"=="true" if "%AZURE_ENV_ONLY%"=="true" set "USE_FABRIC_SQL=false"
 
 if "%USE_FABRIC_SQL%"=="true" (
-    if exist "%FABRIC_IDS_FILE%" (
-        for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).sql_endpoint"') do set "FABRIC_SQL_SERVER=%%i"
-        for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).lakehouse_name"') do set "FABRIC_SQL_DATABASE=%%i"
-        echo Loaded Fabric SQL: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
+    if not defined FABRIC_SQL_SERVER (
+        if exist "%FABRIC_IDS_FILE%" (
+            for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).sql_endpoint"') do set "FABRIC_SQL_SERVER=%%i"
+            for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).lakehouse_name"') do set "FABRIC_SQL_DATABASE=%%i"
+            echo Loaded Fabric SQL from fabric_ids.json: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
+        ) else (
+            echo [WARN] Fabric SQL mode required but fabric_ids.json not found. Database connections may fail.
+        )
     ) else (
-        echo [WARN] Fabric SQL mode required but fabric_ids.json not found. Database connections may fail.
+        echo Loaded Fabric SQL from env: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
     )
 ) else (
     echo Using Azure SQL mode ^(IS_WORKSHOP=true, AZURE_ENV_ONLY=true^). SQLDB_SERVER=%SQLDB_SERVER%
@@ -300,6 +315,34 @@ goto :done_sql
 echo [INFO] No Azure SQL Server configured, skipping admin role assignment.
 
 :done_sql
+
+REM ============================================================
+REM  Azure AI User role assignment (only when AI_FOUNDRY_RESOURCE_ID is set)
+REM ============================================================
+if not defined AI_FOUNDRY_RESOURCE_ID goto :skip_aiuser
+if "!AI_FOUNDRY_RESOURCE_ID!"=="" goto :skip_aiuser
+
+FOR /F "delims=" %%s IN ('az account show --query id -o tsv') DO set "subscription_id=%%s"
+
+echo Checking Azure AI User role assignment...
+FOR /F "delims=" %%i IN ('az role assignment list --assignee %signed_user_id% --role "53ca6127-db72-4b80-b1b0-d745d6d5456d" --scope "%AI_FOUNDRY_RESOURCE_ID%" --query "[0].id" -o tsv 2^>nul') DO set "aiUserRoleExists=%%i"
+if defined aiUserRoleExists (
+    echo User already has the Azure AI User role.
+) else (
+    echo Assigning Azure AI User role to AI Foundry account...
+    call az role assignment create ^
+        --assignee %signed_user_id% ^
+        --role "53ca6127-db72-4b80-b1b0-d745d6d5456d" ^
+        --scope "%AI_FOUNDRY_RESOURCE_ID%" ^
+        --output none
+    echo Azure AI User role assigned successfully.
+)
+goto :done_aiuser
+
+:skip_aiuser
+echo [INFO] No AI Foundry resource configured, skipping AI User role assignment.
+
+:done_aiuser
 
 REM ============================================================
 REM  Restore and start backend

@@ -258,6 +258,11 @@ if [ -n "$FABRIC_SQL_SERVER" ] && [ -n "$FABRIC_SQL_DATABASE" ] && [ -n "$FABRIC
       --settings FABRIC_SQL_SERVER="$FABRIC_SQL_SERVER" FABRIC_SQL_DATABASE="$FABRIC_SQL_DATABASE" FABRIC_SQL_CONNECTION_STRING="$FABRIC_SQL_CONNECTION_STRING" \
       -o none
     echo "Environment variables updated for App Service: $app_service"
+
+    #Update local azd environment variables
+    azd env set FABRIC_SQL_SERVER "$FABRIC_SQL_SERVER"
+    azd env set FABRIC_SQL_DATABASE "$FABRIC_SQL_DATABASE"
+    azd env set FABRIC_SQL_CONNECTION_STRING "$FABRIC_SQL_CONNECTION_STRING"
 else
     echo "Error: One or more required environment variables are empty. Skipping updating environment variables for App Service."
     exit 1
