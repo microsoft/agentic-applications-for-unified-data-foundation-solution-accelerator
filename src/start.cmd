@@ -223,33 +223,6 @@ set "APP_ENV_FILE=%ROOT_DIR%\src\App\.env"
 echo Updated src\App\.env with frontend configuration
 
 REM ============================================================
-REM  Workshop .env merge (only when IS_WORKSHOP=true)
-REM ============================================================
-if "%IS_WORKSHOP%"=="true" (
-    set "WORKSHOP_ENV_FILE=%ROOT_DIR%\workshop\docs\workshop\.env"
-    if exist "!WORKSHOP_ENV_FILE!" (
-        set "TEMP_MERGED_FILE=%TEMP%\merged_env.tmp"
-        copy /Y "!WORKSHOP_ENV_FILE!" "!TEMP_MERGED_FILE!" >nul 2>&1
-
-        for /f "usebackq tokens=* delims=" %%A in ("%ENV_FILE%") do (
-            set "line=%%A"
-            if not "!line!"=="" if not "!line:~0,1!"=="#" (
-                for /f "tokens=1 delims==" %%B in ("!line!") do (
-                    findstr /b /i "%%B=" "!WORKSHOP_ENV_FILE!" >nul 2>&1
-                    if errorlevel 1 (
-                        echo !line!>>"!TEMP_MERGED_FILE!"
-                    )
-                )
-            )
-        )
-        move /Y "!TEMP_MERGED_FILE!" "!WORKSHOP_ENV_FILE!" >nul
-        echo Merged .env variables into workshop\.env
-    ) else (
-        echo [INFO] Workshop .env not found at !WORKSHOP_ENV_FILE!, skipping merge.
-    )
-)
-
-REM ============================================================
 REM  Authenticate with Azure
 REM ============================================================
 echo.

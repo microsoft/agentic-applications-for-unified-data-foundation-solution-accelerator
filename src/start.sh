@@ -193,11 +193,6 @@ if [ "$BACKEND_RUNTIME_STACK" = "python" ]; then
         echo "FABRIC_SQL_DATABASE=$FABRIC_SQL_DATABASE" >> "$API_PYTHON_ENV_FILE"
     fi
 
-    # Enable chat history if not already set
-    if ! grep -qi "^USE_CHAT_HISTORY_ENABLED=" "$API_PYTHON_ENV_FILE" 2>/dev/null; then
-        echo "USE_CHAT_HISTORY_ENABLED=$USE_CHAT_HISTORY_ENABLED" >> "$API_PYTHON_ENV_FILE"
-    fi
-
     # Add or update APP_ENV=dev
     if grep -qi "^APP_ENV=" "$API_PYTHON_ENV_FILE" 2>/dev/null; then
         sed -i.bak 's/^APP_ENV=.*/APP_ENV=dev/' "$API_PYTHON_ENV_FILE" && rm -f "${API_PYTHON_ENV_FILE}.bak"
@@ -238,24 +233,6 @@ REACT_APP_IS_WORKSHOP=$IS_WORKSHOP
 REACT_APP_CHAT_LANDING_TEXT=You can ask questions around sales, products and orders.
 EOF
 echo "Updated src/App/.env with frontend configuration"
-
-# ============================================================
-#  Workshop .env merge (only when IS_WORKSHOP=true)
-# ============================================================
-if [ "$IS_WORKSHOP" = "true" ]; then
-    WORKSHOP_ENV_FILE="$ROOT_DIR/workshop/docs/workshop/.env"
-    if [ -f "$WORKSHOP_ENV_FILE" ]; then
-        while IFS='=' read -r key value; do
-            [[ -z "$key" || "$key" == \#* ]] && continue
-            if ! grep -qi "^$key=" "$WORKSHOP_ENV_FILE" 2>/dev/null; then
-                echo "$key=$value" >> "$WORKSHOP_ENV_FILE"
-            fi
-        done < "$ENV_FILE"
-        echo "Merged .env variables into workshop/.env"
-    else
-        echo "[INFO] Workshop .env not found at $WORKSHOP_ENV_FILE, skipping merge."
-    fi
-fi
 
 # ============================================================
 #  Authenticate with Azure
