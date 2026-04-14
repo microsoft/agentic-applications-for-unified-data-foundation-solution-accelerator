@@ -46,6 +46,9 @@ locate_env_file() {
 
         # Pre-check backend runtime stack from Azure .env
         _PRE_STACK=$(grep -m1 '^BACKEND_RUNTIME_STACK=' "$ENV_FILE" | cut -d'=' -f2-)
+        # Strip surrounding quotes from value
+        _PRE_STACK="${_PRE_STACK%\"}"
+        _PRE_STACK="${_PRE_STACK#\"}"
 
         # Check if backend config already exists and ask for overwrite
         if [ "${_PRE_STACK,,}" = "dotnet" ]; then
