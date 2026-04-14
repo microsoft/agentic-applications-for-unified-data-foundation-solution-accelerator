@@ -8,17 +8,15 @@ from azure.ai.projects.aio import AIProjectClient
 from azure.core.exceptions import HttpResponseError
 from azure.cosmos import exceptions
 from azure.cosmos.aio import CosmosClient
-from azure.identity import get_bearer_token_provider
 from azure.monitor.events.extension import track_event
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
-from openai import AsyncAzureOpenAI
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 # from chat import adjust_processed_data_dates
 from auth.auth_utils import get_authenticated_user_details
-from auth.azure_credential_utils import get_azure_credential_async, get_azure_credential
+from auth.azure_credential_utils import get_azure_credential_async
 
 router = APIRouter()
 
