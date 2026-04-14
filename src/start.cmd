@@ -39,15 +39,32 @@ set "ENV_FILE=%AZURE_FOLDER%\%DEFAULT_ENV%\.env"
 if exist "%ENV_FILE%" (
     echo Found .env file in Azure deployment folder: %ENV_FILE%
 
-    REM Check if backend .env already exists and ask for overwrite
-    if exist "%API_PYTHON_ENV_FILE%" (
-        echo Found existing .env file in src\api\python
-        set /p OVERWRITE_ENV="Do you want to overwrite it with the Azure deployment .env? (y/N): "
-        if /i "!OVERWRITE_ENV!"=="y" (
-            echo Overwriting with Azure deployment configuration...
-        ) else (
-            echo Preserving existing .env files. Using local configuration.
-            set "ENV_FILE=%API_PYTHON_ENV_FILE%"
+    REM Pre-check backend runtime stack from Azure .env
+    set "_PRE_STACK="
+    for /f "tokens=1,* delims==" %%A in ('findstr /b "BACKEND_RUNTIME_STACK=" "%ENV_FILE%"') do set "_PRE_STACK=%%~B"
+
+    REM Check if backend config already exists and ask for overwrite
+    if /i "!_PRE_STACK!"=="dotnet" (
+        if exist "%API_DOTNET_DIR%\appsettings.json" (
+            echo Found existing appsettings.json in src\api\dotnet
+            set /p OVERWRITE_ENV="Do you want to overwrite it with the Azure deployment .env? (y/N): "
+            if /i "!OVERWRITE_ENV!" neq "y" (
+                echo Preserving existing appsettings.json. Using local configuration.
+                set "SKIP_DOTNET_CONFIG=true"
+            ) else (
+                echo Overwriting with Azure deployment configuration...
+            )
+        )
+    ) else (
+        if exist "%API_PYTHON_ENV_FILE%" (
+            echo Found existing .env file in src\api\python
+            set /p OVERWRITE_ENV="Do you want to overwrite it with the Azure deployment .env? (y/N): "
+            if /i "!OVERWRITE_ENV!"=="y" (
+                echo Overwriting with Azure deployment configuration...
+            ) else (
+                echo Preserving existing .env files. Using local configuration.
+                set "ENV_FILE=%API_PYTHON_ENV_FILE%"
+            )
         )
     )
     goto :setup_environment
@@ -100,6 +117,20 @@ for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
     if "%%A"=="FABRIC_SQL_DATABASE" set "FABRIC_SQL_DATABASE=%%~B"
     if "%%A"=="FABRIC_SQL_CONNECTION_STRING" set "FABRIC_SQL_CONNECTION_STRING=%%~B"
     if "%%A"=="USE_CHAT_HISTORY_ENABLED" set "USE_CHAT_HISTORY_ENABLED=%%~B"
+    if "%%A"=="API_UID" set "API_UID=%%~B"
+    if "%%A"=="APPINSIGHTS_INSTRUMENTATIONKEY" set "APPINSIGHTS_INSTRUMENTATIONKEY=%%~B"
+    if "%%A"=="APPLICATIONINSIGHTS_CONNECTION_STRING" set "APPLICATIONINSIGHTS_CONNECTION_STRING=%%~B"
+    if "%%A"=="AZURE_AI_AGENT_API_VERSION" set "AZURE_AI_AGENT_API_VERSION=%%~B"
+    if "%%A"=="AZURE_AI_AGENT_ENDPOINT" set "AZURE_AI_AGENT_ENDPOINT=%%~B"
+    if "%%A"=="AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME" set "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME=%%~B"
+    if "%%A"=="AZURE_OPENAI_API_VERSION" set "AZURE_OPENAI_API_VERSION=%%~B"
+    if "%%A"=="AZURE_OPENAI_DEPLOYMENT_MODEL" set "AZURE_OPENAI_DEPLOYMENT_MODEL=%%~B"
+    if "%%A"=="AZURE_OPENAI_ENDPOINT" set "AZURE_OPENAI_ENDPOINT=%%~B"
+    if "%%A"=="AZURE_OPENAI_RESOURCE" set "AZURE_OPENAI_RESOURCE=%%~B"
+    if "%%A"=="DISPLAY_CHART_DEFAULT" set "DISPLAY_CHART_DEFAULT=%%~B"
+    if "%%A"=="REACT_APP_LAYOUT_CONFIG" set "REACT_APP_LAYOUT_CONFIG=%%~B"
+    if "%%A"=="SOLUTION_NAME" set "SOLUTION_NAME=%%~B"
+    if "%%A"=="USE_AI_PROJECT_CLIENT" set "USE_AI_PROJECT_CLIENT=%%~B"
     if "%%A"=="SQLDB_SERVER" (
         set "SQLDB_SERVER=%%~B"
         for /f "tokens=1 delims=." %%C in ("%%~B") do set "SQLDB_SERVER_NAME=%%C"
@@ -199,13 +230,38 @@ if /i "%BACKEND_RUNTIME_STACK%"=="python" (
 
 REM --- Dotnet backend configuration ---
 if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" if exist "%API_DOTNET_DIR%" (
-    REM Copy sample as base appsettings.json if it doesn't exist
-    if not exist "%API_DOTNET_DIR%\appsettings.json" (
-        if exist "%API_DOTNET_DIR%\appsettings.json.sample" (
-            copy /Y "%API_DOTNET_DIR%\appsettings.json.sample" "%API_DOTNET_DIR%\appsettings.json" >nul
-        )
+    if /i "!SKIP_DOTNET_CONFIG!"=="true" (
+        echo Preserving existing src\api\dotnet\appsettings.json
+    ) else (
+        REM Build appsettings.json from env values using PowerShell
+        echo Generating src\api\dotnet\appsettings.json from environment values...
+
+        powershell -command ^
+            "$json = Get-Content '!API_DOTNET_DIR!\appsettings.json.sample' -Raw | ConvertFrom-Json;" ^
+            "$json.'FABRIC_SQL_CONNECTION_STRING' = '!FABRIC_SQL_CONNECTION_STRING!';" ^
+            "$json.'FABRIC_SQL_DATABASE' = '!FABRIC_SQL_DATABASE!';" ^
+            "$json.'FABRIC_SQL_SERVER' = '!FABRIC_SQL_SERVER!';" ^
+            "$json.'APP_ENV' = 'dev';" ^
+            "$json.'AGENT_NAME_CHAT' = '!AGENT_NAME_CHAT!';" ^
+            "$json.'AGENT_NAME_TITLE' = '!AGENT_NAME_TITLE!';" ^
+            "$json.'API_UID' = '!API_UID!';" ^
+            "$json.'APPINSIGHTS_INSTRUMENTATIONKEY' = '!APPINSIGHTS_INSTRUMENTATIONKEY!';" ^
+            "$json.'APPLICATIONINSIGHTS_CONNECTION_STRING' = '!APPLICATIONINSIGHTS_CONNECTION_STRING!';" ^
+            "$json.'AZURE_AI_AGENT_API_VERSION' = '!AZURE_AI_AGENT_API_VERSION!';" ^
+            "$json.'AZURE_AI_AGENT_ENDPOINT' = '!AZURE_AI_AGENT_ENDPOINT!';" ^
+            "$json.'AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME' = '!AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME!';" ^
+            "$json.'AZURE_OPENAI_API_VERSION' = '!AZURE_OPENAI_API_VERSION!';" ^
+            "$json.'AZURE_OPENAI_DEPLOYMENT_MODEL' = '!AZURE_OPENAI_DEPLOYMENT_MODEL!';" ^
+            "$json.'AZURE_OPENAI_ENDPOINT' = '!AZURE_OPENAI_ENDPOINT!';" ^
+            "$json.'AZURE_OPENAI_RESOURCE' = '!AZURE_OPENAI_RESOURCE!';" ^
+            "$json.'DISPLAY_CHART_DEFAULT' = '!DISPLAY_CHART_DEFAULT!';" ^
+            "$json.'SOLUTION_NAME' = '!SOLUTION_NAME!';" ^
+            "$json.'USE_AI_PROJECT_CLIENT' = '!USE_AI_PROJECT_CLIENT!';" ^
+            "$json.'USE_CHAT_HISTORY_ENABLED' = '!USE_CHAT_HISTORY_ENABLED!';" ^
+            "$json | ConvertTo-Json -Depth 10 | Set-Content '!API_DOTNET_DIR!\appsettings.json' -Encoding UTF8"
+
+        echo Configured src\api\dotnet\appsettings.json with environment values
     )
-    echo Configured src\api\dotnet\appsettings.json
 )
 
 REM Set process env vars for local development (dotnet inherits these via IConfiguration)

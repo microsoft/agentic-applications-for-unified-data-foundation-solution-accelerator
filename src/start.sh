@@ -44,15 +44,31 @@ locate_env_file() {
     if [ -f "$ENV_FILE" ]; then
         echo "Found .env file in Azure deployment folder: $ENV_FILE"
 
-        # Check if backend .env already exists and ask for overwrite
-        if [ -f "$API_PYTHON_ENV_FILE" ]; then
-            echo "Found existing .env file in src/api/python"
-            read -p "Do you want to overwrite it with the Azure deployment .env? (y/N): " OVERWRITE_ENV
-            if [[ "$OVERWRITE_ENV" =~ ^[Yy]$ ]]; then
-                echo "Overwriting with Azure deployment configuration..."
-            else
-                echo "Preserving existing .env files. Using local configuration."
-                ENV_FILE="$API_PYTHON_ENV_FILE"
+        # Pre-check backend runtime stack from Azure .env
+        _PRE_STACK=$(grep -m1 '^BACKEND_RUNTIME_STACK=' "$ENV_FILE" | cut -d'=' -f2-)
+
+        # Check if backend config already exists and ask for overwrite
+        if [ "${_PRE_STACK,,}" = "dotnet" ]; then
+            if [ -f "$API_DOTNET_DIR/appsettings.json" ]; then
+                echo "Found existing appsettings.json in src/api/dotnet"
+                read -p "Do you want to overwrite it with the Azure deployment .env? (y/N): " OVERWRITE_ENV
+                if [[ "$OVERWRITE_ENV" =~ ^[Yy]$ ]]; then
+                    echo "Overwriting with Azure deployment configuration..."
+                else
+                    echo "Preserving existing appsettings.json. Using local configuration."
+                    SKIP_DOTNET_CONFIG="true"
+                fi
+            fi
+        else
+            if [ -f "$API_PYTHON_ENV_FILE" ]; then
+                echo "Found existing .env file in src/api/python"
+                read -p "Do you want to overwrite it with the Azure deployment .env? (y/N): " OVERWRITE_ENV
+                if [[ "$OVERWRITE_ENV" =~ ^[Yy]$ ]]; then
+                    echo "Overwriting with Azure deployment configuration..."
+                else
+                    echo "Preserving existing .env files. Using local configuration."
+                    ENV_FILE="$API_PYTHON_ENV_FILE"
+                fi
             fi
         fi
         return
@@ -143,6 +159,7 @@ if [ -z "$AGENT_NAME_CHAT" ]; then
     if [ -f "$AGENT_IDS_FILE" ]; then
         AGENT_NAME_CHAT=$(python3 -c "import json; print(json.load(open('$AGENT_IDS_FILE'))['chat_agent_name'])" 2>/dev/null)
         AGENT_NAME_TITLE=$(python3 -c "import json; print(json.load(open('$AGENT_IDS_FILE'))['title_agent_name'])" 2>/dev/null)
+        export AGENT_NAME_CHAT AGENT_NAME_TITLE
         echo "Loaded agent names from agent_ids.json: AGENT_NAME_CHAT=$AGENT_NAME_CHAT, AGENT_NAME_TITLE=$AGENT_NAME_TITLE"
     else
         echo "[WARN] agent_ids.json not found at $AGENT_IDS_FILE. Agent names will not be configured."
@@ -164,6 +181,7 @@ if [ "$USE_FABRIC_SQL" = "true" ]; then
         if [ -f "$FABRIC_IDS_FILE" ]; then
             FABRIC_SQL_SERVER=$(python3 -c "import json; print(json.load(open('$FABRIC_IDS_FILE'))['sql_endpoint'])" 2>/dev/null)
             FABRIC_SQL_DATABASE=$(python3 -c "import json; print(json.load(open('$FABRIC_IDS_FILE'))['lakehouse_name'])" 2>/dev/null)
+            export FABRIC_SQL_SERVER FABRIC_SQL_DATABASE
             echo "Loaded Fabric SQL from fabric_ids.json: SERVER=$FABRIC_SQL_SERVER, DATABASE=$FABRIC_SQL_DATABASE"
         else
             echo "[WARN] Fabric SQL mode required but fabric_ids.json not found. Database connections may fail."
@@ -204,11 +222,41 @@ fi
 
 # --- Dotnet backend configuration ---
 if [ "$BACKEND_RUNTIME_STACK" = "dotnet" ] && [ -d "$API_DOTNET_DIR" ]; then
-    # Copy sample as base appsettings.json if it doesn't exist
-    if [ ! -f "$API_DOTNET_DIR/appsettings.json" ] && [ -f "$API_DOTNET_DIR/appsettings.json.sample" ]; then
-        cp "$API_DOTNET_DIR/appsettings.json.sample" "$API_DOTNET_DIR/appsettings.json"
+    if [ "$SKIP_DOTNET_CONFIG" = "true" ]; then
+        echo "Preserving existing src/api/dotnet/appsettings.json"
+    else
+        # Generate appsettings.json from sample with env values populated
+        echo "Generating src/api/dotnet/appsettings.json from environment values..."
+        if [ -f "$API_DOTNET_DIR/appsettings.json.sample" ]; then
+            python3 -c "
+import json, os, sys
+
+with open('$API_DOTNET_DIR/appsettings.json.sample', 'r') as f:
+    config = json.load(f)
+
+env_keys = [
+    'FABRIC_SQL_CONNECTION_STRING', 'FABRIC_SQL_DATABASE', 'FABRIC_SQL_SERVER',
+    'AGENT_NAME_CHAT', 'AGENT_NAME_TITLE', 'API_UID',
+    'APPINSIGHTS_INSTRUMENTATIONKEY', 'APPLICATIONINSIGHTS_CONNECTION_STRING',
+    'AZURE_AI_AGENT_API_VERSION', 'AZURE_AI_AGENT_ENDPOINT', 'AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME',
+    'AZURE_OPENAI_API_VERSION', 'AZURE_OPENAI_DEPLOYMENT_MODEL', 'AZURE_OPENAI_ENDPOINT',
+    'AZURE_OPENAI_RESOURCE', 'DISPLAY_CHART_DEFAULT', 'SOLUTION_NAME',
+    'USE_AI_PROJECT_CLIENT', 'USE_CHAT_HISTORY_ENABLED'
+]
+
+for key in env_keys:
+    val = os.environ.get(key, '')
+    if val or key in config:
+        config[key] = val
+
+config['APP_ENV'] = 'dev'
+
+with open('$API_DOTNET_DIR/appsettings.json', 'w') as f:
+    json.dump(config, f, indent=2)
+"
+        fi
+        echo "Configured src/api/dotnet/appsettings.json with environment values"
     fi
-    echo "Configured src/api/dotnet/appsettings.json"
 fi
 
 # Set process env vars for local development (dotnet inherits these via IConfiguration)
