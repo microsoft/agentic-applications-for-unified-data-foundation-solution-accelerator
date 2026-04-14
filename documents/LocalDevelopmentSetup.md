@@ -72,8 +72,10 @@ winget install Microsoft.DotNet.SDK.10
 # Install WSL2 first (run in PowerShell as Administrator):
 # wsl --install -d Ubuntu
 
-# Then in WSL2 Ubuntu terminal for Frontend:
-sudo apt update && sudo apt install git curl nodejs npm -y
+# Then in WSL2 Ubuntu terminal for Frontend (Node.js 20 LTS):
+sudo apt update && sudo apt install git curl -y
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
 
 # For Python Backend (Option A):
 sudo apt install python3.12 python3.12-venv -y
@@ -91,8 +93,10 @@ source ~/.bashrc
 #### Ubuntu/Debian
 
 ```bash
-# For Frontend:
-sudo apt update && sudo apt install git curl nodejs npm -y
+# For Frontend (Node.js 20 LTS):
+sudo apt update && sudo apt install git curl -y
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
 
 # For Python Backend (Option A):
 sudo apt install python3.12 python3.12-venv -y
@@ -108,8 +112,10 @@ source ~/.bashrc
 #### RHEL/CentOS/Fedora
 
 ```bash
-# For Frontend:
-sudo dnf install git curl gcc nodejs npm -y
+# For Frontend (Node.js 20 LTS):
+sudo dnf install git curl gcc -y
+curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+sudo dnf install -y nodejs
 
 # For Python Backend (Option A):
 sudo dnf install python3.12 python3.12-devel -y
