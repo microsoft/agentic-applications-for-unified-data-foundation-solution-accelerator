@@ -422,7 +422,7 @@ if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" (
 REM Restore frontend packages
 echo Restoring frontend npm packages...
 cd "%ROOT_DIR%\src\App"
-call npm install --force --silent 2>nul
+call npm install --force
 if errorlevel 1 (
     echo Failed to restore frontend npm packages
     exit /b 1

@@ -402,21 +402,32 @@ fi
 # Restore frontend packages
 echo "Restoring frontend npm packages..."
 cd "$ROOT_DIR/src/App"
-npm install --force --silent 2>/dev/null || { echo "Failed to restore frontend npm packages"; exit 1; }
+npm install --force --silent || { echo "Failed to restore frontend npm packages"; exit 1; }
 cd "$ROOT_DIR"
 
 # Start backend in background, frontend in foreground (single terminal window)
+cleanup_backend() {
+    if [ -n "$BACKEND_PID" ] && kill -0 "$BACKEND_PID" 2>/dev/null; then
+        kill "$BACKEND_PID" 2>/dev/null || true
+        wait "$BACKEND_PID" 2>/dev/null || true
+    fi
+}
+
+trap cleanup_backend EXIT INT TERM
+
 echo ""
 if [ "$BACKEND_RUNTIME_STACK" = "dotnet" ]; then
     echo "Starting dotnet backend..."
     cd "$ROOT_DIR/src/api/dotnet"
     dotnet run --urls=http://127.0.0.1:8000 &
+    BACKEND_PID=$!
 else
     echo "Starting Python backend..."
     cd "$ROOT_DIR"
     source .venv/bin/activate
     cd src/api/python
     python app.py --port=8000 &
+    BACKEND_PID=$!
 fi
 echo "Backend started at http://127.0.0.1:8000"
 

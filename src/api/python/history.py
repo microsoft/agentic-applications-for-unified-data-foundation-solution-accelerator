@@ -295,35 +295,43 @@ async def generate_title(conversation_messages):
             logger.debug("No user messages found, returning default title")
             return generate_fallback_title(conversation_messages)
 
-        combined_content = "\n".join([msg["content"] for msg in user_messages])
+        combined_content = "\n".join([str(msg["content"]) for msg in user_messages])
         final_prompt = f"Generate a 4-word or less title for this request:\n{combined_content}"
 
         if not AZURE_AI_AGENT_ENDPOINT:
             logger.warning("Azure AI Agent endpoint not configured, using fallback title generation")
             return generate_fallback_title(conversation_messages)
 
-        async with AIProjectClient(
-            endpoint=AZURE_AI_AGENT_ENDPOINT,
-            credential=await get_azure_credential_async()
-        ) as project_client:
-            openai_client = project_client.get_openai_client()
-            conversation = await openai_client.conversations.create()
+        if not AGENT_NAME_TITLE:
+            logger.warning("Agent title name not configured, using fallback title generation")
+            return generate_fallback_title(conversation_messages)
 
-            response = await openai_client.responses.create(
-                conversation=conversation.id,
-                input=final_prompt,
-                extra_body={"agent": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
-            )
+        credential = await get_azure_credential_async()
+        try:
+            async with AIProjectClient(
+                endpoint=AZURE_AI_AGENT_ENDPOINT,
+                credential=credential
+            ) as project_client:
+                openai_client = project_client.get_openai_client()
+                conversation = await openai_client.conversations.create()
 
-            result_text = ""
-            for item in response.output:
-                if getattr(item, 'type', None) == 'message':
-                    if hasattr(item, 'content') and item.content is not None:
-                        for content in item.content:
-                            if hasattr(content, 'text'):
-                                result_text += content.text
+                response = await openai_client.responses.create(
+                    conversation=conversation.id,
+                    input=final_prompt,
+                    extra_body={"agent": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
+                )
 
-            return result_text.strip() if result_text else generate_fallback_title(conversation_messages)
+                result_text = ""
+                for item in response.output:
+                    if getattr(item, 'type', None) == 'message':
+                        if hasattr(item, 'content') and item.content is not None:
+                            for content in item.content:
+                                if hasattr(content, 'text'):
+                                    result_text += content.text
+
+                return result_text.strip() if result_text else generate_fallback_title(conversation_messages)
+        finally:
+            await credential.close()
 
     except HttpResponseError as sre:
         logger.warning("HttpResponseError generating title with Azure AI Foundry agent: %s", sre)
