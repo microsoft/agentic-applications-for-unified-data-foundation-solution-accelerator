@@ -187,6 +187,17 @@ Create `.vscode/settings.json` and copy the following JSON:
 }
 ```
 
+## Fabric Workspace Access
+
+Your access requirements depend on whether you're deploying or running locally:
+
+- **For Deployment**: Admin role on the Fabric workspace is required to provision and configure resources
+- **For Local Development**: Contributor role on the Fabric workspace is sufficient to run the application locally
+
+If you don't have the necessary permissions, ask the workspace admin to assign you the appropriate role.
+
+**Note**: RBAC permission changes can take 5-10 minutes to propagate. If you encounter "Forbidden" errors after assigning roles, wait a few minutes and try again.
+
 ## Running with Automated Script
 
 For convenience, you can use the provided startup scripts that handle environment setup and start both backend and frontend services automatically. This is the **quickest way** to get up and running locally.
@@ -279,17 +290,6 @@ az role assignment create `
   --role "Azure AI User" `
   --scope "/subscriptions/<subscription-id>/resourceGroups/<resource-group>/providers/Microsoft.CognitiveServices/accounts/<ai-foundry-account>"
 ```
-
-#### Fabric Workspace Access
-
-Your access requirements depend on whether you're deploying or running locally:
-
-- **For Deployment**: Admin role on the Fabric workspace is required to provision and configure resources
-- **For Local Development**: Contributor role on the Fabric workspace is sufficient to run the application locally
-
-If you don't have the necessary permissions, ask the workspace admin to assign you the appropriate role.
-
-**Note**: RBAC permission changes can take 5-10 minutes to propagate. If you encounter "Forbidden" errors after assigning roles, wait a few minutes and try again.
 
 ### Step 4: Backend API Setup & Run Instructions
 
