@@ -451,9 +451,12 @@ echo Starting frontend server...
 cd "%ROOT_DIR%\src\App"
 call npm start
 
+REM Cleanup: stop backend when frontend exits
 echo.
-echo Both servers have been started.
-echo Backend running at http://127.0.0.1:8000
-echo Frontend running at http://localhost:3000
+echo Frontend stopped. Cleaning up backend process...
+for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":8000.*LISTENING"') do (
+    taskkill /PID %%p /F >nul 2>&1
+)
+echo Cleanup complete.
 
 endlocal
