@@ -187,7 +187,55 @@ Create `.vscode/settings.json` and copy the following JSON:
 }
 ```
 
-## Step 3: Authentication Setup
+## Running with Automated Script
+
+For convenience, you can use the provided startup scripts that handle environment setup and start both backend and frontend services automatically. This is the **quickest way** to get up and running locally.
+
+> **Note**: You must complete **Step 1 (Prerequisites)** and **Step 2 (Development Tools Setup)** before using the automated scripts.
+
+**Windows (Command Prompt or PowerShell):**
+
+```cmd
+cd src
+.\start.cmd
+```
+
+**macOS/Linux/WSL:**
+
+```bash
+cd src
+chmod +x start.sh
+./start.sh
+```
+
+### What the Scripts Do
+
+The startup scripts automate environment configuration, Azure authentication, role assignments, dependency installation, and launch both backend (port 8000) and frontend (port 3000) services.
+
+> **Note**: The script includes a 10-second wait for the backend to initialize before starting the frontend. If you see connection errors initially, wait a moment and reload the page.
+
+### Script Behavior by Deployment Scenario
+
+The scripts auto-detect configuration from the `.env` file. Key flags: `BACKEND_RUNTIME_STACK` (`python`|`dotnet`) and `IS_WORKSHOP` (`true`|`false`). Defaults to Python backend if not set.
+
+| Scenario | Python Backend | .NET Backend |
+|----------|---------------|--------------|
+| **Config** | Copies `.env` to `src/api/python/.env` | Generates `src/api/dotnet/appsettings.json` from env values |
+| **Dependencies** | Creates `.venv`, installs `requirements.txt` | Runs `dotnet restore` |
+| **API docs** | `http://localhost:8000/docs` | `http://localhost:8000/swagger` |
+
+| Database Mode | When | Environment Variables |
+|--------------|------|----------------------|
+| **Fabric SQL** | `IS_WORKSHOP=false`, or `AZURE_ENV_ONLY=false` | `FABRIC_SQL_SERVER`, `FABRIC_SQL_DATABASE` |
+| **Azure SQL** | `IS_WORKSHOP=true` **and** `AZURE_ENV_ONLY=true` | `SQLDB_SERVER`, `SQLDB_DATABASE` |
+
+---
+
+## Running Backend and Frontend Manually
+
+If you prefer more control over the setup process, follow the steps below to configure and run each service individually.
+
+### Step 3: Authentication Setup
 
 Before configuring services, authenticate with Azure:
 
@@ -202,11 +250,11 @@ az account set --subscription "your-subscription-id"
 az account show
 ```
 
-### Required Azure RBAC Permissions
+#### Required Azure RBAC Permissions
 
 To run the application locally, your Azure account needs the following role assignment on the deployed resources:
 
-#### AI Foundry Access
+##### AI Foundry Access
 
 **Linux/macOS/WSL (Bash):**
 ```bash
@@ -232,7 +280,7 @@ az role assignment create `
   --scope "/subscriptions/<subscription-id>/resourceGroups/<resource-group>/providers/Microsoft.CognitiveServices/accounts/<ai-foundry-account>"
 ```
 
-### Fabric Workspace Access
+#### Fabric Workspace Access
 
 Your access requirements depend on whether you're deploying or running locally:
 
@@ -243,7 +291,7 @@ If you don't have the necessary permissions, ask the workspace admin to assign y
 
 **Note**: RBAC permission changes can take 5-10 minutes to propagate. If you encounter "Forbidden" errors after assigning roles, wait a few minutes and try again.
 
-## Step 4: Backend API Setup & Run Instructions
+### Step 4: Backend API Setup & Run Instructions
 
 > **📋 Terminal Reminder**: Open a **terminal window (Terminal 1)** for the Backend API. All commands assume you start from the **repository root directory**.
 
