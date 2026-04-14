@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "570178279848740846"
+      "templateHash": "11151180340377947802"
     }
   },
   "parameters": {
@@ -172,8 +172,8 @@
       }
     },
     "useChatHistoryEnabled": {
-      "type": "string",
-      "defaultValue": "True",
+      "type": "bool",
+      "defaultValue": true,
       "metadata": {
         "description": "Enable chat history."
       }
@@ -456,6 +456,7 @@
       }
     },
     "abbrs": "[variables('$fxv#0')]",
+    "useChatHistoryEnabledSetting": "[if(parameters('useChatHistoryEnabled'), 'True', 'False')]",
     "shouldDeployApp": "[or(not(parameters('isWorkshop')), parameters('deployApp'))]",
     "solutionLocation": "[if(empty(parameters('AZURE_LOCATION')), resourceGroup().location, parameters('AZURE_LOCATION'))]",
     "solutionSuffix": "[toLower(trim(replace(replace(replace(replace(replace(replace(format('{0}{1}', parameters('environmentName'), parameters('solutionUniqueText')), '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))]",
@@ -2899,7 +2900,7 @@
               "AZURE_AI_AGENT_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.projectEndpoint.value]",
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
               "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "[parameters('gptModelName')]",
-              "USE_CHAT_HISTORY_ENABLED": "[parameters('useChatHistoryEnabled')]",
+              "USE_CHAT_HISTORY_ENABLED": "[variables('useChatHistoryEnabledSetting')]",
               "AZURE_COSMOSDB_ACCOUNT": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosAccountName.value, '')]",
               "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosContainerName.value, '')]",
               "AZURE_COSMOSDB_DATABASE": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosDatabaseName.value, '')]",
@@ -3744,7 +3745,7 @@
               "AZURE_AI_AGENT_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.projectEndpoint.value]",
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
               "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "[parameters('gptModelName')]",
-              "USE_CHAT_HISTORY_ENABLED": "[parameters('useChatHistoryEnabled')]",
+              "USE_CHAT_HISTORY_ENABLED": "[variables('useChatHistoryEnabledSetting')]",
               "AZURE_COSMOSDB_ACCOUNT": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosAccountName.value, '')]",
               "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosContainerName.value, '')]",
               "AZURE_COSMOSDB_DATABASE": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosDatabaseName.value, '')]",
@@ -5055,7 +5056,7 @@
       "metadata": {
         "description": "Flag indicating whether chat history storage is enabled"
       },
-      "value": "[parameters('useChatHistoryEnabled')]"
+      "value": "[variables('useChatHistoryEnabledSetting')]"
     },
     "BACKEND_RUNTIME_STACK": {
       "type": "string",
