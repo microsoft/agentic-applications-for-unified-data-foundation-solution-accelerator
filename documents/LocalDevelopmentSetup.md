@@ -46,7 +46,7 @@ agentic-applications-for-unified-data-foundation-solution-accelerator/    ← Re
 
 **Note**: You can choose either Python or .NET for the backend API. Install the corresponding SDK based on your preference:
 - **Python Backend**: Requires Python 3.12+
-- **.NET Backend**: Requires .NET SDK 8.0+
+- **.NET Backend**: Requires .NET SDK 10.0+
 
 ### Windows Development
 
@@ -63,7 +63,7 @@ winget install OpenJS.NodeJS.LTS
 winget install Python.Python.3.12
 
 # For .NET Backend (Option B):
-winget install Microsoft.DotNet.SDK.8
+winget install Microsoft.DotNet.SDK.10
 ```
 
 #### Option 2: Windows with WSL2 (Recommended)
@@ -81,7 +81,7 @@ sudo apt install python3.12 python3.12-venv -y
 # For .NET Backend (Option B):
 wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
 chmod +x dotnet-install.sh
-./dotnet-install.sh --channel 8.0
+./dotnet-install.sh --channel 10.0
 echo 'export PATH=$PATH:$HOME/.dotnet' >> ~/.bashrc
 source ~/.bashrc
 ```
@@ -100,7 +100,7 @@ sudo apt install python3.12 python3.12-venv -y
 # For .NET Backend (Option B):
 wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
 chmod +x dotnet-install.sh
-./dotnet-install.sh --channel 8.0
+./dotnet-install.sh --channel 10.0
 echo 'export PATH=$PATH:$HOME/.dotnet' >> ~/.bashrc
 source ~/.bashrc
 ```
@@ -117,7 +117,7 @@ sudo dnf install python3.12 python3.12-devel -y
 # For .NET Backend (Option B):
 wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
 chmod +x dotnet-install.sh
-./dotnet-install.sh --channel 8.0
+./dotnet-install.sh --channel 10.0
 echo 'export PATH=$PATH:$HOME/.dotnet' >> ~/.bashrc
 source ~/.bashrc
 ```
@@ -492,9 +492,9 @@ python3.12 --version
 # Check .NET SDK version
 dotnet --version
 
-# Should show 8.0.x or higher
+# Should show 10.0.x or higher
 # If not installed:
-# Windows: winget install Microsoft.DotNet.SDK.8
+# Windows: winget install Microsoft.DotNet.SDK.10
 # Linux: Follow the .NET installation steps in Step 1
 ```
 
