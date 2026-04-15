@@ -121,6 +121,9 @@ echo "Using environment file: $ENV_FILE"
 while IFS='=' read -r key value; do
     # Skip empty lines and comments
     [[ -z "$key" || "$key" == \#* ]] && continue
+    # Strip trailing carriage return (Windows CRLF)
+    key="${key%$'\r'}"
+    value="${value%$'\r'}"
     # Strip surrounding quotes from value
     value="${value%\"}"
     value="${value#\"}"
@@ -202,24 +205,35 @@ fi
 
 # --- Python backend configuration ---
 if [ "$BACKEND_RUNTIME_STACK" = "python" ]; then
-    cp "$ENV_FILE" "$API_PYTHON_ENV_FILE"
+    # Guard: skip copy when source and destination are the same file
+    if [ "$(realpath "$ENV_FILE")" = "$(realpath "$API_PYTHON_ENV_FILE")" ]; then
+        echo "Using existing src/api/python/.env"
+    else
+        cp "$ENV_FILE" "$API_PYTHON_ENV_FILE"
+    fi
+
+    # Upsert helper: update existing key or append if not present
+    upsert_env() {
+        local key="$1" val="$2" file="$3"
+        if grep -qi "^${key}=" "$file" 2>/dev/null; then
+            sed -i.bak "s/^${key}=.*/${key}=${val}/" "$file" && rm -f "${file}.bak"
+        else
+            echo "${key}=${val}" >> "$file"
+        fi
+    }
 
     if [ -n "$AGENT_NAME_CHAT" ]; then
-        echo "AGENT_NAME_CHAT=$AGENT_NAME_CHAT" >> "$API_PYTHON_ENV_FILE"
-        echo "AGENT_NAME_TITLE=$AGENT_NAME_TITLE" >> "$API_PYTHON_ENV_FILE"
+        upsert_env "AGENT_NAME_CHAT" "$AGENT_NAME_CHAT" "$API_PYTHON_ENV_FILE"
+        upsert_env "AGENT_NAME_TITLE" "$AGENT_NAME_TITLE" "$API_PYTHON_ENV_FILE"
     fi
-    # Append Fabric SQL settings when needed
+    # Upsert Fabric SQL settings when needed
     if [ "$USE_FABRIC_SQL" = "true" ] && [ -n "$FABRIC_SQL_SERVER" ]; then
-        echo "FABRIC_SQL_SERVER=$FABRIC_SQL_SERVER" >> "$API_PYTHON_ENV_FILE"
-        echo "FABRIC_SQL_DATABASE=$FABRIC_SQL_DATABASE" >> "$API_PYTHON_ENV_FILE"
+        upsert_env "FABRIC_SQL_SERVER" "$FABRIC_SQL_SERVER" "$API_PYTHON_ENV_FILE"
+        upsert_env "FABRIC_SQL_DATABASE" "$FABRIC_SQL_DATABASE" "$API_PYTHON_ENV_FILE"
     fi
 
     # Add or update APP_ENV=dev
-    if grep -qi "^APP_ENV=" "$API_PYTHON_ENV_FILE" 2>/dev/null; then
-        sed -i.bak 's/^APP_ENV=.*/APP_ENV=dev/' "$API_PYTHON_ENV_FILE" && rm -f "${API_PYTHON_ENV_FILE}.bak"
-    else
-        echo "APP_ENV=dev" >> "$API_PYTHON_ENV_FILE"
-    fi
+    upsert_env "APP_ENV" "dev" "$API_PYTHON_ENV_FILE"
     echo "Configured src/api/python/.env"
 fi
 

@@ -206,25 +206,27 @@ REM ============================================================
 
 REM --- Python backend configuration ---
 if /i "%BACKEND_RUNTIME_STACK%"=="python" (
-    copy /Y "%ENV_FILE%" "%API_PYTHON_ENV_FILE%" >nul
+    REM Guard: skip copy when source and destination are the same file
+    for %%I in ("%ENV_FILE%") do set "ENV_FILE_RESOLVED=%%~fI"
+    for %%I in ("%API_PYTHON_ENV_FILE%") do set "API_PYTHON_ENV_FILE_RESOLVED=%%~fI"
+    if /i "!ENV_FILE_RESOLVED!"=="!API_PYTHON_ENV_FILE_RESOLVED!" (
+        echo Python .env source and destination are the same file; skipping copy.
+    ) else (
+        copy /Y "%ENV_FILE%" "%API_PYTHON_ENV_FILE%" >nul
+    )
 
     if defined AGENT_NAME_CHAT (
-        echo AGENT_NAME_CHAT=!AGENT_NAME_CHAT!>>"%API_PYTHON_ENV_FILE%"
-        echo AGENT_NAME_TITLE=!AGENT_NAME_TITLE!>>"%API_PYTHON_ENV_FILE%"
+        call :upsert_env "AGENT_NAME_CHAT" "!AGENT_NAME_CHAT!" "%API_PYTHON_ENV_FILE%"
+        call :upsert_env "AGENT_NAME_TITLE" "!AGENT_NAME_TITLE!" "%API_PYTHON_ENV_FILE%"
     )
-    REM Append Fabric SQL settings when needed
+    REM Upsert Fabric SQL settings when needed
     if "%USE_FABRIC_SQL%"=="true" if defined FABRIC_SQL_SERVER (
-        echo FABRIC_SQL_SERVER=!FABRIC_SQL_SERVER!>>"%API_PYTHON_ENV_FILE%"
-        echo FABRIC_SQL_DATABASE=!FABRIC_SQL_DATABASE!>>"%API_PYTHON_ENV_FILE%"
+        call :upsert_env "FABRIC_SQL_SERVER" "!FABRIC_SQL_SERVER!" "%API_PYTHON_ENV_FILE%"
+        call :upsert_env "FABRIC_SQL_DATABASE" "!FABRIC_SQL_DATABASE!" "%API_PYTHON_ENV_FILE%"
     )
 
     REM Add or update APP_ENV=dev in python .env file
-    findstr /i "^APP_ENV=" "%API_PYTHON_ENV_FILE%" >nul 2>&1
-    if !ERRORLEVEL!==0 (
-        powershell -command "(Get-Content '%API_PYTHON_ENV_FILE%') -replace '^APP_ENV=.*', 'APP_ENV=dev' | Set-Content '%API_PYTHON_ENV_FILE%'"
-    ) else (
-        echo APP_ENV=dev>>"%API_PYTHON_ENV_FILE%"
-    )
+    call :upsert_env "APP_ENV" "dev" "%API_PYTHON_ENV_FILE%"
     echo Configured src\api\python\.env
 )
 
@@ -233,6 +235,11 @@ if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" if exist "%API_DOTNET_DIR%" (
     if /i "!SKIP_DOTNET_CONFIG!"=="true" (
         echo Preserving existing src\api\dotnet\appsettings.json
     ) else (
+        REM Validate template file exists
+        if not exist "!API_DOTNET_DIR!\appsettings.json.sample" (
+            echo ERROR: Missing required template file "!API_DOTNET_DIR!\appsettings.json.sample"
+            exit /b 1
+        )
         REM Build appsettings.json from env values using PowerShell
         echo Generating src\api\dotnet\appsettings.json from environment values...
 
@@ -430,12 +437,18 @@ if errorlevel 1 (
 )
 cd "%ROOT_DIR%"
 
-REM Kill any existing processes on ports 8000 and 3000 before starting
+REM Check for existing processes on ports 8000 and 3000 before starting
 for %%P in (8000 3000) do (
     for /f "tokens=5" %%A in ('netstat -ano ^| findstr "LISTENING" ^| findstr ":%%P "') do (
         if "%%A" neq "0" (
-            echo Port %%P is already in use by PID %%A. Stopping it...
-            taskkill /F /PID %%A /T >nul 2>&1
+            echo Port %%P is already in use by PID %%A.
+            set /p "KILL_PORT=Do you want to stop it? (Y/N): "
+            if /i "!KILL_PORT!"=="Y" (
+                taskkill /F /PID %%A /T >nul 2>&1
+                echo Stopped PID %%A on port %%P.
+            ) else (
+                echo WARNING: Port %%P is still in use. The server may fail to start.
+            )
         )
     )
 )
@@ -490,3 +503,19 @@ for %%P in (8000 3000) do (
 )
 
 endlocal
+exit /b 0
+
+:upsert_env
+REM Usage: call :upsert_env "KEY" "VALUE" "FILE"
+setlocal enabledelayedexpansion
+set "UKEY=%~1"
+set "UVAL=%~2"
+set "UFILE=%~3"
+findstr /i /b "!UKEY!=" "!UFILE!" >nul 2>&1
+if !ERRORLEVEL!==0 (
+    powershell -command "(Get-Content '!UFILE!') -replace '^!UKEY!=.*', '!UKEY!=!UVAL!' | Set-Content '!UFILE!'"
+) else (
+    echo !UKEY!=!UVAL!>>"!UFILE!"
+)
+endlocal
+exit /b 0
