@@ -93,9 +93,9 @@ source ~/.bashrc
 #### Ubuntu/Debian
 
 ```bash
-# For Frontend (Node.js 20 LTS):
+# For Frontend (Node.js 24 LTS):
 sudo apt update && sudo apt install git curl -y
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt install -y nodejs
 
 # For Python Backend (Option A):
@@ -112,9 +112,9 @@ source ~/.bashrc
 #### RHEL/CentOS/Fedora
 
 ```bash
-# For Frontend (Node.js 20 LTS):
+# For Frontend (Node.js 24 LTS):
 sudo dnf install git curl gcc -y
-curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+curl -fsSL https://rpm.nodesource.com/setup_24.x | sudo bash -
 sudo dnf install -y nodejs
 
 # For Python Backend (Option A):
