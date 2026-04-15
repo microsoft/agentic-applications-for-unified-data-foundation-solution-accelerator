@@ -418,15 +418,22 @@ for port in 8000 3000; do
     fi
 done
 
-# Start backend in background, frontend in foreground (single terminal window)
-cleanup_backend() {
+# Start backend and frontend; trap cleans up both on exit/interrupt
+cleanup() {
+    echo ""
+    echo "Shutting down servers..."
+    if [ -n "$FRONTEND_PID" ] && kill -0 "$FRONTEND_PID" 2>/dev/null; then
+        kill "$FRONTEND_PID" 2>/dev/null || true
+        wait "$FRONTEND_PID" 2>/dev/null || true
+    fi
     if [ -n "$BACKEND_PID" ] && kill -0 "$BACKEND_PID" 2>/dev/null; then
         kill "$BACKEND_PID" 2>/dev/null || true
         wait "$BACKEND_PID" 2>/dev/null || true
     fi
+    echo "Servers stopped."
 }
 
-trap cleanup_backend EXIT INT TERM
+trap cleanup EXIT INT TERM
 
 echo ""
 if [ "$BACKEND_RUNTIME_STACK" = "dotnet" ]; then
@@ -447,11 +454,14 @@ echo "Backend started at http://127.0.0.1:8000"
 echo "Waiting for backend to initialize..."
 sleep 10
 
-echo "Starting frontend server..."
-cd "$ROOT_DIR/src/App"
-npm start
-
 echo ""
 echo "Both servers have been started."
 echo "Backend running at http://127.0.0.1:8000"
 echo "Frontend running at http://localhost:3000"
+
+echo "Starting frontend server..."
+cd "$ROOT_DIR/src/App"
+npm start &
+FRONTEND_PID=$!
+
+wait $FRONTEND_PID
