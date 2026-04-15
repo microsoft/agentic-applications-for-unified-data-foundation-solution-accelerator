@@ -407,8 +407,9 @@ if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" (
     echo Activating virtual environment and installing backend packages...
     call .venv\Scripts\activate.bat
     call python -m pip install --upgrade pip --quiet
+    call python -m pip install uv --quiet
     cd "%ROOT_DIR%\src\api\python"
-    call python -m pip install -r requirements.txt --quiet
+    call python -m uv pip install -r requirements.txt
     if errorlevel 1 (
         echo Failed to restore backend Python packages
         call deactivate

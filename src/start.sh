@@ -395,8 +395,9 @@ else
     echo "Activating virtual environment and installing backend packages..."
     source .venv/bin/activate
     python -m pip install --upgrade pip --quiet
+    python -m pip install uv --quiet
     cd "$ROOT_DIR/src/api/python"
-    python -m pip install -r requirements.txt --quiet || { echo "Failed to restore backend Python packages"; deactivate; exit 1; }
+    python -m uv pip install -r requirements.txt || { echo "Failed to restore backend Python packages"; deactivate; exit 1; }
     echo "Backend Python packages installed successfully."
     deactivate
     cd "$ROOT_DIR"
