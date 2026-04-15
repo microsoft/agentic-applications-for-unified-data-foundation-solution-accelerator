@@ -295,7 +295,7 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-async def stream_openai_text_workshop(conversation_id: str, query: str, user_id: str = "") -> StreamingResponse:
+async def stream_openai_text_workshop(conversation_id: str, query: str, user_id: str = "", user_token: str = "") -> StreamingResponse:
     """
     Get a streaming text response from OpenAI with workshop mode using AzureAIProjectAgentProvider.
     Uses agent_framework to handle function calls (SQL) and search tools automatically.
@@ -374,7 +374,14 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
             #     return f"[{citation_marker_map[marker]}]"
 
             # Stream response using agent_framework - handles function calls automatically
-            async for chunk in agent.run(query, stream=True, conversation_id=conv_id):
+            # Pass user token for MCP tools that require user authentication (e.g., WorkIQ Teams)
+            run_kwargs = {"stream": True, "conversation_id": conv_id}
+            if user_token:
+                run_kwargs["headers"] = {"Authorization": user_token}
+                logger.info("User token forwarded to agent for MCP authentication (conversation: %s)", conversation_id)
+            else:
+                logger.info("No user token available for MCP authentication (conversation: %s)", conversation_id)
+            async for chunk in agent.run(query, **run_kwargs):
                 # # Collect citations from Azure AI Search responses
                 # for content in getattr(chunk, "contents", []):
                 #     annotations = getattr(content, "annotations", [])
@@ -449,7 +456,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-async def stream_chat_request(conversation_id, query, user_id: str = ""):
+async def stream_chat_request(conversation_id, query, user_id: str = "", user_token: str = ""):
     """
     Handles streaming chat requests.
     """
@@ -459,8 +466,11 @@ async def stream_chat_request(conversation_id, query, user_id: str = ""):
         try:
             assistant_content = ""
             # Use workshop function if IS_WORKSHOP is enabled
-            stream_func = stream_openai_text_workshop if IS_WORKSHOP else stream_openai_text
-            async for chunk in stream_func(conversation_id, query, user_id=user_id):
+            if IS_WORKSHOP:
+                stream_gen = stream_openai_text_workshop(conversation_id, query, user_id=user_id, user_token=user_token)
+            else:
+                stream_gen = stream_openai_text(conversation_id, query, user_id=user_id)
+            async for chunk in stream_gen:
                 if isinstance(chunk, dict):
                     chunk = json.dumps(chunk)  # Convert dict to JSON string
                 assistant_content += str(chunk)
@@ -504,6 +514,7 @@ async def conversation(request: Request):
         query = request_json.get("query")
         authenticated_user = get_authenticated_user_details(request_headers=request.headers)
         user_id = authenticated_user.get("user_principal_id", "")
+        user_token = request.headers.get("authorization", "")
 
         # Validate required parameters
         if not query:
@@ -526,7 +537,7 @@ async def conversation(request: Request):
             "user_id": user_id
         })
 
-        result = await stream_chat_request(conversation_id, query, user_id=user_id)
+        result = await stream_chat_request(conversation_id, query, user_id=user_id, user_token=user_token)
         track_event_if_configured(
             "ChatStreamSuccess",
             {"conversation_id": conversation_id, "user_id": user_id, "query": query}
