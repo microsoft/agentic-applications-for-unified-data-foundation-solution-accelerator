@@ -507,19 +507,35 @@ else:
 
 print(f"  Running notebook to load tables...")
 run_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items/{notebook_id}/jobs/instances?jobType=RunNotebook"
-run_resp = make_request("POST", run_url)
 
-if run_resp.status_code in [200, 202]:
-    operation_url = run_resp.headers.get("Location")
-    if operation_url:
-        wait_for_lro(operation_url, "Notebook execution", timeout=600)
+max_retries = 3
+for attempt in range(1, max_retries + 1):
+    if attempt > 1:
+        print(f"  Retrying notebook execution (attempt {attempt}/{max_retries})...")
+        time.sleep(30)
+    run_resp = make_request("POST", run_url)
+
+    if run_resp.status_code in [200, 202]:
+        operation_url = run_resp.headers.get("Location")
+        if operation_url:
+            try:
+                wait_for_lro(operation_url, "Notebook execution", timeout=600)
+                print(f"  [OK] Notebook execution completed - all tables loaded")
+                break
+            except Exception as e:
+                error_msg = str(e)
+                if attempt < max_retries and ("GetManagedVnetTimeout" in error_msg or "Failed to create session" in error_msg or "SparkCoreError" in error_msg):
+                    print(f"  [WARN] Transient Spark error (attempt {attempt}/{max_retries}): retrying...")
+                    continue
+                raise
+        else:
+            print("  Waiting for notebook execution...")
+            time.sleep(60)
+            print(f"  [OK] Notebook execution completed - all tables loaded")
+            break
     else:
-        print("  Waiting for notebook execution...")
-        time.sleep(60)
-    print(f"  [OK] Notebook execution completed - all tables loaded")
-else:
-    print(f"  [FAIL] Failed to run notebook: {run_resp.status_code} {run_resp.text}")
-    sys.exit(1)
+        print(f"  [FAIL] Failed to run notebook: {run_resp.status_code} {run_resp.text}")
+        sys.exit(1)
 
 print("  Waiting for tables to be indexed...")
 time.sleep(30)
