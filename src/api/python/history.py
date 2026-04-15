@@ -4,19 +4,19 @@ import os
 import uuid
 from typing import Optional
 
+from azure.ai.projects.aio import AIProjectClient
+from azure.core.exceptions import HttpResponseError
 from azure.cosmos import exceptions
 from azure.cosmos.aio import CosmosClient
-from azure.identity import get_bearer_token_provider
 from azure.monitor.events.extension import track_event
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
-from openai import AsyncAzureOpenAI
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 # from chat import adjust_processed_data_dates
 from auth.auth_utils import get_authenticated_user_details
-from auth.azure_credential_utils import get_azure_credential_async, get_azure_credential
+from auth.azure_credential_utils import get_azure_credential_async
 
 router = APIRouter()
 
@@ -35,10 +35,8 @@ CHAT_HISTORY_ENABLED = (
     and AZURE_COSMOSDB_CONVERSATIONS_CONTAINER
 )
 
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_DEPLOYMENT_MODEL = os.getenv("AZURE_OPENAI_DEPLOYMENT_MODEL")
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
-AZURE_OPENAI_RESOURCE = os.getenv("AZURE_OPENAI_RESOURCE")
+AZURE_AI_AGENT_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
+AGENT_NAME_TITLE = os.getenv("AGENT_NAME_TITLE")
 
 
 def track_event_if_configured(event_name: str, event_data: dict):
@@ -281,60 +279,74 @@ async def init_cosmosdb_client():
         raise
 
 
-def init_openai_client():
-    """Initialize and return an Azure OpenAI client."""
-    user_agent = "GitHubSampleWebApp/AsyncAzureOpenAI/1.0.0"
-
-    try:
-        if not AZURE_OPENAI_ENDPOINT and not AZURE_OPENAI_RESOURCE:
-            raise ValueError(
-                "AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE is required")
-
-        endpoint = AZURE_OPENAI_ENDPOINT or f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
-        ad_token_provider = None
-
-        logger.debug("Using Azure AD authentication for OpenAI")
-        ad_token_provider = get_bearer_token_provider(
-            get_azure_credential(), "https://cognitiveservices.azure.com/.default")
-
-        if not AZURE_OPENAI_DEPLOYMENT_MODEL:
-            raise ValueError("AZURE_OPENAI_MODEL is required")
-
-        return AsyncAzureOpenAI(
-            api_version=AZURE_OPENAI_API_VERSION,
-            azure_ad_token_provider=ad_token_provider,
-            default_headers={"x-ms-useragent": user_agent},
-            azure_endpoint=endpoint,
-        )
-    except Exception:
-        logger.exception("Failed to initialize Azure OpenAI client")
-        raise
-
-
 async def generate_title(conversation_messages):
-    """Generate a title for a conversation based on its messages."""
-    title_prompt = (
-        "Summarize the conversation so far into a 4-word or less title. "
-        "Do not use any quotation marks or punctuation. "
-        "Do not include any other commentary or description."
-    )
-
-    messages = [{"role": msg["role"], "content": msg["content"]}
-                for msg in conversation_messages if msg["role"] == "user"]
-    messages.append({"role": "user", "content": title_prompt})
-
+    """Generate a title for a conversation using Azure AI Foundry agent."""
     try:
-        azure_openai_client = init_openai_client()
-        response = await azure_openai_client.chat.completions.create(
-            model=AZURE_OPENAI_DEPLOYMENT_MODEL,
-            messages=messages,
-            temperature=1,
-            max_tokens=64,
-        )
-        return response.choices[0].message.content
-    except Exception:
-        logger.error("Error generating title")
-        return messages[-2]["content"]
+        user_messages = [msg for msg in conversation_messages if msg["role"] == "user"]
+
+        if not user_messages:
+            logger.debug("No user messages found, returning default title")
+            return generate_fallback_title(conversation_messages)
+
+        combined_content = "\n".join([str(msg["content"]) for msg in user_messages])
+        final_prompt = f"Generate a 4-word or less title for this request:\n{combined_content}"
+
+        if not AZURE_AI_AGENT_ENDPOINT:
+            logger.warning("Azure AI Agent endpoint not configured, using fallback title generation")
+            return generate_fallback_title(conversation_messages)
+
+        if not AGENT_NAME_TITLE:
+            logger.warning("Agent title name not configured, using fallback title generation")
+            return generate_fallback_title(conversation_messages)
+
+        credential = await get_azure_credential_async()
+        try:
+            async with AIProjectClient(
+                endpoint=AZURE_AI_AGENT_ENDPOINT,
+                credential=credential
+            ) as project_client:
+                openai_client = project_client.get_openai_client()
+                conversation = await openai_client.conversations.create()
+
+                response = await openai_client.responses.create(
+                    conversation=conversation.id,
+                    input=final_prompt,
+                    extra_body={"agent": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
+                )
+
+                result_text = ""
+                for item in response.output:
+                    if getattr(item, 'type', None) == 'message':
+                        if hasattr(item, 'content') and item.content is not None:
+                            for content in item.content:
+                                if hasattr(content, 'text'):
+                                    result_text += content.text
+
+                return result_text.strip() if result_text else generate_fallback_title(conversation_messages)
+        finally:
+            await credential.close()
+
+    except HttpResponseError as sre:
+        logger.warning("HttpResponseError generating title with Azure AI Foundry agent: %s", sre)
+        return generate_fallback_title(conversation_messages)
+
+    except Exception as e:
+        logger.warning("Error generating title with Azure AI Foundry agent: %s", e)
+        return generate_fallback_title(conversation_messages)
+
+
+def generate_fallback_title(conversation_messages):
+    """Generate a fallback title from conversation messages when AI generation fails."""
+    user_messages = [msg for msg in conversation_messages if msg["role"] == "user"]
+    if user_messages:
+        first_message = user_messages[0]["content"]
+        if isinstance(first_message, dict):
+            first_message = str(first_message)
+        if first_message:
+            words = str(first_message).split()[:4]
+            title = " ".join(words) if words else "New Conversation"
+            return title if title.strip() else "New Conversation"
+    return "New Conversation"
 
 
 async def add_conversation(user_id: str, request_json: dict):
