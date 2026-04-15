@@ -430,6 +430,16 @@ if errorlevel 1 (
 )
 cd "%ROOT_DIR%"
 
+REM Kill any existing processes on ports 8000 and 3000 before starting
+for %%P in (8000 3000) do (
+    for /f "tokens=5" %%A in ('netstat -ano ^| findstr "LISTENING" ^| findstr ":%%P "') do (
+        if "%%A" neq "0" (
+            echo Port %%P is already in use by PID %%A. Stopping it...
+            taskkill /F /PID %%A /T >nul 2>&1
+        )
+    )
+)
+
 REM Start backend in background, frontend in foreground (single terminal window)
 echo.
 if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" (

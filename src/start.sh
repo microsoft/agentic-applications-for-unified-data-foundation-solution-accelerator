@@ -409,6 +409,15 @@ cd "$ROOT_DIR/src/App"
 npm install --force --silent || { echo "Failed to restore frontend npm packages"; exit 1; }
 cd "$ROOT_DIR"
 
+# Kill any existing processes on ports 8000 and 3000 before starting
+for port in 8000 3000; do
+    pid=$(lsof -ti :"$port" 2>/dev/null)
+    if [ -n "$pid" ]; then
+        echo "Port $port is already in use by PID $pid. Stopping it..."
+        kill -9 $pid 2>/dev/null || true
+    fi
+done
+
 # Start backend in background, frontend in foreground (single terminal window)
 cleanup_backend() {
     if [ -n "$BACKEND_PID" ] && kill -0 "$BACKEND_PID" 2>/dev/null; then
