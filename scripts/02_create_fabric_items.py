@@ -526,7 +526,7 @@ for attempt in range(1, max_retries + 1):
                 break
             except Exception as e:
                 error_msg = str(e)
-                if attempt < max_retries and ("GetManagedVnetTimeout" in error_msg or "Failed to create session" in error_msg or "SparkCoreError" in error_msg):
+                if attempt < max_retries:
                     print(f"  [WARN] Transient Spark error (attempt {attempt}/{max_retries}): retrying...")
                     continue
                 raise
