@@ -709,6 +709,7 @@ class TestHelperFunctions:
         mock_project.__aexit__ = AsyncMock(return_value=False)
 
         mock_credential = AsyncMock()
+        mock_credential.close = AsyncMock()
 
         with patch('history.get_azure_credential_async', return_value=mock_credential):
             with patch('history.AIProjectClient', return_value=mock_project):
@@ -740,6 +741,7 @@ class TestHelperFunctions:
         monkeypatch.setattr('history.AGENT_NAME_TITLE', 'title-agent')
 
         mock_credential = AsyncMock()
+        mock_credential.close = AsyncMock()
 
         with patch('history.get_azure_credential_async', return_value=mock_credential):
             with patch('history.AIProjectClient', side_effect=Exception("API Error")):
