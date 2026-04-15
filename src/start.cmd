@@ -450,14 +450,33 @@ timeout /t 10 /nobreak >nul
 
 echo Starting frontend server...
 cd "%ROOT_DIR%\src\App"
-call npm start
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "try { npm start } finally {" ^
+    "  Write-Host '';" ^
+    "  Write-Host 'Stopping all processes...';" ^
+    "  Start-Sleep -Milliseconds 500;" ^
+    "  @(8000, 3000) | ForEach-Object {" ^
+    "    $port = $_;" ^
+    "    Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |" ^
+    "      ForEach-Object {" ^
+    "        $pid_ = $_.OwningProcess;" ^
+    "        if ($pid_ -and $pid_ -ne 0) {" ^
+    "          taskkill /F /PID $pid_ /T 2>$null;" ^
+    "        }" ^
+    "      }" ^
+    "  };" ^
+    "  Write-Host 'Cleanup complete.';" ^
+    "  Write-Host '';" ^
+    "  Write-Host 'All servers stopped. Press Y or N to exit.' -ForegroundColor Yellow" ^
+    "}"
 
-REM Cleanup: stop backend when frontend exits
-echo.
-echo Frontend stopped. Cleaning up backend process...
-for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":8000.*LISTENING"') do (
-    taskkill /PID %%p /F >nul 2>&1
+REM Fallback cleanup in case PowerShell finally block was interrupted
+for %%P in (8000 3000) do (
+    for /f "tokens=5" %%A in ('netstat -ano ^| findstr "LISTENING" ^| findstr ":%%P "') do (
+        if "%%A" neq "0" (
+            taskkill /F /PID %%A /T >nul 2>&1
+        )
+    )
 )
-echo Cleanup complete.
 
 endlocal
