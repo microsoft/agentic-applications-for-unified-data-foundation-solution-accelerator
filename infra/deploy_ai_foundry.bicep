@@ -81,6 +81,7 @@ var aiModelDeployments = concat([
       name: 'GlobalStandard'
       capacity: embeddingDeploymentCapacity
     }
+    version: '1'
     raiPolicyName: 'Microsoft.Default'
   }
 ] : [])
@@ -188,6 +189,7 @@ resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments
     model: {
       format: 'OpenAI'
       name: aiModeldeployment.model
+      version: !empty(aiModeldeployment.version) ? aiModeldeployment.version : null
     }
     raiPolicyName: aiModeldeployment.raiPolicyName
   }
@@ -195,6 +197,9 @@ resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments
     name: aiModeldeployment.sku.name
     capacity: aiModeldeployment.sku.capacity
   }
+  dependsOn: [
+    aiProject
+  ]
 }]
 
 resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' = if(isWorkshop) {

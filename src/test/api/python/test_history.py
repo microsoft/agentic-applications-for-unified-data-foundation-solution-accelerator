@@ -671,67 +671,82 @@ class TestHelperFunctions:
         result = await init_cosmosdb_client()
         assert result is None
     
-    def test_init_openai_disabled(self, monkeypatch):
-        from history import init_openai_client
-        
-        monkeypatch.delenv("AZURE_OPENAI_ENDPOINT", raising=False)
-        monkeypatch.delenv("AZURE_OPENAI_RESOURCE", raising=False)
-        
-        with pytest.raises(ValueError, match="AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE is required"):
-            init_openai_client()
+    @pytest.mark.asyncio
+    async def test_generate_title_no_endpoint(self, monkeypatch):
+        from history import generate_title
+
+        monkeypatch.setattr('history.AZURE_AI_AGENT_ENDPOINT', None)
+
+        result = await generate_title([{"role": "user", "content": "Hello world"}])
+        assert result == "Hello world"
     
     @pytest.mark.asyncio
     async def test_generate_title_success(self, monkeypatch):
         from history import generate_title
-        
-        monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://test.openai.azure.com")
-        monkeypatch.setenv("AZURE_OPENAI_MODEL", "gpt-4")
-        
+
+        monkeypatch.setattr('history.AZURE_AI_AGENT_ENDPOINT', 'https://test.ai.azure.com')
+        monkeypatch.setattr('history.AGENT_NAME_TITLE', 'title-agent')
+
+        # Build mock response with output items
+        mock_content = MagicMock()
+        mock_content.text = "Generated Title"
+        mock_item = MagicMock()
+        mock_item.type = 'message'
+        mock_item.content = [mock_content]
         mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Generated Title"
-        
-        mock_client = AsyncMock()
-        mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
-        
-        with patch('history.init_openai_client', return_value=mock_client):
-            result = await generate_title([{"role": "user", "content": "Hello"}])
-            assert result == "Generated Title"
+        mock_response.output = [mock_item]
+
+        mock_conversation = MagicMock()
+        mock_conversation.id = "conv-id"
+
+        mock_openai = AsyncMock()
+        mock_openai.conversations.create = AsyncMock(return_value=mock_conversation)
+        mock_openai.responses.create = AsyncMock(return_value=mock_response)
+
+        mock_project = AsyncMock()
+        mock_project.get_openai_client = MagicMock(return_value=mock_openai)
+        mock_project.__aenter__ = AsyncMock(return_value=mock_project)
+        mock_project.__aexit__ = AsyncMock(return_value=False)
+
+        mock_credential = AsyncMock()
+        mock_credential.close = AsyncMock()
+
+        with patch('history.get_azure_credential_async', return_value=mock_credential):
+            with patch('history.AIProjectClient', return_value=mock_project):
+                result = await generate_title([{"role": "user", "content": "Hello"}])
+                assert result == "Generated Title"
     
     @pytest.mark.asyncio
-    async def test_generate_title_fallback(self):
+    async def test_generate_title_fallback(self, monkeypatch):
         from history import generate_title
-        
-        with patch('history.init_openai_client', return_value=None):
-            result = await generate_title([{"role": "user", "content": "Hello"}])
-            assert result == "Hello"
+
+        monkeypatch.setattr('history.AZURE_AI_AGENT_ENDPOINT', None)
+
+        result = await generate_title([{"role": "user", "content": "Hello"}])
+        assert result == "Hello"
     
     @pytest.mark.asyncio
     async def test_generate_title_empty(self):
         from history import generate_title
-        
-        # When messages list is empty, the function creates messages list with user messages
-        # Then adds title_prompt. When exception occurs, it tries messages[-2]["content"]
-        # which should be the last user message before the prompt
-        with patch('history.init_openai_client', side_effect=Exception("Error")):
-            # To avoid IndexError, provide messages with at least 2 elements
-            result = await generate_title([{"role": "user", "content": "Hello"}])
-            # Should return the user message content as fallback
-            assert result == "Hello"
+
+        # No user messages -> returns default fallback title
+        result = await generate_title([{"role": "assistant", "content": "Hi there"}])
+        assert result == "New Conversation"
     
     @pytest.mark.asyncio
     async def test_generate_title_exception(self, monkeypatch):
         from history import generate_title
-        
-        monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://test.openai.azure.com")
-        monkeypatch.setenv("AZURE_OPENAI_MODEL", "gpt-4")
-        
-        mock_client = AsyncMock()
-        mock_client.chat.completions.create = AsyncMock(side_effect=Exception("API Error"))
-        
-        with patch('history.init_openai_client', return_value=mock_client):
-            result = await generate_title([{"role": "user", "content": "Hello"}])
-            assert result == "Hello"
+
+        monkeypatch.setattr('history.AZURE_AI_AGENT_ENDPOINT', 'https://test.ai.azure.com')
+        monkeypatch.setattr('history.AGENT_NAME_TITLE', 'title-agent')
+
+        mock_credential = AsyncMock()
+        mock_credential.close = AsyncMock()
+
+        with patch('history.get_azure_credential_async', return_value=mock_credential):
+            with patch('history.AIProjectClient', side_effect=Exception("API Error")):
+                result = await generate_title([{"role": "user", "content": "Hello"}])
+                assert result == "Hello"
     
     @pytest.mark.asyncio
     async def test_add_conversation_success(self, monkeypatch):
