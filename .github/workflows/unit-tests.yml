@@ -133,6 +133,17 @@ jobs:
           echo "::error::Unit tests failed or coverage below ${{ env.COVERAGE_THRESHOLD }}% threshold"
           exit 1
 
+      - name: Pytest Coverage Comment
+        if: |
+          always() &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.fork == false
+        uses: MishaKav/pytest-coverage-comment@26f986d2599c288bb62f623d29c2da98609e9cd4  # v1.6.0
+        with:
+          pytest-xml-coverage-path: coverage.xml
+          junitxml-path: test-results.xml
+          report-only-changed-files: true
+
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()

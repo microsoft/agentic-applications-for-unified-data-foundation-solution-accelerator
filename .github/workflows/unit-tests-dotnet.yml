@@ -151,6 +151,18 @@ jobs:
             fi
           fi
 
+      - name: Coverage Comment
+        if: |
+          always() &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.fork == false &&
+          steps.find-coverage.outputs.coverage_file != ''
+        uses: MishaKav/pytest-coverage-comment@26f986d2599c288bb62f623d29c2da98609e9cd4  # v1.6.0
+        with:
+          pytest-xml-coverage-path: ${{ steps.find-coverage.outputs.coverage_file }}
+          title: .NET Coverage Report
+          report-only-changed-files: true
+
       - name: Fail if tests failed
         if: steps.dotnet-test.outcome != 'success'
         run: |
