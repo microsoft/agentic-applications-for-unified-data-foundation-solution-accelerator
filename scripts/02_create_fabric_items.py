@@ -525,9 +525,8 @@ for attempt in range(1, max_retries + 1):
                 notebook_succeeded = True
                 break
             except Exception as e:
-                error_msg = str(e)
                 if attempt < max_retries:
-                    print(f"  [WARN] Transient Spark error (attempt {attempt}/{max_retries}): retrying...")
+                    print(f"  [WARN] Spark error (attempt {attempt}/{max_retries}): retrying...")
                     continue
                 raise
         else:
