@@ -509,6 +509,10 @@ def update_agent_app_settings():
         if title_agent_name:
             new_settings["AGENT_NAME_TITLE"] = title_agent_name
 
+        # Pass USE_DATA_AGENT flag so the API conditionally skips the SQL tool
+        use_data_agent = os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes")
+        new_settings["USE_DATA_AGENT"] = str(use_data_agent).lower()
+
         props.update(new_settings)
 
         web_client.web_apps.update_application_settings(
