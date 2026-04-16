@@ -24,7 +24,7 @@ pandas==2.3.0
 fpdf2==2.8.5
 
 # PDF reading (for AI Search upload)
-pypdf==6.9.2
+pypdf==6.10.2
 
 # Azure AI Search (preview - required for Foundry IQ knowledge base support)
 azure-search-documents==11.7.0b2
