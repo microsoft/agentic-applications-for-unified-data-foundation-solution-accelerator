@@ -21,7 +21,7 @@ param kind string = 'GlobalDocumentDB'
 @description('Tags to apply to the Cosmos DB resources.')
 param tags object = {}
 
-resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
   name: accountName
   kind: kind
   location: solutionLocation
@@ -36,17 +36,18 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
       }
     ]
     databaseAccountOfferType: 'Standard'
-    capacityMode: 'Serverless'
     enableAutomaticFailover: false
     enableMultipleWriteLocations: false
     disableLocalAuth: true
     apiProperties: (kind == 'MongoDB') ? { serverVersion: '4.0' } : {}
+    capabilities: [ { name: 'EnableServerless' } ]
   }
 }
 
 
-resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2022-05-15' = {
-  name: '${accountName}/${databaseName}'
+resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-11-15' = {
+  parent: cosmos
+  name: databaseName
   properties: {
     resource: { id: databaseName }
   }
@@ -61,10 +62,6 @@ resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2022-05-15
       options: {}
     }
   }]
-
-  dependsOn: [
-    cosmos
-  ]
 }
 
 @description('The name of the created Cosmos DB account.')
