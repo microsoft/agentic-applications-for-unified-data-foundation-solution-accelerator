@@ -514,7 +514,7 @@ async def conversation(request: Request):
         query = request_json.get("query")
         authenticated_user = get_authenticated_user_details(request_headers=request.headers)
         user_id = authenticated_user.get("user_principal_id", "")
-        user_token = request.headers.get("authorization", "")
+        user_token = "" # request.headers.get("authorization", "")
 
         # Validate required parameters
         if not query:
