@@ -79,7 +79,7 @@ param embeddingModel string = 'text-embedding-3-small'
 @description('Capacity of the Embedding Model deployment')
 param embeddingDeploymentCapacity int = 80
 
-param imageTag string = isWorkshop ? 'latest_workshop' : 'latest_v2'
+param imageTag string = 'latest_v2'
 
 @description('Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app.')
 param deployApp bool = true
@@ -134,7 +134,7 @@ var solutionSuffix = toLower(trim(replace(
 param aiDeploymentsLocation string
 
 @description('Name of the Azure Container Registry')
-param acrName string = isWorkshop ? 'dataagentscontainerregworkshop' : 'dataagentscontainerreg'
+param acrName string = 'dataagentscontainerreg'
 
 //Get the current deployer's information
 var deployerInfo = deployer()
