@@ -31,3 +31,19 @@ export function isWorkShopDeployment() {
   const value = rawValue.replace(/['"]/g, '').trim().toLowerCase();
   return value === "true";
 }
+
+export function getAppTitlePrimary() {
+  return getRuntimeConfigValue(
+    "APP_TITLE_PRIMARY",
+    "REACT_APP_APP_TITLE_PRIMARY",
+    "Contoso"
+  );
+}
+
+export function getAppTitleSecondary() {
+  return getRuntimeConfigValue(
+    "APP_TITLE_SECONDARY",
+    "REACT_APP_APP_TITLE_SECONDARY",
+    "| Unified Data Analysis Agents"
+  );
+}

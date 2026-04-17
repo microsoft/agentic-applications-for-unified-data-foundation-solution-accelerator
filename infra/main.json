@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "11151180340377947802"
+      "templateHash": "1804845733048457150"
     }
   },
   "parameters": {
@@ -148,7 +148,7 @@
     },
     "imageTag": {
       "type": "string",
-      "defaultValue": "[if(parameters('isWorkshop'), 'latest_workshop', 'latest_v2')]"
+      "defaultValue": "latest_v2"
     },
     "deployApp": {
       "type": "bool",
@@ -176,6 +176,20 @@
       "defaultValue": true,
       "metadata": {
         "description": "Enable chat history."
+      }
+    },
+    "appTitlePrimary": {
+      "type": "string",
+      "defaultValue": "Contoso",
+      "metadata": {
+        "description": "The primary title displayed in the header of the web app (bold text)."
+      }
+    },
+    "appTitleSecondary": {
+      "type": "string",
+      "defaultValue": "| Unified Data Analysis Agents",
+      "metadata": {
+        "description": "The secondary title displayed in the header of the web app (lighter text)."
       }
     },
     "AZURE_LOCATION": {
@@ -208,7 +222,7 @@
     },
     "acrName": {
       "type": "string",
-      "defaultValue": "[if(parameters('isWorkshop'), 'dataagentscontainerregworkshop', 'dataagentscontainerreg')]",
+      "defaultValue": "dataagentscontainerreg",
       "metadata": {
         "description": "Name of the Azure Container Registry"
       }
@@ -2442,7 +2456,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "1345542987569517937"
+              "templateHash": "9983501054937831856"
             }
           },
           "parameters": {
@@ -2496,8 +2510,8 @@
                 "count": "[length(variables('containers'))]"
               },
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
-              "apiVersion": "2022-05-15",
-              "name": "[format('{0}/{1}/{2}', split(format('{0}/{1}', parameters('accountName'), variables('databaseName')), '/')[0], split(format('{0}/{1}', parameters('accountName'), variables('databaseName')), '/')[1], variables('containers')[copyIndex()].name)]",
+              "apiVersion": "2024-11-15",
+              "name": "[format('{0}/{1}/{2}', parameters('accountName'), variables('databaseName'), variables('containers')[copyIndex()].name)]",
               "properties": {
                 "resource": {
                   "id": "[variables('containers')[copyIndex()].id]",
@@ -2510,12 +2524,12 @@
                 "options": {}
               },
               "dependsOn": [
-                "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', split(format('{0}/{1}', parameters('accountName'), variables('databaseName')), '/')[0], split(format('{0}/{1}', parameters('accountName'), variables('databaseName')), '/')[1])]"
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', parameters('accountName'), variables('databaseName'))]"
               ]
             },
             {
               "type": "Microsoft.DocumentDB/databaseAccounts",
-              "apiVersion": "2022-08-15",
+              "apiVersion": "2024-11-15",
               "name": "[parameters('accountName')]",
               "kind": "[parameters('kind')]",
               "location": "[parameters('solutionLocation')]",
@@ -2545,7 +2559,7 @@
             },
             {
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
-              "apiVersion": "2022-05-15",
+              "apiVersion": "2024-11-15",
               "name": "[format('{0}/{1}', parameters('accountName'), variables('databaseName'))]",
               "properties": {
                 "resource": {
@@ -2938,7 +2952,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "16506430922588282048"
+              "templateHash": "8488444936183271211"
             }
           },
           "parameters": {
@@ -3018,7 +3032,7 @@
             "existingAIServicesName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[8], '')]",
             "existingAIProjectName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[10], '')]",
             "imageName": "[format('DOCKER|{0}.azurecr.io/da-api:{1}', parameters('acrName'), parameters('imageTag'))]",
-            "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
+            "reactAppLayoutConfig": "{\n  \"appConfig\": {\n      \"CHAT_CHATHISTORY\": {\n        \"CHAT\": 70,\n        \"CHATHISTORY\": 30\n      }\n    }\n  }\n}"
           },
           "resources": [
             {
@@ -3775,7 +3789,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "3861058490487788669"
+              "templateHash": "3309372394023934542"
             }
           },
           "parameters": {
@@ -3848,7 +3862,7 @@
             "existingAIServicesName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[8], '')]",
             "existingAIProjectName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[10], '')]",
             "imageName": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('acrName'), parameters('imageTag'))]",
-            "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
+            "reactAppLayoutConfig": "{\n  \"appConfig\": {\n      \"CHAT_CHATHISTORY\": {\n        \"CHAT\": 70,\n        \"CHATHISTORY\": 30\n      }\n    }\n  }\n}"
           },
           "resources": [
             {
@@ -4538,7 +4552,9 @@
             "value": {
               "APP_API_BASE_URL": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]",
               "CHAT_LANDING_TEXT": "[variables('landingText')]",
-              "IS_WORKSHOP": "[if(parameters('isWorkshop'), 'True', 'False')]"
+              "IS_WORKSHOP": "[if(parameters('isWorkshop'), 'True', 'False')]",
+              "APP_TITLE_PRIMARY": "[parameters('appTitlePrimary')]",
+              "APP_TITLE_SECONDARY": "[parameters('appTitleSecondary')]"
             }
           }
         },

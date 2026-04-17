@@ -92,6 +92,13 @@ param azureEnvOnly bool = false
 
 @description('Enable chat history.')
 param useChatHistoryEnabled bool = true
+
+@description('The primary title displayed in the header of the web app (bold text).')
+param appTitlePrimary string = 'Contoso'
+
+@description('The secondary title displayed in the header of the web app (lighter text).')
+param appTitleSecondary string = '| Unified Data Analysis Agents'
+
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 
 // If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
@@ -351,6 +358,8 @@ module frontend_docker 'deploy_frontend_docker.bicep' = if (shouldDeployApp) {
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
       CHAT_LANDING_TEXT: landingText
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
+      APP_TITLE_PRIMARY: appTitlePrimary
+      APP_TITLE_SECONDARY: appTitleSecondary
     }
   }
   scope: resourceGroup(resourceGroup().name)

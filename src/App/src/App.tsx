@@ -23,6 +23,7 @@ import { setMessages, clearChat } from "./store/chatSlice";
 import { AppLogo } from "./components/Svg/Svg";
 import CustomSpinner from "./components/CustomSpinner/CustomSpinner";
 import CitationPanel from "./components/CitationPanel/CitationPanel";
+import { getAppTitlePrimary, getAppTitleSecondary } from "./config";
 const panels = {
   CHAT: "CHAT",
   CHATHISTORY: "CHATHISTORY",
@@ -200,7 +201,7 @@ const Dashboard: React.FC = () => {
         <div className="header-left-section">
           <AppLogo />
           <Subtitle2>
-            Contoso <Body2 style={{ gap: "10px" }}>| Unified Data Analysis Agents</Body2>
+            {getAppTitlePrimary()} <Body2 style={{ gap: "10px" }}>{getAppTitleSecondary()}</Body2>
           </Subtitle2>
         </div>
         <div className="header-right-section">
