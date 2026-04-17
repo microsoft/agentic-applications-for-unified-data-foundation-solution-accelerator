@@ -318,27 +318,39 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
             cache = get_thread_cache()
             conv_id = cache.get(conversation_id, None)
 
-            # Get database connection based on AZURE_ENV_ONLY flag
-            from history_sql import SqlQueryTool, get_azure_sql_connection, get_fabric_db_connection
+            # Check if Data Agent mode is enabled (MCP handles SQL server-side)
+            use_data_agent = os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes")
 
-            if AZURE_ENV_ONLY:
-                logger.info("Workshop mode: Using Azure SQL Database")
-                db_connection = await get_azure_sql_connection()
+            custom_tool = None
+            if not use_data_agent:
+                # Get database connection based on AZURE_ENV_ONLY flag
+                from history_sql import SqlQueryTool, get_azure_sql_connection, get_fabric_db_connection
+
+                if AZURE_ENV_ONLY:
+                    logger.info("Workshop mode: Using Azure SQL Database")
+                    db_connection = await get_azure_sql_connection()
+                else:
+                    logger.info("Workshop mode: Using Fabric Lakehouse SQL")
+                    db_connection = await get_fabric_db_connection()
+
+                if not db_connection:
+                    logger.warning("Failed to establish database connection")
+
+                custom_tool = SqlQueryTool(pyodbc_conn=db_connection) if db_connection else None
             else:
-                logger.info("Workshop mode: Using Fabric Lakehouse SQL")
-                db_connection = await get_fabric_db_connection()
-
-            if not db_connection:
-                logger.warning("Failed to establish database connection")
-
-            custom_tool = SqlQueryTool(pyodbc_conn=db_connection) if db_connection else None
+                logger.info("Workshop mode: Using Fabric Data Agent (MCP) - skipping local SQL tool")
 
             # Create provider and get agent with tools
             provider = AzureAIProjectAgentProvider(project_client=project_client)
-            agent = await provider.get_agent(
-                name=os.getenv("AGENT_NAME_CHAT"),
-                tools=custom_tool.execute_sql if custom_tool else None
-            )
+            if use_data_agent:
+                agent = await provider.get_agent(
+                    name=os.getenv("AGENT_NAME_CHAT")
+                )
+            else:
+                agent = await provider.get_agent(
+                    name=os.getenv("AGENT_NAME_CHAT"),
+                    tools=custom_tool.execute_sql if custom_tool else None
+                )
 
             # Create or retrieve conversation
             if not conv_id:

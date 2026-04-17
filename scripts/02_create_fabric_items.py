@@ -507,18 +507,42 @@ else:
 
 print(f"  Running notebook to load tables...")
 run_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items/{notebook_id}/jobs/instances?jobType=RunNotebook"
-run_resp = make_request("POST", run_url)
 
-if run_resp.status_code in [200, 202]:
-    operation_url = run_resp.headers.get("Location")
-    if operation_url:
-        wait_for_lro(operation_url, "Notebook execution", timeout=600)
+max_retries = 3
+notebook_succeeded = False
+for attempt in range(1, max_retries + 1):
+    if attempt > 1:
+        print(f"  Retrying notebook execution (attempt {attempt}/{max_retries})...")
+        time.sleep(30)
+    run_resp = make_request("POST", run_url)
+
+    if run_resp.status_code in [200, 202]:
+        operation_url = run_resp.headers.get("Location")
+        if operation_url:
+            try:
+                wait_for_lro(operation_url, "Notebook execution", timeout=600)
+                print(f"  [OK] Notebook execution completed - all tables loaded")
+                notebook_succeeded = True
+                break
+            except Exception as e:
+                if attempt < max_retries:
+                    print(f"  [WARN] Spark error (attempt {attempt}/{max_retries}): retrying...")
+                    continue
+                raise
+        else:
+            print("  Waiting for notebook execution...")
+            time.sleep(60)
+            print(f"  [OK] Notebook execution completed - all tables loaded")
+            notebook_succeeded = True
+            break
     else:
-        print("  Waiting for notebook execution...")
-        time.sleep(60)
-    print(f"  [OK] Notebook execution completed - all tables loaded")
-else:
-    print(f"  [FAIL] Failed to run notebook: {run_resp.status_code} {run_resp.text}")
+        print(f"  [WARN] Failed to run notebook: {run_resp.status_code} {run_resp.text}")
+        if attempt == max_retries:
+            print(f"  [FAIL] All {max_retries} attempts to run notebook failed.")
+            sys.exit(1)
+
+if not notebook_succeeded:
+    print(f"  [FAIL] Notebook execution failed after {max_retries} attempts.")
     sys.exit(1)
 
 print("  Waiting for tables to be indexed...")
