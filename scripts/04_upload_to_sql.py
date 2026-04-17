@@ -8,7 +8,7 @@ Usage:
 Prerequisites:
     - Run 01_generate_data.py (creates CSV files in data folder)
     - Azure CLI logged in (az login)
-    - SQLDB_SERVER and SQLDB_DATABASE set in azd environment
+    - AZURE_SQLDB_SERVER and AZURE_SQLDB_DATABASE set in azd environment
 
 What this script does:
     1. Reads ontology_config.json from data folder to get table definitions
@@ -279,18 +279,18 @@ def main():
     args = parse_args()
     
     # Get configuration from CLI args or environment
-    sql_server = args.sql_server or os.getenv("SQLDB_SERVER")
-    sql_database = args.sql_database or os.getenv("SQLDB_DATABASE")
+    sql_server = args.sql_server or os.getenv("AZURE_SQLDB_SERVER") or os.getenv("SQLDB_SERVER")
+    sql_database = args.sql_database or os.getenv("AZURE_SQLDB_DATABASE") or os.getenv("SQLDB_DATABASE")
     
     # Validate SQL settings
     if not sql_server:
         print("ERROR: SQL Server not configured.")
-        print("       Set SQLDB_SERVER in azd environment or pass --sql-server")
+        print("       Set AZURE_SQLDB_SERVER (or legacy SQLDB_SERVER) in azd environment or pass --sql-server")
         sys.exit(1)
     
     if not sql_database:
         print("ERROR: SQL Database not configured.")
-        print("       Set SQLDB_DATABASE in azd environment or pass --sql-database")
+        print("       Set AZURE_SQLDB_DATABASE (or legacy SQLDB_DATABASE) in azd environment or pass --sql-database")
         sys.exit(1)
     
     # Get data folder - use arg if provided, else from .env with proper path resolution

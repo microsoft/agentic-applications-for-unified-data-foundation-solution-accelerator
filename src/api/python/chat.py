@@ -362,31 +362,12 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
             # Citation tracking
             citations = []
             first_chunk = True
-            # citation_marker_map = {}  # Maps original markers to sequential numbers
-            # citation_counter = 0
-
-            # def replace_citation_marker(match):
-            #     nonlocal citation_counter
-            #     marker = match.group(0)
-            #     if marker not in citation_marker_map:
-            #         citation_counter += 1
-            #         citation_marker_map[marker] = citation_counter
-            #     return f"[{citation_marker_map[marker]}]"
-
             # Stream response using agent_framework - handles function calls automatically
             async for chunk in agent.run(query, stream=True, conversation_id=conv_id):
-                # # Collect citations from Azure AI Search responses
-                # for content in getattr(chunk, "contents", []):
-                #     annotations = getattr(content, "annotations", [])
-                #     if annotations:
-                #         citations.extend(annotations)
-
                 chunk_text = str(chunk.text) if chunk.text else ""
 
                 # Remove citation markers like 【4:0†source】 from response text until citation issue resolved
                 chunk_text = re.sub(r'【\d+:\d+†[^】]+】', '', chunk_text)
-                # Replace citation markers like 【4:0†source】 with [1], [2], etc.
-                # chunk_text = re.sub(r'【\d+:\d+†[^】]+】', replace_citation_marker, chunk_text)
 
                 if chunk_text:
                     complete_response += chunk_text

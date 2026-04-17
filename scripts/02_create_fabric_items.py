@@ -1099,7 +1099,6 @@ if not args.skip_data_agent and data_agent_id:
             datasource_folder = None
             draft_datasource = None
             draft_fewshots = None
-            draft_fewshots_path = None
 
             for p in current_parts:
                 path = p.get("path", "")
@@ -1140,7 +1139,7 @@ if not args.skip_data_agent and data_agent_id:
             elif update_resp.status_code == 202:
                 op_url = update_resp.headers.get("Location")
                 if op_url:
-                    result = wait_for_lro(op_url, "Data Agent publish")
+                    _ = wait_for_lro(op_url, "Data Agent publish")
                 print(f"  [OK] Data Agent published")
             else:
                 raise Exception(f"Publish failed: {update_resp.status_code} {update_resp.text[:300]}")

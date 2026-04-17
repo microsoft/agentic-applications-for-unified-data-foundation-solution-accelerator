@@ -2,6 +2,13 @@ name: Azure Dev Deploy
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/**'
+      - 'azure.yaml'
+      - '.github/workflows/azure-dev.yml'
 
 permissions:
   contents: read
@@ -18,7 +25,7 @@ jobs:
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       AZURE_DEV_COLLECT_TELEMETRY: ${{ vars.AZURE_DEV_COLLECT_TELEMETRY }}
       AZURE_ENV_AI_DEPLOYMENTS_LOCATION: ${{ vars.AZURE_ENV_AI_DEPLOYMENTS_LOCATION }}
-      AZURE_ENV_USE_CASE: ${{ vars.AZURE_ENV_USE_CASE }}
+      USE_CASE: ${{ vars.USE_CASE }}
       DEPLOYING_USER_PRINCIPAL_TYPE: ServicePrincipal
     steps:
       - name: Checkout Code
@@ -56,5 +63,5 @@ jobs:
           azd config set defaults.subscription "$AZURE_SUBSCRIPTION_ID"
           azd env set AZURE_AI_SERVICE_LOCATION="$AZURE_LOCATION"
           azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="$AZURE_ENV_AI_DEPLOYMENTS_LOCATION"
-          azd env set AZURE_ENV_USE_CASE="$AZURE_ENV_USE_CASE"
+          azd env set USE_CASE="$USE_CASE"
           azd up --no-prompt

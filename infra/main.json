@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "11151180340377947802"
+      "templateHash": "931633486048708887"
     }
   },
   "parameters": {
@@ -2892,10 +2892,10 @@
           },
           "appSettings": {
             "value": {
-              "AZURE_OPENAI_DEPLOYMENT_MODEL": "[parameters('gptModelName')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('embeddingModel')]",
+              "AZURE_ENV_GPT_MODEL_NAME": "[parameters('gptModelName')]",
+              "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": "[parameters('embeddingModel')]",
               "AZURE_OPENAI_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesTarget.value]",
-              "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
+              "AZURE_ENV_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_OPENAI_RESOURCE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesName.value]",
               "AZURE_AI_AGENT_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.projectEndpoint.value]",
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
@@ -2905,9 +2905,9 @@
               "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosContainerName.value, '')]",
               "AZURE_COSMOSDB_DATABASE": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_cosmos_db'), '2025-04-01').outputs.cosmosDatabaseName.value, '')]",
               "AZURE_COSMOSDB_ENABLE_FEEDBACK": "[if(parameters('isWorkshop'), 'True', '')]",
-              "SQLDB_DATABASE": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]",
-              "SQLDB_SERVER": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]",
-              "SQLDB_USER_MID": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId, '')]",
+              "AZURE_SQLDB_DATABASE": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]",
+              "AZURE_SQLDB_SERVER": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]",
+              "AZURE_SQLDB_USER_MID": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId, '')]",
               "API_UID": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.clientId]",
               "AZURE_AI_SEARCH_ENDPOINT": "[if(parameters('isWorkshop'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiSearchTarget.value, '')]",
               "AZURE_AI_SEARCH_INDEX": "[if(parameters('isWorkshop'), 'knowledge_index', '')]",
@@ -3737,10 +3737,10 @@
           },
           "appSettings": {
             "value": {
-              "AZURE_OPENAI_DEPLOYMENT_MODEL": "[parameters('gptModelName')]",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "[parameters('embeddingModel')]",
+              "AZURE_ENV_GPT_MODEL_NAME": "[parameters('gptModelName')]",
+              "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": "[parameters('embeddingModel')]",
               "AZURE_OPENAI_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesTarget.value]",
-              "AZURE_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
+              "AZURE_ENV_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
               "AZURE_OPENAI_RESOURCE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesName.value]",
               "AZURE_AI_AGENT_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.projectEndpoint.value]",
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
@@ -4876,7 +4876,7 @@
       },
       "value": "[if(parameters('isWorkshop'), 'db_conversation_history', '')]"
     },
-    "AZURE_OPENAI_DEPLOYMENT_MODEL": {
+    "AZURE_ENV_GPT_MODEL_NAME": {
       "type": "string",
       "metadata": {
         "description": "GPT model deployment name (e.g., gpt-4o-mini)"
@@ -4890,28 +4890,28 @@
       },
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesTarget.value]"
     },
-    "AZURE_OPENAI_EMBEDDING_MODEL": {
+    "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": {
       "type": "string",
       "metadata": {
         "description": "Embedding model deployment name for vector search"
       },
       "value": "[parameters('embeddingModel')]"
     },
-    "SQLDB_DATABASE": {
+    "AZURE_SQLDB_DATABASE": {
       "type": "string",
       "metadata": {
         "description": "Azure SQL database name (Azure-only mode)"
       },
       "value": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlDbName.value, '')]"
     },
-    "SQLDB_SERVER": {
+    "AZURE_SQLDB_SERVER": {
       "type": "string",
       "metadata": {
         "description": "Azure SQL server fully qualified domain name (Azure-only mode)"
       },
       "value": "[if(and(parameters('isWorkshop'), parameters('azureEnvOnly')), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_sql_db'), '2025-04-01').outputs.sqlServerName.value, '')]"
     },
-    "SQLDB_USER_MID": {
+    "AZURE_SQLDB_USER_MID": {
       "type": "string",
       "metadata": {
         "description": "Managed identity client ID for SQL authentication (Azure-only mode)"

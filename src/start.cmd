@@ -123,7 +123,9 @@ for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
     if "%%A"=="AZURE_AI_AGENT_API_VERSION" set "AZURE_AI_AGENT_API_VERSION=%%~B"
     if "%%A"=="AZURE_AI_AGENT_ENDPOINT" set "AZURE_AI_AGENT_ENDPOINT=%%~B"
     if "%%A"=="AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME" set "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME=%%~B"
+    if "%%A"=="AZURE_ENV_OPENAI_API_VERSION" set "AZURE_ENV_OPENAI_API_VERSION=%%~B"
     if "%%A"=="AZURE_OPENAI_API_VERSION" set "AZURE_OPENAI_API_VERSION=%%~B"
+    if "%%A"=="AZURE_ENV_GPT_MODEL_NAME" set "AZURE_ENV_GPT_MODEL_NAME=%%~B"
     if "%%A"=="AZURE_OPENAI_DEPLOYMENT_MODEL" set "AZURE_OPENAI_DEPLOYMENT_MODEL=%%~B"
     if "%%A"=="AZURE_OPENAI_ENDPOINT" set "AZURE_OPENAI_ENDPOINT=%%~B"
     if "%%A"=="AZURE_OPENAI_RESOURCE" set "AZURE_OPENAI_RESOURCE=%%~B"
@@ -131,9 +133,31 @@ for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
     if "%%A"=="REACT_APP_LAYOUT_CONFIG" set "REACT_APP_LAYOUT_CONFIG=%%~B"
     if "%%A"=="SOLUTION_NAME" set "SOLUTION_NAME=%%~B"
     if "%%A"=="USE_AI_PROJECT_CLIENT" set "USE_AI_PROJECT_CLIENT=%%~B"
+    if "%%A"=="AZURE_SQLDB_SERVER" (
+        set "AZURE_SQLDB_SERVER=%%~B"
+        for /f "tokens=1 delims=." %%C in ("%%~B") do set "AZURE_SQLDB_SERVER_NAME=%%C"
+    )
     if "%%A"=="SQLDB_SERVER" (
         set "SQLDB_SERVER=%%~B"
         for /f "tokens=1 delims=." %%C in ("%%~B") do set "SQLDB_SERVER_NAME=%%C"
+    )
+)
+
+REM Fallback: AZURE_ENV_GPT_MODEL_NAME falls back to AZURE_OPENAI_DEPLOYMENT_MODEL
+if not defined AZURE_ENV_GPT_MODEL_NAME (
+    if defined AZURE_OPENAI_DEPLOYMENT_MODEL set "AZURE_ENV_GPT_MODEL_NAME=!AZURE_OPENAI_DEPLOYMENT_MODEL!"
+)
+
+REM Fallback: AZURE_ENV_OPENAI_API_VERSION falls back to AZURE_OPENAI_API_VERSION
+if not defined AZURE_ENV_OPENAI_API_VERSION (
+    if defined AZURE_OPENAI_API_VERSION set "AZURE_ENV_OPENAI_API_VERSION=!AZURE_OPENAI_API_VERSION!"
+)
+
+REM Fallback: AZURE_SQLDB_SERVER falls back to SQLDB_SERVER
+if not defined AZURE_SQLDB_SERVER (
+    if defined SQLDB_SERVER (
+        set "AZURE_SQLDB_SERVER=!SQLDB_SERVER!"
+        set "AZURE_SQLDB_SERVER_NAME=!SQLDB_SERVER_NAME!"
     )
 )
 
@@ -197,7 +221,7 @@ if "%USE_FABRIC_SQL%"=="true" (
         echo Loaded Fabric SQL from env: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
     )
 ) else (
-    echo Using Azure SQL mode ^(IS_WORKSHOP=true, AZURE_ENV_ONLY=true^). SQLDB_SERVER=%SQLDB_SERVER%
+    echo Using Azure SQL mode ^(IS_WORKSHOP=true, AZURE_ENV_ONLY=true^). AZURE_SQLDB_SERVER=%AZURE_SQLDB_SERVER%
 )
 
 REM ============================================================
@@ -257,8 +281,8 @@ if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" if exist "%API_DOTNET_DIR%" (
             "$json.'AZURE_AI_AGENT_API_VERSION' = '!AZURE_AI_AGENT_API_VERSION!';" ^
             "$json.'AZURE_AI_AGENT_ENDPOINT' = '!AZURE_AI_AGENT_ENDPOINT!';" ^
             "$json.'AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME' = '!AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME!';" ^
-            "$json.'AZURE_OPENAI_API_VERSION' = '!AZURE_OPENAI_API_VERSION!';" ^
-            "$json.'AZURE_OPENAI_DEPLOYMENT_MODEL' = '!AZURE_OPENAI_DEPLOYMENT_MODEL!';" ^
+            "$json.'AZURE_ENV_OPENAI_API_VERSION' = '!AZURE_ENV_OPENAI_API_VERSION!';" ^
+            "$json.'AZURE_ENV_GPT_MODEL_NAME' = '!AZURE_ENV_GPT_MODEL_NAME!';" ^
             "$json.'AZURE_OPENAI_ENDPOINT' = '!AZURE_OPENAI_ENDPOINT!';" ^
             "$json.'AZURE_OPENAI_RESOURCE' = '!AZURE_OPENAI_RESOURCE!';" ^
             "$json.'DISPLAY_CHART_DEFAULT' = '!DISPLAY_CHART_DEFAULT!';" ^
@@ -332,10 +356,10 @@ echo [INFO] No Cosmos DB account configured, skipping role assignment.
 :done_cosmos
 
 REM ============================================================
-REM  Azure SQL Server AAD admin (only when SQLDB_SERVER is set)
+REM  Azure SQL Server AAD admin (only when AZURE_SQLDB_SERVER is set)
 REM ============================================================
-if not defined SQLDB_SERVER goto :skip_sql
-if "!SQLDB_SERVER!"=="" goto :skip_sql
+if not defined AZURE_SQLDB_SERVER goto :skip_sql
+if "!AZURE_SQLDB_SERVER!"=="" goto :skip_sql
 
 FOR /F "delims=" %%i IN ('az account show --query user.name --output tsv') DO set "SQLADMIN_USERNAME=%%i"
 echo Assigning Azure SQL Server AAD admin role to %SQLADMIN_USERNAME%...
@@ -343,7 +367,7 @@ call az sql server ad-admin create ^
     --display-name %SQLADMIN_USERNAME% ^
     --object-id "%signed_user_id%" ^
     --resource-group %AZURE_RESOURCE_GROUP% ^
-    --server %SQLDB_SERVER_NAME% ^
+    --server %AZURE_SQLDB_SERVER_NAME% ^
     --output tsv >nul 2>&1
 echo Azure SQL Server AAD admin role assigned successfully.
 goto :done_sql

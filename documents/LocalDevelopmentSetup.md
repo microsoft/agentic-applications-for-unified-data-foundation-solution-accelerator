@@ -244,7 +244,7 @@ The scripts auto-detect configuration from the `.env` file. Key flags: `BACKEND_
 | Database Mode | When | Environment Variables |
 |--------------|------|----------------------|
 | **Fabric SQL** | `IS_WORKSHOP=false`, or `AZURE_ENV_ONLY=false` | `FABRIC_SQL_SERVER`, `FABRIC_SQL_DATABASE` |
-| **Azure SQL** | `IS_WORKSHOP=true` **and** `AZURE_ENV_ONLY=true` | `SQLDB_SERVER`, `SQLDB_DATABASE` |
+| **Azure SQL** | `IS_WORKSHOP=true` **and** `AZURE_ENV_ONLY=true` | `AZURE_SQLDB_SERVER`, `AZURE_SQLDB_DATABASE` |
 
 ---
 

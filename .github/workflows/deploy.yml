@@ -9,6 +9,7 @@ on:
       - 'infra/**'
       - 'azure.yaml'
       - '.github/workflows/deploy.yml'
+      - '.github/workflows/test-automation.yml'
   workflow_run:
     workflows: ["Build Docker and Optional Push - Agentic Applications for Unified Data Foundation"]
     types:
@@ -189,9 +190,9 @@ jobs:
           echo "Setting environment variables..."
           azd env set AZURE_RESOURCE_GROUP="${{ env.RESOURCE_GROUP_NAME }}"
           azd env set AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="${{ env.AZURE_LOCATION }}"
-          azd env set AZURE_OPENAI_DEPLOYMENT_MODEL_CAPACITY="${{ env.GPT_MIN_CAPACITY }}"
-          azd env set AZURE_ENV_IMAGETAG="${IMAGE_TAG}"
+          azd env set AZURE_ENV_AI_SERVICE_LOCATION="${{ env.AZURE_LOCATION }}"
+          azd env set AZURE_ENV_GPT_MODEL_CAPACITY="${{ env.GPT_MIN_CAPACITY }}"
+          azd env set AZURE_ENV_IMAGE_TAG="${IMAGE_TAG}"
 
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             BACKEND_RUNTIME_STACK="${{ github.event.inputs.BACKEND_RUNTIME_STACK }}"
@@ -312,7 +313,7 @@ jobs:
             azd env new ${{ env.ENV_NAME }} --no-prompt
             azd env set AZURE_RESOURCE_GROUP "${{ env.RESOURCE_GROUP_NAME }}"
             azd env set AZURE_SUBSCRIPTION_ID "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-            azd env set AZURE_ENV_AI_DEPLOYMENTS_LOCATION="${{ env.AZURE_LOCATION }}"
+            azd env set AZURE_ENV_AI_SERVICE_LOCATION="${{ env.AZURE_LOCATION }}"
             azd env set BACKEND_RUNTIME_STACK="${{ env.BACKEND_RUNTIME_STACK }}"
             azd env set SOLUTION_NAME="${{ env.SOLUTION_NAME }}"
             azd env set API_PID="${{ env.API_PID }}"

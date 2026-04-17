@@ -130,9 +130,12 @@ while IFS='=' read -r key value; do
     export "$key=$value"
 done < "$ENV_FILE"
 
-# Extract SQLDB_SERVER short name for az cli commands
-if [ -n "$SQLDB_SERVER" ]; then
-    SQLDB_SERVER_NAME="${SQLDB_SERVER%%.*}"
+# Extract AZURE_SQLDB_SERVER short name for az cli commands (with fallback from SQLDB_SERVER)
+if [ -z "$AZURE_SQLDB_SERVER" ] && [ -n "$SQLDB_SERVER" ]; then
+    AZURE_SQLDB_SERVER="$SQLDB_SERVER"
+fi
+if [ -n "$AZURE_SQLDB_SERVER" ]; then
+    AZURE_SQLDB_SERVER_NAME="${AZURE_SQLDB_SERVER%%.*}"
 fi
 
 # Normalize booleans to lowercase
@@ -196,7 +199,7 @@ if [ "$USE_FABRIC_SQL" = "true" ]; then
         echo "Loaded Fabric SQL from env: SERVER=$FABRIC_SQL_SERVER, DATABASE=$FABRIC_SQL_DATABASE"
     fi
 else
-    echo "Using Azure SQL mode (IS_WORKSHOP=true, AZURE_ENV_ONLY=true). SQLDB_SERVER=$SQLDB_SERVER"
+    echo "Using Azure SQL mode (IS_WORKSHOP=true, AZURE_ENV_ONLY=true). AZURE_SQLDB_SERVER=$AZURE_SQLDB_SERVER"
 fi
 
 # ============================================================
@@ -256,13 +259,22 @@ env_keys = [
     'AGENT_NAME_CHAT', 'AGENT_NAME_TITLE', 'API_UID',
     'APPINSIGHTS_INSTRUMENTATIONKEY', 'APPLICATIONINSIGHTS_CONNECTION_STRING',
     'AZURE_AI_AGENT_API_VERSION', 'AZURE_AI_AGENT_ENDPOINT', 'AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME',
-    'AZURE_OPENAI_API_VERSION', 'AZURE_OPENAI_DEPLOYMENT_MODEL', 'AZURE_OPENAI_ENDPOINT',
+    'AZURE_ENV_OPENAI_API_VERSION', 'AZURE_ENV_GPT_MODEL_NAME', 'AZURE_OPENAI_ENDPOINT',
     'AZURE_OPENAI_RESOURCE', 'DISPLAY_CHART_DEFAULT', 'SOLUTION_NAME',
     'USE_AI_PROJECT_CLIENT', 'USE_CHAT_HISTORY_ENABLED'
 ]
 
+# Fallback mappings: new_key -> old_key (for backward compatibility)
+fallback_keys = {
+    'AZURE_ENV_GPT_MODEL_NAME': 'AZURE_OPENAI_DEPLOYMENT_MODEL',
+    'AZURE_ENV_OPENAI_API_VERSION': 'AZURE_OPENAI_API_VERSION'
+}
+
 for key in env_keys:
     val = os.environ.get(key, '')
+    # Try fallback if primary key is empty
+    if not val and key in fallback_keys:
+        val = os.environ.get(fallback_keys[key], '')
     if val or key in config:
         config[key] = val
 
@@ -343,16 +355,16 @@ else
 fi
 
 # ============================================================
-#  Azure SQL Server AAD admin (only when SQLDB_SERVER is set)
+#  Azure SQL Server AAD admin (only when AZURE_SQLDB_SERVER is set)
 # ============================================================
-if [ -n "$SQLDB_SERVER" ]; then
+if [ -n "$AZURE_SQLDB_SERVER" ]; then
     SQLADMIN_USERNAME=$(az account show --query user.name --output tsv)
     echo "Assigning Azure SQL Server AAD admin role to $SQLADMIN_USERNAME..."
     az sql server ad-admin create \
         --display-name "$SQLADMIN_USERNAME" \
         --object-id "$signed_user_id" \
         --resource-group "$AZURE_RESOURCE_GROUP" \
-        --server "$SQLDB_SERVER_NAME" \
+        --server "$AZURE_SQLDB_SERVER_NAME" \
         --output tsv >/dev/null 2>&1
     echo "Azure SQL Server AAD admin role assigned successfully."
 else

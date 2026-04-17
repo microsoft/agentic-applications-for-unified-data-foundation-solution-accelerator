@@ -12,7 +12,7 @@ on:
             type: string
             default: "GoldenPath-Testing"
             description: "Test suite to run: 'Smoke-Testing', 'GoldenPath-Testing' "
-          AZURE_ENV_USE_CASE:
+          USE_CASE:
             required: false
             type: string
             default: "Retail-sales-analysis"
@@ -29,7 +29,7 @@ env:
     url: ${{ inputs.TEST_URL }}
     accelerator_name: "FabricSQL"
     test_suite: ${{ inputs.TEST_SUITE }}
-    use_case: ${{ inputs.AZURE_ENV_USE_CASE }}
+    use_case: ${{ inputs.USE_CASE }}
 
 jobs:
   test:
