@@ -570,7 +570,7 @@ except Exception as e:
 # ============================================================================
 
 
-def create_mcp_connection(credential, connection_name, target_url, audience):
+def create_mcp_connection(credential, connection_name, target_url, audience, auth_type="ProjectManagedIdentity"):
     """Create a RemoteTool project connection via the CognitiveServices REST API."""
     import requests
 
@@ -598,7 +598,7 @@ def create_mcp_connection(credential, connection_name, target_url, audience):
     body = {
         "name": connection_name,
         "properties": {
-            "authType": "ProjectManagedIdentity",
+            "authType": auth_type,
             "category": "RemoteTool",
             "target": target_url,
             "isSharedToAll": True,
@@ -624,7 +624,7 @@ def create_connections(credential):
         try:
             if create_mcp_connection(
                 credential, DATA_AGENT_MCP_CONNECTION_NAME,
-                DATA_AGENT_MCP_ENDPOINT, "https://api.fabric.microsoft.com/"
+                DATA_AGENT_MCP_ENDPOINT, "https://api.fabric.microsoft.com/", auth_type="UserEntraToken"
             ):
                 print(f"[OK] Data Agent MCP connection '{DATA_AGENT_MCP_CONNECTION_NAME}' created")
             else:

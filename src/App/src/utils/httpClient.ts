@@ -21,7 +21,7 @@ export interface ApiResponse<T = any> {
 class HttpClient {
   private baseURL: string;
   private defaultHeaders: HeadersInit;
-  private requestInterceptors: Array<(config: RequestConfig) => RequestConfig> = [];
+  private requestInterceptors: Array<(config: RequestConfig) => RequestConfig | Promise<RequestConfig>> = [];
   private responseInterceptors: Array<(response: Response) => Response | Promise<Response>> = [];
 
   constructor(baseURL: string = '', defaultHeaders: HeadersInit = {}) {
@@ -49,7 +49,7 @@ class HttpClient {
   /**
    * Add request interceptor
    */
-  addRequestInterceptor(interceptor: (config: RequestConfig) => RequestConfig): void {
+  addRequestInterceptor(interceptor: (config: RequestConfig) => RequestConfig | Promise<RequestConfig>): void {
     this.requestInterceptors.push(interceptor);
   }
 
@@ -80,11 +80,12 @@ class HttpClient {
   /**
    * Apply request interceptors
    */
-  private applyRequestInterceptors(config: RequestConfig): RequestConfig {
-    return this.requestInterceptors.reduce(
-      (modifiedConfig, interceptor) => interceptor(modifiedConfig),
-      config
-    );
+  private async applyRequestInterceptors(config: RequestConfig): Promise<RequestConfig> {
+    let modifiedConfig = config;
+    for (const interceptor of this.requestInterceptors) {
+      modifiedConfig = await interceptor(modifiedConfig);
+    }
+    return modifiedConfig;
   }
 
   /**
@@ -123,7 +124,7 @@ class HttpClient {
     };
 
     // Apply request interceptors
-    let requestConfig: RequestConfig = this.applyRequestInterceptors({
+    let requestConfig: RequestConfig = await this.applyRequestInterceptors({
       ...restConfig,
       headers: mergedHeaders,
     });

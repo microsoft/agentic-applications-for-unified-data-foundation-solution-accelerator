@@ -18,6 +18,20 @@ export function setUserId(userId: string): void {
 }
 
 /**
+ * Get user token from localStorage
+ */
+export function getUserToken(): string | null {
+  return localStorage.getItem("userToken");
+}
+
+/**
+ * Set user token in localStorage
+ */
+export function setUserToken(token: string): void {
+  localStorage.setItem("userToken", token);
+}
+
+/**
  * Create an error Response object
  */
 export function createErrorResponse(status: number = 500, statusText: string = 'Internal Server Error'): Response {

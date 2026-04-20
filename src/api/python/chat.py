@@ -128,10 +128,11 @@ def get_thread_cache():
     return thread_cache
 
 
-async def stream_openai_text(conversation_id: str, query: str, user_id: str = "") -> StreamingResponse:
+async def stream_openai_text(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None) -> StreamingResponse:
     """
     Get a streaming text response from OpenAI using azure-ai-projects SDK.
     Uses responses.create() with conversation caching for chat history continuity.
+    If user_assertion is provided, uses OBO (On-Behalf-Of) credential for user context.
     """
     logger.info("stream_openai_text called: conversation_id=%s, query_length=%d",
                 conversation_id, len(query) if query else 0)
@@ -145,7 +146,8 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
 
         logger.info("Chat request received - query: %s, conversation_id: %s", query, conversation_id)
 
-        credential = await get_azure_credential_async()
+        # Use OBO credential if user token is available, otherwise use managed identity
+        credential = await get_azure_credential_async(user_assertion=user_assertion)
 
         async with AIProjectClient(
             endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
@@ -295,11 +297,12 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-async def stream_openai_text_workshop(conversation_id: str, query: str, user_id: str = "") -> StreamingResponse:
+async def stream_openai_text_workshop(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None) -> StreamingResponse:
     """
     Get a streaming text response from OpenAI with workshop mode using AzureAIProjectAgentProvider.
     Uses agent_framework to handle function calls (SQL) and search tools automatically.
     Uses Fabric SQL when AZURE_ENV_ONLY is false, otherwise uses Azure SQL.
+    If user_assertion is provided, uses OBO (On-Behalf-Of) credential for user context.
     """
     complete_response = ""
     credential = None
@@ -309,7 +312,12 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
         if not query:
             query = "Please provide a query."
 
-        credential = await get_azure_credential_async()
+        logger.info("Chat request received (workshop mode) - query: %s, conversation_id: %s", query, conversation_id)
+        logger.info("Workshop mode: IS_WORKSHOP=%s, AZURE_ENV_ONLY=%s", IS_WORKSHOP, AZURE_ENV_ONLY)
+        logger.info("User assertion provided: %s", bool(user_assertion))
+
+        # Use OBO credential if user token is available, otherwise use managed identity
+        credential = await get_azure_credential_async(user_assertion=user_assertion)
 
         async with AIProjectClient(
             endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
@@ -449,7 +457,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-async def stream_chat_request(conversation_id, query, user_id: str = ""):
+async def stream_chat_request(conversation_id, query, user_id: str = "", user_assertion: str = None):
     """
     Handles streaming chat requests.
     """
@@ -460,7 +468,7 @@ async def stream_chat_request(conversation_id, query, user_id: str = ""):
             assistant_content = ""
             # Use workshop function if IS_WORKSHOP is enabled
             stream_func = stream_openai_text_workshop if IS_WORKSHOP else stream_openai_text
-            async for chunk in stream_func(conversation_id, query, user_id=user_id):
+            async for chunk in stream_func(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
                 if isinstance(chunk, dict):
                     chunk = json.dumps(chunk)  # Convert dict to JSON string
                 assistant_content += str(chunk)
@@ -504,6 +512,8 @@ async def conversation(request: Request):
         query = request_json.get("query")
         authenticated_user = get_authenticated_user_details(request_headers=request.headers)
         user_id = authenticated_user.get("user_principal_id", "")
+        # Get user's access token for OBO flow (needed for Work IQ Teams)
+        user_assertion = request.headers.get("x-ms-token-aad-access-token", "") or authenticated_user.get("aad_access_token")
 
         # Validate required parameters
         if not query:
@@ -518,7 +528,8 @@ async def conversation(request: Request):
                 status_code=400
             )
 
-        logger.info("POST /chat called: conversation_id=%s, query_length=%d", conversation_id, len(query) if query else 0)
+        logger.info("POST /chat called: conversation_id=%s, query_length=%d, has_user_token=%s", 
+                    conversation_id, len(query) if query else 0, bool(user_assertion))
 
         # Track chat request initiation
         track_event_if_configured("ChatRequestReceived", {
@@ -526,7 +537,7 @@ async def conversation(request: Request):
             "user_id": user_id
         })
 
-        result = await stream_chat_request(conversation_id, query, user_id=user_id)
+        result = await stream_chat_request(conversation_id, query, user_id=user_id, user_assertion=user_assertion)
         track_event_if_configured(
             "ChatStreamSuccess",
             {"conversation_id": conversation_id, "user_id": user_id, "query": query}
