@@ -48,4 +48,4 @@ azure-mgmt-cosmosdb==9.6.0
 azure-mgmt-resource==23.3.0
 
 # Environment variables
-python-dotenv==1.1.0
+python-dotenv==1.2.2
