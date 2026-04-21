@@ -61,7 +61,7 @@ jobs:
       API_PID: ${{ steps.get_output_linux.outputs.API_PID }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Validate Workflow Input Parameters
         shell: bash
@@ -234,7 +234,7 @@ jobs:
           
       - name: Login to Azure using OIDC
         id: login-azure
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -332,7 +332,7 @@ jobs:
           echo "API_PID=${API_PID}" >> $GITHUB_OUTPUT
 
       - name: Re-authenticate with Azure (refresh OIDC token)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
