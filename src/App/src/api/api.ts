@@ -10,7 +10,7 @@ import {
 import { ApiErrorHandler } from "../utils/errorHandler";
 import { getApiBaseUrl, isWorkShopDeployment } from "../config";
 import { httpClient } from "../utils/httpClient";
-import { getUserId, setUserId, setUserToken, getUserToken, createErrorResponse } from "../utils/apiUtils";
+import { getUserId, setUserId, getAccessToken, setAccessToken, createErrorResponse } from "../utils/apiUtils";
 
 const baseURL = getApiBaseUrl(); // base API URL
 
@@ -24,16 +24,23 @@ function getHistoryBasePath(): string {
 // Initialize HTTP client with base URL
 httpClient.setBaseURL(baseURL);
 
-  // Add user ID and access token to all requests via interceptor
+// Add user ID and access token to all requests via interceptor
 httpClient.addRequestInterceptor((config) => {
   const userId = getUserId();
   if (userId && config.headers) {
     (config.headers as any)['X-Ms-Client-Principal-Id'] = userId;
   }
-  // Add access token for OBO flow (needed for Work IQ Teams)
-  const accessToken = getUserToken();
+  // Add access token for cross-domain auth and OBO flow
+  // EasyAuth accepts Bearer token in Authorization header for cross-origin requests
+  const accessToken = getAccessToken();
+  console.log('[Request] accessToken from sessionStorage:', accessToken ? `${accessToken.substring(0, 20)}...` : 'NULL');
   if (accessToken && config.headers) {
-    (config.headers as any)['X-Ms-Token-Aad-Access-Token'] = accessToken;
+    (config.headers as any)['Authorization'] = `Bearer ${accessToken}`;
+    // Also send as X-ZUMO-AUTH for App Service EasyAuth compatibility
+    (config.headers as any)['X-ZUMO-AUTH'] = accessToken;
+    console.log('[Request] Added X-ZUMO-AUTH header');
+  } else {
+    console.log('[Request] NO token - Authorization and X-ZUMO-AUTH headers NOT added');
   }
   return config;
 });
@@ -47,41 +54,10 @@ export type UserInfo = {
   user_id: string;
 };
 
-// Token expiry tracking
-let tokenExpiresOn: number = 0;
-const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000; // Refresh 5 minutes before expiry
-
-async function refreshTokenIfNeeded(): Promise<void> {
-  if (!tokenExpiresOn || !getUserToken()) return;
-  const now = Date.now();
-  if (now >= tokenExpiresOn - TOKEN_REFRESH_BUFFER_MS) {
-    console.log("[Auth] Token expired or expiring soon, refreshing...");
-    try {
-      const refreshResponse = await fetch("/.auth/refresh");
-      if (refreshResponse.ok) {
-        // Re-fetch tokens after refresh
-        const meResponse = await fetch("/.auth/me");
-        if (meResponse.ok) {
-          const payload = await meResponse.json();
-          const accessToken = payload[0]?.access_token;
-          const expiresOn = payload[0]?.expires_on;
-          if (accessToken) {
-            setUserToken(accessToken);
-            tokenExpiresOn = expiresOn ? new Date(expiresOn).getTime() : 0;
-            console.log("[Auth] Token refreshed successfully");
-          }
-        }
-      } else {
-        console.warn("[Auth] Token refresh failed, user may need to re-login");
-      }
-    } catch (e) {
-      console.error("[Auth] Token refresh error:", e);
-    }
-  }
-}
-
 export async function getUserInfo(): Promise<UserInfo[]> {
-  const response = await fetch(`/.auth/me`);
+  const response = await fetch(`/.auth/me`, {
+    credentials: 'include'  // Ensure cookies are sent for EasyAuth session
+  });
   if (!response.ok) {
     // Use new error handling system
     await ApiErrorHandler.handleApiError(response, '/.auth/me');
@@ -89,11 +65,11 @@ export async function getUserInfo(): Promise<UserInfo[]> {
     return [];
   }
   const payload = await response.json();
+  
+  // Debug: Log the full auth/me response to understand token availability
+  console.log('[Auth] /.auth/me response:', JSON.stringify(payload, null, 2));
+  
   const userClaims = payload[0]?.user_claims || [];
-  // Use access_token (scoped to https://ai.azure.com) instead of id_token
-  const accessToken = payload[0]?.access_token;
-  const idToken = payload[0]?.id_token;
-  console.log("[Auth] /.auth/me response - access_token present:", !!accessToken, ", id_token present:", !!idToken, ", keys:", Object.keys(payload[0] || {}));
   const objectIdClaim = userClaims.find(
     (claim: any) =>
       claim.typ === "http://schemas.microsoft.com/identity/claims/objectidentifier"
@@ -102,17 +78,18 @@ export async function getUserInfo(): Promise<UserInfo[]> {
   if (userId) {
     setUserId(userId);
   }
+  // Store access token for OBO flow (needed for Work IQ Teams)
+  const accessToken = payload[0]?.access_token;
+  console.log('[Auth] access_token present:', !!accessToken);
+  console.log('[Auth] access_token value:', accessToken ? `${accessToken.substring(0, 30)}...` : 'NULL');
   if (accessToken) {
-    setUserToken(accessToken);
-  } else if (idToken) {
-    // Fallback to id_token if access_token not available
-    setUserToken(idToken);
-  }
-  // Track token expiry for auto-refresh
-  const expiresOn = payload[0]?.expires_on;
-  if (expiresOn) {
-    tokenExpiresOn = new Date(expiresOn).getTime();
-    console.log("[Auth] Token expires at:", new Date(tokenExpiresOn).toISOString());
+    setAccessToken(accessToken);
+    console.log('[Auth] Token stored in sessionStorage');
+    // Verify it was stored
+    const storedToken = getAccessToken();
+    console.log('[Auth] Verified stored token:', storedToken ? `${storedToken.substring(0, 30)}...` : 'NULL');
+  } else {
+    console.log('[Auth] NO access_token to store!');
   }
   return payload;
 }

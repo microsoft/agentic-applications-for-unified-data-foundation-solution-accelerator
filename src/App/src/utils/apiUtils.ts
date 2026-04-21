@@ -18,17 +18,17 @@ export function setUserId(userId: string): void {
 }
 
 /**
- * Get user token from localStorage
+ * Get access token from sessionStorage (for OBO flow)
  */
-export function getUserToken(): string | null {
-  return localStorage.getItem("userToken");
+export function getAccessToken(): string | null {
+  return sessionStorage.getItem("accessToken");
 }
 
 /**
- * Set user token in localStorage
+ * Set access token in sessionStorage (for OBO flow)
  */
-export function setUserToken(token: string): void {
-  localStorage.setItem("userToken", token);
+export function setAccessToken(token: string): void {
+  sessionStorage.setItem("accessToken", token);
 }
 
 /**

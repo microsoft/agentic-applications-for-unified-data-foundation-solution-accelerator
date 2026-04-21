@@ -63,10 +63,13 @@ from azure.ai.projects import AIProjectClient
 from azure.ai.projects.models import (
     PromptAgentDefinition,
     FunctionTool,
-    AzureAISearchAgentTool,
+    AzureAISearchTool,
     AzureAISearchToolResource,
     AISearchIndexResource,
     MCPTool,
+    MicrosoftFabricPreviewTool,
+    FabricDataAgentToolParameters,
+    ToolProjectConnection,
 )
 
 # ============================================================================
@@ -205,7 +208,7 @@ def load_fabric_ids(config_dir, use_data_agent):
     LAKEHOUSE_ID = fabric_ids.get("lakehouse_id")
 
     if use_data_agent:
-        DATA_AGENT_ID = fabric_ids.get("data_agent_id")
+        DATA_AGENT_ID = "4df4fa4d-4f49-456c-a1fe-95fd95505d53" # fabric_ids.get("data_agent_id")
         DATA_AGENT_NAME = fabric_ids.get("data_agent_name")
         if DATA_AGENT_ID:
             DATA_AGENT_MCP_ENDPOINT = (
@@ -461,9 +464,38 @@ Respond only with the title, no additional commentary.'''
 
 def build_sql_tool(tables, use_fabric, use_data_agent, data_agent_id, data_agent_name,
                    data_agent_mcp_endpoint, data_agent_mcp_connection_name):
-    """Build the SQL tool — either Fabric Data Agent MCP or execute_sql FunctionTool."""
+    """Build the SQL tool — Fabric Data Agent, MCP, or execute_sql FunctionTool."""
     if use_data_agent and data_agent_id:
-        da_tool_name = f"DataAgent_{data_agent_name}"
+        # Use MicrosoftFabricPreviewTool with the CustomKeys connection
+        custom_keys_conn_name = os.getenv(
+            "FABRIC_DATA_AGENT_PREVIEW_CONNECTION_NAME",
+            f"fabric-dataagent-preview-{data_agent_id[:6]}"
+        )
+        # Build full ARM connection ID as required by the tool
+        subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
+        resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
+        ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
+        project_name = os.getenv("AZURE_AI_PROJECT_NAME")
+        fabric_connection_id = (
+            f"/subscriptions/{subscription_id}"
+            f"/resourceGroups/{resource_group}"
+            f"/providers/Microsoft.CognitiveServices/accounts/{ai_service_name}"
+            f"/projects/{project_name}"
+            f"/connections/{custom_keys_conn_name}"
+        )
+        tool = MicrosoftFabricPreviewTool(
+            fabric_dataagent_preview=FabricDataAgentToolParameters(
+                project_connections=[
+                    ToolProjectConnection(project_connection_id=fabric_connection_id)
+                ]
+            )
+        )
+        print(f"  Added MicrosoftFabricPreviewTool (connection: {fabric_connection_id})")
+        return tool
+
+    if use_data_agent and not data_agent_id:
+        # Fallback: Data Agent via MCP connection when DATA_AGENT_ID is not set
+        da_tool_name = f"DataAgent_{data_agent_name}" if data_agent_name else "DataAgent"
         tool = MCPTool(
             server_label="fabric-data-agent",
             server_url=data_agent_mcp_endpoint,
@@ -523,7 +555,7 @@ def build_search_tool(use_knowledge_base, search_endpoint, kb_name, kb_mcp_conne
         print(f"  Added Knowledge Base MCP tool: {kb_name}")
         return tool
 
-    tool = AzureAISearchAgentTool(
+    tool = AzureAISearchTool(
         azure_ai_search=AzureAISearchToolResource(
             indexes=[
                 AISearchIndexResource(
@@ -607,19 +639,106 @@ def create_mcp_connection(credential, connection_name, target_url, audience, aut
         }
     }
 
-    print(f"  Target: {target_url}")
+    print(f"  Connection Name : {connection_name}")
+    print(f"  Auth Type       : {auth_type}")
+    print(f"  Category        : RemoteTool")
+    print(f"  Target URL      : {target_url}")
+    print(f"  Audience        : {audience}")
+    print(f"  API URL         : {url}")
     response = requests.put(url, headers=headers, json=body)
+    print(f"  Response Status : {response.status_code}")
     if response.status_code in (200, 201):
+        print(f"  Result          : Success")
         return True
     else:
+        print(f"  Result          : Failed")
+        print(f"[WARN] Connection creation returned {response.status_code}: {response.text[:500]}")
+        return False
+
+
+def create_custom_keys_connection(credential, connection_name, custom_keys=None, metadata=None):
+    """Create a CustomKeys project connection via the CognitiveServices REST API."""
+    import requests
+
+    subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
+    resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
+    ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
+    project_name = os.getenv("AZURE_AI_PROJECT_NAME")
+
+    if not (subscription_id and resource_group and ai_service_name and project_name):
+        print("[WARN] Cannot build project ARM path — need AZURE_SUBSCRIPTION_ID, "
+              "AZURE_RESOURCE_GROUP, AI_SERVICE_NAME, and AZURE_AI_PROJECT_NAME.")
+        return False
+
+    token = get_bearer_token_provider(credential, "https://management.azure.com/.default")()
+    headers = {"Authorization": f"Bearer {token}"}
+
+    url = (
+        f"https://management.azure.com/subscriptions/{subscription_id}"
+        f"/resourceGroups/{resource_group}"
+        f"/providers/Microsoft.CognitiveServices/accounts/{ai_service_name}"
+        f"/projects/{project_name}"
+        f"/connections/{connection_name}?api-version=2025-04-01-preview"
+    )
+
+    body = {
+        "name": connection_name,
+        "properties": {
+            "authType": "CustomKeys",
+            "category": "CustomKeys",
+            "group": "AzureAI",
+            "target": "-",
+            "isSharedToAll": True,
+            "credentials": {"keys": custom_keys or {}},
+            "metadata": metadata or {}
+        }
+    }
+
+    print(f"  Connection Name : {connection_name}")
+    print(f"  Auth Type       : CustomKeys")
+    print(f"  Category        : CustomKeys")
+    print(f"  Custom Keys     : {list((custom_keys or {}).keys())}")
+    print(f"  Metadata        : {metadata or {}}")
+    print(f"  API URL         : {url}")
+    response = requests.put(url, headers=headers, json=body)
+    print(f"  Response Status : {response.status_code}")
+    if response.status_code in (200, 201):
+        print(f"  Result          : Success")
+        return True
+    else:
+        print(f"  Result          : Failed")
         print(f"[WARN] Connection creation returned {response.status_code}: {response.text[:500]}")
         return False
 
 
 def create_connections(credential):
-    """Create all required MCP project connections."""
-    # Data Agent MCP connection (only in data agent mode)
+    """Create all required MCP and CustomKeys project connections."""
+    # Fabric Data Agent preview CustomKeys connection (only in data agent mode)
     if USE_DATA_AGENT and DATA_AGENT_ID:
+        fabric_preview_conn_name = os.getenv(
+            "FABRIC_DATA_AGENT_PREVIEW_CONNECTION_NAME",
+            f"fabric-dataagent-preview-{DATA_AGENT_ID[:6]}"
+        )
+        print(f"\nCreating Fabric Data Agent preview CustomKeys connection '{fabric_preview_conn_name}'...")
+        try:
+            if create_custom_keys_connection(
+                credential, fabric_preview_conn_name,
+                custom_keys={
+                    "workspace-id": FABRIC_WORKSPACE_ID,
+                    "artifact-id": DATA_AGENT_ID,
+                },
+                metadata={"type": "fabric_dataagent_preview"}
+            ):
+                print(f"[OK] Fabric Data Agent preview connection '{fabric_preview_conn_name}' created")
+            else:
+                print("[WARN] Fabric Data Agent preview connection creation may have failed.")
+                print("       You can create the connection manually in the Foundry portal.")
+        except Exception as e:
+            print(f"[WARN] Could not create Fabric Data Agent preview connection: {e}")
+            print("       You can create it manually in the Foundry portal.")
+
+    # Data Agent MCP connection (only in data agent mode)
+    if USE_DATA_AGENT and not DATA_AGENT_ID:
         print(f"\nCreating Data Agent MCP project connection '{DATA_AGENT_MCP_CONNECTION_NAME}'...")
         try:
             if create_mcp_connection(
@@ -692,8 +811,8 @@ def create_agents(project_client, instructions, title_instructions, agent_tools)
             tools=agent_tools
         )
 
-        chat_agent = project_client.agents.create(
-            name=CHAT_AGENT_NAME,
+        chat_agent = project_client.agents.create_version(
+            agent_name=CHAT_AGENT_NAME,
             definition=agent_definition
         )
 
@@ -744,8 +863,8 @@ def create_agents(project_client, instructions, title_instructions, agent_tools)
             tools=[]
         )
 
-        title_agent = project_client.agents.create(
-            name=TITLE_AGENT_NAME,
+        title_agent = project_client.agents.create_version(
+            agent_name=TITLE_AGENT_NAME,
             definition=title_agent_definition
         )
 
