@@ -178,14 +178,14 @@ Depending on your subscription quota and capacity, you can [adjust quota setting
 
   <summary><b>Reusing an Existing Log Analytics Workspace</b></summary>
 
-  Guide to get your [Existing Workspace ID](/documents/re-use-log-analytics.md)
+  Guide to get your [Existing Workspace ID](./re-use-log-analytics.md)
 
 </details>
 <details>
 
   <summary><b>Reusing an Existing Azure AI Foundry Project</b></summary>
 
-  Guide to get your [Existing Project ID](/documents/re-use-foundry-project.md)
+  Guide to get your [Existing Project ID](./re-use-foundry-project.md)
 
 </details>
 
