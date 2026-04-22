@@ -71,6 +71,22 @@ Write-Host "  App Service Authentication Setup" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Check prerequisites
+$azCmd = Get-Command az -ErrorAction SilentlyContinue
+if (-not $azCmd) {
+    Write-Host "  ERROR: Azure CLI (az) is not installed or not in PATH." -ForegroundColor Red
+    Write-Host "  Install from: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli" -ForegroundColor Yellow
+    exit 1
+}
+
+$loginCheck = az account show --query id -o tsv 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  ERROR: Not logged in to Azure CLI. Run 'az login' first." -ForegroundColor Red
+    exit 1
+}
+Write-Host "  Azure CLI detected and logged in." -ForegroundColor Green
+Write-Host ""
+
 # Function to read azd environment variables
 function Get-AzdEnvValue {
     param([string]$Key, [string]$EnvFilePath)
@@ -166,6 +182,13 @@ Write-Host ""
 Write-Host "[2/9] Getting Azure subscription info..." -ForegroundColor Yellow
 $subscriptionId = (az account show --query id -o tsv)
 $tenantId = (az account show --query tenantId -o tsv)
+
+if (-not $subscriptionId -or -not $tenantId) {
+    Write-Host "  ERROR: Failed to retrieve subscription or tenant info." -ForegroundColor Red
+    Write-Host "  Ensure you are logged in with 'az login' and have an active subscription." -ForegroundColor Yellow
+    exit 1
+}
+
 Write-Host "  Subscription: $subscriptionId" -ForegroundColor Gray
 Write-Host "  Tenant:       $tenantId" -ForegroundColor Gray
 Write-Host ""
@@ -193,6 +216,11 @@ if ($existingApp) {
     # Update redirect URIs to include both apps
     Write-Host "  Updating redirect URIs..." -ForegroundColor Gray
     az ad app update --id $clientId --web-redirect-uris $redirectUris --output none
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  ERROR: Failed to update redirect URIs for App Registration." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  Redirect URIs updated successfully" -ForegroundColor Green
 } else {
     # Create new app registration with both redirect URIs
     $appResult = az ad app create `
@@ -203,10 +231,16 @@ if ($existingApp) {
         --enable-access-token-issuance true `
         -o json | ConvertFrom-Json
     
+    if (-not $appResult -or -not $appResult.appId) {
+        Write-Host "  ERROR: Failed to create App Registration." -ForegroundColor Red
+        exit 1
+    }
+
     $clientId = $appResult.appId
     Write-Host "  Created App Registration: $clientId" -ForegroundColor Green
     
     # Wait for propagation
+    Write-Host "  Waiting for Azure AD propagation..." -ForegroundColor Gray
     Start-Sleep -Seconds 5
 }
 
@@ -313,7 +347,13 @@ $permissionsJson = @"
 $permTempFile = [System.IO.Path]::GetTempFileName()
 $permissionsJson | Out-File -FilePath $permTempFile -Encoding utf8 -NoNewline
 az ad app update --id $clientId --required-resource-accesses "@$permTempFile" --output none
+$permExitCode = $LASTEXITCODE
 Remove-Item $permTempFile -Force -ErrorAction SilentlyContinue
+
+if ($permExitCode -ne 0) {
+    Write-Host "  ERROR: Failed to add API permissions to App Registration." -ForegroundColor Red
+    exit 1
+}
 
 Write-Host "  API permissions added:" -ForegroundColor Green
 Write-Host "    - Microsoft Graph: User.Read, Group.Read.All, ChannelMessage.Read.All, Chat.Read" -ForegroundColor Gray
@@ -325,12 +365,13 @@ Write-Host "    - Own API: user_impersonation" -ForegroundColor Gray
 if (-not $SkipAdminConsent) {
     Write-Host "[6/9] Granting admin consent for API permissions..." -ForegroundColor Yellow
     
-    try {
-        az ad app permission admin-consent --id $clientId 2>&1 | Out-Null
+    az ad app permission admin-consent --id $clientId 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) {
         Write-Host "  Admin consent granted" -ForegroundColor Green
-    } catch {
-        Write-Host "  Warning: Admin consent may require manual approval by a tenant admin." -ForegroundColor Yellow
-        Write-Host "  URL: https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/CallAnAPI/appId/$clientId" -ForegroundColor Cyan
+    } else {
+        Write-Host "  Warning: Admin consent failed. This may require manual approval by a tenant admin." -ForegroundColor Yellow
+        Write-Host "  Grant consent manually at:" -ForegroundColor Gray
+        Write-Host "  https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/CallAnAPI/appId/$clientId" -ForegroundColor Cyan
     }
 } else {
     Write-Host "[6/9] Skipping admin consent (use -SkipAdminConsent:$false to enable)..." -ForegroundColor Yellow
@@ -348,9 +389,14 @@ $secretResult = az ad app credential reset `
     --years ([math]::Ceiling($SecretExpiration / 365)) `
     -o json | ConvertFrom-Json
 
+if (-not $secretResult -or -not $secretResult.password) {
+    Write-Host "  ERROR: Failed to create client secret." -ForegroundColor Red
+    exit 1
+}
+
 $clientSecret = $secretResult.password
-Write-Host "  Client secret created (save this!):" -ForegroundColor Green
-Write-Host "  $clientSecret" -ForegroundColor Cyan
+$maskedSecret = "$('*' * ($clientSecret.Length - 4))$($clientSecret.Substring($clientSecret.Length - 4))"
+Write-Host "  Client secret created: $maskedSecret" -ForegroundColor Green
 Write-Host ""
 
 # Step 8: Configure Frontend App Service Authentication
@@ -400,11 +446,16 @@ $authConfig = @{
 $authConfigJson = $authConfig | ConvertTo-Json -Depth 10 -Compress
 
 # Set the client secret as an app setting
+Write-Host "  Setting MICROSOFT_PROVIDER_AUTHENTICATION_SECRET on frontend..." -ForegroundColor Gray
 az webapp config appsettings set `
     --name $FrontendAppName `
     --resource-group $ResourceGroup `
     --settings "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET=$clientSecret" `
     --output none
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  ERROR: Failed to set app settings on frontend App Service." -ForegroundColor Red
+    exit 1
+}
 
 # Apply auth configuration - write to temp file to avoid escaping issues
 $uri = "/subscriptions/$subscriptionId/resourceGroups/$ResourceGroup/providers/Microsoft.Web/sites/$FrontendAppName/config/authsettingsV2?api-version=2022-03-01"
@@ -427,6 +478,7 @@ if ($ApiAppName) {
     Write-Host "[9/9] Configuring API App Service authentication (same App Registration for OBO)..." -ForegroundColor Yellow
     
     # Set the client secret and OBO environment variables
+    Write-Host "  Setting app settings and OBO environment variables on API..." -ForegroundColor Gray
     az webapp config appsettings set `
         --name $ApiAppName `
         --resource-group $ResourceGroup `
@@ -436,6 +488,10 @@ if ($ApiAppName) {
             "OBO_CLIENT_SECRET=$clientSecret" `
             "OBO_TENANT_ID=$tenantId" `
         --output none
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  ERROR: Failed to set app settings on API App Service." -ForegroundColor Red
+        exit 1
+    }
     
     # API auth config - AllowAnonymous mode for cross-domain compatibility
     # Platform is enabled to parse tokens, but auth is not required
@@ -498,10 +554,19 @@ if ($ApiAppName) {
 Write-Host ""
 Write-Host "Restarting App Services..." -ForegroundColor Yellow
 az webapp restart --name $FrontendAppName --resource-group $ResourceGroup --output none
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  Warning: Failed to restart frontend App Service '$FrontendAppName'." -ForegroundColor Yellow
+} else {
+    Write-Host "  Frontend App Service '$FrontendAppName' restarted" -ForegroundColor Green
+}
 if ($ApiAppName) {
     az webapp restart --name $ApiAppName --resource-group $ResourceGroup --output none
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  Warning: Failed to restart API App Service '$ApiAppName'." -ForegroundColor Yellow
+    } else {
+        Write-Host "  API App Service '$ApiAppName' restarted" -ForegroundColor Green
+    }
 }
-Write-Host "  Apps restarted" -ForegroundColor Green
 
 # Summary
 Write-Host ""
@@ -512,7 +577,7 @@ Write-Host ""
 Write-Host "Configuration:" -ForegroundColor Yellow
 Write-Host "  Client ID:     $clientId" -ForegroundColor Cyan
 Write-Host "  Tenant ID:     $tenantId" -ForegroundColor Cyan
-Write-Host "  Client Secret: $clientSecret" -ForegroundColor Cyan
+Write-Host "  Client Secret: $maskedSecret" -ForegroundColor Cyan
 Write-Host "  App ID URI:    api://$clientId" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "App URLs:" -ForegroundColor Yellow

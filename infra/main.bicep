@@ -94,6 +94,10 @@ param azureEnvOnly bool = false
 param useChatHistoryEnabled bool = true
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 
+@description('Enable user access token forwarding to the API.')
+param useUserAccessToken bool = false
+var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
+
 // If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
 var shouldDeployApp = !isWorkshop || deployApp
 
@@ -270,6 +274,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
       SOLUTION_NAME: solutionSuffix
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
       AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
+      USE_USER_ACCESS_TOKEN: useUserAccessTokenSetting
       APP_ENV: 'Prod'
       AZURE_BASIC_LOGGING_LEVEL: 'INFO'
       AZURE_PACKAGE_LOGGING_LEVEL: 'WARNING'
@@ -464,3 +469,6 @@ output AZURE_ENV_DEPLOY_APP bool = deployApp
 
 @description('Flag indicating Azure-only mode (no Fabric)')
 output AZURE_ENV_ONLY bool = azureEnvOnly
+
+@description('Flag indicating whether user access token forwarding is enabled')
+output USE_USER_ACCESS_TOKEN string = useUserAccessTokenSetting

@@ -37,6 +37,7 @@ HOST_INSTRUCTIONS = "Answer questions about Sales, Products and Orders data."
 # Workshop mode configuration
 IS_WORKSHOP = os.getenv("IS_WORKSHOP", "false").lower() == "true"
 AZURE_ENV_ONLY = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
+USE_USER_ACCESS_TOKEN = os.getenv("USE_USER_ACCESS_TOKEN", "false").lower() == "true"
 
 router = APIRouter()
 
@@ -146,8 +147,9 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
 
         logger.info("Chat request received - query: %s, conversation_id: %s", query, conversation_id)
 
-        # Use OBO credential if user token is available, otherwise use managed identity
-        credential = await get_azure_credential_async(user_assertion=user_assertion)
+        # Use OBO credential if user token is available and USE_USER_ACCESS_TOKEN is enabled
+        effective_assertion = user_assertion if USE_USER_ACCESS_TOKEN else None
+        credential = await get_azure_credential_async(user_assertion=effective_assertion)
 
         async with AIProjectClient(
             endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
@@ -312,8 +314,9 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
         if not query:
             query = "Please provide a query."
 
-        # Use OBO credential if user token is available, otherwise use managed identity
-        credential = await get_azure_credential_async(user_assertion=user_assertion)
+        # Use OBO credential if user token is available and USE_USER_ACCESS_TOKEN is enabled
+        effective_assertion = user_assertion if USE_USER_ACCESS_TOKEN else None
+        credential = await get_azure_credential_async(user_assertion=effective_assertion)
 
         async with AIProjectClient(
             endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
