@@ -384,7 +384,7 @@ $authConfig = @{
                 login = @{
                     # Request scopes needed for OBO flow
                     loginParameters = @(
-                        "scope=openid profile email api://$clientId/user_impersonation"
+                        "scope=openid profile email offline_access api://$clientId/user_impersonation"
                     )
                 }
             }
