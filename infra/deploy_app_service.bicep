@@ -20,7 +20,7 @@ param appImageName string
 @description('The resource ID of the user-assigned managed identity. If empty, only system-assigned identity is used.')
 param userassignedIdentityId string = ''
 
-resource appService 'Microsoft.Web/sites@2020-06-01' = {
+resource appService 'Microsoft.Web/sites@2025-05-01' = {
   name: solutionName
   location: solutionLocation
   identity: userassignedIdentityId == '' ? {
@@ -61,7 +61,7 @@ module configAppSettings 'deploy_appservice-appsettings.bicep' = {
   }
 }
 
-resource configLogs 'Microsoft.Web/sites/config@2022-03-01' = {
+resource configLogs 'Microsoft.Web/sites/config@2025-05-01' = {
   name: 'logs'
   parent: appService
   properties: {

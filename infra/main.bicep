@@ -146,7 +146,7 @@ var existingTags = resourceGroup().tags ?? {}
 param deployingUserPrincipalType string = 'User'
 
 // ========== Resource Group Tag ========== //
-resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorkshop) {
+resource resourceGroupTags 'Microsoft.Resources/tags@2023-07-01' = if (!isWorkshop) {
   name: 'default'
   properties: {
    tags: union(

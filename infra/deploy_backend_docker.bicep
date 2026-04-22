@@ -67,16 +67,16 @@ module appService 'deploy_app_service.bicep' = {
   }
 }
 
-resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' existing = if (enableCosmosDb) {
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = if (enableCosmosDb) {
   name: appSettings.AZURE_COSMOSDB_ACCOUNT
 }
 
-resource contributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-05-15' existing = if (enableCosmosDb) {
+resource contributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-10-15' existing = if (enableCosmosDb) {
   parent: cosmos
   name: '00000000-0000-0000-0000-000000000002'
 }
 
-resource role 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2022-05-15' = if (enableCosmosDb) {
+resource role 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-10-15' = if (enableCosmosDb) {
   parent: cosmos
   name: guid(contributorRoleDefinition.id, cosmos.id)
   properties: {
@@ -86,7 +86,7 @@ resource role 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2022-05-
   }
 }
 
-resource aiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
+resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
   name: aiServicesName
   scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
 }

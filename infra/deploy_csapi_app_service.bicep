@@ -40,7 +40,7 @@ resource appInsights 'microsoft.insights/components@2020-02-02' = {
   }
 }
 
-resource plan 'Microsoft.Web/serverfarms@2022-03-01' = {
+resource plan 'Microsoft.Web/serverfarms@2025-05-01' = {
   name: '${siteName}-plan'
   location: location
   sku: {
@@ -52,7 +52,7 @@ resource plan 'Microsoft.Web/serverfarms@2022-03-01' = {
   }
 }
 
-resource webApp 'Microsoft.Web/sites@2022-03-01' = {
+resource webApp 'Microsoft.Web/sites@2025-05-01' = {
   name: siteName
   location: location
   kind: 'app,linux'
@@ -85,7 +85,7 @@ resource webApp 'Microsoft.Web/sites@2022-03-01' = {
   }
 }
 
-resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
+resource kv 'Microsoft.KeyVault/vaults@2026-02-01' = {
   name: keyVaultName
   location: location
   properties: {
@@ -100,7 +100,7 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
 }
 
 
-resource openAiSecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = if (openAiSecretValue != '') {
+resource openAiSecret 'Microsoft.KeyVault/vaults/secrets@2026-02-01' = if (openAiSecretValue != '') {
   parent: kv
   name: openAiSecretName
   properties: {
@@ -108,7 +108,7 @@ resource openAiSecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = if (openA
   }
 }
 
-resource sqlSecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = if (sqlSecretValue != '') {
+resource sqlSecret 'Microsoft.KeyVault/vaults/secrets@2026-02-01' = if (sqlSecretValue != '') {
   parent: kv
   name: sqlSecretName
   properties: {
@@ -124,7 +124,7 @@ var sqlSecretUri = 'https://${keyVaultName}.vault.azure.net/secrets/${sqlSecretN
 var keyVaultSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
 
 // Use a stable GUID value for the roleAssignment name (calculable at start)
-resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(kv.id, webApp.name, keyVaultSecretsUserRoleId)
   scope: kv
   properties: {
@@ -139,7 +139,7 @@ resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-pr
 }
 
 // Configure App Settings referencing Key Vault secrets (App Service Key Vault reference format)
-resource webConfig 'Microsoft.Web/sites/config@2022-03-01' = {
+resource webConfig 'Microsoft.Web/sites/config@2025-05-01' = {
   name: '${webApp.name}/appsettings'
   properties: {
     ASPNETCORE_ENVIRONMENT: 'Production'

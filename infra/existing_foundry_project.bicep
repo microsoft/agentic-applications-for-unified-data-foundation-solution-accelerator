@@ -4,11 +4,11 @@ param aiServicesName string
 @description('Name of the existing AI Project under the AI Services account')
 param aiProjectName string
 
-resource aiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
+resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
   name: aiServicesName
 }
 
-resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' existing = {
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' existing = {
   name: aiProjectName
   parent: aiServices
 }

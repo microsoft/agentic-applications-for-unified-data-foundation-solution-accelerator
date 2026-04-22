@@ -12,7 +12,7 @@ var abbrs = loadJsonContent('./abbreviations.json')
 var containerRegistryName = '${abbrs.containers.containerRegistry}${solutionName}'
 var containerRegistryNameCleaned = replace(containerRegistryName, '-', '')
  
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' = {
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-11-01' = {
   name: containerRegistryName
   location: solutionLocation
   sku: {

@@ -15,11 +15,11 @@ param deployerPrincipalId string = ''
 
 var location = solutionLocation
 
-resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
   name: managedIdentityName
 }
 
-resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
+resource sqlServer 'Microsoft.Sql/servers@2025-01-01' = {
   name: serverName
   location: location
   kind: 'v12.0'
@@ -38,7 +38,7 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
   }
 }
 
-resource firewallRule 'Microsoft.Sql/servers/firewallRules@2023-08-01-preview' = {
+resource firewallRule 'Microsoft.Sql/servers/firewallRules@2025-01-01' = {
   name: 'AllowSpecificRange'
   parent: sqlServer
   properties: {
@@ -47,7 +47,7 @@ resource firewallRule 'Microsoft.Sql/servers/firewallRules@2023-08-01-preview' =
   }
 }
 
-resource AllowAllWindowsAzureIps 'Microsoft.Sql/servers/firewallRules@2023-08-01-preview' = {
+resource AllowAllWindowsAzureIps 'Microsoft.Sql/servers/firewallRules@2025-01-01' = {
   name: 'AllowAllWindowsAzureIps'
   parent: sqlServer
   properties: {
@@ -56,7 +56,7 @@ resource AllowAllWindowsAzureIps 'Microsoft.Sql/servers/firewallRules@2023-08-01
   }
 }
 
-resource sqlDB 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
+resource sqlDB 'Microsoft.Sql/servers/databases@2025-01-01' = {
   parent: sqlServer
   name: sqlDBName
   location: location

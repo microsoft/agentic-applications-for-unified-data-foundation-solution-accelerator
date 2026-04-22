@@ -98,12 +98,12 @@ var existingAIProjectName = !empty(azureExistingAIProjectResourceId) ? split(azu
 var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
 
-resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = if (useExisting) {
+resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2025-07-01' existing = if (useExisting) {
   name: existingLawName
   scope: resourceGroup(existingLawSubscription ,existingLawResourceGroup)
 }
 
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (!useExisting){
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2025-07-01' = if (!useExisting){
   name: workspaceName
   location: location
   tags: {}
@@ -128,7 +128,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
 }
 
 // Storage Account
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if(isWorkshop) {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2025-08-01' = if(isWorkshop) {
   name: storageName
   location: location
   tags: tags
@@ -144,12 +144,12 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if(isWo
 }
 
 // Blob Service
-resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = if(isWorkshop) {
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2025-08-01' = if(isWorkshop) {
   parent: storageAccount
   name: 'default'
 }
 
-resource aiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' =  if (empty(azureExistingAIProjectResourceId)) {
+resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' =  if (empty(azureExistingAIProjectResourceId)) {
   name: aiServicesName
   location: location
   sku: {
@@ -182,7 +182,7 @@ module existing_aiServicesModule 'existing_foundry_project.bicep' = if (!empty(a
 }
 
 @batchSize(1)
-resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments@2025-04-01-preview' = [for aiModeldeployment in aiModelDeployments: if (empty(azureExistingAIProjectResourceId)) {
+resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments@2025-12-01' = [for aiModeldeployment in aiModelDeployments: if (empty(azureExistingAIProjectResourceId)) {
   parent: aiServices //aiServices_m
   name: aiModeldeployment.name
   properties: {
@@ -202,7 +202,7 @@ resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments
   ]
 }]
 
-resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' = if(isWorkshop) {
+resource aiSearch 'Microsoft.Search/searchServices@2025-05-01' = if(isWorkshop) {
   name: aiSearchName
   location: searchServiceLocation
   sku: {
@@ -211,7 +211,7 @@ resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' = if(isWo
   properties: {
     replicaCount: 1
     partitionCount: 1
-    hostingMode: 'default'
+    hostingMode: 'Default'
     publicNetworkAccess: 'enabled'
     networkRuleSet: {
       ipRules: []
@@ -235,7 +235,7 @@ module searchServiceEnableIdentity 'deploy_enable_srch_managed_identity.bicep' =
   ]
 }
 
-resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-preview' =  if (empty(azureExistingAIProjectResourceId)) {
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' =  if (empty(azureExistingAIProjectResourceId)) {
   parent: aiServices
   name: aiProjectName
   location: solutionLocation
@@ -247,7 +247,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-04-01-pre
 }
 
 // Connect AI Search to Project
-resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (empty(azureExistingAIProjectResourceId) && isWorkshop) {
+resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (empty(azureExistingAIProjectResourceId) && isWorkshop) {
   parent: aiProject
   name: aiSearchConnectionName
   properties: {
@@ -263,7 +263,7 @@ resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connect
 }
 
 // Connect Application Insights to Project
-resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (empty(azureExistingAIProjectResourceId)) {
+resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (empty(azureExistingAIProjectResourceId)) {
   parent: aiProject
   name: applicationInsightsName
   properties: {
@@ -474,7 +474,7 @@ resource searchStorageBlobDataReader 'Microsoft.Authorization/roleAssignments@20
 }
 
 // Default container for AI Foundry
-resource defaultContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = if (isWorkshop) {
+resource defaultContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2025-08-01' = if (isWorkshop) {
   parent: blobService
   name: 'default'
   properties: {
@@ -483,7 +483,7 @@ resource defaultContainer 'Microsoft.Storage/storageAccounts/blobServices/contai
 }
 
 // Connect Storage to Project
-resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = if (isWorkshop) {
+resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (isWorkshop) {
   parent: aiProject
   name: 'storage-connection'
   properties: {
