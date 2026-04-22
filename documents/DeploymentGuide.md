@@ -178,14 +178,14 @@ Depending on your subscription quota and capacity, you can [adjust quota setting
 
   <summary><b>Reusing an Existing Log Analytics Workspace</b></summary>
 
-  Guide to get your [Existing Workspace ID](/documents/re-use-log-analytics.md)
+  Guide to get your [Existing Workspace ID](re-use-log-analytics.md)
 
 </details>
 <details>
 
   <summary><b>Reusing an Existing Azure AI Foundry Project</b></summary>
 
-  Guide to get your [Existing Project ID](/documents/re-use-foundry-project.md)
+  Guide to get your [Existing Project ID](re-use-foundry-project.md)
 
 </details>
 
@@ -248,13 +248,13 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
    
    If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
-7. Once the deployment has completed successfully, copy the 2 bash commands from the terminal (ex. 
+5. Once the deployment has completed successfully, copy the 2 bash commands from the terminal (ex. 
 `bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh` and
 `bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
 
-> **Note**: If you are running this deployment in GitHub Codespaces or VS Code Dev Container or Visual Studio Code (WEB) skip to step 9. 
+> **Note**: If you are running this deployment in GitHub Codespaces or VS Code Dev Container or Visual Studio Code (WEB) skip to step 7. 
 
-8. Create and activate a virtual environment 
+6. Create and activate a virtual environment 
   
     ```shell
     python -m venv .venv
@@ -264,7 +264,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     source .venv/Scripts/activate
     ```
 
-9. Login to Azure
+7. Login to Azure
     ```shell
     az login
     ```
@@ -275,8 +275,8 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     az login --use-device-code
     ```
 
-> **Note**: you will need to open a Git Bash terminal to complete steps 10 and 11.  
-10. Run the bash script from the output of the azd deployment. The script will look like the following:
+> **Note**: you will need to open a Git Bash terminal to complete steps 8 and 9.  
+8. Run the bash script from the output of the azd deployment. The script will look like the following:
     
     ```Shell
     bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
@@ -286,7 +286,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <ai-project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group> <usecase> [<is-workshop>]
     ```
 
-    **Step 10 Parameter Reference:**
+    **Step 8 Parameter Reference:**
 
     | Parameter | azd env Variable | Format / Example |
     |---|---|---|
@@ -299,7 +299,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
     | `<is-workshop>` | `IS_WORKSHOP` | `true` or `false` (defaults to `false`) |
 
-11. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
+9. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
     ```Shell
     bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>
     ```
@@ -309,7 +309,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup> <usecase>
     ```
 
-    **Step 11 Parameter Reference:**
+    **Step 9 Parameter Reference:**
 
     | Parameter | azd env Variable | Format / Example |
     |---|---|---|
@@ -322,9 +322,9 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     | `<resourcegroup>` | `RESOURCE_GROUP_NAME` | Resource group name (e.g., `rg-<envname>`) |
     | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
 
-12. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
+10. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
-13. If you are done trying out the application, you can delete the resources by running `azd down`.
+11. If you are done trying out the application, you can delete the resources by running `azd down`.
 
 
 ## Post Deployment Steps
