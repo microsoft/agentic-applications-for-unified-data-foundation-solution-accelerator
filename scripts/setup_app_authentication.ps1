@@ -365,16 +365,107 @@ Write-Host "    - Own API: user_impersonation" -ForegroundColor Gray
 if (-not $SkipAdminConsent) {
     Write-Host "[6/9] Granting admin consent for API permissions..." -ForegroundColor Yellow
     
-    az ad app permission admin-consent --id $clientId 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  Admin consent granted" -ForegroundColor Green
+    # Wait for Azure AD to propagate the permissions from Step 5
+    Write-Host "  Waiting for Azure AD propagation before granting consent..." -ForegroundColor Gray
+    Start-Sleep -Seconds 10
+    
+    # Get the service principal object ID for our app
+    $spObjectId = az ad sp show --id $clientId --query "id" -o tsv 2>$null
+    if (-not $spObjectId) {
+        Write-Host "  ERROR: Service principal not found for client ID $clientId." -ForegroundColor Red
+        Write-Host "  Cannot grant admin consent without a service principal." -ForegroundColor Yellow
     } else {
-        Write-Host "  Warning: Admin consent failed. This may require manual approval by a tenant admin." -ForegroundColor Yellow
-        Write-Host "  Grant consent manually at:" -ForegroundColor Gray
-        Write-Host "  https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/CallAnAPI/appId/$clientId" -ForegroundColor Cyan
+        # Grant consent per resource using Microsoft Graph oauth2PermissionGrants API
+        # This is more reliable than 'az ad app permission admin-consent' which often
+        # silently fails for multi-resource apps (Power BI, Azure ML, etc.)
+        $resourceApps = @(
+            @{ AppId = "00000003-0000-0000-c000-000000000000"; Scopes = "User.Read Group.Read.All ChannelMessage.Read.All Chat.Read"; Name = "Microsoft Graph" }
+            @{ AppId = "00000009-0000-0000-c000-000000000000"; Scopes = "Workspace.Read.All Dataset.Read.All"; Name = "Power BI Service" }
+            @{ AppId = "18a66f5f-dbdf-4c17-9dd7-1634712a9cbe"; Scopes = "user_impersonation"; Name = "Azure Machine Learning" }
+            @{ AppId = $clientId; Scopes = "user_impersonation"; Name = "Own API" }
+        )
+        
+        $consentSuccess = 0
+        $consentFailed = 0
+        
+        foreach ($resource in $resourceApps) {
+            $resourceSpId = az ad sp show --id $resource.AppId --query "id" -o tsv 2>$null
+            if (-not $resourceSpId) {
+                # Resource service principal may not exist in the tenant; create it
+                Write-Host "    Creating service principal for $($resource.Name)..." -ForegroundColor Gray
+                $resourceSpId = az ad sp create --id $resource.AppId --query "id" -o tsv 2>$null
+                if (-not $resourceSpId) {
+                    Write-Host "    Warning: Could not find or create service principal for $($resource.Name) ($($resource.AppId))." -ForegroundColor Yellow
+                    $consentFailed++
+                    continue
+                }
+                Start-Sleep -Seconds 3
+            }
+            
+            # Check if an oauth2PermissionGrant already exists for this resource
+            $existingGrant = az rest --method GET `
+                --uri "https://graph.microsoft.com/v1.0/oauth2PermissionGrants?\`$filter=clientId eq '$spObjectId' and resourceId eq '$resourceSpId' and consentType eq 'AllPrincipals'" `
+                --query "value[0].id" -o tsv 2>$null
+            
+            if ($existingGrant) {
+                # Update existing grant to ensure scopes are correct
+                $grantBody = @{ scope = $resource.Scopes } | ConvertTo-Json -Compress
+                $grantTempFile = [System.IO.Path]::GetTempFileName()
+                $grantBody | Out-File -FilePath $grantTempFile -Encoding utf8 -NoNewline
+                az rest --method PATCH `
+                    --uri "https://graph.microsoft.com/v1.0/oauth2PermissionGrants/$existingGrant" `
+                    --body "@$grantTempFile" `
+                    --headers "Content-Type=application/json" `
+                    --output none 2>$null
+                $grantExitCode = $LASTEXITCODE
+                Remove-Item $grantTempFile -Force -ErrorAction SilentlyContinue
+                
+                if ($grantExitCode -eq 0) {
+                    Write-Host "    $($resource.Name): consent updated" -ForegroundColor Green
+                    $consentSuccess++
+                } else {
+                    Write-Host "    $($resource.Name): failed to update consent" -ForegroundColor Yellow
+                    $consentFailed++
+                }
+            } else {
+                # Create new oauth2PermissionGrant
+                $grantBody = @{
+                    clientId = $spObjectId
+                    consentType = "AllPrincipals"
+                    resourceId = $resourceSpId
+                    scope = $resource.Scopes
+                } | ConvertTo-Json -Compress
+                
+                $grantTempFile = [System.IO.Path]::GetTempFileName()
+                $grantBody | Out-File -FilePath $grantTempFile -Encoding utf8 -NoNewline
+                az rest --method POST `
+                    --uri "https://graph.microsoft.com/v1.0/oauth2PermissionGrants" `
+                    --body "@$grantTempFile" `
+                    --headers "Content-Type=application/json" `
+                    --output none 2>$null
+                $grantExitCode = $LASTEXITCODE
+                Remove-Item $grantTempFile -Force -ErrorAction SilentlyContinue
+                
+                if ($grantExitCode -eq 0) {
+                    Write-Host "    $($resource.Name): consent granted" -ForegroundColor Green
+                    $consentSuccess++
+                } else {
+                    Write-Host "    $($resource.Name): failed to grant consent" -ForegroundColor Yellow
+                    $consentFailed++
+                }
+            }
+        }
+        
+        if ($consentFailed -gt 0) {
+            Write-Host "  Admin consent: $consentSuccess succeeded, $consentFailed failed." -ForegroundColor Yellow
+            Write-Host "  Grant remaining permissions manually at:" -ForegroundColor Gray
+            Write-Host "  https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/CallAnAPI/appId/$clientId" -ForegroundColor Cyan
+        } else {
+            Write-Host "  Admin consent granted for all $consentSuccess resources" -ForegroundColor Green
+        }
     }
 } else {
-    Write-Host "[6/9] Skipping admin consent (use -SkipAdminConsent:$false to enable)..." -ForegroundColor Yellow
+    Write-Host "[6/9] Skipping admin consent (use -SkipAdminConsent:`$false to enable)..." -ForegroundColor Yellow
     Write-Host "  Grant consent manually at:" -ForegroundColor Gray
     Write-Host "  https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/CallAnAPI/appId/$clientId" -ForegroundColor Cyan
 }
