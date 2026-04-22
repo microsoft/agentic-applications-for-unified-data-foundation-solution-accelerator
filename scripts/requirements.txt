@@ -6,10 +6,12 @@
 azure-identity==1.23.0
 
 # Azure AI Foundry SDK
-azure-ai-projects==2.0.0b3
+azure-ai-projects==2.1.0
 azure-ai-agents==1.2.0b5
-agent-framework-core==1.0.0rc2
-agent-framework-azure-ai==1.0.0rc2
+agent-framework-core==1.1.0
+agent-framework-openai==1.1.0
+agent-framework-azure-ai==1.0.0rc6
+agent-framework-foundry==1.1.0
 
 # Azure Storage (OneLake uploads)
 azure-storage-file-datalake==12.20.0
