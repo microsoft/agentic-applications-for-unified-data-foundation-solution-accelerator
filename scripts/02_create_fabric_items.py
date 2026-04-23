@@ -52,6 +52,8 @@ p.add_argument("--skip-data-agent", action="store_true",
                help="Skip Data Agent creation step")
 p.add_argument("--datasource-type", choices=["ontology", "lakehouse"], default="ontology",
                help="Data source type for Data Agent: 'ontology' (default) or 'lakehouse'")
+p.add_argument("--load-mode", choices=["api", "notebook"], default="notebook",
+               help="How to load CSV files as Delta tables: 'api' (Load Table REST API, no Spark) or 'notebook' (Spark notebook)")
 args = p.parse_args()
 
 WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
@@ -103,6 +105,7 @@ print(f"{'='*60}")
 print(f"Workspace ID: {WORKSPACE_ID}")
 print(f"Scenario: {ontology_config['name']}")
 print(f"Datasource type: {args.datasource_type}")
+print(f"Load mode: {args.load_mode}")
 print(f"Tables: {', '.join(ontology_config['tables'].keys())}")
 
 # ============================================================================
@@ -305,7 +308,7 @@ ontology_id = None
 # ============================================================================
 
 # Calculate total steps dynamically
-total_steps = 5  # Always: Lakehouse, Workspace, Upload, Notebook, Ontology
+total_steps = 5  # Always: Lakehouse, Workspace, Upload, LoadTable, Ontology
 if not args.skip_data_agent:
     total_steps += 2  # Data Agent + Publish
 total_steps += 1  # Save
@@ -392,158 +395,231 @@ print("  Waiting for files to be available...")
 time.sleep(10)
 
 # ============================================================================
-# Step 4: Load CSV Files as Delta Tables via Fabric Notebook
+# Step 4: Load CSV Files as Delta Tables
 # ============================================================================
 
 step += 1
-print(f"\n[{step}/{total_steps}] Loading CSV files as Delta tables via Fabric Notebook...")
 
-table_names = list(ontology_config["tables"].keys())
-spark_code_lines = [
-    "import os",
-    "",
-    f"lakehouse_name = '{lakehouse_name}'",
-    f"table_names = {table_names}",
-    "",
-    "for table_name in table_names:",
-    "    csv_path = f'Files/{table_name}.csv'",
-    "    print(f'Loading {table_name} from {csv_path}...')",
-    "    df = spark.read.option('header', 'true').option('inferSchema', 'true').csv(csv_path)",
-    "    df.write.mode('overwrite').format('delta').saveAsTable(table_name)",
-    "    print(f'  [OK] {table_name}: {df.count()} rows')",
-    "",
-    "print('All tables loaded successfully.')",
-]
-spark_code = "\n".join(spark_code_lines)
+if args.load_mode == "api":
+    # ---- Load Table REST API (no Spark compute needed) ----
+    print(f"\n[{step}/{total_steps}] Loading CSV files as Delta tables via Load Table API (no Spark needed)...")
 
-notebook_name = f"load_tables_{lakehouse_name}"
+    load_table_succeeded = True
+    for table_name in ontology_config["tables"].keys():
+        csv_file = f"{table_name}.csv"
+        relative_path = f"Files/{csv_file}"
+        load_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/lakehouses/{lakehouse_id}/tables/{table_name}/load"
 
-notebook_metadata = {
-    "language_info": {"name": "python"},
-    "trident": {
-        "lakehouse": {
-            "default_lakehouse": lakehouse_id,
-            "default_lakehouse_name": lakehouse_name,
-            "default_lakehouse_workspace_id": WORKSPACE_ID,
-            "known_lakehouses": [{"id": lakehouse_id}]
+        load_payload = {
+            "relativePath": relative_path,
+            "pathType": "File",
+            "mode": "Overwrite",
+            "formatOptions": {
+                "format": "Csv",
+                "header": True,
+                "delimiter": ","
+            }
+        }
+
+        print(f"  Loading {csv_file} -> table '{table_name}'...")
+        max_retries = 3
+        table_loaded = False
+        for attempt in range(1, max_retries + 1):
+            if attempt > 1:
+                print(f"    Retrying (attempt {attempt}/{max_retries})...")
+                time.sleep(10)
+
+            resp = make_request("POST", load_url, json=load_payload)
+
+            if resp.status_code == 200:
+                print(f"  [OK] {table_name} loaded")
+                table_loaded = True
+                break
+            elif resp.status_code == 202:
+                operation_url = resp.headers.get("Location")
+                if operation_url:
+                    try:
+                        wait_for_lro(operation_url, f"Load table {table_name}", timeout=300)
+                        print(f"  [OK] {table_name} loaded")
+                        table_loaded = True
+                        break
+                    except Exception as e:
+                        if attempt < max_retries:
+                            print(f"    [WARN] Load failed (attempt {attempt}): {e}")
+                            continue
+                        print(f"  [FAIL] Failed to load {table_name}: {e}")
+                else:
+                    # No Location header, wait a bit and assume success
+                    time.sleep(15)
+                    print(f"  [OK] {table_name} load initiated")
+                    table_loaded = True
+                    break
+            else:
+                if attempt < max_retries:
+                    print(f"    [WARN] Load request failed (attempt {attempt}): {resp.status_code} {resp.text}")
+                    continue
+                print(f"  [FAIL] Failed to load {table_name}: {resp.status_code} {resp.text}")
+
+        if not table_loaded:
+            load_table_succeeded = False
+            print(f"  [FAIL] Could not load table {table_name} after {max_retries} attempts")
+
+    if not load_table_succeeded:
+        print(f"  [FAIL] Some tables failed to load. Check errors above.")
+        sys.exit(1)
+
+    print(f"  [OK] All tables loaded via Load Table API")
+
+else:
+    # ---- Spark Notebook (requires Fabric compute capacity) ----
+    print(f"\n[{step}/{total_steps}] Loading CSV files as Delta tables via Fabric Notebook...")
+
+    table_names = list(ontology_config["tables"].keys())
+    spark_code_lines = [
+        "import os",
+        "",
+        f"lakehouse_name = '{lakehouse_name}'",
+        f"table_names = {table_names}",
+        "",
+        "for table_name in table_names:",
+        "    csv_path = f'Files/{table_name}.csv'",
+        "    print(f'Loading {table_name} from {csv_path}...')",
+        "    df = spark.read.option('header', 'true').option('inferSchema', 'true').csv(csv_path)",
+        "    df.write.mode('overwrite').format('delta').saveAsTable(table_name)",
+        "    print(f'  [OK] {table_name}: {df.count()} rows')",
+        "",
+        "print('All tables loaded successfully.')",
+    ]
+    spark_code = "\n".join(spark_code_lines)
+
+    notebook_name = f"load_tables_{lakehouse_name}"
+
+    notebook_metadata = {
+        "language_info": {"name": "python"},
+        "trident": {
+            "lakehouse": {
+                "default_lakehouse": lakehouse_id,
+                "default_lakehouse_name": lakehouse_name,
+                "default_lakehouse_workspace_id": WORKSPACE_ID,
+                "known_lakehouses": [{"id": lakehouse_id}]
+            }
         }
     }
-}
 
-notebook_payload_content = {
-    "nbformat": 4,
-    "nbformat_minor": 5,
-    "metadata": notebook_metadata,
-    "cells": [
-        {
-            "cell_type": "code",
-            "source": [spark_code],
-            "metadata": {},
-            "outputs": []
-        }
-    ]
-}
-
-# Check if notebook already exists, delete it to recreate
-print(f"  Creating notebook '{notebook_name}'...")
-existing_nb_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items?type=Notebook"
-existing_nb_resp = make_request("GET", existing_nb_url)
-if existing_nb_resp.status_code == 200:
-    for item in existing_nb_resp.json().get("value", []):
-        if item["displayName"] == notebook_name:
-            del_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items/{item['id']}"
-            make_request("DELETE", del_url)
-            print(f"  Deleted existing notebook '{notebook_name}'")
-            time.sleep(10)
-            break
-
-create_nb_payload = {
-    "displayName": notebook_name,
-    "type": "Notebook",
-    "definition": {
-        "format": "ipynb",
-        "parts": [
+    notebook_payload_content = {
+        "nbformat": 4,
+        "nbformat_minor": 5,
+        "metadata": notebook_metadata,
+        "cells": [
             {
-                "path": "artifact.content.ipynb",
-                "payload": b64encode(notebook_payload_content),
-                "payloadType": "InlineBase64"
+                "cell_type": "code",
+                "source": [spark_code],
+                "metadata": {},
+                "outputs": []
             }
         ]
     }
-}
 
-create_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items"
-
-# Retry notebook creation in case the name is not yet released after deletion
-for nb_attempt in range(5):
-    resp = make_request("POST", create_url, json=create_nb_payload)
-    if resp.status_code == 400 and "NotAvailableYet" in resp.text:
-        wait_secs = 15 * (nb_attempt + 1)
-        print(f"  Name not released yet (attempt {nb_attempt+1}/5). Waiting {wait_secs}s...")
-        time.sleep(wait_secs)
-        continue
-    break
-
-if resp.status_code == 201:
-    notebook_id = resp.json()["id"]
-    print(f"  [OK] Created notebook: {notebook_name} ({notebook_id})")
-elif resp.status_code == 202:
-    operation_url = resp.headers.get("Location")
-    wait_for_lro(operation_url, "Notebook creation")
-    nb_resp = make_request("GET", existing_nb_url)
-    notebook_id = None
-    if nb_resp.status_code == 200:
-        for item in nb_resp.json().get("value", []):
+    # Check if notebook already exists, delete it to recreate
+    print(f"  Creating notebook '{notebook_name}'...")
+    existing_nb_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items?type=Notebook"
+    existing_nb_resp = make_request("GET", existing_nb_url)
+    if existing_nb_resp.status_code == 200:
+        for item in existing_nb_resp.json().get("value", []):
             if item["displayName"] == notebook_name:
-                notebook_id = item["id"]
+                del_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items/{item['id']}"
+                make_request("DELETE", del_url)
+                print(f"  Deleted existing notebook '{notebook_name}'")
+                time.sleep(10)
                 break
-    if not notebook_id:
-        print(f"  [FAIL] Could not find created notebook")
+
+    create_nb_payload = {
+        "displayName": notebook_name,
+        "type": "Notebook",
+        "definition": {
+            "format": "ipynb",
+            "parts": [
+                {
+                    "path": "artifact.content.ipynb",
+                    "payload": b64encode(notebook_payload_content),
+                    "payloadType": "InlineBase64"
+                }
+            ]
+        }
+    }
+
+    create_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items"
+
+    # Retry notebook creation in case the name is not yet released after deletion
+    for nb_attempt in range(5):
+        resp = make_request("POST", create_url, json=create_nb_payload)
+        if resp.status_code == 400 and "NotAvailableYet" in resp.text:
+            wait_secs = 15 * (nb_attempt + 1)
+            print(f"  Name not released yet (attempt {nb_attempt+1}/5). Waiting {wait_secs}s...")
+            time.sleep(wait_secs)
+            continue
+        break
+
+    if resp.status_code == 201:
+        notebook_id = resp.json()["id"]
+        print(f"  [OK] Created notebook: {notebook_name} ({notebook_id})")
+    elif resp.status_code == 202:
+        operation_url = resp.headers.get("Location")
+        wait_for_lro(operation_url, "Notebook creation")
+        nb_resp = make_request("GET", existing_nb_url)
+        notebook_id = None
+        if nb_resp.status_code == 200:
+            for item in nb_resp.json().get("value", []):
+                if item["displayName"] == notebook_name:
+                    notebook_id = item["id"]
+                    break
+        if not notebook_id:
+            print(f"  [FAIL] Could not find created notebook")
+            sys.exit(1)
+        print(f"  [OK] Created notebook: {notebook_name} ({notebook_id})")
+    else:
+        print(f"  [FAIL] Failed to create notebook: {resp.status_code} {resp.text}")
         sys.exit(1)
-    print(f"  [OK] Created notebook: {notebook_name} ({notebook_id})")
-else:
-    print(f"  [FAIL] Failed to create notebook: {resp.status_code} {resp.text}")
-    sys.exit(1)
 
-print(f"  Running notebook to load tables...")
-run_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items/{notebook_id}/jobs/instances?jobType=RunNotebook"
+    print(f"  Running notebook to load tables...")
+    run_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items/{notebook_id}/jobs/instances?jobType=RunNotebook"
 
-max_retries = 3
-notebook_succeeded = False
-for attempt in range(1, max_retries + 1):
-    if attempt > 1:
-        print(f"  Retrying notebook execution (attempt {attempt}/{max_retries})...")
-        time.sleep(30)
-    run_resp = make_request("POST", run_url)
+    max_retries = 3
+    notebook_succeeded = False
+    for attempt in range(1, max_retries + 1):
+        if attempt > 1:
+            print(f"  Retrying notebook execution (attempt {attempt}/{max_retries})...")
+            time.sleep(30)
+        run_resp = make_request("POST", run_url)
 
-    if run_resp.status_code in [200, 202]:
-        operation_url = run_resp.headers.get("Location")
-        if operation_url:
-            try:
-                wait_for_lro(operation_url, "Notebook execution", timeout=600)
+        if run_resp.status_code in [200, 202]:
+            operation_url = run_resp.headers.get("Location")
+            if operation_url:
+                try:
+                    wait_for_lro(operation_url, "Notebook execution", timeout=600)
+                    print(f"  [OK] Notebook execution completed - all tables loaded")
+                    notebook_succeeded = True
+                    break
+                except Exception as e:
+                    if attempt < max_retries:
+                        print(f"  [WARN] Spark error (attempt {attempt}/{max_retries}): retrying...")
+                        continue
+                    raise
+            else:
+                print("  Waiting for notebook execution...")
+                time.sleep(60)
                 print(f"  [OK] Notebook execution completed - all tables loaded")
                 notebook_succeeded = True
                 break
-            except Exception as e:
-                if attempt < max_retries:
-                    print(f"  [WARN] Spark error (attempt {attempt}/{max_retries}): retrying...")
-                    continue
-                raise
         else:
-            print("  Waiting for notebook execution...")
-            time.sleep(60)
-            print(f"  [OK] Notebook execution completed - all tables loaded")
-            notebook_succeeded = True
-            break
-    else:
-        print(f"  [WARN] Failed to run notebook: {run_resp.status_code} {run_resp.text}")
-        if attempt == max_retries:
-            print(f"  [FAIL] All {max_retries} attempts to run notebook failed.")
-            sys.exit(1)
+            print(f"  [WARN] Failed to run notebook: {run_resp.status_code} {run_resp.text}")
+            if attempt == max_retries:
+                print(f"  [FAIL] All {max_retries} attempts to run notebook failed.")
+                sys.exit(1)
 
-if not notebook_succeeded:
-    print(f"  [FAIL] Notebook execution failed after {max_retries} attempts.")
-    sys.exit(1)
+    if not notebook_succeeded:
+        print(f"  [FAIL] Notebook execution failed after {max_retries} attempts.")
+        sys.exit(1)
 
 print("  Waiting for tables to be indexed...")
 time.sleep(30)
