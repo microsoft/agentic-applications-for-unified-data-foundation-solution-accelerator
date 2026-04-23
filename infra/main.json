@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "2129642045338742014"
+      "templateHash": "11151180340377947802"
     }
   },
   "parameters": {
@@ -148,7 +148,7 @@
     },
     "imageTag": {
       "type": "string",
-      "defaultValue": "latest_v2"
+      "defaultValue": "[if(parameters('isWorkshop'), 'latest_workshop', 'latest_v2')]"
     },
     "deployApp": {
       "type": "bool",
@@ -208,7 +208,7 @@
     },
     "acrName": {
       "type": "string",
-      "defaultValue": "dataagentscontainerreg",
+      "defaultValue": "[if(parameters('isWorkshop'), 'dataagentscontainerregworkshop', 'dataagentscontainerreg')]",
       "metadata": {
         "description": "Name of the Azure Container Registry"
       }
@@ -656,7 +656,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "10182101882903139683"
+              "templateHash": "4369483223004606662"
             }
           },
           "parameters": {
@@ -2407,7 +2407,7 @@
               "metadata": {
                 "description": "The principal ID of the AI Foundry project managed identity."
               },
-              "value": "[if(not(empty(variables('existingAIProjectName'))), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'assignFoundryRoleToMI'), '2025-04-01').outputs.aiProjectPrincipalId.value, reference(resourceId('Microsoft.CognitiveServices/accounts/projects', variables('aiServicesName'), variables('aiProjectName')), '2025-04-01-preview', 'full').identity.principalId)]"
+              "value": "[if(not(empty(variables('existingAIProjectName'))), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'assignOpenAIRoleToAISearchExisting'), '2025-04-01').outputs.aiProjectPrincipalId.value, reference(resourceId('Microsoft.CognitiveServices/accounts/projects', variables('aiServicesName'), variables('aiProjectName')), '2025-04-01-preview', 'full').identity.principalId)]"
             }
           }
         }
@@ -2442,7 +2442,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "9983501054937831856"
+              "templateHash": "1345542987569517937"
             }
           },
           "parameters": {
@@ -2496,8 +2496,8 @@
                 "count": "[length(variables('containers'))]"
               },
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
-              "apiVersion": "2024-11-15",
-              "name": "[format('{0}/{1}/{2}', parameters('accountName'), variables('databaseName'), variables('containers')[copyIndex()].name)]",
+              "apiVersion": "2022-05-15",
+              "name": "[format('{0}/{1}/{2}', split(format('{0}/{1}', parameters('accountName'), variables('databaseName')), '/')[0], split(format('{0}/{1}', parameters('accountName'), variables('databaseName')), '/')[1], variables('containers')[copyIndex()].name)]",
               "properties": {
                 "resource": {
                   "id": "[variables('containers')[copyIndex()].id]",
@@ -2510,12 +2510,12 @@
                 "options": {}
               },
               "dependsOn": [
-                "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', parameters('accountName'), variables('databaseName'))]"
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', split(format('{0}/{1}', parameters('accountName'), variables('databaseName')), '/')[0], split(format('{0}/{1}', parameters('accountName'), variables('databaseName')), '/')[1])]"
               ]
             },
             {
               "type": "Microsoft.DocumentDB/databaseAccounts",
-              "apiVersion": "2024-11-15",
+              "apiVersion": "2022-08-15",
               "name": "[parameters('accountName')]",
               "kind": "[parameters('kind')]",
               "location": "[parameters('solutionLocation')]",
@@ -2545,7 +2545,7 @@
             },
             {
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
-              "apiVersion": "2024-11-15",
+              "apiVersion": "2022-05-15",
               "name": "[format('{0}/{1}', parameters('accountName'), variables('databaseName'))]",
               "properties": {
                 "resource": {
