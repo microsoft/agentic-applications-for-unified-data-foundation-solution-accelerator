@@ -6,6 +6,8 @@
       "name": "bicep",
       "version": "0.41.2.15936",
       "templateHash": "9672645937662746895"
+      "version": "0.42.1.51946",
+      "templateHash": "2129642045338742014"
     }
   },
   "parameters": {
@@ -149,6 +151,7 @@
     "imageTag": {
       "type": "string",
       "defaultValue": "latest_v2"
+      "defaultValue": "latest_v2"
     },
     "deployApp": {
       "type": "bool",
@@ -208,6 +211,7 @@
     },
     "acrName": {
       "type": "string",
+      "defaultValue": "dataagentscontainerreg",
       "defaultValue": "dataagentscontainerreg",
       "metadata": {
         "description": "Name of the Azure Container Registry"
@@ -657,6 +661,8 @@
               "name": "bicep",
               "version": "0.41.2.15936",
               "templateHash": "8591463010800502990"
+              "version": "0.42.1.51946",
+              "templateHash": "10182101882903139683"
             }
           },
           "parameters": {
@@ -2408,6 +2414,7 @@
                 "description": "The principal ID of the AI Foundry project managed identity."
               },
               "value": "[if(not(empty(variables('existingAIProjectName'))), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'assignOpenAIRoleToAISearchExisting'), '2025-04-01').outputs.aiProjectPrincipalId.value, reference(resourceId('Microsoft.CognitiveServices/accounts/projects', variables('aiServicesName'), variables('aiProjectName')), '2025-12-01', 'full').identity.principalId)]"
+              "value": "[if(not(empty(variables('existingAIProjectName'))), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'assignFoundryRoleToMI'), '2025-04-01').outputs.aiProjectPrincipalId.value, reference(resourceId('Microsoft.CognitiveServices/accounts/projects', variables('aiServicesName'), variables('aiProjectName')), '2025-04-01-preview', 'full').identity.principalId)]"
             }
           }
         }
@@ -2443,6 +2450,8 @@
               "name": "bicep",
               "version": "0.41.2.15936",
               "templateHash": "9967851409498533467"
+              "version": "0.42.1.51946",
+              "templateHash": "9983501054937831856"
             }
           },
           "parameters": {
@@ -2498,6 +2507,8 @@
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
               "apiVersion": "2025-10-15",
               "name": "[format('{0}/{1}/{2}', parameters('accountName'), variables('databaseName'), variables('containers')[copyIndex()].name)]",
+              "apiVersion": "2024-11-15",
+              "name": "[format('{0}/{1}/{2}', parameters('accountName'), variables('databaseName'), variables('containers')[copyIndex()].name)]",
               "properties": {
                 "resource": {
                   "id": "[variables('containers')[copyIndex()].id]",
@@ -2511,11 +2522,13 @@
               },
               "dependsOn": [
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', parameters('accountName'), variables('databaseName'))]"
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', parameters('accountName'), variables('databaseName'))]"
               ]
             },
             {
               "type": "Microsoft.DocumentDB/databaseAccounts",
               "apiVersion": "2025-10-15",
+              "apiVersion": "2024-11-15",
               "name": "[parameters('accountName')]",
               "kind": "[parameters('kind')]",
               "location": "[parameters('solutionLocation')]",
@@ -2546,6 +2559,7 @@
             {
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
               "apiVersion": "2025-10-15",
+              "apiVersion": "2024-11-15",
               "name": "[format('{0}/{1}', parameters('accountName'), variables('databaseName'))]",
               "properties": {
                 "resource": {
