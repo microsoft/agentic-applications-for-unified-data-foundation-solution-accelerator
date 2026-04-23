@@ -215,7 +215,7 @@ public class HistoryFabController : ControllerBase
                 }
                 catch (OperationCanceledException)
                 {
-                    // Request was cancelled, skip title update
+                    // Request was cancelled, propagate cancellation
                     throw;
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -271,7 +271,7 @@ public class HistoryFabController : ControllerBase
         catch (OperationCanceledException)
         {
             // Client disconnected or request was cancelled
-            return Problem(statusCode:400, title:"Request Cancelled", detail:"The operation was cancelled.");
+            return StatusCode(499);
         }
         catch (Exception ex) when (ex is not UnauthorizedAccessException && ex is not OperationCanceledException)
         {
