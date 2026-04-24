@@ -730,7 +730,7 @@ def create_custom_keys_connection(credential, connection_name, custom_keys=None,
 def create_connections(credential):
     """Create all required MCP and CustomKeys project connections."""
     # Fabric Data Agent preview CustomKeys connection (only in data agent mode)
-    if USE_DATA_AGENT and DATA_AGENT_ID:
+    if USE_DATA_AGENT and USE_USER_ACCESS_TOKEN:
         fabric_preview_conn_name = os.getenv(
             "FABRIC_DATA_AGENT_PREVIEW_CONNECTION_NAME",
             f"fabric-dataagent-preview-{DATA_AGENT_ID[:6]}"
