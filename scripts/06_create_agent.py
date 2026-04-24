@@ -222,13 +222,16 @@ def load_fabric_ids(config_dir, use_data_agent):
                 f"https://api.fabric.microsoft.com/v1/mcp/workspaces/"
                 f"{FABRIC_WORKSPACE_ID}/dataagents/{DATA_AGENT_ID}/agent"
             )
-        else:
+        elif not USE_USER_ACCESS_TOKEN and DATA_AGENT_ID:
             # Scenario 2: DATA_AGENT_ID empty → will use MCPTool via MCP connection
-            DATA_AGENT_MCP_ENDPOINT = os.getenv("DATA_AGENT_MCP_ENDPOINT")
-            if not DATA_AGENT_MCP_ENDPOINT:
-                print("WARN: data_agent_id not found and DATA_AGENT_MCP_ENDPOINT not set")
-                print("      Data Agent MCP tool cannot be configured")
-                print("      Run 02_create_fabric_items.py or set DATA_AGENT_MCP_ENDPOINT env var")
+            DATA_AGENT_MCP_ENDPOINT = (
+                f"https://api.fabric.microsoft.com/v1/mcp/workspaces/"
+                f"{FABRIC_WORKSPACE_ID}/dataagents/{DATA_AGENT_ID}/agent"
+            )
+        else:
+            print("WARN: data_agent_id not found and DATA_AGENT_MCP_ENDPOINT not set")
+            print("      Data Agent MCP tool cannot be configured")
+            print("      Run 02_create_fabric_items.py or set DATA_AGENT_MCP_ENDPOINT env var")
 
 
 if USE_FABRIC:
@@ -730,6 +733,7 @@ def create_custom_keys_connection(credential, connection_name, custom_keys=None,
 def create_connections(credential):
     """Create all required MCP and CustomKeys project connections."""
     # Fabric Data Agent preview CustomKeys connection (only in data agent mode)
+    print("\nCreating project connections...")
     if USE_DATA_AGENT and USE_USER_ACCESS_TOKEN:
         fabric_preview_conn_name = os.getenv(
             "FABRIC_DATA_AGENT_PREVIEW_CONNECTION_NAME",
@@ -762,7 +766,7 @@ def create_connections(credential):
             try:
                 if create_mcp_connection(
                     credential, DATA_AGENT_MCP_CONNECTION_NAME,
-                    DATA_AGENT_MCP_ENDPOINT, "https://api.fabric.microsoft.com/", auth_type="UserEntraToken"
+                    DATA_AGENT_MCP_ENDPOINT, "https://api.fabric.microsoft.com/"
                 ):
                     print(f"[OK] Data Agent MCP connection '{DATA_AGENT_MCP_CONNECTION_NAME}' created")
                 else:
