@@ -511,19 +511,9 @@ async def conversation(request: Request):
         query = request_json.get("query")
         authenticated_user = get_authenticated_user_details(request_headers=request.headers)
         user_id = authenticated_user.get("user_principal_id", "")
+        
         # Get user's access token for OBO flow (needed for Work IQ Teams)
         user_assertion = authenticated_user.get("aad_access_token")
-        
-        # Debug: Log received headers for token troubleshooting
-        headers_dict = {k.lower(): v for k, v in request.headers.items()}
-        has_easyauth_token = 'x-ms-token-aad-access-token' in headers_dict
-        has_zumo_token = 'x-zumo-auth' in headers_dict
-        has_auth_header = 'authorization' in headers_dict
-        logger.info("POST /chat headers: x-ms-token-aad-access-token=%s, x-zumo-auth=%s, authorization=%s, using=%s", 
-                    'PRESENT' if has_easyauth_token else 'MISSING',
-                    'PRESENT' if has_zumo_token else 'MISSING',
-                    'PRESENT' if has_auth_header else 'MISSING',
-                    'easyauth' if has_easyauth_token else ('zumo' if has_zumo_token else 'none'))
 
         # Validate required parameters
         if not query:

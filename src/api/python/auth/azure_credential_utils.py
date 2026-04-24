@@ -31,7 +31,6 @@ async def get_azure_credential_async(client_id=None, user_assertion=None):
         obo_tenant_id = os.getenv("OBO_TENANT_ID")
         
         if obo_client_id and obo_client_secret and obo_tenant_id:
-            logger.info("Using OnBehalfOfCredential for user token flow")
             return AioOnBehalfOfCredential(
                 tenant_id=obo_tenant_id,
                 client_id=obo_client_id,

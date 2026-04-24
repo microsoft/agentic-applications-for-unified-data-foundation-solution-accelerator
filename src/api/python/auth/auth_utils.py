@@ -2,9 +2,6 @@ import base64
 import json
 import logging
 
-logger = logging.getLogger(__name__)
-
-
 def get_authenticated_user_details(request_headers):
     user_object = {}
 
@@ -32,16 +29,6 @@ def get_authenticated_user_details(request_headers):
     easyauth_token = normalized_headers.get("x-ms-token-aad-access-token")
     zumo_token = normalized_headers.get("x-zumo-auth")
     
-    if easyauth_token:
-        user_object["aad_access_token"] = easyauth_token
-        logger.info("Token source: x-ms-token-aad-access-token (EasyAuth)")
-    elif zumo_token:
-        user_object["aad_access_token"] = zumo_token
-        logger.info("Token source: x-zumo-auth (frontend)")
-    else:
-        user_object["aad_access_token"] = None
-        logger.warning("Token source: NONE - no access token found")
-
     return user_object
 
 

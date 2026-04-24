@@ -33,12 +33,11 @@ httpClient.addRequestInterceptor((config) => {
   // Add access token for cross-domain auth and OBO flow
   // EasyAuth accepts Bearer token in Authorization header for cross-origin requests
   const accessToken = getAccessToken();
-  console.log('[Request] accessToken from sessionStorage:', accessToken ? `${accessToken.substring(0, 20)}...` : 'NULL');
+
   if (accessToken && config.headers) {
     (config.headers as any)['Authorization'] = `Bearer ${accessToken}`;
     // Also send as X-ZUMO-AUTH for App Service EasyAuth compatibility
     (config.headers as any)['X-ZUMO-AUTH'] = accessToken;
-    console.log('[Request] Added X-ZUMO-AUTH header');
   } else {
     console.log('[Request] NO token - Authorization and X-ZUMO-AUTH headers NOT added');
   }
@@ -66,9 +65,6 @@ export async function getUserInfo(): Promise<UserInfo[]> {
   }
   const payload = await response.json();
   
-  // Debug: Log the full auth/me response to understand token availability
-  console.log('[Auth] /.auth/me response:', JSON.stringify(payload, null, 2));
-  
   const userClaims = payload[0]?.user_claims || [];
   const objectIdClaim = userClaims.find(
     (claim: any) =>
@@ -80,14 +76,8 @@ export async function getUserInfo(): Promise<UserInfo[]> {
   }
   // Store access token for OBO flow (needed for Work IQ Teams)
   const accessToken = payload[0]?.access_token;
-  console.log('[Auth] access_token present:', !!accessToken);
-  console.log('[Auth] access_token value:', accessToken ? `${accessToken.substring(0, 30)}...` : 'NULL');
   if (accessToken) {
     setAccessToken(accessToken);
-    console.log('[Auth] Token stored in sessionStorage');
-    // Verify it was stored
-    const storedToken = getAccessToken();
-    console.log('[Auth] Verified stored token:', storedToken ? `${storedToken.substring(0, 30)}...` : 'NULL');
   } else {
     console.log('[Auth] NO access_token to store!');
   }
