@@ -12,6 +12,12 @@ python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-worksp
 
 > **Note:** If you omit `--fabric-workspace-id`, the script will prompt you for it interactively. Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
+> **Option — auto-create workspace:** If you set `azd env set CREATE_FABRIC_WORKSPACE true` before `azd up`, the workspace is created for you and you can omit `--fabric-workspace-id`:
+>
+> ```bash
+> python scripts/00_build_solution.py --from 02
+> ```
+
 Azure Only Mode (if you ran `azd env set AZURE_ENV_ONLY true` before deploying)
 ```bash
 python scripts/00_build_solution.py --from 03

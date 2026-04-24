@@ -45,6 +45,9 @@ python -c "import azure.ai.projects; print('Ready')"
 !!! note "Using Azure-Only Mode?"
     If you set `AZURE_ENV_ONLY=true` before deployment, **skip this section**. Fabric configuration is not required when using Azure SQL.
 
+!!! tip "Workspace auto-created?"
+    If you set `CREATE_FABRIC_WORKSPACE=true` before running `azd up` (see [Fabric Setup → Path A](02-setup-fabric.md#path-a--auto-provision-everything-recommended)), you can **skip this section entirely** — the build script creates the workspace and discovers its ID automatically. Jump to [Build solution](04-run-scenario.md) and omit `--fabric-workspace-id` when you run it.
+
 ### Get Your Workspace ID
 
 1. Go to [Microsoft Fabric](https://app.fabric.microsoft.com/)
@@ -63,7 +66,7 @@ Before proceeding:
 - [x] `azd up` completed successfully
 - [x] Python environment activated
 - [x] Dependencies installed
-- [x] Fabric workspace ID noted (skip if using Azure-only mode)
+- [x] Fabric workspace ID noted (skip if using Azure-only mode or auto-created workspace)
 
 !!! success "Ready to Run"
     Continue to the next step to see it in action.

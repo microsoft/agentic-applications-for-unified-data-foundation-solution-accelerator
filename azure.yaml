@@ -13,19 +13,41 @@ metadata:
   template: agentic-applications-for-unified-data-foundation@1.1
 
 hooks:
+  predown:
+    windows:
+      run: |
+        $createWorkspace = $env:CREATE_FABRIC_WORKSPACE
+        if ($createWorkspace -eq "true") {
+            python scripts/02_create_fabric_items.py --cleanup
+        } else {
+            Write-Host "Skipping Fabric workspace cleanup (CREATE_FABRIC_WORKSPACE is not true)."
+        }
+      shell: pwsh
+      continueOnError: true
+      interactive: true
+    posix:
+      run: |
+        if [ "${CREATE_FABRIC_WORKSPACE:-}" = "true" ]; then
+            python scripts/02_create_fabric_items.py --cleanup
+        else
+            echo "Skipping Fabric workspace cleanup (CREATE_FABRIC_WORKSPACE is not true)."
+        fi
+      shell: sh
+      continueOnError: true
+      interactive: true
   postprovision:
     windows:
       run: |
         $isWorkshop = $env:IS_WORKSHOP
         $deployApp = $env:AZURE_ENV_DEPLOY_APP
+        $azureEnvOnly = $env:AZURE_ENV_ONLY
 
         if (-not ($isWorkshop -eq "true" -and $deployApp -ne "true")) {
             Write-Host "Web app URL: "
             Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
         }
-        if ($isWorkshop -eq "true") {
-            Write-Host ""
-        } else {
+
+        if ($isWorkshop -ne "true") {
             Write-Host "`nRun the following commands in the bash terminal:"
             Write-Host "1. Create agents:"
             Write-Host "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
@@ -39,15 +61,16 @@ hooks:
       interactive: true
     posix:
       run: |
-        if [ "$IS_WORKSHOP" != "true" ] || [ "$AZURE_ENV_DEPLOY_APP" = "true" ]; then
+        IS_WORKSHOP_VAL="${IS_WORKSHOP:-}"
+        AZURE_ENV_ONLY_VAL="${AZURE_ENV_ONLY:-}"
+
+        if [ "$IS_WORKSHOP_VAL" != "true" ] || [ "$AZURE_ENV_DEPLOY_APP" = "true" ]; then
             echo "Web app URL: "
             echo $WEB_APP_URL
             echo ""
         fi
 
-        if [ "$IS_WORKSHOP" = "true" ]; then
-            echo ""
-        else
+        if [ "$IS_WORKSHOP_VAL" != "true" ]; then
             echo "Run the following commands in the bash terminal:"
             echo "1. Create agents:"
             echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"

@@ -29,6 +29,11 @@ import base64
 import uuid
 from datetime import datetime
 
+# Ensure UTF-8 output on Windows (avoids cp1252 encoding errors with emoji)
+if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 # Load environment from azd + project .env
 from load_env import load_all_env, get_data_folder
 load_all_env()
@@ -52,14 +57,269 @@ p.add_argument("--skip-data-agent", action="store_true",
                help="Skip Data Agent creation step")
 p.add_argument("--datasource-type", choices=["ontology", "lakehouse"], default="ontology",
                help="Data source type for Data Agent: 'ontology' (default) or 'lakehouse'")
+p.add_argument("--cleanup", action="store_true",
+               help="Delete Fabric workspace (used by azd down predown hook)")
+p.add_argument("--yes", "-y", action="store_true",
+               help="Skip confirmation prompts (for non-interactive/CI environments)")
 args = p.parse_args()
 
-WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
-if not WORKSPACE_ID:
-    print("ERROR: FABRIC_WORKSPACE_ID not set in .env")
-    sys.exit(1)
+# ============================================================================
+# Authentication
+# ============================================================================
 
-# Get data folder - use arg if provided, else from .env with proper path resolution
+def get_headers(max_retries=3, retry_delay=5):
+    """Get fresh headers with Fabric API token. Retries with exponential backoff on failure."""
+    credential = AzureCliCredential()
+    for attempt in range(1, max_retries + 1):
+        try:
+            token = credential.get_token("https://api.fabric.microsoft.com/.default").token
+            return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        except Exception as e:
+            if attempt < max_retries:
+                credential = AzureCliCredential()
+                wait = retry_delay * (2 ** (attempt - 1))
+                print(f"  [RETRY] Token acquisition attempt {attempt}/{max_retries} failed: {e}")
+                print(f"  Retrying in {wait} seconds...")
+                time.sleep(wait)
+            else:
+                print(f"  [FAIL] Token acquisition failed after {max_retries} attempts: {e}")
+                raise
+    raise RuntimeError("Failed to acquire token after all retries")
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+FABRIC_API_BASE = "https://api.fabric.microsoft.com/v1"
+
+def make_request(method, url, **kwargs):
+    """Make request with retry logic for 429 rate limiting"""
+    kwargs.setdefault("timeout", 60)
+    max_retries = 5
+    for attempt in range(max_retries):
+        response = requests.request(method, url, headers=get_headers(), **kwargs)
+        if response.status_code == 429:
+            retry_after = int(response.headers.get("Retry-After", 30))
+            print(f"  Rate limited. Waiting {retry_after}s...")
+            time.sleep(retry_after)
+            continue
+        return response
+    return response
+
+# ============================================================================
+# Workspace Helpers
+# ============================================================================
+
+def get_capacity_by_name(capacity_name):
+    """Look up a Fabric capacity by name (case-insensitive). Returns capacity dict or None."""
+    resp = make_request("GET", f"{FABRIC_API_BASE}/capacities")
+    if resp.status_code == 200:
+        for cap in resp.json().get("value", []):
+            if cap.get("displayName", "").lower() == capacity_name.lower():
+                return cap
+    return None
+
+def get_workspace_by_name(workspace_name):
+    """Look up a Fabric workspace by name (case-insensitive). Returns workspace dict or None."""
+    resp = make_request("GET", f"{FABRIC_API_BASE}/workspaces")
+    if resp.status_code == 200:
+        for ws in resp.json().get("value", []):
+            if ws.get("displayName", "").lower() == workspace_name.lower():
+                return ws
+    return None
+
+def create_workspace_api(workspace_name):
+    """Create a new Fabric workspace. Returns workspace ID."""
+    resp = make_request("POST", f"{FABRIC_API_BASE}/workspaces", json={"displayName": workspace_name})
+    if resp.status_code in [200, 201]:
+        workspace_id = resp.json().get("id")
+        if not workspace_id:
+            raise Exception(f"Workspace creation returned no ID: {resp.text}")
+        return workspace_id
+    raise Exception(f"Failed to create workspace: {resp.status_code} {resp.text}")
+
+def assign_workspace_to_capacity(workspace_id, capacity_id):
+    """Assign a workspace to a Fabric capacity."""
+    resp = make_request("POST", f"{FABRIC_API_BASE}/workspaces/{workspace_id}/assignToCapacity",
+                        json={"capacityId": capacity_id})
+    if resp.status_code not in [200, 201, 202]:
+        raise Exception(f"Failed to assign workspace to capacity: {resp.status_code} {resp.text}")
+
+def delete_workspace_api(workspace_id):
+    """Delete a Fabric workspace by ID."""
+    resp = make_request("DELETE", f"{FABRIC_API_BASE}/workspaces/{workspace_id}")
+    if resp.status_code in [200, 202, 204]:
+        return True
+    raise Exception(f"Failed to delete workspace: {resp.status_code} {resp.text}")
+
+def setup_workspace(capacity_name, workspace_name):
+    """Create or retrieve a Fabric workspace and assign it to a capacity. Returns workspace ID."""
+    print(f"  Looking up capacity: {capacity_name}")
+    capacity = get_capacity_by_name(capacity_name)
+    if not capacity:
+        raise Exception(f"Capacity '{capacity_name}' not found")
+
+    capacity_id = capacity["id"]
+    print(f"  [OK] Found capacity: {capacity_name} ({capacity_id})")
+
+    print(f"  Checking if workspace '{workspace_name}' exists...")
+    workspace = get_workspace_by_name(workspace_name)
+
+    if workspace:
+        workspace_id = workspace["id"]
+        print(f"  [OK] Workspace already exists: {workspace_name} ({workspace_id})")
+
+        current_capacity_id = workspace.get("capacityId")
+        if current_capacity_id == capacity_id:
+            print(f"  [OK] Workspace already assigned to capacity: {capacity_name}")
+        else:
+            print(f"  Assigning workspace to capacity: {capacity_name}")
+            try:
+                assign_workspace_to_capacity(workspace_id, capacity_id)
+                print(f"  [OK] Successfully assigned workspace to capacity")
+            except Exception:
+                # Verify actual state on failure
+                refreshed = get_workspace_by_name(workspace_name)
+                if refreshed and refreshed.get("capacityId") == capacity_id:
+                    print(f"  [WARN] Assignment call failed but workspace is on correct capacity. Continuing...")
+                else:
+                    raise
+    else:
+        print(f"  Creating new workspace: {workspace_name}")
+        workspace_id = create_workspace_api(workspace_name)
+        print(f"  [OK] Created workspace: {workspace_name} ({workspace_id})")
+
+        print(f"  Assigning workspace to capacity: {capacity_name}")
+        assign_workspace_to_capacity(workspace_id, capacity_id)
+        print(f"  [OK] Successfully assigned workspace to capacity")
+
+    return workspace_id
+
+# ============================================================================
+# Workspace Cleanup (--cleanup mode)
+# ============================================================================
+
+def run_cleanup():
+    """Delete Fabric workspace if one was created. Called by azd down predown hook."""
+    workspace_id = os.getenv("FABRIC_WORKSPACE_ID", "").strip()
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+
+    if not workspace_id and os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("FABRIC_WORKSPACE_ID"):
+                    workspace_id = line.split("=", 1)[1].strip().strip("'\"")
+                    break
+
+    if not workspace_id:
+        print("  No FABRIC_WORKSPACE_ID found. Skipping workspace cleanup.")
+        return
+
+    print(f"\n{'='*60}")
+    print(f"Fabric Workspace Cleanup")
+    print(f"{'='*60}")
+    print(f"  Workspace ID: {workspace_id}")
+
+    try:
+        resp = make_request("GET", f"{FABRIC_API_BASE}/workspaces/{workspace_id}")
+
+        if resp.status_code == 404:
+            print(f"  [OK] Workspace {workspace_id} not found (already deleted).")
+            return
+
+        if resp.status_code == 200:
+            ws_name = resp.json().get("displayName", "Unknown")
+            print(f"  Workspace:    {ws_name}")
+
+            confirm = "y" if args.yes else input(f"\n  Delete workspace '{ws_name}' ({workspace_id})? [y/N]: ").strip().lower()
+            if confirm != "y":
+                print("  Skipped workspace deletion.")
+                return
+
+            delete_workspace_api(workspace_id)
+            print(f"  [OK] Workspace '{ws_name}' deleted successfully.")
+
+            # Clear persisted workspace ID so next run auto-creates
+            os.environ.pop("FABRIC_WORKSPACE_ID", None)
+            if os.path.exists(env_path):
+                from dotenv import set_key
+                set_key(env_path, "FABRIC_WORKSPACE_ID", "")
+                print("  [OK] Cleared FABRIC_WORKSPACE_ID from scripts/.env")
+            # Also clear from azd env
+            try:
+                import subprocess as _sp
+                _sp.run(["azd", "env", "set", "FABRIC_WORKSPACE_ID", ""], check=True, capture_output=True)
+                print("  [OK] Cleared FABRIC_WORKSPACE_ID from azd env")
+            except Exception:
+                pass
+        else:
+            print(f"  [WARN] Could not verify workspace: {resp.status_code}")
+            print("  Skipping deletion to be safe.")
+
+    except Exception as exc:
+        print(f"  [WARN] Failed to delete workspace: {exc}")
+        print("  You can delete it manually from https://app.fabric.microsoft.com")
+
+if args.cleanup:
+    try:
+        run_cleanup()
+    except KeyboardInterrupt:
+        print("\nCleanup interrupted by user")
+    sys.exit(0)
+
+# ============================================================================
+# Workspace Setup
+# ============================================================================
+
+create_workspace_flag = os.getenv("CREATE_FABRIC_WORKSPACE", "false").strip().lower() == "true"
+
+if create_workspace_flag:
+    capacity_name = os.getenv("AZURE_FABRIC_CAPACITY_NAME", "").strip()
+    if not capacity_name:
+        print("ERROR: CREATE_FABRIC_WORKSPACE is true but AZURE_FABRIC_CAPACITY_NAME is not set.")
+        print("       Run: azd env set AZURE_FABRIC_CAPACITY_NAME <your-capacity-name>")
+        sys.exit(1)
+
+    solution_suffix = os.getenv("SOLUTION_SUFFIX", "").strip()
+    workspace_name = os.getenv("FABRIC_WORKSPACE_NAME") or f"Agentic Apps UDF - {solution_suffix or args.solutionname}"
+
+    print(f"\nCreating Fabric Workspace...")
+    print(f"  Capacity:  {capacity_name}")
+    print(f"  Workspace: {workspace_name}")
+
+    try:
+        WORKSPACE_ID = setup_workspace(
+            capacity_name=capacity_name,
+            workspace_name=workspace_name,
+        )
+    except Exception as exc:
+        print(f"  [FAIL] Workspace creation failed: {exc}")
+        sys.exit(1)
+
+    # Persist workspace ID to scripts/.env and current process env
+    os.environ["FABRIC_WORKSPACE_ID"] = WORKSPACE_ID
+    from dotenv import set_key
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    set_key(env_path, "FABRIC_WORKSPACE_ID", WORKSPACE_ID)
+    print(f"  [OK] FABRIC_WORKSPACE_ID={WORKSPACE_ID} saved to scripts/.env")
+    # Also persist to azd env so .azure/<env>/.env stays in sync
+    try:
+        import subprocess as _sp
+        _sp.run(["azd", "env", "set", "FABRIC_WORKSPACE_ID", WORKSPACE_ID], check=True, capture_output=True)
+        print(f"  [OK] FABRIC_WORKSPACE_ID={WORKSPACE_ID} saved to azd env")
+    except Exception:
+        pass
+    print(f"  URL: https://app.fabric.microsoft.com/groups/{WORKSPACE_ID}")
+else:
+    WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID", "").strip()
+    if not WORKSPACE_ID:
+        print("ERROR: FABRIC_WORKSPACE_ID is not set.")
+        print("       Set it via: azd env set FABRIC_WORKSPACE_ID <id>")
+        print("       Or enable auto-creation: azd env set CREATE_FABRIC_WORKSPACE true")
+        sys.exit(1)
+
+# Get data folder- use arg if provided, else from .env with proper path resolution
 if args.data_folder:
     data_dir = os.path.abspath(args.data_folder)
 else:
@@ -106,45 +366,8 @@ print(f"Datasource type: {args.datasource_type}")
 print(f"Tables: {', '.join(ontology_config['tables'].keys())}")
 
 # ============================================================================
-# Authentication
+# Additional Helper Functions
 # ============================================================================
-
-def get_headers(max_retries=3, retry_delay=5):
-    """Get fresh headers with Fabric API token. Retries with exponential backoff on failure."""
-    credential = AzureCliCredential()
-    for attempt in range(1, max_retries + 1):
-        try:
-            token = credential.get_token("https://api.fabric.microsoft.com/.default").token
-            return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-        except Exception as e:
-            if attempt < max_retries:
-                credential = AzureCliCredential()
-                wait = retry_delay * (2 ** (attempt - 1))
-                print(f"  [RETRY] Token acquisition attempt {attempt}/{max_retries} failed: {e}")
-                print(f"  Retrying in {wait} seconds...")
-                time.sleep(wait)
-            else:
-                print(f"  [FAIL] Token acquisition failed after {max_retries} attempts: {e}")
-                raise
-    raise RuntimeError("Failed to acquire token after all retries")
-
-# ============================================================================
-# Helper Functions
-# ============================================================================
-
-def make_request(method, url, **kwargs):
-    """Make request with retry logic for 429 rate limiting"""
-    max_retries = 5
-    for attempt in range(max_retries):
-        response = requests.request(method, url, headers=get_headers(), **kwargs)
-        if response.status_code == 429:
-            retry_after = int(response.headers.get("Retry-After", 30))
-            print(f"  Rate limited. Waiting {retry_after}s...")
-            time.sleep(retry_after)
-            continue
-        return response
-    return response
-
 def wait_for_lro(operation_url, operation_name="Operation", timeout=300):
     """Wait for long-running operation to complete"""
     start = time.time()
@@ -477,7 +700,7 @@ create_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items"
 # Retry notebook creation in case the name is not yet released after deletion
 for nb_attempt in range(5):
     resp = make_request("POST", create_url, json=create_nb_payload)
-    if resp.status_code == 400 and "NotAvailableYet" in resp.text:
+    if resp.status_code in (400, 409) and "NotAvailableYet" in resp.text:
         wait_secs = 15 * (nb_attempt + 1)
         print(f"  Name not released yet (attempt {nb_attempt+1}/5). Waiting {wait_secs}s...")
         time.sleep(wait_secs)
