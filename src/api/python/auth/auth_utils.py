@@ -28,6 +28,13 @@ def get_authenticated_user_details(request_headers):
     # Try multiple sources: EasyAuth header first, then custom header from frontend
     easyauth_token = normalized_headers.get("x-ms-token-aad-access-token")
     zumo_token = normalized_headers.get("x-zumo-auth")
+
+    if easyauth_token:
+        user_object["aad_access_token"] = easyauth_token
+    elif zumo_token:
+        user_object["aad_access_token"] = zumo_token
+    else:
+        user_object["aad_access_token"] = None
     
     return user_object
 

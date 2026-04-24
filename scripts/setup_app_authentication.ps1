@@ -689,7 +689,6 @@ Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Visit $frontendUrl to test authentication" -ForegroundColor Gray
 Write-Host "  2. Sign in with your Microsoft account" -ForegroundColor Gray
 if ($ApiAppName) {
-    Write-Host "  3. OBO flow is already configured! Deploy updated code with:" -ForegroundColor Gray
-    Write-Host "     .\deploy_to_acr.ps1" -ForegroundColor Cyan
+    Write-Host "  3. OBO flow is already configured!" -ForegroundColor Gray
 }
 Write-Host ""
