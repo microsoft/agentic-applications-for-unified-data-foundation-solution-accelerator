@@ -609,4 +609,4 @@ output applicationInsightsConnectionString string = applicationInsights.properti
 output aiFoundryResourceId string = !empty(azureExistingAIProjectResourceId) ? azureExistingAIProjectResourceId : aiServices.id
 
 @description('The principal ID of the AI Foundry project managed identity.')
-output aiProjectPrincipalId string = !empty(existingAIProjectName) ? existingOpenAiProject.outputs.aiProjectPrincipalId : aiProject.identity.principalId
+output aiProjectPrincipalId string = !empty(existingAIProjectName) ? assignFoundryRoleToMIExisting.outputs.aiProjectPrincipalId : aiProject.identity.principalId
