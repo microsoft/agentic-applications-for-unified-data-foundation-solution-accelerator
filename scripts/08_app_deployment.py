@@ -103,6 +103,13 @@ def assign_fabric_roles():
         print("  [SKIP] FABRIC_WORKSPACE_ID not set")
         return
 
+    # When USE_USER_ACCESS_TOKEN is enabled, the API uses the user's own token
+    # to access Fabric, so no Fabric workspace role assignments are needed.
+    use_user_access_token = os.getenv("USE_USER_ACCESS_TOKEN", "false").lower() in ("true", "1", "yes")
+    if use_user_access_token:
+        print("  [SKIP] USE_USER_ACCESS_TOKEN is enabled - API uses user's own token, no workspace role needed")
+        return
+
     # Determine which principal to assign based on USE_DATA_AGENT
     use_data_agent = os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes")
     if use_data_agent:
