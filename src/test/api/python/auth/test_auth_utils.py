@@ -23,13 +23,14 @@ class TestGetAuthenticatedUserDetails:
         }
         result = get_authenticated_user_details(headers)
         
-        # raw_user_object uses request_headers directly, then .get() with lowercase keys returns None
-        assert result["user_principal_id"] is None
-        assert result["user_name"] is None
-        assert result["auth_provider"] is None
-        assert result["auth_token"] is None
-        assert result["aad_id_token"] is None
-        assert result["client_principal_b64"] is None
+        # Headers are normalized to lowercase, so values are correctly extracted
+        assert result["user_principal_id"] == "user-123"
+        assert result["user_name"] == "user@example.com"
+        assert result["auth_provider"] == "aad"
+        assert result["auth_token"] == "token123"
+        assert result["aad_id_token"] == "token123"
+        assert result["client_principal_b64"] == "base64principal"
+        assert result["aad_access_token"] is None
 
     def test_development_mode_without_principal_id(self):
         """Test development mode when principal ID header is missing."""
@@ -99,6 +100,7 @@ class TestGetAuthenticatedUserDetails:
             "auth_token",
             "client_principal_b64",
             "aad_id_token",
+            "aad_access_token",
         ]
         
         for field in expected_fields:
