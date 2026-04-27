@@ -455,7 +455,7 @@ class TestAdditionalCoverage:
         """Test that dict chunks are properly converted to JSON."""
         from chat import stream_chat_request
         
-        async def mock_stream(conv_id, query, user_id=""):
+        async def mock_stream(conv_id, query, user_id="", user_assertion=None):
             yield {"type": "content", "text": "Hello"}
             yield {"type": "content", "text": " World"}
         

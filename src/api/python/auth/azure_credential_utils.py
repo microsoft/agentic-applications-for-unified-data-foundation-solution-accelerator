@@ -1,6 +1,6 @@
 import os
 import logging
-from azure.identity import ManagedIdentityCredential, DefaultAzureCredential, OnBehalfOfCredential
+from azure.identity import ManagedIdentityCredential, DefaultAzureCredential
 from azure.identity.aio import (
     ManagedIdentityCredential as AioManagedIdentityCredential,
     DefaultAzureCredential as AioDefaultAzureCredential,
@@ -8,6 +8,7 @@ from azure.identity.aio import (
 )
 
 logger = logging.getLogger(__name__)
+
 
 async def get_azure_credential_async(client_id=None, user_assertion=None):
     """
@@ -29,7 +30,7 @@ async def get_azure_credential_async(client_id=None, user_assertion=None):
         obo_client_id = os.getenv("OBO_CLIENT_ID")
         obo_client_secret = os.getenv("OBO_CLIENT_SECRET")
         obo_tenant_id = os.getenv("OBO_TENANT_ID")
-        
+
         if obo_client_id and obo_client_secret and obo_tenant_id:
             logger.info("Using On-Behalf-Of Credential for user assertion")
             return AioOnBehalfOfCredential(
@@ -40,11 +41,12 @@ async def get_azure_credential_async(client_id=None, user_assertion=None):
             )
         else:
             logger.warning("OBO requested but OBO_CLIENT_ID, OBO_CLIENT_SECRET, or OBO_TENANT_ID not configured")
-    
+
     if os.getenv("APP_ENV", "prod").lower() == 'dev':
         return AioDefaultAzureCredential()  # CodeQL [SM05139] Okay use of DefaultAzureCredential as it is only used in development
     else:
         return AioManagedIdentityCredential(client_id=client_id)
+
 
 def get_azure_credential(client_id=None):
     """

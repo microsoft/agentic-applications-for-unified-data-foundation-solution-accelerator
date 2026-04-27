@@ -492,7 +492,7 @@ async def conversation(request: Request):
         query = request_json.get("query")
         authenticated_user = get_authenticated_user_details(request_headers=request.headers)
         user_id = authenticated_user.get("user_principal_id", "")
-        
+
         # Get user's access token for OBO flow (needed for Work IQ Teams)
         user_assertion = authenticated_user.get("aad_access_token")
 
@@ -509,7 +509,7 @@ async def conversation(request: Request):
                 status_code=400
             )
 
-        logger.info("POST /chat called: conversation_id=%s, query_length=%d, has_user_token=%s", 
+        logger.info("POST /chat called: conversation_id=%s, query_length=%d, has_user_token=%s",
                     conversation_id, len(query) if query else 0, bool(user_assertion))
 
         # Track chat request initiation
