@@ -178,6 +178,27 @@
         "description": "Enable chat history."
       }
     },
+    "appTitlePrimary": {
+      "type": "string",
+      "defaultValue": "Contoso",
+      "metadata": {
+        "description": "The primary title displayed in the header of the web app (bold text)."
+      }
+    },
+    "appTitleSecondary": {
+      "type": "string",
+      "defaultValue": "| Unified Data Analysis Agents",
+      "metadata": {
+        "description": "The secondary title displayed in the header of the web app (lighter text)."
+      }
+    },
+    "useUserAccessToken": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable user access token forwarding to the API."
+      }
+    },
     "AZURE_LOCATION": {
       "type": "string",
       "defaultValue": ""
@@ -457,6 +478,7 @@
     },
     "abbrs": "[variables('$fxv#0')]",
     "useChatHistoryEnabledSetting": "[if(parameters('useChatHistoryEnabled'), 'True', 'False')]",
+    "useUserAccessTokenSetting": "[if(parameters('useUserAccessToken'), 'True', 'False')]",
     "shouldDeployApp": "[or(not(parameters('isWorkshop')), parameters('deployApp'))]",
     "solutionLocation": "[if(empty(parameters('AZURE_LOCATION')), resourceGroup().location, parameters('AZURE_LOCATION'))]",
     "solutionSuffix": "[toLower(trim(replace(replace(replace(replace(replace(replace(format('{0}{1}', parameters('environmentName'), parameters('solutionUniqueText')), '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))]",
@@ -2919,6 +2941,7 @@
               "SOLUTION_NAME": "[variables('solutionSuffix')]",
               "IS_WORKSHOP": "[if(parameters('isWorkshop'), 'True', 'False')]",
               "AZURE_ENV_ONLY": "[if(parameters('azureEnvOnly'), 'True', 'False')]",
+              "USE_USER_ACCESS_TOKEN": "[variables('useUserAccessTokenSetting')]",
               "APP_ENV": "Prod",
               "AZURE_BASIC_LOGGING_LEVEL": "INFO",
               "AZURE_PACKAGE_LOGGING_LEVEL": "WARNING",
@@ -4538,7 +4561,9 @@
             "value": {
               "APP_API_BASE_URL": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]",
               "CHAT_LANDING_TEXT": "[variables('landingText')]",
-              "IS_WORKSHOP": "[if(parameters('isWorkshop'), 'True', 'False')]"
+              "IS_WORKSHOP": "[if(parameters('isWorkshop'), 'True', 'False')]",
+              "APP_TITLE_PRIMARY": "[parameters('appTitlePrimary')]",
+              "APP_TITLE_SECONDARY": "[parameters('appTitleSecondary')]"
             }
           }
         },
@@ -5085,6 +5110,13 @@
         "description": "Flag indicating Azure-only mode (no Fabric)"
       },
       "value": "[parameters('azureEnvOnly')]"
+    },
+    "USE_USER_ACCESS_TOKEN": {
+      "type": "string",
+      "metadata": {
+        "description": "Flag indicating whether user access token forwarding is enabled"
+      },
+      "value": "[variables('useUserAccessTokenSetting')]"
     }
   }
 }

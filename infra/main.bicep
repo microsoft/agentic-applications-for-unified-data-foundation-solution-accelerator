@@ -92,7 +92,18 @@ param azureEnvOnly bool = false
 
 @description('Enable chat history.')
 param useChatHistoryEnabled bool = true
+
+@description('The primary title displayed in the header of the web app (bold text).')
+param appTitlePrimary string = 'Contoso'
+
+@description('The secondary title displayed in the header of the web app (lighter text).')
+param appTitleSecondary string = '| Unified Data Analysis Agents'
+
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
+
+@description('Enable user access token forwarding to the API.')
+param useUserAccessToken bool = false
+var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
 
 // If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
 var shouldDeployApp = !isWorkshop || deployApp
@@ -270,6 +281,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
       SOLUTION_NAME: solutionSuffix
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
       AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
+      USE_USER_ACCESS_TOKEN: useUserAccessTokenSetting
       APP_ENV: 'Prod'
       AZURE_BASIC_LOGGING_LEVEL: 'INFO'
       AZURE_PACKAGE_LOGGING_LEVEL: 'WARNING'
@@ -351,6 +363,8 @@ module frontend_docker 'deploy_frontend_docker.bicep' = if (shouldDeployApp) {
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
       CHAT_LANDING_TEXT: landingText
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
+      APP_TITLE_PRIMARY: appTitlePrimary
+      APP_TITLE_SECONDARY: appTitleSecondary
     }
   }
   scope: resourceGroup(resourceGroup().name)
@@ -464,3 +478,6 @@ output AZURE_ENV_DEPLOY_APP bool = deployApp
 
 @description('Flag indicating Azure-only mode (no Fabric)')
 output AZURE_ENV_ONLY bool = azureEnvOnly
+
+@description('Flag indicating whether user access token forwarding is enabled')
+output USE_USER_ACCESS_TOKEN string = useUserAccessTokenSetting

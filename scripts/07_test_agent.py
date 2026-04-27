@@ -41,13 +41,8 @@ load_all_env()
 from azure.identity import DefaultAzureCredential
 from azure.identity.aio import DefaultAzureCredential as AsyncDefaultAzureCredential
 from azure.ai.projects.aio import AIProjectClient
-from agent_framework.azure import AzureAIProjectAgentProvider
+from agent_framework.foundry import FoundryAgent
 import requests
-
-# Suppress informational warnings from agent_framework about runtime
-# tool/structured_output overrides not being supported by AzureAIClient.
-agent_log_level = os.getenv("AGENT_FRAMEWORK_LOG_LEVEL", "ERROR").upper()
-logging.getLogger("agent_framework.azure").setLevel(getattr(logging, agent_log_level, logging.ERROR))
 
 # ============================================================================
 # Configuration
@@ -361,34 +356,23 @@ def show_help():
 # Chat Loop
 # ============================================================================
 
-async def chat(user_message: str, conversation_id: str, agent):
-    """Send a message to the agent and handle function calls.
+async def chat(user_message: str, agent):
+    """Send a message to the agent and stream the response.
     
     Args:
         user_message: The user's input message
-        conversation_id: The conversation ID to maintain context across turns
-        agent: The agent instance from AzureAIProjectAgentProvider
+        agent: The agent framework Agent instance
     """
-    
     try:
         text_output = ""
-        citations: list[dict] = []
 
-        if VERBOSE:
-            print(f"\n[Agent] Sending message to '{CHAT_AGENT_NAME}' (conversation: {conversation_id[:8]}...)")
-
-        async for chunk in agent.run(user_message, stream=True, conversation_id=conversation_id):
-            # Collect citations from Azure AI Search responses
-            for content in getattr(chunk, "contents", []):
-                annotations = getattr(content, "annotations", [])
-                if annotations:
-                    citations.extend(annotations)
-
-            chunk_text = str(chunk.text) if chunk.text else ""
-            # Remove citation markers like 【4:0†source】 from response text
-            chunk_text = re.sub(r'【\d+:\d+†[^】]+】', '', chunk_text)
-            if chunk_text:
-                text_output += chunk_text
+        async for chunk in agent.run(user_message, stream=True):
+            if chunk.text:
+                delta = chunk.text
+                # Remove citation markers like 【4:0†source】
+                delta = re.sub(r'【\d+:\d+†[^】]+】', '', delta)
+                if delta:
+                    text_output += delta
 
         if text_output:
             print(f"\nAssistant: {text_output}")
@@ -402,67 +386,48 @@ async def chat(user_message: str, conversation_id: str, agent):
 
 
 async def main():
-    async with (
-        AsyncDefaultAzureCredential() as async_credential,
-        AIProjectClient(endpoint=ENDPOINT, credential=async_credential) as project_client,
-    ):
-        # Create provider for agent management
-        provider = AzureAIProjectAgentProvider(project_client=project_client)
+    # Build tools list - only pass execute_sql when not using Data Agent
+    tools = [execute_sql] if not USE_DATA_AGENT else None
 
-        # Get agent with tools using provider
-        # In Data Agent mode, no local tools needed (MCP handles SQL server-side)
-        if USE_DATA_AGENT:
-            agent = await provider.get_agent(name=CHAT_AGENT_NAME)
-        else:
-            agent = await provider.get_agent(
-                name=CHAT_AGENT_NAME,
-                tools=execute_sql
-            )
+    agent = FoundryAgent(
+        project_endpoint=ENDPOINT,
+        agent_name=CHAT_AGENT_NAME,
+        credential=DefaultAzureCredential(),
+        tools=tools,
+    )
 
-        # Create conversation for context continuity
-        openai_client = project_client.get_openai_client()
-        conversation = await openai_client.conversations.create()
+    print("-" * 60)
 
-        print("-" * 60)
-
-        # Main chat loop
-        while True:
-            try:
-                user_input = input("\nYou: ").strip()
-                
-                if not user_input:
-                    continue
-                
-                if user_input.lower() in ['quit', 'exit', 'q']:
-                    print("Goodbye!")
-                    break
-                
-                if user_input.lower() == 'help':
-                    show_help()
-                    continue
-                
-                # Check for numbered question shortcuts
-                if user_input.isdigit():
-                    idx = int(user_input) - 1
-                    if 0 <= idx < len(sample_questions):
-                        user_input = sample_questions[idx]
-                        print(f"  → {user_input}")
-                
-                # Pass the persistent conversation ID to maintain context
-                await chat(user_input, conversation.id, agent)
-                
-            except KeyboardInterrupt:
-                print("\n\nGoodbye!")
-                break
-            except EOFError:
-                print("\nGoodbye!")
-                break
-
-        # Cleanup conversation when done
+    # Main chat loop
+    while True:
         try:
-            await openai_client.conversations.delete(conversation_id=conversation.id)
-            print("\nConversation cleaned up.")
-        except Exception:
-            pass  # Ignore cleanup errors
+            user_input = input("\nYou: ").strip()
+            
+            if not user_input:
+                continue
+            
+            if user_input.lower() in ['quit', 'exit', 'q']:
+                print("Goodbye!")
+                break
+            
+            if user_input.lower() == 'help':
+                show_help()
+                continue
+            
+            # Check for numbered question shortcuts
+            if user_input.isdigit():
+                idx = int(user_input) - 1
+                if 0 <= idx < len(sample_questions):
+                    user_input = sample_questions[idx]
+                    print(f"  → {user_input}")
+            
+            await chat(user_input, agent)
+            
+        except KeyboardInterrupt:
+            print("\n\nGoodbye!")
+            break
+        except EOFError:
+            print("\nGoodbye!")
+            break
 
 asyncio.run(main())

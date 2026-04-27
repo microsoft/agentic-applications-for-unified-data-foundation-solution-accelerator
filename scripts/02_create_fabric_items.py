@@ -146,15 +146,28 @@ def make_request(method, url, **kwargs):
     return response
 
 def wait_for_lro(operation_url, operation_name="Operation", timeout=300):
-    """Wait for long-running operation to complete"""
+    """Wait for long-running operation to complete.
+    
+    Handles both patterns:
+    - Poll returns 202 while in-progress, 200 when done (standard Fabric LRO)
+    - Poll always returns 200 with a status field (Load Table API)
+    """
     start = time.time()
+    last_status = None
     while time.time() - start < timeout:
         resp = make_request("GET", operation_url)
-        if resp.status_code == 200:
-            result = resp.json()
+        if resp.status_code in [200, 202]:
+            try:
+                result = resp.json()
+            except Exception:
+                result = {}
             status = result.get("status", "Unknown")
+            # Print status only when it changes
+            if status != last_status:
+                elapsed = int(time.time() - start)
+                print(f"    [{elapsed}s] Status: {status} (HTTP {resp.status_code})")
+                last_status = status
             if status in ["Succeeded", "succeeded", "Completed", "completed"]:
-                # Try to get the resource from resourceLocation
                 resource_location = result.get("resourceLocation")
                 if resource_location:
                     res_resp = make_request("GET", resource_location)
@@ -162,9 +175,13 @@ def wait_for_lro(operation_url, operation_name="Operation", timeout=300):
                         return res_resp.json()
                 return result
             elif status in ["Failed", "failed"]:
-                raise Exception(f"{operation_name} failed: {result}")
-        time.sleep(3)
-    raise TimeoutError(f"{operation_name} timed out")
+                error = result.get("error") or result.get("message") or result
+                raise Exception(f"{operation_name} failed: {error}")
+            # Still running (202 in-progress or 200 with Running/NotStarted status)
+        else:
+            print(f"    [WARN] Poll returned unexpected status {resp.status_code}: {resp.text[:200]}")
+        time.sleep(5)
+    raise TimeoutError(f"{operation_name} timed out after {timeout}s (last status: {last_status})")
 
 def find_item(item_type, display_name):
     """Find a Fabric item by type and name"""
