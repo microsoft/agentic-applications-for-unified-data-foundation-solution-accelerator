@@ -682,8 +682,8 @@ if ($ApiAppName) {
     Write-Host "  OBO_TENANT_ID:     $tenantId" -ForegroundColor Gray
 }
 Write-Host ""
-Write-Host "IMPORTANT: Save the client secret above!" -ForegroundColor Red
-Write-Host "You won't be able to retrieve it again." -ForegroundColor Red
+Write-Host "IMPORTANT: The client secret is masked in this output." -ForegroundColor Red
+Write-Host "It has already been applied to app settings and the full value will not be displayed." -ForegroundColor Red
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Visit $frontendUrl to test authentication" -ForegroundColor Gray
