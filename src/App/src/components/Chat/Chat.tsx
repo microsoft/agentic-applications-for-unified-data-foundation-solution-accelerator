@@ -58,10 +58,10 @@ function stripAnswerWrapper(text: string): string {
   const match = text.match(/^\s*\{\s*"answer"\s*:\s*"/);
   if (!match) return text;
   let result = text.substring(match[0].length);
-  // Remove trailing ","citations":...} if present (partial or complete)
-  const citIdx = result.lastIndexOf('","citations"');
-  if (citIdx !== -1) {
-    result = result.substring(0, citIdx);
+  // Remove trailing ", "citations":...} or ","citations":...} if present
+  const citMatch = result.match(/",\s*"citations"\s*:/);
+  if (citMatch && citMatch.index !== undefined) {
+    result = result.substring(0, citMatch.index);
   }
   return result;
 }
