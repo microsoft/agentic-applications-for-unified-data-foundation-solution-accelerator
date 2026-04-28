@@ -700,6 +700,282 @@ class TestCoverageBoost:
             assert response is not None
 
 
+class TestParseMcpDocs:
+    """Tests for _parse_mcp_docs function."""
+
+    def test_parse_mcp_docs_basic(self):
+        """Test parsing JSON doc blocks from MCP output text."""
+        from chat import _parse_mcp_docs
+
+        mcp_text = (
+            'Summary text【4:0†source.pdf】'
+            'Some intro【4:1†doc1.pdf】'
+            '{"id": "doc1", "title": "Doc 1", "source": "doc1.pdf", "content": "hello"}'
+            '【4:2†doc2.pdf】'
+            '{"id": "doc2", "title": "Doc 2", "source": "doc2.pdf", "content": "world"}'
+        )
+        mcp_docs = {}
+        _parse_mcp_docs(mcp_text, mcp_docs)
+
+        assert "1" in mcp_docs
+        assert "2" in mcp_docs
+        assert mcp_docs["1"]["id"] == "doc1"
+        assert mcp_docs["2"]["source"] == "doc2.pdf"
+
+    def test_parse_mcp_docs_no_json(self):
+        """Test parsing when sections have no JSON blocks."""
+        from chat import _parse_mcp_docs
+
+        mcp_text = 'Summary【4:0†src】Plain text only【4:1†src】No JSON here'
+        mcp_docs = {}
+        _parse_mcp_docs(mcp_text, mcp_docs)
+
+        assert len(mcp_docs) == 0
+
+    def test_parse_mcp_docs_malformed_json(self):
+        """Test parsing with malformed JSON fragments."""
+        from chat import _parse_mcp_docs
+
+        mcp_text = '【4:1†src】{"id": "doc1", broken json}'
+        mcp_docs = {}
+        _parse_mcp_docs(mcp_text, mcp_docs)
+
+        assert len(mcp_docs) == 0
+
+    def test_parse_mcp_docs_empty_text(self):
+        """Test parsing empty text."""
+        from chat import _parse_mcp_docs
+
+        mcp_docs = {}
+        _parse_mcp_docs("", mcp_docs)
+
+        assert len(mcp_docs) == 0
+
+
+class TestExtractMcpFromRaw:
+    """Tests for _extract_mcp_from_raw function."""
+
+    def test_direct_output(self):
+        """Test extraction from McpCall with direct string output."""
+        from chat import _extract_mcp_from_raw
+
+        raw = Mock()
+        raw.output = '【4:1†src.pdf】{"id": "abc", "title": "T", "source": "src.pdf", "content": "c"}'
+        raw.response = None
+
+        mcp_docs = {}
+        _extract_mcp_from_raw(raw, mcp_docs)
+
+        assert "1" in mcp_docs
+        assert mcp_docs["1"]["id"] == "abc"
+
+    def test_response_event(self):
+        """Test extraction from ResponseCompletedEvent with nested output."""
+        from chat import _extract_mcp_from_raw
+
+        inner_item = Mock()
+        inner_item.output = '【4:1†s.pdf】{"id": "x1", "title": "T", "source": "s.pdf", "content": "c"}'
+        response = Mock()
+        response.output = [inner_item]
+
+        raw = Mock()
+        raw.output = None
+        raw.response = response
+
+        mcp_docs = {}
+        _extract_mcp_from_raw(raw, mcp_docs)
+
+        assert "1" in mcp_docs
+
+    def test_no_output(self):
+        """Test extraction with no usable output."""
+        from chat import _extract_mcp_from_raw
+
+        raw = Mock()
+        raw.output = None
+        raw.response = None
+
+        mcp_docs = {}
+        _extract_mcp_from_raw(raw, mcp_docs)
+
+        assert len(mcp_docs) == 0
+
+
+class TestMarkerRegex:
+    """Tests for _MARKER_RE regex pattern."""
+
+    def test_matches_valid_marker(self):
+        """Test that marker regex matches valid markers."""
+        from chat import _MARKER_RE
+
+        m = _MARKER_RE.search('text【4:1†source.pdf】more')
+
+        assert m is not None
+        assert m.group(1) == "1"
+        assert m.group(2) == "source.pdf"
+
+    def test_matches_section_zero(self):
+        """Test that marker regex matches section 0."""
+        from chat import _MARKER_RE
+
+        m = _MARKER_RE.search('【4:0†summary】')
+
+        assert m is not None
+        assert m.group(1) == "0"
+
+    def test_no_match_plain_text(self):
+        """Test that marker regex does not match plain text."""
+        from chat import _MARKER_RE
+
+        m = _MARKER_RE.search('no markers here')
+
+        assert m is None
+
+    def test_finds_multiple_markers(self):
+        """Test finding all markers in text."""
+        from chat import _MARKER_RE
+
+        text = 'A【4:0†s】B【4:1†a.pdf】C【4:2†b.pdf】'
+        matches = list(_MARKER_RE.finditer(text))
+
+        assert len(matches) == 3
+        assert [m.group(1) for m in matches] == ["0", "1", "2"]
+
+
+class TestFetchAzureSearchContent:
+    """Tests for /fetch-azure-search-content endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_missing_url(self):
+        """Test endpoint returns 400 when URL is missing."""
+        from chat import fetch_azure_search_content
+
+        mock_request = Mock()
+        mock_request.json = AsyncMock(return_value={"source": "test"})
+
+        response = await fetch_azure_search_content(mock_request)
+
+        assert response.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_ssrf_blocked(self, monkeypatch):
+        """Test endpoint blocks requests to non-allowed hosts."""
+        from chat import fetch_azure_search_content
+
+        monkeypatch.setenv("AZURE_AI_SEARCH_ENDPOINT", "https://allowed.search.windows.net")
+
+        mock_request = Mock()
+        mock_request.json = AsyncMock(return_value={
+            "url": "https://evil.com/indexes/idx/docs/123",
+            "source": "test"
+        })
+
+        response = await fetch_azure_search_content(mock_request)
+
+        assert response.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_no_search_endpoint_configured(self, monkeypatch):
+        """Test endpoint returns 500 when search endpoint not configured."""
+        from chat import fetch_azure_search_content
+
+        monkeypatch.delenv("AZURE_AI_SEARCH_ENDPOINT", raising=False)
+        monkeypatch.delenv("AZURE_SEARCH_ENDPOINT", raising=False)
+
+        mock_request = Mock()
+        mock_request.json = AsyncMock(return_value={
+            "url": "https://search.windows.net/indexes/idx/docs/123",
+            "source": "test"
+        })
+
+        response = await fetch_azure_search_content(mock_request)
+
+        assert response.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_no_doc_id_in_url(self, monkeypatch):
+        """Test endpoint returns 400 when doc ID cannot be parsed."""
+        from chat import fetch_azure_search_content
+
+        monkeypatch.setenv("AZURE_AI_SEARCH_ENDPOINT", "https://mysearch.search.windows.net")
+
+        mock_request = Mock()
+        mock_request.json = AsyncMock(return_value={
+            "url": "https://mysearch.search.windows.net/indexes/idx",
+            "source": "test"
+        })
+
+        response = await fetch_azure_search_content(mock_request)
+
+        assert response.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_successful_fetch(self, monkeypatch):
+        """Test successful document fetch from Azure Search."""
+        from chat import fetch_azure_search_content
+
+        monkeypatch.setenv("AZURE_AI_SEARCH_ENDPOINT", "https://mysearch.search.windows.net")
+
+        mock_request = Mock()
+        mock_request.json = AsyncMock(return_value={
+            "url": "https://mysearch.search.windows.net/indexes/idx/docs/doc123?api-version=2024-07-01",
+            "source": "test.pdf"
+        })
+
+        mock_token = Mock()
+        mock_token.token = "fake-token"
+
+        mock_credential = AsyncMock()
+        mock_credential.get_token = AsyncMock(return_value=mock_token)
+        mock_credential.close = AsyncMock()
+
+        mock_get_cred = AsyncMock(return_value=mock_credential)
+        mock_to_thread = AsyncMock(return_value={"content": "document text", "title": "test.pdf"})
+
+        with patch('chat.get_azure_credential_async', mock_get_cred), \
+             patch('chat.asyncio.to_thread', mock_to_thread):
+            response = await fetch_azure_search_content(mock_request)
+
+            assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_fetch_exception(self):
+        """Test endpoint handles exceptions gracefully."""
+        from chat import fetch_azure_search_content
+
+        mock_request = Mock()
+        mock_request.json = AsyncMock(side_effect=Exception("parse error"))
+
+        response = await fetch_azure_search_content(mock_request)
+
+        assert response.status_code == 500
+
+
+class TestStreamChatRequestDelta:
+    """Tests for stream_chat_request delta format wrapping."""
+
+    @pytest.mark.asyncio
+    async def test_wraps_tuples_in_delta_format(self):
+        """Test that stream_chat_request wraps tuples in delta JSON format."""
+        from chat import stream_chat_request
+
+        async def mock_gen(*args, **kwargs):
+            yield ("assistant", "Hello world")
+            yield ("tool", '[{"url":"u","source":"s","id":"i"}]')
+
+        with patch('chat.stream_openai_text', side_effect=mock_gen), \
+             patch('chat.stream_openai_text_workshop', side_effect=mock_gen):
+            gen = await stream_chat_request("conv1", "test query")
+            chunks = []
+            async for chunk in gen:
+                chunks.append(chunk)
+
+            assert len(chunks) >= 1
+            first = json.loads(chunks[0].strip())
+            assert "choices" in first
+            assert "delta" in first["choices"][0]
+
+
 class TestMissingLineCoverage:
     """Tests to cover remaining missing lines in chat.py to reach 95%+."""
 
