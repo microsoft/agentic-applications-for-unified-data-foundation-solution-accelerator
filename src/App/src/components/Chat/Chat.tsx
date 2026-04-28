@@ -426,20 +426,35 @@ const Chat: React.FC<ChatProps> = ({
                   runningText = parsed?.error;
                 } else if (typeof parsed === "object" && !hasError) {
                   const delta = parsed?.choices?.[0]?.delta;
-                  // Delta format from backend
+                  const legacyMsg = parsed?.choices?.[0]?.messages?.[0];
+                  // Delta format (Python) yields incremental fragments;
+                  // messages format (dotnet) yields the full accumulated text each time.
                   if (delta) {
                     const role = delta.role;
                     const content = delta.content;
                     if (role === "tool" && content) {
-                      // Citation data sent as tool message
                       streamMessage.citations = content;
                     } else if (role === "assistant" && content) {
                       if (isChartQuery(userMessage)) {
-                        // Accumulate chart JSON text for post-stream parsing
                         runningText += content;
                       } else {
-                        // Append incremental text chunk
                         streamMessage.content = (streamMessage.content || "") + content;
+                        streamMessage.role = ASSISTANT;
+                      }
+                    }
+                    if (!isChartQuery(userMessage)) {
+                      dispatch(updateMessageById({ ...streamMessage }));
+                      scrollChatToBottom();
+                    }
+                  } else if (legacyMsg) {
+                    const role = legacyMsg.role;
+                    const content = legacyMsg.content;
+                    if (role === "assistant" && content) {
+                      if (isChartQuery(userMessage)) {
+                        runningText = content;
+                      } else {
+                        // Dotnet sends full accumulated text — replace, not append
+                        streamMessage.content = content;
                         streamMessage.role = ASSISTANT;
                       }
                     }
@@ -545,6 +560,18 @@ const Chat: React.FC<ChatProps> = ({
         
         // If no messages have been added yet but we have streamed content, save it
         if (updatedMessages.length === 0 && streamMessage.content) {
+          // Dotnet backend may wrap final content as {"answer":"...", "citations":[]}
+          try {
+            const finalParsed = JSON.parse(streamMessage.content);
+            if (finalParsed && typeof finalParsed === "object" && "answer" in finalParsed) {
+              streamMessage.content = finalParsed.answer;
+              if (finalParsed.citations && JSON.stringify(finalParsed.citations) !== "[]") {
+                streamMessage.citations = JSON.stringify(finalParsed.citations);
+              }
+            }
+          } catch {
+            // Not JSON — use content as-is
+          }
           updatedMessages = [newMessage, streamMessage];
         }
       }
