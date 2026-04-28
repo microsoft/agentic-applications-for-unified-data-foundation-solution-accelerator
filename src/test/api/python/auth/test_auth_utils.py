@@ -101,7 +101,6 @@ class TestGetAuthenticatedUserDetails:
             "client_principal_b64",
             "aad_id_token",
             "aad_access_token",
-            "aad_access_token",
         ]
 
         for field in expected_fields:
