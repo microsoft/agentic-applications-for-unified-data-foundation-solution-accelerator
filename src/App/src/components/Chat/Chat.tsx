@@ -53,6 +53,18 @@ const [ASSISTANT, ERROR, USER] = ["assistant", "error", "user"];
 
 const chatLandingText = getChatLandingText();
 
+/** Strip {"answer":"..."} wrapper for display during streaming. */
+function stripAnswerWrapper(text: string): string {
+  const prefix = '{"answer":"';
+  if (!text.startsWith(prefix)) return text;
+  let result = text.substring(prefix.length);
+  const citIdx = result.lastIndexOf('","citations":');
+  if (citIdx !== -1) {
+    result = result.substring(0, citIdx);
+  }
+  return result;
+}
+
 const Chat: React.FC<ChatProps> = ({
   onHandlePanelStates,
   panelShowStates,
@@ -332,12 +344,30 @@ const Chat: React.FC<ChatProps> = ({
                       }
                     }
                     if (!isChartQuery(userMessage)) {
-                      dispatch(updateMessageById({ ...streamMessage }));
+                      // Strip {"answer":"...", "citations":[]} wrapper for display
+                      const displayContent = typeof streamMessage.content === "string"
+                        ? stripAnswerWrapper(streamMessage.content)
+                        : streamMessage.content;
+                      dispatch(updateMessageById({ ...streamMessage, content: displayContent }));
                       scrollChatToBottom();
                     }
                   } else if (legacyMsg) {
                     const role = legacyMsg.role;
-                    const content = legacyMsg.content;
+                    let content = legacyMsg.content;
+                    // Dotnet final chunk wraps content as {"answer":"...", "citations":[]}
+                    if (role === "assistant" && typeof content === "string") {
+                      try {
+                        const wrapped = JSON.parse(content);
+                        if (wrapped && typeof wrapped === "object" && "answer" in wrapped) {
+                          content = wrapped.answer;
+                          if (wrapped.citations && JSON.stringify(wrapped.citations) !== "[]") {
+                            streamMessage.citations = JSON.stringify(wrapped.citations);
+                          }
+                        }
+                      } catch {
+                        // Not JSON wrapper — use content as-is
+                      }
+                    }
                     if (role === "assistant" && content) {
                       if (isChartQuery(userMessage)) {
                         runningText = content;
