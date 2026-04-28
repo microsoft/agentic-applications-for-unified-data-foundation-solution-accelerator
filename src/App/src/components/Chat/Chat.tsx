@@ -561,16 +561,18 @@ const Chat: React.FC<ChatProps> = ({
         // If no messages have been added yet but we have streamed content, save it
         if (updatedMessages.length === 0 && streamMessage.content) {
           // Dotnet backend may wrap final content as {"answer":"...", "citations":[]}
-          try {
-            const finalParsed = JSON.parse(streamMessage.content);
-            if (finalParsed && typeof finalParsed === "object" && "answer" in finalParsed) {
-              streamMessage.content = finalParsed.answer;
-              if (finalParsed.citations && JSON.stringify(finalParsed.citations) !== "[]") {
-                streamMessage.citations = JSON.stringify(finalParsed.citations);
+          if (typeof streamMessage.content === "string") {
+            try {
+              const finalParsed = JSON.parse(streamMessage.content);
+              if (finalParsed && typeof finalParsed === "object" && "answer" in finalParsed) {
+                streamMessage.content = finalParsed.answer;
+                if (finalParsed.citations && JSON.stringify(finalParsed.citations) !== "[]") {
+                  streamMessage.citations = JSON.stringify(finalParsed.citations);
+                }
               }
+            } catch {
+              // Not JSON — use content as-is
             }
-          } catch {
-            // Not JSON — use content as-is
           }
           updatedMessages = [newMessage, streamMessage];
         }
