@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 
+
 def get_authenticated_user_details(request_headers):
     user_object = {}
 
@@ -23,8 +24,8 @@ def get_authenticated_user_details(request_headers):
     user_object["auth_token"] = raw_user_object.get("x-ms-token-aad-id-token")
     user_object["client_principal_b64"] = raw_user_object.get("x-ms-client-principal")
     user_object["aad_id_token"] = raw_user_object.get("x-ms-token-aad-id-token")
-    
-    # Access token for OBO (On-Behalf-Of) flow - needed for Work IQ Teams
+
+    # Access token for OBO(On-Behalf-Of) flow - needed for Work IQ Teams
     # Try multiple sources: EasyAuth header first, then custom header from frontend
     easyauth_token = normalized_headers.get("x-ms-token-aad-access-token")
     zumo_token = normalized_headers.get("x-zumo-auth")
@@ -35,7 +36,7 @@ def get_authenticated_user_details(request_headers):
         user_object["aad_access_token"] = zumo_token
     else:
         user_object["aad_access_token"] = None
-    
+
     return user_object
 
 
