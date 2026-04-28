@@ -124,7 +124,7 @@ const Chat: React.FC<ChatProps> = ({
     const parsed = JSON.parse(message);
     if (Array.isArray(parsed)) {
       return parsed.filter(
-        (c: Citation) => c.url?.trim() || c.source?.trim()
+        (c: Citation & { title?: string }) => c.url?.trim() || c.source?.trim() || (c as any).title?.trim()
       );
     }
   } catch {

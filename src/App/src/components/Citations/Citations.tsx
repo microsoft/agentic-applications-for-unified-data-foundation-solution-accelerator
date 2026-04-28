@@ -24,7 +24,7 @@ const Citations = memo(({ answer, index }: Props) => {
         index: number,
         truncate: boolean = false
     ) => {
-        return citation.id || citation.source || `Citation ${index}`;
+        return citation.source || citation.title || citation.id || `Citation ${index}`;
     };
 
     const onCitationClicked = useCallback(async (

@@ -398,7 +398,6 @@ async def chat(user_message: str, agent):
         async for chunk in agent.run(user_message, stream=True):
             for content in getattr(chunk, "contents", []) or []:
                 raw_repr = getattr(content, "raw_representation", None)
-                print(f"Raw representation: {raw_repr}")
                 if raw_repr:
                     _extract_mcp_from_raw(raw_repr, mcp_docs)
 

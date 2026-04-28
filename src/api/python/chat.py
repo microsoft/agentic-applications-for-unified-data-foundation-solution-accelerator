@@ -44,8 +44,8 @@ router = APIRouter()
 
 logger = logging.getLogger(__name__)
 
-# Suppress informational warnings from agent_framework about runtime
-# tool/structured_output overrides not being supported by AzureAIClient.
+# Suppress informational warnings from agent_framework_foundry about runtime
+# tool/structured_output overrides not being supported by FoundryAgent.
 agent_log_level = os.getenv("AGENT_FRAMEWORK_LOG_LEVEL", "ERROR").upper()
 logging.getLogger("agent_framework_foundry").setLevel(getattr(logging, agent_log_level, logging.ERROR))
 
@@ -627,7 +627,9 @@ async def fetch_azure_search_content(request: Request):
         qs = parse_qs(parsed.query)
         api_version = qs.get("api-version", ["2024-07-01"])[0]
 
-        encoded_key = quote(doc_id, safe="")
+        from urllib.parse import unquote
+        decoded_doc_id = unquote(doc_id)
+        encoded_key = quote(decoded_doc_id, safe="")
         lookup_url = (
             f"{parsed.scheme}://{parsed.netloc}{base_path}"
             f"/docs('{encoded_key}')?api-version={api_version}"

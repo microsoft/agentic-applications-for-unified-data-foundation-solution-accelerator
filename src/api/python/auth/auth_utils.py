@@ -13,7 +13,7 @@ def get_authenticated_user_details(request_headers):
         # if it's not, assume we're in development mode and return a default user
         from . import sample_user
 
-        raw_user_object = sample_user.sample_user
+        raw_user_object = {k.lower(): v for k, v in sample_user.sample_user.items()}
     else:
         # Use normalized headers for consistent key lookup
         raw_user_object = normalized_headers

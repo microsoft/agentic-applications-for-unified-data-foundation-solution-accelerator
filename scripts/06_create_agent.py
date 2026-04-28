@@ -488,6 +488,8 @@ def build_sql_tool(tables, use_fabric, use_data_agent, data_agent_id, data_agent
                    data_agent_mcp_endpoint, data_agent_mcp_connection_name):
     """Build the SQL tool — Fabric Data Agent, MCP, or execute_sql FunctionTool."""
     if use_data_agent and USE_USER_ACCESS_TOKEN:
+        if not data_agent_id:
+            raise ValueError("DATA_AGENT_ID is required when USE_USER_ACCESS_TOKEN is enabled")
         # Use MicrosoftFabricPreviewTool with the CustomKeys connection
         custom_keys_conn_name = os.getenv(
             "FABRIC_DATA_AGENT_PREVIEW_CONNECTION_NAME",
@@ -742,27 +744,30 @@ def create_connections(credential):
     # Fabric Data Agent preview CustomKeys connection (only in data agent mode)
     print("\nCreating project connections...")
     if USE_DATA_AGENT and USE_USER_ACCESS_TOKEN:
-        fabric_preview_conn_name = os.getenv(
-            "FABRIC_DATA_AGENT_PREVIEW_CONNECTION_NAME",
-            f"fabric-dataagent-preview-{DATA_AGENT_ID[:6]}"
-        )
-        print(f"\nCreating Fabric Data Agent preview CustomKeys connection '{fabric_preview_conn_name}'...")
-        try:
-            if create_custom_keys_connection(
-                credential, fabric_preview_conn_name,
-                custom_keys={
-                    "workspace-id": FABRIC_WORKSPACE_ID,
-                    "artifact-id": DATA_AGENT_ID,
-                },
-                metadata={"type": "fabric_dataagent_preview"}
-            ):
-                print(f"[OK] Fabric Data Agent preview connection '{fabric_preview_conn_name}' created")
-            else:
-                print("[WARN] Fabric Data Agent preview connection creation may have failed.")
-                print("       You can create the connection manually in the Foundry portal.")
-        except Exception as e:
-            print(f"[WARN] Could not create Fabric Data Agent preview connection: {e}")
-            print("       You can create it manually in the Foundry portal.")
+        if not DATA_AGENT_ID:
+            print("[WARN] DATA_AGENT_ID is required for Fabric Data Agent preview connection. Skipping.")
+        else:
+            fabric_preview_conn_name = os.getenv(
+                "FABRIC_DATA_AGENT_PREVIEW_CONNECTION_NAME",
+                f"fabric-dataagent-preview-{DATA_AGENT_ID[:6]}"
+            )
+            print(f"\nCreating Fabric Data Agent preview CustomKeys connection '{fabric_preview_conn_name}'...")
+            try:
+                if create_custom_keys_connection(
+                    credential, fabric_preview_conn_name,
+                    custom_keys={
+                        "workspace-id": FABRIC_WORKSPACE_ID,
+                        "artifact-id": DATA_AGENT_ID,
+                    },
+                    metadata={"type": "fabric_dataagent_preview"}
+                ):
+                    print(f"[OK] Fabric Data Agent preview connection '{fabric_preview_conn_name}' created")
+                else:
+                    print("[WARN] Fabric Data Agent preview connection creation may have failed.")
+                    print("       You can create the connection manually in the Foundry portal.")
+            except Exception as e:
+                print(f"[WARN] Could not create Fabric Data Agent preview connection: {e}")
+                print("       You can create it manually in the Foundry portal.")
 
     # Scenario 2: Data Agent MCP connection (USER_ACCESS_TOKEN empty, endpoint available)
     if USE_DATA_AGENT and not USE_USER_ACCESS_TOKEN:
