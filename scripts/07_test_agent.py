@@ -355,26 +355,90 @@ def show_help():
 # Chat Loop
 # ============================================================================
 
+# Compiled regex for MCP citation markers: 【N:M†source】
+_MARKER_RE = re.compile(r'【\d+:(\d+)†([^】]*)】')
+
+
+def _parse_mcp_docs(mcp_text: str, mcp_docs: dict):
+    """Parse JSON document blocks from MCP output text keyed by section index."""
+    sections = re.split(r'【\d+:(\d+)†[^】]*】', mcp_text)
+    for i in range(1, len(sections) - 1, 2):
+        sec_idx = sections[i]
+        sec_content = sections[i + 1]
+        json_match = re.search(r'\{[^{}]*"id"\s*:\s*"[^"]*"[^{}]*\}', sec_content)
+        if json_match:
+            try:
+                doc = json.loads(json_match.group())
+                if "id" in doc:
+                    mcp_docs[sec_idx] = doc
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+
+def _extract_mcp_from_raw(raw_repr, mcp_docs: dict):
+    """Extract MCP docs from any raw_representation type."""
+    raw_output = getattr(raw_repr, "output", None)
+    if raw_output and isinstance(raw_output, str):
+        _parse_mcp_docs(raw_output, mcp_docs)
+        return
+    response = getattr(raw_repr, "response", None)
+    if response:
+        for item in getattr(response, "output", None) or []:
+            item_output = getattr(item, "output", None)
+            if item_output and isinstance(item_output, str):
+                _parse_mcp_docs(item_output, mcp_docs)
+
+
 async def chat(user_message: str, agent):
-    """Send a message to the agent and stream the response.
-    
-    Args:
-        user_message: The user's input message
-        agent: The agent framework Agent instance
-    """
+    """Send a message to the agent and stream the response."""
     try:
         text_output = ""
+        mcp_docs = {}
 
         async for chunk in agent.run(user_message, stream=True):
-            if chunk.text:
-                delta = chunk.text
-                # Remove citation markers like 【4:0†source】
-                delta = re.sub(r'【\d+:\d+†[^】]+】', '', delta)
-                if delta:
-                    text_output += delta
+            for content in getattr(chunk, "contents", []) or []:
+                raw_repr = getattr(content, "raw_representation", None)
+                print(f"Raw representation: {raw_repr}")
+                if raw_repr:
+                    _extract_mcp_from_raw(raw_repr, mcp_docs)
+
+            chunk_text = str(chunk.text) if chunk.text else ""
+            if chunk_text:
+                text_output += chunk_text
 
         if text_output:
+            # Collect non-summary markers, then replace in text
+            original_markers = [
+                m for m in _MARKER_RE.finditer(text_output)
+                if m.group(1) != "0"
+            ]
+
+            # Always strip section-0 and renumber rest sequentially
+            citation_idx = 0
+            def _replace_marker(m):
+                nonlocal citation_idx
+                if m.group(1) == "0":
+                    return ""
+                citation_idx += 1
+                return f"[{citation_idx}]"
+            text_output = _MARKER_RE.sub(_replace_marker, text_output)
+
             print(f"\nAssistant: {text_output}")
+
+            # Display citations — sequential [1],[2],[3] matching markers in text
+            if original_markers:
+                print("\n  Citations:")
+                for i, m in enumerate(original_markers, 1):
+                    sec_idx = m.group(1)
+                    marker_source = m.group(2)
+                    mcp_doc = mcp_docs.get(sec_idx, {})
+                    doc_source = mcp_doc.get("source") or marker_source or f"source_{sec_idx}"
+                    doc_id = mcp_doc.get("id", "")
+
+                    if doc_id:
+                        print(f"    [{i}] {doc_source} ({doc_id})")
+                    else:
+                        print(f"    [{i}] {doc_source}")
 
         return text_output
         

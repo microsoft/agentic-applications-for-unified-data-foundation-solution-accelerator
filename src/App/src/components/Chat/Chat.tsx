@@ -32,7 +32,7 @@ import {
   type ConversationRequest,
   type ParsedChunk,
   type ChatMessage,
-  ToolMessageContent,
+  type Citation,
 } from "../../types/AppTypes";
 import { ChatAdd24Regular } from "@fluentui/react-icons";
 import { generateUUIDv4 } from "../../configs/Utils";
@@ -42,7 +42,6 @@ import {
   parseChartContent,
   isMalformedChartJSON,
 } from "../../utils/jsonUtils";
-import { extractAnswerAndCitations } from "../../utils/messageUtils";
 
 type ChatProps = {
   onHandlePanelStates: (name: string) => void;
@@ -122,16 +121,14 @@ const Chat: React.FC<ChatProps> = ({
   }, [selectedConversationId, conversationHistory, dispatch]);
   const parseCitationFromMessage = useCallback((message: string) => {
   try {
-    message = '{' + message;
-    const toolMessage = JSON.parse(message as string) as ToolMessageContent;
-
-    if (toolMessage?.citations?.length) {
-      return toolMessage.citations.filter(
-        (c) => c.url?.trim() || c.title?.trim()
+    const parsed = JSON.parse(message);
+    if (Array.isArray(parsed)) {
+      return parsed.filter(
+        (c: Citation) => c.url?.trim() || c.source?.trim()
       );
     }
   } catch {
-    // Error parsing tool content
+    // Not parseable
   }
   return [];
 }, []);
@@ -423,22 +420,32 @@ const Chat: React.FC<ChatProps> = ({
                 if (parsed?.error && !hasError) {
                   hasError = true;
                   runningText = parsed?.error;
-                } else if (isChartQuery(userMessage) && !hasError) {
-                  runningText += textValue;
                 } else if (typeof parsed === "object" && !hasError) {
-                  const responseContent = parsed?.choices?.[0]?.messages?.[0]?.content;
-                  
-                  if (responseContent) {
-                    const { answerText, citationString } = extractAnswerAndCitations(responseContent);
-                    // Backend sends accumulated content, so we use it directly
-                    // Create a new object to ensure Redux detects the change
-                    streamMessage.content = answerText || "";
-                    streamMessage.role = parsed?.choices?.[0]?.messages?.[0]?.role || ASSISTANT;
-                    streamMessage.citations = citationString;
-                    
-                    // Dispatch with a new object reference to trigger re-render
-                    dispatch(updateMessageById({ ...streamMessage }));
-                    scrollChatToBottom();
+                  const delta = parsed?.choices?.[0]?.delta;
+                  // Delta format from backend
+                  if (delta) {
+                    const role = delta.role;
+                    const content = delta.content;
+                    if (role === "tool" && content) {
+                      // Citation data sent as tool message
+                      streamMessage.citations = content;
+                    } else if (role === "assistant" && content) {
+                      if (isChartQuery(userMessage)) {
+                        // Accumulate chart JSON text for post-stream parsing
+                        runningText += content;
+                      } else {
+                        // Append incremental text chunk
+                        streamMessage.content = (streamMessage.content || "") + content;
+                        streamMessage.role = ASSISTANT;
+                      }
+                    }
+                    if (!isChartQuery(userMessage)) {
+                      dispatch(updateMessageById({ ...streamMessage }));
+                      scrollChatToBottom();
+                    }
+                  } else if (isChartQuery(userMessage)) {
+                    // Legacy chart format fallback
+                    runningText += textValue;
                   }
                 }
               } catch (e) {
@@ -461,21 +468,37 @@ const Chat: React.FC<ChatProps> = ({
           updatedMessages = [newMessage, errorMessage];
         } else if (isChartQuery(userMessage)) {
           try {
-            // Workshop mode: single complete response chunk — parse directly
-            // Non-workshop mode: multiple streaming chunks concatenated — split and take last segment
+            // Delta format: runningText is the accumulated chart JSON content directly
+            // Legacy format: runningText is concatenated delta JSON lines — split and take last segment
             let chartTextToParse: string;
-            const splitRunningText = runningText.split("}{");
-            chartTextToParse = splitRunningText.length > 1
-              ? "{" + splitRunningText[splitRunningText.length - 1]
-              : splitRunningText[0];
-            const parsedChartResponse = JSON.parse(chartTextToParse);
             
-            const rawChartContent = parsedChartResponse?.choices[0]?.messages[0]?.content;
+            // Try parsing directly first (delta format accumulates content only)
+            try {
+              JSON.parse(runningText);
+              chartTextToParse = runningText;
+            } catch {
+              // Legacy fallback: split concatenated JSON objects
+              const splitRunningText = runningText.split("}{");
+              const lastSegment = splitRunningText.length > 1
+                ? "{" + splitRunningText[splitRunningText.length - 1]
+                : splitRunningText[0];
+              
+              // Check if legacy format with choices[0].messages[0].content
+              try {
+                const legacyParsed = JSON.parse(lastSegment);
+                const legacyContent = legacyParsed?.choices?.[0]?.messages?.[0]?.content;
+                chartTextToParse = typeof legacyContent === "string" ? legacyContent : lastSegment;
+              } catch {
+                chartTextToParse = lastSegment;
+              }
+            }
             
-            // **OPTIMIZED: Use helper function for parsing**
-            let chartResponse = typeof rawChartContent === "string" 
-              ? parseChartContent(rawChartContent) 
-              : rawChartContent || "Chart can't be generated, please try again.";
+            const parsedChartContent = JSON.parse(chartTextToParse);
+            
+            // Use helper function for parsing — parsedChartContent is the chart object directly
+            let chartResponse = typeof parsedChartContent === "string" 
+              ? parseChartContent(parsedChartContent) 
+              : parsedChartContent || "Chart can't be generated, please try again.";
 
             chartResponse = extractChartData(chartResponse);
 
@@ -487,23 +510,24 @@ const Chat: React.FC<ChatProps> = ({
                 chartResponse as unknown as ChartDataResponse
               );
               updatedMessages = [newMessage, chartMessage];
-            } else if (parsedChartResponse?.error || parsedChartResponse?.choices[0]?.messages[0]?.content) {
-              let content = parsedChartResponse?.choices[0]?.messages[0]?.content;
-              let displayContent = content;
+            } else {
+              let displayContent = typeof parsedChartContent === "string" 
+                ? parsedChartContent 
+                : JSON.stringify(parsedChartContent);
               
               try {
-                const parsed = typeof content === "string" ? JSON.parse(content) : content;
+                const parsed = typeof parsedChartContent === "object" ? parsedChartContent : JSON.parse(displayContent);
                 if (parsed && typeof parsed === "object" && "answer" in parsed) {
                   displayContent = parsed.answer;
                 }
               } catch {
-                displayContent = content;
+                // keep displayContent as-is
               }
               
-              let errorMsg = parsedChartResponse?.error || displayContent;
+              let errorMsg = displayContent;
               
-              // **OPTIMIZED: Use helper function for validation**
-              if (isMalformedChartJSON(errorMsg, !!parsedChartResponse?.error)) {
+              // Use helper function for validation
+              if (isMalformedChartJSON(errorMsg, false)) {
                 errorMsg = "Chart can not be generated, please try again later";
               }
               

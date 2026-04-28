@@ -150,7 +150,11 @@ export type ParsedChunk = {
   object: string;
   choices: [
     {
-      messages: [
+      delta?: {
+        role: string;
+        content: string;
+      };
+      messages?: [
         {
           content: string;
           role: string;
@@ -170,6 +174,7 @@ export type Citation = {
   content: string;
   id: string;
   title: string | null;
+  source: string | null;
   filepath: string | null;
   url: string | null;
   metadata: string | null;
