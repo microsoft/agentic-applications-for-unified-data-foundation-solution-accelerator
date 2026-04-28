@@ -249,6 +249,8 @@ class TestStreamOpenAIText:
             mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
 
             # Mock responses.create() with proper output structure
+            mock_response = Mock()
+            mock_message_item = Mock(type='message')
             mock_content = Mock()
             mock_content.text = "Response"
             mock_message_item.content = [mock_content]
@@ -381,6 +383,8 @@ class TestAdditionalCoverage:
             # No need to create conversation - using cached thread
 
             # Mock responses.create() with proper output structure
+            mock_response = Mock()
+            mock_message_item = Mock(type='message')
             mock_content = Mock()
             mock_content.text = "Response from cached thread"
             mock_message_item.content = [mock_content]
@@ -513,6 +517,8 @@ class TestAdditionalCoverage:
             mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
 
             # Mock responses.create() with proper output structure
+            mock_response = Mock()
+            mock_message_item = Mock(type='message')
             mock_content = Mock()
             mock_content.text = "New conversation response"
             mock_message_item.content = [mock_content]
@@ -632,6 +638,8 @@ class TestApplicationInsightsCoverage:
             mock_openai = AsyncMock()
 
             # Mock responses.create() with proper output structure
+            mock_response = Mock()
+            mock_message_item = Mock(type='message')
             mock_content = Mock()
             mock_content.text = "Cached thread response"
             mock_message_item.content = [mock_content]
