@@ -619,27 +619,39 @@ else:
         key_col = table_def["key"]
         key_prop_id = property_ids[table_name][key_col]
         
-        # Find DateTime column for timeseries binding
-        timeseries_col = None
-        for col in table_def["columns"]:
-            col_type = table_def["types"].get(col, "String")
-            if col_type in ["DateTime", "Date"]:
-                timeseries_col = col
-                break
-        
-        # Find numeric columns for timeseries measures
+        # Find numeric columns to use as timeseries measures (non-key)
         measures_cols = []
         numeric_types = {"BigInt", "Double", "Int", "Float"}
         for col in table_def["columns"]:
             col_type = table_def["types"].get(col, "String")
             if col_type in numeric_types and col != key_col:
                 measures_cols.append(col)
-        
-        # Build static properties - all columns EXCEPT DateTime
+
+        # Find DateTime column to use as the TimeSeries binding's timestamp column.
+        # The DateTime column itself is NOT modeled as an entity property; it only
+        # serves as `timestampColumnName` on the TimeSeries data binding. The numeric
+        # measure columns become `timeseriesProperties`. This matches Fabric's
+        # ontology UI: "Source data timestamp column" + "Bind your properties >
+        # Timeseries" (numeric measures).
+        # If there is no DateTime column, no timeseries binding is created and all
+        # numeric columns remain as static properties.
+        timestamp_col = None
+        for col in table_def["columns"]:
+            col_type = table_def["types"].get(col, "String")
+            if col_type in ["DateTime", "Date"]:
+                timestamp_col = col
+                break
+
+        has_timeseries = bool(timestamp_col and measures_cols)
+
+        # Static properties: everything EXCEPT the timestamp column and (when a
+        # timeseries binding will be emitted) the numeric measure columns.
         properties = []
         for col in table_def["columns"]:
-            if col == timeseries_col:
-                continue  # DateTime goes in timeseriesProperties
+            if has_timeseries and col == timestamp_col:
+                continue  # timestamp is only on the binding, not a property
+            if has_timeseries and col in measures_cols:
+                continue  # measures move to timeseriesProperties
             col_type = table_def["types"].get(col, "String")
             properties.append({
                 "id": property_ids[table_name][col],
@@ -648,17 +660,19 @@ else:
                 "baseTypeNamespaceType": None,
                 "valueType": type_map.get(col_type, "String")
             })
-        
-        # Build timeseries properties - only DateTime columns
+
+        # Timeseries properties: numeric measure columns (only when paired with a timestamp)
         timeseries_properties = []
-        if timeseries_col:
-            timeseries_properties.append({
-                "id": property_ids[table_name][timeseries_col],
-                "name": timeseries_col,
-                "redefines": None,
-                "baseTypeNamespaceType": None,
-                "valueType": "DateTime"
-            })
+        if has_timeseries:
+            for mc in measures_cols:
+                mc_type = table_def["types"].get(mc, "Double")
+                timeseries_properties.append({
+                    "id": property_ids[table_name][mc],
+                    "name": mc,
+                    "redefines": None,
+                    "baseTypeNamespaceType": None,
+                    "valueType": type_map.get(mc_type, "Double")
+                })
         
         # Entity Type definition
         entity_type = {
@@ -680,11 +694,14 @@ else:
             "payloadType": "InlineBase64"
         })
         
-        # Binding 1: Static (NonTimeSeries) - all columns EXCEPT DateTime
+        # Binding 1: Static (NonTimeSeries) - all columns that are static properties
+        # (excludes timestamp + measures when a timeseries binding will be emitted)
         static_property_bindings = []
         for col in table_def["columns"]:
-            if col == timeseries_col:
-                continue  # DateTime goes in timeseries binding
+            if has_timeseries and col == timestamp_col:
+                continue
+            if has_timeseries and col in measures_cols:
+                continue
             static_property_bindings.append({
                 "sourceColumnName": col,
                 "targetPropertyId": property_ids[table_name][col]
@@ -711,8 +728,10 @@ else:
             "payloadType": "InlineBase64"
         })
         
-        # Binding 2: TimeSeries - for DateTime column (if exists)
-        if timeseries_col and measures_cols:
+        # Binding 2: TimeSeries - timestamp column + numeric measure properties.
+        # The DateTime column is the binding's timestampColumnName only; it is
+        # NOT bound as a property. Measures are bound to their (timeseries) properties.
+        if has_timeseries:
             ts_binding_id = str(uuid.uuid4())
             ts_property_bindings = [
                 {"sourceColumnName": key_col, "targetPropertyId": key_prop_id},
@@ -725,7 +744,7 @@ else:
                 "id": ts_binding_id,
                 "dataBindingConfiguration": {
                     "dataBindingType": "TimeSeries",
-                    "timestampColumnName": timeseries_col,
+                    "timestampColumnName": timestamp_col,
                     "propertyBindings": ts_property_bindings,
                     "sourceTableProperties": {
                         "sourceType": "LakehouseTable",
@@ -742,7 +761,7 @@ else:
                 "payloadType": "InlineBase64"
             })
             
-            print(f"  + Entity: {entity_name} ({len(properties)} static + {len(measures_cols)} timeseries)")
+            print(f"  + Entity: {entity_name} ({len(properties)} static + {len(measures_cols)} timeseries on '{timestamp_col}')")
         else:
             print(f"  + Entity: {entity_name} ({len(properties)} properties)")
     
