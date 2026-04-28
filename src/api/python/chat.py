@@ -130,11 +130,12 @@ def get_thread_cache():
     return thread_cache
 
 
-async def stream_openai_text(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None) -> StreamingResponse:
+async def stream_openai_text(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None):
     """
-    Get a streaming text response from OpenAI using azure-ai-projects SDK.
+    Async generator yielding ``(role, content)`` tuples from OpenAI.
+
     Uses responses.create() with conversation caching for chat history continuity.
-    If user_assertion is provided, uses OBO (On-Behalf-Of) credential for user context.
+    If *user_assertion* is provided, uses OBO credential for user context.
     """
     logger.info("stream_openai_text called: conversation_id=%s, query_length=%d",
                 conversation_id, len(query) if query else 0)
@@ -300,7 +301,7 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
             yield ("assistant", "I cannot answer this question with the current data. Please rephrase or add more details.")
 
 
-_MARKER_RE= re.compile(r'【\d+:(\d+)†([^】]*)】')
+_MARKER_RE = re.compile(r'【\d+:(\d+)†([^】]*)】')
 
 
 def _parse_mcp_docs(mcp_text: str, mcp_docs: dict):
@@ -317,7 +318,7 @@ def _parse_mcp_docs(mcp_text: str, mcp_docs: dict):
                 if "id" in doc:
                     mcp_docs[sec_idx] = doc
             except (json.JSONDecodeError, ValueError):
-                pass
+                pass  # Skip malformed JSON fragments; parsing continues
 
 
 def _extract_mcp_from_raw(raw_repr, mcp_docs: dict):
@@ -337,12 +338,13 @@ def _extract_mcp_from_raw(raw_repr, mcp_docs: dict):
                 _parse_mcp_docs(item_output, mcp_docs)
 
 
-async def stream_openai_text_workshop(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None) -> StreamingResponse:
+async def stream_openai_text_workshop(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None):
     """
-    Get a streaming text response from OpenAI with workshop mode using AzureAIProjectAgentProvider.
-    Uses agent_framework to handle function calls (SQL) and search tools automatically.
-    Uses Fabric SQL when AZURE_ENV_ONLY is false, otherwise uses Azure SQL.
-    If user_assertion is provided, uses OBO (On-Behalf-Of) credential for user context.
+    Async generator yielding ``(role, content)`` tuples (workshop mode).
+
+    Uses FoundryAgent with agent_framework to handle function calls (SQL)
+    and search tools automatically.  Fabric SQL is used when AZURE_ENV_ONLY
+    is false, otherwise Azure SQL.  *user_assertion* enables OBO credential.
     """
     complete_response = ""
     credential = None
@@ -488,9 +490,10 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
 
                     doc_url = ""
                     if search_endpoint and search_index and doc_id:
+                        from urllib.parse import quote
                         doc_url = (
                             f"{search_endpoint.rstrip('/')}/indexes/{search_index}"
-                            f"/docs/{doc_id}?api-version=2024-07-01"
+                            f"/docs/{quote(doc_id, safe='')}?api-version=2024-07-01"
                             f"&$select=id,chunk_id,content,source"
                         )
 
@@ -568,18 +571,44 @@ async def fetch_azure_search_content(request: Request):
     """Fetch document content from Azure AI Search by citation URL."""
     try:
         request_json = await request.json()
-        url = request_json.get("url")
-        title = request_json.get("title", "")
-        logger.info("POST /fetch-azure-search-content called: url=%s, title=%s", url, title)
+        citation_url = request_json.get("url")
+        fallback_label = request_json.get("source") or request_json.get("title", "")
+        logger.info(
+            "POST /fetch-azure-search-content called: url=%s",
+            citation_url,
+        )
 
-        if not url:
-            return JSONResponse(content={"error": "URL is required"}, status_code=400)
+        if not citation_url:
+            return JSONResponse(
+                content={"error": "URL is required"}, status_code=400
+            )
+
+        # --- SSRF protection: only allow requests to the configured search endpoint ---
+        from urllib.parse import urlparse, parse_qs, quote
+
+        search_endpoint = os.getenv("AZURE_SEARCH_ENDPOINT") or os.getenv(
+            "AZURE_AI_SEARCH_ENDPOINT", ""
+        )
+        if not search_endpoint:
+            return JSONResponse(
+                content={"error": "Search endpoint not configured"},
+                status_code=500,
+            )
+
+        allowed_host = urlparse(search_endpoint).netloc.lower()
+        parsed = urlparse(citation_url)
+        if parsed.netloc.lower() != allowed_host:
+            logger.warning(
+                "Blocked fetch to non-allowed host: %s (allowed: %s)",
+                parsed.netloc,
+                allowed_host,
+            )
+            return JSONResponse(
+                content={"error": "URL host not allowed"}, status_code=403
+            )
 
         # Parse the doc id from the URL: .../docs/{doc_id}?api-version=...
-        from urllib.parse import urlparse, parse_qs, quote
-        parsed = urlparse(url)
         path_parts = parsed.path.rstrip("/").split("/")
-        # Find doc_id (last segment after /docs/)
         doc_id = None
         for i, part in enumerate(path_parts):
             if part == "docs" and i + 1 < len(path_parts):
@@ -587,10 +616,12 @@ async def fetch_azure_search_content(request: Request):
                 break
 
         if not doc_id:
-            return JSONResponse(content={"error": "Could not parse document ID from URL"}, status_code=400)
+            return JSONResponse(
+                content={"error": "Could not parse document ID from URL"},
+                status_code=400,
+            )
 
-        # Reconstruct URL using OData key lookup (no $select — causes 400 with this syntax)
-        # Format: {endpoint}/indexes/{index}/docs('{key}')?api-version=...
+        # Reconstruct URL using OData key lookup (no $select — causes 400)
         idx = parsed.path.find("/docs/")
         base_path = parsed.path[:idx]
         qs = parse_qs(parsed.query)
@@ -604,7 +635,9 @@ async def fetch_azure_search_content(request: Request):
 
         credential = await get_azure_credential_async()
         try:
-            token = await credential.get_token("https://search.azure.com/.default")
+            token = await credential.get_token(
+                "https://search.azure.com/.default"
+            )
             access_token = token.token
         finally:
             await credential.close()
@@ -612,21 +645,31 @@ async def fetch_azure_search_content(request: Request):
         def fetch_content():
             try:
                 import requests as req
+
                 headers = {
                     "Authorization": f"Bearer {access_token}",
                     "Content-Type": "application/json",
                 }
-                response = req.get(lookup_url, headers=headers, timeout=10)
-                logger.info("Azure Search lookup: status=%d, url=%s", response.status_code, lookup_url)
+                response = req.get(
+                    lookup_url, headers=headers, timeout=10
+                )
+                logger.info(
+                    "Azure Search lookup: status=%d, url=%s",
+                    response.status_code,
+                    lookup_url,
+                )
 
                 if response.status_code == 200:
                     data = response.json()
                     content = data.get("content", "")
-                    source = data.get("source", title)
+                    source = data.get("source", fallback_label)
                     return {"content": content, "title": source}
-                else:
-                    logger.warning("Azure Search fetch failed: status=%d, body=%s", response.status_code, response.text[:500])
-                    return {"error": f"HTTP {response.status_code}"}
+                logger.warning(
+                    "Azure Search fetch failed: status=%d, body=%s",
+                    response.status_code,
+                    response.text[:500],
+                )
+                return {"error": f"HTTP {response.status_code}"}
             except Exception:
                 logger.exception("Exception fetching search content")
                 return {"error": "Unable to fetch content"}
@@ -636,7 +679,9 @@ async def fetch_azure_search_content(request: Request):
 
     except Exception:
         logger.exception("Error in fetch_azure_search_content")
-        return JSONResponse(content={"error": "Internal server error"}, status_code=500)
+        return JSONResponse(
+            content={"error": "Internal server error"}, status_code=500
+        )
 
 
 @router.post("/chat")
@@ -649,7 +694,7 @@ async def conversation(request: Request):
         query = request_json.get("query")
         authenticated_user = get_authenticated_user_details(request_headers=request.headers)
         user_id = authenticated_user.get("user_principal_id", "")
-        
+
         # Get user's access token for OBO flow (needed for Work IQ Teams)
         user_assertion = authenticated_user.get("aad_access_token")
 
@@ -666,8 +711,10 @@ async def conversation(request: Request):
                 status_code=400
             )
 
-        logger.info("POST /chat called: conversation_id=%s, query_length=%d, has_user_token=%s", 
-                    conversation_id, len(query) if query else 0, bool(user_assertion))
+        logger.info(
+            "POST /chat called: conversation_id=%s, query_length=%d, has_user_token=%s",
+            conversation_id, len(query) if query else 0, bool(user_assertion),
+        )
 
         # Track chat request initiation
         track_event_if_configured("ChatRequestReceived", {

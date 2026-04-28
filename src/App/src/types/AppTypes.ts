@@ -144,10 +144,10 @@ export type HistoryMetaData = {
 
 export type ParsedChunk = {
   error?: string;
-  id: string;
-  model: string;
-  created: number;
-  object: string;
+  id?: string;
+  model?: string;
+  created?: number;
+  object?: string;
   choices: [
     {
       delta?: {
@@ -160,10 +160,10 @@ export type ParsedChunk = {
           role: string;
         }
       ];
-      history_metadata: object;
+      history_metadata?: object;
     }
   ];
-  "apim-request-id": string;
+  "apim-request-id"?: string;
 };
 
 export type ToolMessageContent = {

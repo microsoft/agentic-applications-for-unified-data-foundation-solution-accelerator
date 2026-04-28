@@ -385,6 +385,7 @@ const Chat: React.FC<ChatProps> = ({
         const reader = response.body.getReader();
         let runningText = "";
         let hasError = false;
+        let lineBuffer = ""; // Carry-over buffer for partial JSON lines
         
         // Read and process stream
         while (true) {
@@ -408,10 +409,13 @@ const Chat: React.FC<ChatProps> = ({
           }
           
           if (!isChartResponseReceived) {
-            // Text-based streaming response
-            const objects = text.split("\n").filter((val) => val !== "");
-            
-            objects.forEach((textValue) => {
+            // Prepend any leftover partial line from previous chunk
+            const combined = lineBuffer + text;
+            const lines = combined.split("\n");
+            // Last element may be incomplete — carry it over
+            lineBuffer = lines.pop() || "";
+
+            lines.forEach((textValue) => {
               if (!textValue || textValue === "{}") return;
               
               try {

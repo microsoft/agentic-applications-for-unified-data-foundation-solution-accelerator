@@ -372,7 +372,7 @@ def _parse_mcp_docs(mcp_text: str, mcp_docs: dict):
                 if "id" in doc:
                     mcp_docs[sec_idx] = doc
             except (json.JSONDecodeError, ValueError):
-                pass
+                pass  # Skip malformed JSON fragments; parsing continues
 
 
 def _extract_mcp_from_raw(raw_repr, mcp_docs: dict):
