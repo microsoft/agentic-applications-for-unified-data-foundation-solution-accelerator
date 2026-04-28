@@ -1,8 +1,6 @@
-@description('The Docker image tag to deploy.')
-param imageTag string
-
-@description('The name of the Azure Container Registry.')
-param acrName string
+// ========== deploy_backend_custom.bicep ========== //
+// Deploys the Python backend API App Service using Oryx source-code build (azd deploy compatible).
+// Mirrors deploy_backend_docker.bicep but targets code deployment instead of a pre-built Docker image.
 
 @description('The resource ID of the Application Insights instance.')
 param applicationInsightsId string
@@ -25,16 +23,22 @@ param aiServicesName string
 
 @description('The resource ID of an existing AI project, if reusing one.')
 param azureExistingAIProjectResourceId string = ''
+
+@description('Whether to enable Cosmos DB integration for chat history.')
+param enableCosmosDb bool = false
+
+@description('Optional. Resource ID of the Log Analytics Workspace for diagnostic settings.')
+param logAnalyticsWorkspaceId string = ''
+
+@description('The name of the App Service.')
+param name string
+
 var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
 var existingAIServicesName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[8] : ''
 var existingAIProjectName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[10] : ''
 
-var imageName = 'DOCKER|${acrName}.azurecr.io/da-api-dotnet:${imageTag}'
-
-@description('The name of the App Service.')
-param name string 
-var reactAppLayoutConfig ='''{
+var reactAppLayoutConfig = '''{
   "appConfig": {
       "CHAT_CHATHISTORY": {
         "CHAT": 70,
@@ -44,25 +48,51 @@ var reactAppLayoutConfig ='''{
   }
 }'''
 
-module appService 'deploy_app_service.bicep' = {
+module appService 'deploy_app_service_custom.bicep' = {
   name: '${name}-app-module'
   params: {
     solutionName: name
-    solutionLocation:solutionLocation
+    solutionLocation: solutionLocation
     appServicePlanId: appServicePlanId
-    appImageName: imageName
-    userassignedIdentityId:userassignedIdentityId
+    linuxFxVersion: 'PYTHON|3.11'
+    appCommandLine: 'uvicorn app:app --host 0.0.0.0 --port 8000'
+    userassignedIdentityId: userassignedIdentityId
+    enableSystemAssignedIdentity: true
+    azdServiceName: 'api'
+    logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
     appSettings: union(
       appSettings,
       {
         APPINSIGHTS_INSTRUMENTATIONKEY: reference(applicationInsightsId, '2015-05-01').InstrumentationKey
         REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
+        PYTHONUNBUFFERED: '1'
+        SCM_DO_BUILD_DURING_DEPLOYMENT: 'true'
+        ENABLE_ORYX_BUILD: 'true'
       }
     )
   }
 }
 
-resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' existing = if (enableCosmosDb) {
+  name: appSettings.AZURE_COSMOSDB_ACCOUNT
+}
+
+resource contributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-05-15' existing = if (enableCosmosDb) {
+  parent: cosmos
+  name: '00000000-0000-0000-0000-000000000002'
+}
+
+resource role 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-04-15' = if (enableCosmosDb) {
+  parent: cosmos
+  name: guid(contributorRoleDefinition.id, cosmos.id)
+  properties: {
+    principalId: appService.outputs.identityPrincipalId
+    roleDefinitionId: contributorRoleDefinition.id
+    scope: cosmos.id
+  }
+}
+
+resource aiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
   name: aiServicesName
   scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
 }
@@ -104,3 +134,6 @@ output reactAppLayoutConfig string = reactAppLayoutConfig
 
 @description('The Application Insights instrumentation key.')
 output appInsightInstrumentationKey string = reference(applicationInsightsId, '2015-05-01').InstrumentationKey
+
+@description('The principal ID of the App Service managed identity.')
+output identityPrincipalId string = appService.outputs.identityPrincipalId

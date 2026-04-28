@@ -1,4 +1,4 @@
-[← Back to *DEPLOYMENT* guide](/documents/DeploymentGuide.md#deployment-options--steps)
+[← Back to *DEPLOYMENT* guide](DeploymentGuide.md#deployment-options--steps)
 
 # Reusing an Existing Azure AI Foundry Project
 To configure your environment to use an existing Azure AI Foundry Project, follow these steps:
@@ -36,9 +36,9 @@ In the left-hand menu of the project blade:
 ### 6. Set the Foundry Project Resource ID in Your Environment
 Run the following command in your terminal
 ```bash
-azd env set AZURE_EXISTING_AI_PROJECT_RESOURCE_ID '<Existing AI Project Resource ID>'
+azd env set AZURE_EXISTING_AIPROJECT_RESOURCE_ID '<Existing AI Project Resource ID>'
 ```
 Replace `<Existing AI Project Resource ID>` with the value obtained from Step 5.
 
 ### 7. Continue Deployment
-Proceed with the next steps in the [deployment guide](/documents/DeploymentGuide.md#deployment-options--steps).
+Proceed with the next steps in the [deployment guide](DeploymentGuide.md#deployment-options--steps).

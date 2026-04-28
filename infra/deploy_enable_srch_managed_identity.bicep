@@ -4,7 +4,7 @@ param searchServiceName string
 @description('The Azure region where the search service is deployed.')
 param location string
 
-resource aiSearchWithManagedIdentity 'Microsoft.Search/searchServices@2024-06-01-preview' = {
+resource aiSearchWithManagedIdentity 'Microsoft.Search/searchServices@2025-05-01' = {
   name: searchServiceName
   location: location
   sku: {
@@ -16,7 +16,7 @@ resource aiSearchWithManagedIdentity 'Microsoft.Search/searchServices@2024-06-01
   properties: {
     replicaCount: 1
     partitionCount: 1
-    hostingMode: 'default'
+    hostingMode: 'Default'
     publicNetworkAccess: 'enabled'
     networkRuleSet: {
       ipRules: []

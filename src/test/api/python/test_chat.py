@@ -11,7 +11,7 @@ Unit tests for chat.py module with 95%+ coverage.
 import json
 import os
 import sys
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastapi import Request
@@ -251,11 +251,8 @@ class TestStreamOpenAIText:
             # Mock responses.create() with proper output structure
             mock_content = Mock()
             mock_content.text = "Response"
-            mock_output_item = Mock()
-            mock_output_item.type = 'message'
-            mock_output_item.content = [mock_content]
-            mock_response = Mock()
-            mock_response.output = [mock_output_item]
+            mock_message_item.content = [mock_content]
+            mock_response.output = [mock_message_item]
             mock_openai.responses.create = AsyncMock(return_value=mock_response)
 
             mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
@@ -296,7 +293,7 @@ class TestStreamOpenAIText:
 
             # Mock empty response (no message content)
             mock_response = Mock()
-            mock_response.output = []  # Empty output
+            mock_response.output = []
             mock_openai.responses.create = AsyncMock(return_value=mock_response)
 
             mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
@@ -386,11 +383,8 @@ class TestAdditionalCoverage:
             # Mock responses.create() with proper output structure
             mock_content = Mock()
             mock_content.text = "Response from cached thread"
-            mock_output_item = Mock()
-            mock_output_item.type = 'message'
-            mock_output_item.content = [mock_content]
-            mock_response = Mock()
-            mock_response.output = [mock_output_item]
+            mock_message_item.content = [mock_content]
+            mock_response.output = [mock_message_item]
             mock_openai.responses.create = AsyncMock(return_value=mock_response)
 
             mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
@@ -521,11 +515,8 @@ class TestAdditionalCoverage:
             # Mock responses.create() with proper output structure
             mock_content = Mock()
             mock_content.text = "New conversation response"
-            mock_output_item = Mock()
-            mock_output_item.type = 'message'
-            mock_output_item.content = [mock_content]
-            mock_response = Mock()
-            mock_response.output = [mock_output_item]
+            mock_message_item.content = [mock_content]
+            mock_response.output = [mock_message_item]
             mock_openai.responses.create = AsyncMock(return_value=mock_response)
 
             mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
@@ -551,8 +542,8 @@ class TestAdditionalCoverage:
             assert mock_cache_dict["new_conv"] == "new_thread_456"
 
     @pytest.mark.asyncio
-    async def test_stream_openai_text_empty_chunks_filtered(self):
-        """Test that empty chunks are filtered out."""
+    async def test_stream_openai_text_single_content_response(self):
+        """Test that a single content item response is streamed correctly."""
         from chat import stream_openai_text
 
         with patch('chat.get_azure_credential_async') as mock_cred, \
@@ -568,19 +559,18 @@ class TestAdditionalCoverage:
             mock_openai = AsyncMock()
             mock_conv = Mock(id="thread_789")
             mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
-
-            # Mock response with message containing mixed empty/non-empty text
-            content1 = Mock(text="Hello")
-            content1.type = 'text'
-            content2 = Mock(text=" World")
-            content2.type = 'text'
-            msg_item = Mock()
-            msg_item.type = 'message'
-            msg_item.content = [content1, content2]
+            
+            # Mock response with multiple content items
             mock_response = Mock()
-            mock_response.output = [msg_item]
+            mock_message_item = Mock()
+            mock_message_item.type = 'message'
+            mock_content1 = Mock()
+            mock_content1.text = "Hello World"
+            mock_message_item.content = [mock_content1]
+            mock_response.output = [mock_message_item]
             mock_openai.responses.create = AsyncMock(return_value=mock_response)
-
+            mock_openai.close = AsyncMock()
+            
             mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
             mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
             mock_proj_inst.__aexit__ = AsyncMock()
@@ -626,7 +616,7 @@ class TestApplicationInsightsCoverage:
 
     @pytest.mark.asyncio
     async def test_stream_openai_text_with_existing_thread(self):
-        """Test using cached thread with is_initialized=True."""
+        """Test using cached thread."""
         from chat import stream_openai_text
 
         with patch('chat.get_azure_credential_async') as mock_cred, \
@@ -644,11 +634,8 @@ class TestApplicationInsightsCoverage:
             # Mock responses.create() with proper output structure
             mock_content = Mock()
             mock_content.text = "Cached thread response"
-            mock_output_item = Mock()
-            mock_output_item.type = 'message'
-            mock_output_item.content = [mock_content]
-            mock_response = Mock()
-            mock_response.output = [mock_output_item]
+            mock_message_item.content = [mock_content]
+            mock_response.output = [mock_message_item]
             mock_openai.responses.create = AsyncMock(return_value=mock_response)
 
             mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)

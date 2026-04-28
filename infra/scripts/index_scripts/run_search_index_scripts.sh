@@ -36,7 +36,8 @@ if [ -z "$openaiEndpoint" ]; then
 fi
 
 if [ -z "$embeddingModel" ]; then
-    embeddingModel=$(azd env get-value AZURE_OPENAI_EMBEDDING_MODEL)
+    # Support both new and legacy environment variable names for backward compatibility
+    embeddingModel=$(azd env get-value AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME 2>/dev/null || azd env get-value AZURE_OPENAI_EMBEDDING_MODEL 2>/dev/null || echo "")
 fi
 
 if [ -z "$indexName" ]; then

@@ -12,7 +12,7 @@ param solutionLocation string
 @description('Name')
 param miName string
 
-resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: miName
   location: solutionLocation
   tags: {
@@ -22,7 +22,7 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-
 }
 
 @description('This is the built-in owner role. See https://docs.microsoft.com/azure/role-based-access-control/built-in-roles#owner')
-resource ownerRoleDefinition 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' existing = {
+resource ownerRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: resourceGroup()
   name: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
 }
@@ -36,7 +36,7 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-resource managedIdentityBackendApp 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+resource managedIdentityBackendApp 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: 'id-backend-app-mi-${solutionName}'
   location: solutionLocation
   tags: {

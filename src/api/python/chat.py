@@ -697,6 +697,7 @@ async def conversation(request: Request):
         authenticated_user = get_authenticated_user_details(request_headers=request.headers)
         user_id = authenticated_user.get("user_principal_id", "")
 
+
         # Get user's access token for OBO flow (needed for Work IQ Teams)
         user_assertion = authenticated_user.get("aad_access_token")
 
