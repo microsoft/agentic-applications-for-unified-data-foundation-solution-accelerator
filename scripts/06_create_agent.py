@@ -442,6 +442,7 @@ Do not invent or rename metrics, measures, or terminology. **Always** use exactl
 
 ## Citation Guidelines
 When citing knowledge base sources:
+- Always cite sources when your answer uses information from the knowledge base.
 - Only cite the specific retrieved documents you actually used to compose your answer.
 - Do not add citation markers for retrieved documents that were not referenced in your response.
 - If multiple retrieved chunks come from the same source document, consolidate them into a single citation marker.
