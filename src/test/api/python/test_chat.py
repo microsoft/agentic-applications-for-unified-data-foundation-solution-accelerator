@@ -950,15 +950,15 @@ class TestStreamChatRequestDelta:
 
     @pytest.mark.asyncio
     async def test_wraps_tuples_in_delta_format(self):
-        """Test that stream_chat_request wraps tuples in delta JSON format."""
+        """Test that stream_chat_request wraps tuples in delta JSON format (workshop mode)."""
         from chat import stream_chat_request
 
         async def mock_gen(*args, **kwargs):
             yield ("assistant", "Hello world")
             yield ("tool", '[{"url":"u","source":"s","id":"i"}]')
 
-        with patch('chat.stream_openai_text', side_effect=mock_gen), \
-             patch('chat.stream_openai_text_workshop', side_effect=mock_gen):
+        with patch('chat.stream_openai_text_workshop', side_effect=mock_gen), \
+             patch('chat.IS_WORKSHOP', True):
             gen = await stream_chat_request("conv1", "test query")
             chunks = []
             async for chunk in gen:
@@ -968,6 +968,27 @@ class TestStreamChatRequestDelta:
             first = json.loads(chunks[0].strip())
             assert "choices" in first
             assert "delta" in first["choices"][0]
+
+    @pytest.mark.asyncio
+    async def test_wraps_strings_in_messages_format(self):
+        """Test that stream_chat_request wraps plain strings in messages format (non-workshop)."""
+        from chat import stream_chat_request
+
+        async def mock_gen(*args, **kwargs):
+            yield "Hello world"
+
+        with patch('chat.stream_openai_text', side_effect=mock_gen), \
+             patch('chat.IS_WORKSHOP', False):
+            gen = await stream_chat_request("conv1", "test query")
+            chunks = []
+            async for chunk in gen:
+                chunks.append(chunk)
+
+            assert len(chunks) >= 1
+            first = json.loads(chunks[0].strip())
+            assert "choices" in first
+            assert "messages" in first["choices"][0]
+            assert first["choices"][0]["messages"][0]["content"] == "Hello world"
 
 
 class TestMissingLineCoverage:
