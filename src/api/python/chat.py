@@ -301,7 +301,7 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-_MARKER_RE= re.compile(r'【\d+:(\d+)†([^】]*)】')
+_MARKER_RE = re.compile(r'【\d+:(\d+)†([^】]*)】')
 
 
 def _parse_mcp_docs(mcp_text: str, mcp_docs: dict):
