@@ -312,10 +312,9 @@ class TestStreamOpenAIText:
             async for chunk in stream_openai_text("conv_123", "test"):
                 results.append(chunk)
 
-            # Should have fallback message - now yields (role, content) tuples
+            # Should have fallback message as plain string
             assert len(results) == 1
-            assert results[0][0] == "assistant"
-            assert "cannot answer" in results[0][1].lower()
+            assert "cannot answer" in results[0].lower()
 
 
 class TestAdditionalCoverage:
@@ -592,10 +591,9 @@ class TestAdditionalCoverage:
             async for chunk in stream_openai_text("conv_789", "test"):
                 results.append(chunk)
 
-            # Should have concatenated text from the message - now yields (role, content) tuples
+            # Should yield plain text string
             assert len(results) == 1
-            assert results[0][0] == "assistant"
-            assert "Hello World" in results[0][1]
+            assert results[0] == "Hello World"
 
 
 class TestApplicationInsightsCoverage:

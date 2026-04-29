@@ -132,7 +132,7 @@ def get_thread_cache():
 
 async def stream_openai_text(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None):
     """
-    Async generator yielding ``(role, content)`` tuples from OpenAI.
+    Async generator yielding plain text chunks from OpenAI.
 
     Uses responses.create() with conversation caching for chat history continuity.
     If *user_assertion* is provided, uses OBO credential for user context.
@@ -221,7 +221,7 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                 if not function_calls:
                     if text_output:
                         complete_response += text_output
-                        yield ("assistant", text_output)
+                        yield text_output
                     break
 
                 # Handle function calls
@@ -261,7 +261,7 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
 
             if iteration >= max_iterations:
                 logger.warning("Max iterations reached for conversation %s", conversation_id)
-                yield ("assistant", "\n\n(Response processing reached maximum iterations)")
+                yield "\n\n(Response processing reached maximum iterations)"
 
             logger.info("Streaming complete for conversation %s: response_length=%d",
                         conversation_id, len(complete_response))
@@ -298,10 +298,10 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
         # Provide a fallback response when no data is received from OpenAI.
         if complete_response == "":
             logger.info("No response received from OpenAI.")
-            yield ("assistant", "I cannot answer this question with the current data. Please rephrase or add more details.")
+            yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-_MARKER_RE = re.compile(r'【\d+:(\d+)†([^】]*)】')
+_MARKER_RE= re.compile(r'【\d+:(\d+)†([^】]*)】')
 
 
 def _parse_mcp_docs(mcp_text: str, mcp_docs: dict):
@@ -536,12 +536,11 @@ async def stream_chat_request(conversation_id, query, user_id: str = "", user_as
             assistant_content = ""
             # Use workshop function if IS_WORKSHOP is enabled
             stream_func = stream_openai_text_workshop if IS_WORKSHOP else stream_openai_text
-            async for role, content in stream_func(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
-                if not content:
-                    continue
-
-                if IS_WORKSHOP:
-                    # Workshop: delta format — incremental fragments, frontend appends
+            if IS_WORKSHOP:
+                # Workshop: delta format — incremental fragments, frontend appends
+                async for role, content in stream_func(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
+                    if not content:
+                        continue
                     if role == "assistant":
                         assistant_content += content
                     response = {
@@ -550,11 +549,13 @@ async def stream_chat_request(conversation_id, query, user_id: str = "", user_as
                         }]
                     }
                     yield json.dumps(response, ensure_ascii=False) + "\n"
-                else:
-                    # Non-workshop: messages format — accumulated text, frontend replaces
-                    if isinstance(content, dict):
-                        content = json.dumps(content)
-                    assistant_content += str(content)
+            else:
+                # Non-workshop: messages format — accumulated text, frontend replaces
+                async for chunk in stream_func(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
+                    if isinstance(chunk, dict):
+                        chunk = json.dumps(chunk)
+                    assistant_content += str(chunk)
+
                     if assistant_content:
                         response = {
                             "choices": [{
