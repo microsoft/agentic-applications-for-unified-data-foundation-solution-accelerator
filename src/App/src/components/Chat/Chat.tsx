@@ -342,38 +342,22 @@ const Chat: React.FC<ChatProps> = ({
                     }
                   } else if (legacyMsg) {
                     const role = legacyMsg.role;
-                    let content = legacyMsg.content;
-                    // Dotnet/non-workshop final chunk wraps content as {"answer":"...", "citations":[]}
-                    // Skip extraction for chart queries — chart processing handles the wrapper
-                    if (role === "assistant" && typeof content === "string" && !isChartQuery(userMessage)) {
-                      try {
-                        const wrapped = JSON.parse(content);
-                        if (wrapped && typeof wrapped === "object" && "answer" in wrapped) {
-                          content = wrapped.answer;
-                          if (wrapped.citations && JSON.stringify(wrapped.citations) !== "[]") {
-                            streamMessage.citations = JSON.stringify(wrapped.citations);
-                          }
-                        }
-                      } catch {
-                        // Not JSON wrapper — use content as-is
-                      }
-                    }
+                    const content = legacyMsg.content;
                     if (role === "assistant" && content) {
                       if (isChartQuery(userMessage)) {
                         runningText = content;
                       } else {
-                        // Messages format sends full accumulated text — replace, not append
-                        streamMessage.content = content;
+                        // Use extractAnswerAndCitations to handle {"answer":"...","citations":[]} wrapper
+                        // During incremental streaming, content grows each chunk — wrapper won't parse until complete
+                        const { answerText, citationString } = extractAnswerAndCitations(content);
+                        streamMessage.content = answerText || "";
                         streamMessage.role = ASSISTANT;
+                        if (citationString) {
+                          streamMessage.citations = citationString;
+                        }
+                        dispatch(updateMessageById({ ...streamMessage }));
+                        scrollChatToBottom();
                       }
-                    }
-                    if (!isChartQuery(userMessage)) {
-                      // Strip {"answer":"...", "citations":[]} wrapper for display
-                      const displayContent = typeof streamMessage.content === "string"
-                        ? extractAnswerAndCitations(streamMessage.content).answerText
-                        : streamMessage.content;
-                      dispatch(updateMessageById({ ...streamMessage, content: displayContent }));
-                      scrollChatToBottom();
                     }
                   } else if (isChartQuery(userMessage)) {
                     // Legacy chart format fallback
@@ -473,18 +457,11 @@ const Chat: React.FC<ChatProps> = ({
         
         // If no messages have been added yet but we have streamed content, save it
         if (updatedMessages.length === 0 && streamMessage.content) {
-          // Backend may wrap final content as {"answer":"...", "citations":[]}
           if (typeof streamMessage.content === "string") {
-            try {
-              const finalParsed = JSON.parse(streamMessage.content);
-              if (finalParsed && typeof finalParsed === "object" && "answer" in finalParsed) {
-                streamMessage.content = finalParsed.answer;
-                if (finalParsed.citations && JSON.stringify(finalParsed.citations) !== "[]") {
-                  streamMessage.citations = JSON.stringify(finalParsed.citations);
-                }
-              }
-            } catch {
-              // Not JSON — use content as-is
+            const { answerText, citationString } = extractAnswerAndCitations(streamMessage.content);
+            streamMessage.content = answerText || streamMessage.content;
+            if (citationString) {
+              streamMessage.citations = citationString;
             }
           }
           updatedMessages = [newMessage, streamMessage];
