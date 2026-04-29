@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "17324503396325924614"
+      "templateHash": "3645839045207447954"
     }
   },
   "parameters": {
@@ -3781,7 +3781,6 @@
           "azureExistingAIProjectResourceId": {
             "value": "[parameters('azureExistingAIProjectResourceId')]"
           },
-          "aiSearchName": "[if(parameters('isWorkshop'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiSearchName.value), createObject('value', ''))]",
           "appSettings": {
             "value": {
               "AZURE_ENV_GPT_MODEL_NAME": "[parameters('gptModelName')]",
@@ -3822,7 +3821,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "9574734695691916345"
+              "templateHash": "15675271098519791556"
             }
           },
           "parameters": {
@@ -3882,13 +3881,6 @@
                 "description": "The resource ID of an existing AI project, if reusing one."
               }
             },
-            "aiSearchName": {
-              "type": "string",
-              "defaultValue": "",
-              "metadata": {
-                "description": "The name of the Azure AI Search service (empty if not workshop)."
-              }
-            },
             "name": {
               "type": "string",
               "metadata": {
@@ -3905,21 +3897,6 @@
             "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
           },
           "resources": [
-            {
-              "condition": "[not(empty(parameters('aiSearchName')))]",
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2022-04-01",
-              "scope": "[resourceId('Microsoft.Search/searchServices', parameters('aiSearchName'))]",
-              "name": "[guid(parameters('name'), parameters('aiSearchName'), resourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f'))]",
-              "properties": {
-                "principalId": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2025-04-01').outputs.identityPrincipalId.value]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f')]",
-                "principalType": "ServicePrincipal"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name')))]"
-              ]
-            },
             {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",

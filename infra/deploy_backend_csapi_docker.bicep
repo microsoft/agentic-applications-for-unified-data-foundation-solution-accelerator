@@ -26,8 +26,7 @@ param aiServicesName string
 @description('The resource ID of an existing AI project, if reusing one.')
 param azureExistingAIProjectResourceId string = ''
 
-@description('The name of the Azure AI Search service (empty if not workshop).')
-param aiSearchName string = ''
+
 var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
 var existingAIServicesName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[8] : ''
@@ -96,24 +95,6 @@ module assignAiUserRoleToAiProject 'deploy_foundry_role_assignment.bicep' = {
   }
 }
 
-// ========== Search Index Data Reader for API Managed Identity ========== //
-resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' existing = if (!empty(aiSearchName)) {
-  name: aiSearchName
-}
-
-resource searchIndexDataReader 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
-  name: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
-}
-
-resource assignSearchIndexDataReaderToApi 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(aiSearchName)) {
-  name: guid(name, aiSearchName, searchIndexDataReader.id)
-  scope: aiSearch
-  properties: {
-    principalId: appService.outputs.identityPrincipalId
-    roleDefinitionId: searchIndexDataReader.id
-    principalType: 'ServicePrincipal'
-  }
-}
 
 @description('The URL of the deployed App Service.')
 output appUrl string = appService.outputs.appUrl
