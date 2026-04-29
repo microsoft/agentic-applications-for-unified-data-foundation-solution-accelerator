@@ -446,7 +446,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
                     if m.start() > 0:
                         yield ("assistant", marker_buf[:m.start()])
 
-                    # Replace marker: drop section 0, renumber rest
+                    # Replace marker: drop section 0, renumber rest (consolidate same source)
                     sec_idx = m.group(1)
                     if sec_idx != "0":
                         citation_idx += 1
@@ -475,7 +475,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
                 "citation_count": str(len(mcp_docs)),
             })
 
-            # Yield citations as a tool message — one per non-summary marker for 1-1 mapping
+            # Yield citations as a tool message — deduplicated by source
             citation_list = []
             if original_markers:
                 search_endpoint = os.getenv("AZURE_AI_SEARCH_ENDPOINT", "")

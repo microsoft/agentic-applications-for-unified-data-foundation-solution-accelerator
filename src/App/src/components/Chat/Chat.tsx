@@ -42,6 +42,7 @@ import {
   parseChartContent,
   isMalformedChartJSON,
 } from "../../utils/jsonUtils";
+import { extractAnswerAndCitations } from "../../utils/messageUtils";
 
 type ChatProps = {
   onHandlePanelStates: (name: string) => void;
@@ -52,19 +53,6 @@ type ChatProps = {
 const [ASSISTANT, ERROR, USER] = ["assistant", "error", "user"];
 
 const chatLandingText = getChatLandingText();
-
-/** Strip {"answer":"..."} wrapper for display during streaming. */
-function stripAnswerWrapper(text: string): string {
-  const match = text.match(/^\s*\{\s*"answer"\s*:\s*"/);
-  if (!match) return text;
-  let result = text.substring(match[0].length);
-  // Remove trailing ", "citations":...} or ","citations":...} if present
-  const citMatch = result.match(/",\s*"citations"\s*:/);
-  if (citMatch && citMatch.index !== undefined) {
-    result = result.substring(0, citMatch.index);
-  }
-  return result;
-}
 
 const Chat: React.FC<ChatProps> = ({
   onHandlePanelStates,
@@ -347,7 +335,7 @@ const Chat: React.FC<ChatProps> = ({
                     if (!isChartQuery(userMessage)) {
                       // Strip {"answer":"...", "citations":[]} wrapper for display
                       const displayContent = typeof streamMessage.content === "string"
-                        ? stripAnswerWrapper(streamMessage.content)
+                        ? extractAnswerAndCitations(streamMessage.content).answerText
                         : streamMessage.content;
                       dispatch(updateMessageById({ ...streamMessage, content: displayContent }));
                       scrollChatToBottom();
@@ -382,7 +370,7 @@ const Chat: React.FC<ChatProps> = ({
                     if (!isChartQuery(userMessage)) {
                       // Strip {"answer":"...", "citations":[]} wrapper for display
                       const displayContent = typeof streamMessage.content === "string"
-                        ? stripAnswerWrapper(streamMessage.content)
+                        ? extractAnswerAndCitations(streamMessage.content).answerText
                         : streamMessage.content;
                       dispatch(updateMessageById({ ...streamMessage, content: displayContent }));
                       scrollChatToBottom();
