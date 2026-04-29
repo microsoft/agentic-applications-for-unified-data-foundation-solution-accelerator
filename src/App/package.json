@@ -71,10 +71,13 @@
     "underscore": "1.13.8",
     "svgo": "3.3.3",
     "css-select": "5.1.0",
-    "postcss": "8.5.8",
+    "postcss": "8.5.12",
     "@tootallnate/once": "3.0.1",
     "brace-expansion": "1.1.13",
     "path-to-regexp": "0.1.13",
-    "yaml": "2.8.3"
+    "yaml": "2.8.3",
+    "webpack-dev-server": "5.2.3",
+    "follow-redirects": "1.16.0",
+    "uuid": "14.0.0"
   }
 }
