@@ -525,6 +525,9 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
 async def stream_chat_request(conversation_id, query, user_id: str = "", user_assertion: str = None):
     """
     Handles streaming chat requests.
+
+    Workshop mode uses delta format (incremental fragments).
+    Non-workshop mode uses messages format (accumulated text).
     """
     logger.info("stream_chat_request called: conversation_id=%s", conversation_id)
 
@@ -536,14 +539,29 @@ async def stream_chat_request(conversation_id, query, user_id: str = "", user_as
             async for role, content in stream_func(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
                 if not content:
                     continue
-                if role == "assistant":
-                    assistant_content += content
-                response = {
-                    "choices": [{
-                        "delta": {"role": role, "content": content}
-                    }]
-                }
-                yield json.dumps(response, ensure_ascii=False) + "\n"
+
+                if IS_WORKSHOP:
+                    # Workshop: delta format — incremental fragments, frontend appends
+                    if role == "assistant":
+                        assistant_content += content
+                    response = {
+                        "choices": [{
+                            "delta": {"role": role, "content": content}
+                        }]
+                    }
+                    yield json.dumps(response, ensure_ascii=False) + "\n"
+                else:
+                    # Non-workshop: messages format — accumulated text, frontend replaces
+                    if isinstance(content, dict):
+                        content = json.dumps(content)
+                    assistant_content += str(content)
+                    if assistant_content:
+                        response = {
+                            "choices": [{
+                                "messages": [{"role": "assistant", "content": assistant_content}]
+                            }]
+                        }
+                        yield json.dumps(response, ensure_ascii=False) + "\n\n"
 
         except HTTPException as e:
             error_message = str(e.detail) if hasattr(e, 'detail') else str(e)

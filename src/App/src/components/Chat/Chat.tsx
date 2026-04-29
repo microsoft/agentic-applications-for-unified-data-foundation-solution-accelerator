@@ -317,8 +317,8 @@ const Chat: React.FC<ChatProps> = ({
                 } else if (typeof parsed === "object" && !hasError) {
                   const delta = parsed?.choices?.[0]?.delta;
                   const legacyMsg = parsed?.choices?.[0]?.messages?.[0];
-                  // Delta format (Python) yields incremental fragments;
-                  // messages format (dotnet) yields the full accumulated text each time.
+                  // Delta format (Python workshop) yields incremental fragments;
+                  // messages format (Python non-workshop, dotnet) yields the full accumulated text each time.
                   if (delta) {
                     const role = delta.role;
                     const content = delta.content;
@@ -343,7 +343,7 @@ const Chat: React.FC<ChatProps> = ({
                   } else if (legacyMsg) {
                     const role = legacyMsg.role;
                     let content = legacyMsg.content;
-                    // Dotnet final chunk wraps content as {"answer":"...", "citations":[]}
+                    // Dotnet/non-workshop final chunk wraps content as {"answer":"...", "citations":[]}
                     // Skip extraction for chart queries — chart processing handles the wrapper
                     if (role === "assistant" && typeof content === "string" && !isChartQuery(userMessage)) {
                       try {
@@ -362,7 +362,7 @@ const Chat: React.FC<ChatProps> = ({
                       if (isChartQuery(userMessage)) {
                         runningText = content;
                       } else {
-                        // Dotnet sends full accumulated text — replace, not append
+                        // Messages format sends full accumulated text — replace, not append
                         streamMessage.content = content;
                         streamMessage.role = ASSISTANT;
                       }
@@ -473,7 +473,7 @@ const Chat: React.FC<ChatProps> = ({
         
         // If no messages have been added yet but we have streamed content, save it
         if (updatedMessages.length === 0 && streamMessage.content) {
-          // Dotnet backend may wrap final content as {"answer":"...", "citations":[]}
+          // Backend may wrap final content as {"answer":"...", "citations":[]}
           if (typeof streamMessage.content === "string") {
             try {
               const finalParsed = JSON.parse(streamMessage.content);
