@@ -356,7 +356,8 @@ const Chat: React.FC<ChatProps> = ({
                     const role = legacyMsg.role;
                     let content = legacyMsg.content;
                     // Dotnet final chunk wraps content as {"answer":"...", "citations":[]}
-                    if (role === "assistant" && typeof content === "string") {
+                    // Skip extraction for chart queries — chart processing handles the wrapper
+                    if (role === "assistant" && typeof content === "string" && !isChartQuery(userMessage)) {
                       try {
                         const wrapped = JSON.parse(content);
                         if (wrapped && typeof wrapped === "object" && "answer" in wrapped) {
@@ -379,7 +380,11 @@ const Chat: React.FC<ChatProps> = ({
                       }
                     }
                     if (!isChartQuery(userMessage)) {
-                      dispatch(updateMessageById({ ...streamMessage }));
+                      // Strip {"answer":"...", "citations":[]} wrapper for display
+                      const displayContent = typeof streamMessage.content === "string"
+                        ? stripAnswerWrapper(streamMessage.content)
+                        : streamMessage.content;
+                      dispatch(updateMessageById({ ...streamMessage, content: displayContent }));
                       scrollChatToBottom();
                     }
                   } else if (isChartQuery(userMessage)) {
