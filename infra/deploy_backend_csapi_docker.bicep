@@ -25,8 +25,6 @@ param aiServicesName string
 
 @description('The resource ID of an existing AI project, if reusing one.')
 param azureExistingAIProjectResourceId string = ''
-
-
 var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
 var existingAIServicesName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[8] : ''
@@ -94,7 +92,6 @@ module assignAiUserRoleToAiProject 'deploy_foundry_role_assignment.bicep' = {
     enableSystemAssignedIdentity: false
   }
 }
-
 
 @description('The URL of the deployed App Service.')
 output appUrl string = appService.outputs.appUrl
