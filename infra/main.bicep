@@ -144,6 +144,9 @@ var solutionSuffix = toLower(trim(replace(
 @description('Location for AI Foundry deployment. This is the location where the AI Foundry resources will be deployed.')
 param aiDeploymentsLocation string
 
+// NOTE: The Azure Container Registry (ACR) is provisioned separately via the CI/CD docker-build scripts
+// (infra/scripts/docker-build.sh / docker-build.ps1), not as part of this main azd deployment.
+// The deploy_container_registry.bicep module is used by those scripts to create the ACR before pushing images.
 @description('Name of the Azure Container Registry')
 param acrName string = 'dataagentscontainerreg'
 
@@ -275,9 +278,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
       AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
 
       USE_AI_PROJECT_CLIENT: 'True'
-      DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: aifoundry.outputs.applicationInsightsConnectionString
-      DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
       AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
@@ -331,9 +332,7 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
       AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
 
       USE_AI_PROJECT_CLIENT: 'True'
-      DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: aifoundry.outputs.applicationInsightsConnectionString
-      DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix 
       APP_ENV: 'Prod'
 
