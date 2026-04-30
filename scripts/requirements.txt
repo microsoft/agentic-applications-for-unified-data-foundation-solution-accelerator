@@ -16,7 +16,7 @@ agent-framework-foundry==1.1.1
 azure-storage-file-datalake==12.20.0
 
 # HTTP requests (Fabric REST API)
-requests==2.33.0
+requests==2.33.1
 
 # Data generation (AI-generated scripts use these)
 pandas==2.3.0
