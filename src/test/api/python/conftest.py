@@ -29,7 +29,7 @@ if api_python_str not in sys.path:
 def create_mock_router():
     """
     Create a mock APIRouter instance.
-    
+
     Returns:
         MagicMock: A mock router with routes and tags attributes.
     """
@@ -43,7 +43,7 @@ def should_mock_modules():
     """
     Determine if modules should be mocked based on which tests are being run.
     Only mock when testing app.py, not when testing chat.py or other modules.
-    
+
     Returns:
         bool: True if modules should be mocked, False otherwise.
     """
@@ -52,18 +52,18 @@ def should_mock_modules():
         # Don't mock if testing chat module
         if 'chat' in arg.lower() and 'test_chat' in arg.lower():
             return False
-        # Don't mock if testing auth module  
+        # Don't mock if testing auth module
         if 'auth' in arg.lower() and 'test_' in arg.lower():
             return False
         # Don't mock if testing history module
         if 'history' in arg.lower() and 'test_history' in arg.lower():
             return False
-    
+
     # Mock if testing app.py or if no specific test file mentioned
     for arg in sys.argv:
         if 'test_app' in arg.lower():
             return True
-    
+
     # Default: don't mock to allow real modules to load
     return False
 
@@ -71,7 +71,7 @@ def should_mock_modules():
 def should_mock_azure_sdk():
     """
     Determine if Azure SDK modules should be mocked.
-    
+
     Returns:
         bool: True if running any Python API tests that import chat or history modules.
     """
@@ -92,27 +92,31 @@ if should_mock_azure_sdk():
     mock_ai_projects.models = mock_ai_projects_models
     mock_ai_projects.aio = mock_ai_projects_aio
     mock_ai_projects.operations = mock_ai_projects_operations
-    
+
     # Mock Azure AI Agents models to prevent import errors
     mock_ai_agents = MagicMock()
     mock_ai_agents_models = MagicMock()
     mock_ai_agents_aio = MagicMock()
     mock_ai_agents.models = mock_ai_agents_models
-    mock_ai_agents.aio = mock_ai_agents_aio
-    
+
     # Mock specific classes that are imported
     mock_ai_agents_models.TruncationObject = MagicMock()
-    
+
     # Mock agent_framework modules
     mock_agent_framework = MagicMock()
     mock_agent_framework.ChatAgent = MagicMock()
+    mock_agent_framework.AgentSession = MagicMock()
     mock_agent_framework.exceptions = MagicMock()
     mock_agent_framework.exceptions.ServiceResponseException = Exception
-    
+    mock_agent_framework._compaction = MagicMock()
+
     mock_agent_framework_azure = MagicMock()
     mock_azure_ai_client = MagicMock()
     mock_agent_framework_azure.AzureAIClient = mock_azure_ai_client
-    
+
+    mock_agent_framework_foundry = MagicMock()
+    mock_agent_framework_foundry.FoundryAgent = MagicMock()
+
     # Register all mocks in sys.modules BEFORE any imports
     sys.modules['azure.ai.agents'] = mock_ai_agents
     sys.modules['azure.ai.agents.models'] = mock_ai_agents_models
@@ -127,10 +131,13 @@ if should_mock_azure_sdk():
     sys.modules['azure.ai.projects.operations._patch_datasets'] = MagicMock()
     sys.modules['azure.ai.projects._client'] = MagicMock()
     sys.modules['agent_framework'] = mock_agent_framework
+    sys.modules['agent_framework._compaction'] = mock_agent_framework._compaction
     sys.modules['agent_framework.azure'] = mock_agent_framework_azure
     sys.modules['agent_framework.exceptions'] = mock_agent_framework.exceptions
     sys.modules['agent_framework_azure_ai'] = MagicMock()
     sys.modules['agent_framework_azure_ai._client'] = MagicMock()
+    sys.modules['agent_framework_foundry'] = mock_agent_framework_foundry
+    sys.modules['agent_framework_foundry._agent'] = MagicMock()
 
 
 # Conditionally create mock modules before they are imported by app.py
@@ -151,10 +158,10 @@ if should_mock_modules():
 def setup_test_environment():
     """
     Set up the test environment before any tests run.
-    
+
     This fixture runs automatically at the session scope to ensure
     all required mocks are in place before any test execution.
-    
+
     Yields:
         None: Allows tests to run after setup.
     """
@@ -169,8 +176,7 @@ def setup_test_environment():
         if 'history_sql' not in sys.modules:
             sys.modules['history_sql'] = MagicMock()
             sys.modules['history_sql'].router = create_mock_router()
-    
-    yield
-    
-    # Cleanup is optional - mocks can persist for the test session
 
+    yield
+
+    # Cleanup is optional - mocks can persist for the test session

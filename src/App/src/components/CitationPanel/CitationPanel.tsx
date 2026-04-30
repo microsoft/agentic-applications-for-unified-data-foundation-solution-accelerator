@@ -53,7 +53,7 @@ const CitationPanel = memo(({ activeCitation }: Props) => {
                 <h5
                   
                 >
-                    {activeCitation.title}
+                    {activeCitation.source || activeCitation.title}
                 </h5>
               
                 <ReactMarkdown

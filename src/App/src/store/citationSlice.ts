@@ -19,9 +19,16 @@ const initialState: CitationState = {
 // Async thunks
 export const fetchCitationContent = createAsyncThunk(
   'citation/fetchCitationContent',
-  async ({ citation, conversationId }: { citation: Citation; conversationId: string }) => {
-    const citationContent = await fetchCitationContentApi(citation);
-    return { citation, content: citationContent.content, conversationId };
+  async ({ citation, conversationId }: { citation: Citation; conversationId: string }, { rejectWithValue }) => {
+    try {
+      const citationContent = await fetchCitationContentApi(citation);
+      if (citationContent?.error) {
+        return rejectWithValue(citationContent.error);
+      }
+      return { citation, content: citationContent.content || "", conversationId };
+    } catch (err: any) {
+      return rejectWithValue(err?.message || "Failed to fetch citation");
+    }
   }
 );
 

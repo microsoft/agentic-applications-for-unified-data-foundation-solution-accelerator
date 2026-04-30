@@ -38,7 +38,7 @@ httpClient.addRequestInterceptor((config) => {
     (config.headers as any)['Authorization'] = `Bearer ${accessToken}`;
     // Also send as X-ZUMO-AUTH for App Service EasyAuth compatibility
     (config.headers as any)['X-ZUMO-AUTH'] = accessToken;
-  } else {
+  } else if (process.env.NODE_ENV === 'development') {
     console.log('[Request] NO token - Authorization and X-ZUMO-AUTH headers NOT added');
   }
   return config;
@@ -78,7 +78,7 @@ export async function getUserInfo(): Promise<UserInfo[]> {
   const accessToken = payload[0]?.access_token;
   if (accessToken) {
     setAccessToken(accessToken);
-  } else {
+  } else if (process.env.NODE_ENV === 'development') {
     console.log('[Auth] NO access_token to store!');
   }
   return payload;

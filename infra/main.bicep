@@ -252,6 +252,7 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
     aiServicesName: aifoundry.outputs.aiServicesName
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
     enableCosmosDb: shouldDeployApp && isWorkshop
+    aiSearchName: isWorkshop ? aifoundry.outputs.aiSearchName : ''
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
