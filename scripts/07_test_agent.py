@@ -512,4 +512,7 @@ async def main():
     except Exception as e:
         print(f"Warning: Could not delete conversation: {e}")
 
+    # Close async client to avoid unclosed session warnings
+    await project_client.close()
+
 asyncio.run(main())
