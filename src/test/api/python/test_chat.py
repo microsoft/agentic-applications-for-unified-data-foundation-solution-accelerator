@@ -338,19 +338,24 @@ class TestStreamOpenAIText:
         mock_openai_client = AsyncMock()
         mock_openai_client.conversations.create = AsyncMock(return_value=mock_conv)
 
-        mock_project_client = AsyncMock()
-        mock_project_client.get_openai_client = Mock(return_value=mock_openai_client)
-        mock_project_client.__aenter__ = AsyncMock(return_value=mock_project_client)
-        mock_project_client.__aexit__ = AsyncMock()
+        mock_proj_inst = AsyncMock()
+        mock_proj_inst.get_openai_client = Mock(return_value=mock_openai_client)
+        mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
+        mock_proj_inst.__aexit__ = AsyncMock()
 
         with patch('chat.get_azure_credential_async') as mock_cred, \
-             patch('chat.AIProjectClient', return_value=mock_project_client), \
+             patch('chat.AIProjectClient') as mock_project, \
              patch('chat.FoundryAgent', return_value=mock_agent), \
-             patch('chat.get_thread_cache') as mock_cache:
+             patch('chat.get_thread_cache') as mock_cache, \
+             patch('history_sql.get_azure_sql_connection', new_callable=AsyncMock, return_value=Mock()) as mock_sql, \
+             patch('history_sql.get_fabric_db_connection', new_callable=AsyncMock, return_value=Mock()), \
+             patch('history_sql.SqlQueryTool') as mock_tool:
 
             mock_cred.return_value = AsyncMock()
             mock_cred.return_value.close = AsyncMock()
-
+            mock_project.return_value = mock_proj_inst
+            mock_tool.return_value = Mock()
+            mock_tool.return_value.execute_sql = Mock()
             mock_cache.return_value = {}
 
             results = []
