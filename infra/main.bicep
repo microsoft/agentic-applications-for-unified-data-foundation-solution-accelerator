@@ -144,9 +144,6 @@ var solutionSuffix = toLower(trim(replace(
 @description('Location for AI Foundry deployment. This is the location where the AI Foundry resources will be deployed.')
 param aiDeploymentsLocation string
 
-// NOTE: The Azure Container Registry (ACR) is provisioned separately via the CI/CD docker-build scripts
-// (infra/scripts/docker-build.sh / docker-build.ps1), not as part of this main azd deployment.
-// The deploy_container_registry.bicep module is used by those scripts to create the ACR before pushing images.
 @description('Name of the Azure Container Registry')
 param acrName string = 'dataagentscontainerreg'
 

@@ -127,10 +127,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-// Storage Account — AI Foundry Platform Dependency
-// This Storage Account is required by the AI Foundry platform internally as a project connection.
-// It is NOT directly used by application code (no BlobServiceClient or storage SDK usage in the app).
-// Do not remove without verifying with the team — it is an implicit AI Foundry platform dependency.
+// Storage Account
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = if(isWorkshop) {
   name: storageName
   location: location
