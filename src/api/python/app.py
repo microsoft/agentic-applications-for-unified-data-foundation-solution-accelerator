@@ -117,8 +117,12 @@ def build_app() -> FastAPI:
                         conversation_id_var.set(cid)
                         if span and span.is_recording():
                             span.set_attribute("conversation_id", cid)
-            except Exception as ex:
-                logging.warning("Failed to parse request body for conversation_id: %s", ex)
+            except Exception:
+                # Intentionally fail open: trace enrichment must not break request handling.
+                logging.debug(
+                    "Failed to parse request body for trace attribute enrichment.",
+                    exc_info=True,
+                )
         return await call_next(request)
 
     # Include routers

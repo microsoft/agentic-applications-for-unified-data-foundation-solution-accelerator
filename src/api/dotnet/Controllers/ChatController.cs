@@ -131,7 +131,12 @@ public class ChatController : ControllerBase
             var errorEnvelope = new { error = ex.Message };
             await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
         }
-        catch (Exception ex) when (ex is not RequestFailedException && ex is not OperationCanceledException && ex is not IOException && ex is not JsonException)
+        catch (InvalidOperationException ex)
+        {
+            var errorEnvelope = new { error = ex.Message };
+            await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
+        }
+        catch (NotSupportedException ex)
         {
             var errorEnvelope = new { error = ex.Message };
             await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
