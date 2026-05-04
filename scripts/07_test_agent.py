@@ -390,13 +390,17 @@ def _extract_mcp_from_raw(raw_repr, mcp_docs: dict):
                 _parse_mcp_docs(item_output, mcp_docs)
 
 
-async def chat(user_message: str, agent):
+async def chat(user_message: str, agent, conversation_id: str = None):
     """Send a message to the agent and stream the response."""
     try:
         text_output = ""
         mcp_docs = {}
 
-        async for chunk in agent.run(user_message, stream=True):
+        run_kwargs = {"stream": True}
+        if conversation_id:
+            run_kwargs["options"] = {"conversation_id": conversation_id}
+
+        async for chunk in agent.run(user_message, **run_kwargs):
             for content in getattr(chunk, "contents", []) or []:
                 raw_repr = getattr(content, "raw_representation", None)
                 if raw_repr:
@@ -461,6 +465,14 @@ async def main():
 
     print("-" * 60)
 
+    project_client = AIProjectClient(
+        endpoint=ENDPOINT,
+        credential=AsyncDefaultAzureCredential(),
+    )
+    openai_client = project_client.get_openai_client()
+    conv = await openai_client.conversations.create()
+    conversation_id = conv.id
+
     # Main chat loop
     while True:
         try:
@@ -484,7 +496,7 @@ async def main():
                     user_input = sample_questions[idx]
                     print(f"  → {user_input}")
             
-            await chat(user_input, agent)
+            await chat(user_input, agent, conversation_id)
             
         except KeyboardInterrupt:
             print("\n\nGoodbye!")

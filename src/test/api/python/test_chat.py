@@ -11,7 +11,7 @@ Unit tests for chat.py module with 95%+ coverage.
 import json
 import os
 import sys
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import Request
