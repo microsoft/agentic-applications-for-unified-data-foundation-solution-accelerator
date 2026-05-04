@@ -505,4 +505,11 @@ async def main():
             print("\nGoodbye!")
             break
 
+    # Cleanup: delete the conversation
+    try:
+        await openai_client.conversations.delete(conversation_id=conversation_id)
+        print(f"Conversation {conversation_id} deleted.")
+    except Exception as e:
+        print(f"Warning: Could not delete conversation: {e}")
+
 asyncio.run(main())
