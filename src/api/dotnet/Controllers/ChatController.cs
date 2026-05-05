@@ -121,27 +121,7 @@ public class ChatController : ControllerBase
         {
             // Client disconnected or request was cancelled - no need to write response
         }
-        catch (IOException ex)
-        {
-            var errorEnvelope = new { error = ex.Message };
-            await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
-        }
-        catch (JsonException ex)
-        {
-            var errorEnvelope = new { error = ex.Message };
-            await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
-        }
-        catch (InvalidOperationException ex)
-        {
-            var errorEnvelope = new { error = ex.Message };
-            await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
-        }
-        catch (NotSupportedException ex)
-        {
-            var errorEnvelope = new { error = ex.Message };
-            await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Unexpected error during chat streaming");
             var errorEnvelope = new { error = ex.Message };
