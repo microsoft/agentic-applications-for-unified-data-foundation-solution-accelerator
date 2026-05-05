@@ -11,7 +11,7 @@ Unit tests for chat.py module with 95%+ coverage.
 import json
 import os
 import sys
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import Request
@@ -315,6 +315,58 @@ class TestStreamOpenAIText:
             # Should have fallback message as plain string
             assert len(results) == 1
             assert "cannot answer" in results[0].lower()
+
+    @pytest.mark.asyncio
+    async def test_workshop_passes_conversation_id_in_options(self):
+        """Verify workshop mode agent.run is called with options={'conversation_id': conv_id}."""
+        from chat import stream_openai_text_workshop
+
+        mock_chunk = Mock()
+        mock_chunk.text = "Hello"
+        mock_chunk.contents = []
+
+        mock_agent = Mock()
+
+        async def mock_async_iter(*args, **kwargs):
+            yield mock_chunk
+
+        mock_agent.run = Mock(return_value=mock_async_iter())
+
+        mock_conv = Mock()
+        mock_conv.id = "conv_thread_abc123"
+
+        mock_openai_client = AsyncMock()
+        mock_openai_client.conversations.create = AsyncMock(return_value=mock_conv)
+
+        mock_proj_inst = AsyncMock()
+        mock_proj_inst.get_openai_client = Mock(return_value=mock_openai_client)
+        mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
+        mock_proj_inst.__aexit__ = AsyncMock()
+
+        with patch('chat.get_azure_credential_async') as mock_cred, \
+             patch('chat.AIProjectClient') as mock_project, \
+             patch('chat.FoundryAgent', return_value=mock_agent), \
+             patch('chat.get_thread_cache') as mock_cache, \
+             patch('history_sql.get_azure_sql_connection', new_callable=AsyncMock, return_value=Mock()) as mock_sql, \
+             patch('history_sql.get_fabric_db_connection', new_callable=AsyncMock, return_value=Mock()), \
+             patch('history_sql.SqlQueryTool') as mock_tool:
+
+            mock_cred.return_value = AsyncMock()
+            mock_cred.return_value.close = AsyncMock()
+            mock_project.return_value = mock_proj_inst
+            mock_tool.return_value = Mock()
+            mock_tool.return_value.execute_sql = Mock()
+            mock_cache.return_value = {}
+
+            results = []
+            async for item in stream_openai_text_workshop("test_conv", "hello", "user1"):
+                results.append(item)
+
+            # Verify agent.run was called with options containing conversation_id
+            mock_agent.run.assert_called_once()
+            call_kwargs = mock_agent.run.call_args[1]
+            assert "options" in call_kwargs
+            assert call_kwargs["options"]["conversation_id"] == "conv_thread_abc123"
 
 
 class TestAdditionalCoverage:

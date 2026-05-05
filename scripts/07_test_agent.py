@@ -23,8 +23,10 @@ import re
 import struct
 import argparse
 import asyncio
-import logging
 import traceback
+import warnings
+
+warnings.filterwarnings("ignore", module="agent_framework_foundry")
 
 # Parse arguments first
 parser = argparse.ArgumentParser()
@@ -390,13 +392,17 @@ def _extract_mcp_from_raw(raw_repr, mcp_docs: dict):
                 _parse_mcp_docs(item_output, mcp_docs)
 
 
-async def chat(user_message: str, agent):
+async def chat(user_message: str, agent, conversation_id: str = None):
     """Send a message to the agent and stream the response."""
     try:
         text_output = ""
         mcp_docs = {}
 
-        async for chunk in agent.run(user_message, stream=True):
+        run_kwargs = {"stream": True}
+        if conversation_id:
+            run_kwargs["options"] = {"conversation_id": conversation_id}
+
+        async for chunk in agent.run(user_message, **run_kwargs):
             for content in getattr(chunk, "contents", []) or []:
                 raw_repr = getattr(content, "raw_representation", None)
                 if raw_repr:
@@ -461,36 +467,51 @@ async def main():
 
     print("-" * 60)
 
-    # Main chat loop
-    while True:
-        try:
-            user_input = input("\nYou: ").strip()
-            
-            if not user_input:
-                continue
-            
-            if user_input.lower() in ['quit', 'exit', 'q']:
-                print("Goodbye!")
+    async with AIProjectClient(
+        endpoint=ENDPOINT,
+        credential=AsyncDefaultAzureCredential(),
+    ) as project_client:
+        openai_client = project_client.get_openai_client()
+        conv = await openai_client.conversations.create()
+        conversation_id = conv.id
+
+        # Main chat loop
+        while True:
+            try:
+                user_input = input("\nYou: ").strip()
+                
+                if not user_input:
+                    continue
+                
+                if user_input.lower() in ['quit', 'exit', 'q']:
+                    print("Goodbye!")
+                    break
+                
+                if user_input.lower() == 'help':
+                    show_help()
+                    continue
+                
+                # Check for numbered question shortcuts
+                if user_input.isdigit():
+                    idx = int(user_input) - 1
+                    if 0 <= idx < len(sample_questions):
+                        user_input = sample_questions[idx]
+                        print(f"  → {user_input}")
+                
+                await chat(user_input, agent, conversation_id)
+                
+            except KeyboardInterrupt:
+                print("\n\nGoodbye!")
                 break
-            
-            if user_input.lower() == 'help':
-                show_help()
-                continue
-            
-            # Check for numbered question shortcuts
-            if user_input.isdigit():
-                idx = int(user_input) - 1
-                if 0 <= idx < len(sample_questions):
-                    user_input = sample_questions[idx]
-                    print(f"  → {user_input}")
-            
-            await chat(user_input, agent)
-            
-        except KeyboardInterrupt:
-            print("\n\nGoodbye!")
-            break
-        except EOFError:
-            print("\nGoodbye!")
-            break
+            except EOFError:
+                print("\nGoodbye!")
+                break
+
+        # Cleanup: delete the conversation
+        try:
+            await openai_client.conversations.delete(conversation_id=conversation_id)
+            print(f"Conversation {conversation_id} deleted.")
+        except Exception as e:
+            print(f"Warning: Could not delete conversation: {e}")
 
 asyncio.run(main())

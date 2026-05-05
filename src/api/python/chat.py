@@ -23,7 +23,6 @@ from azure.ai.projects.aio import AIProjectClient
 
 # Agent Framework
 from agent_framework_foundry import FoundryAgent
-from agent_framework import AgentSession
 
 # Azure Auth
 from auth.auth_utils import get_authenticated_user_details
@@ -415,8 +414,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
             marker_re = _MARKER_RE
 
             # Stream response — incrementally process complete markers, buffer incomplete ones
-            session = AgentSession(session_id=conv_id)
-            async for chunk in agent.run(query, stream=True, session=session):
+            async for chunk in agent.run(query, stream=True, options={"conversation_id": conv_id}):
                 for content in getattr(chunk, "contents", []) or []:
                     raw_repr = getattr(content, "raw_representation", None)
                     if raw_repr:
