@@ -50,8 +50,8 @@ p.add_argument("--clean", action="store_true",
                help="Delete and recreate Lakehouse and Ontology (use when switching scenarios)")
 p.add_argument("--skip-data-agent", action="store_true",
                help="Skip Data Agent creation step")
-p.add_argument("--datasource-type", choices=["ontology", "lakehouse"], default="ontology",
-               help="Data source type for Data Agent: 'ontology' (default) or 'lakehouse'")
+p.add_argument("--datasource-type", choices=["ontology", "lakehouse"], default="lakehouse",
+               help="Data source type for Data Agent: 'ontology' or 'lakehouse' (default)")
 args = p.parse_args()
 
 WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
