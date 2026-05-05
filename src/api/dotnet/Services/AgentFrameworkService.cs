@@ -112,6 +112,11 @@ namespace CsApi.Services
                 _logger.LogError(ex, "Unexpected SQL query execution error");
                 return $"SQL query failed with error: {ex.Message}. Please fix the query and try again.";
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected SQL query execution error");
+                return $"SQL query failed with error: {ex.Message}. Please fix the query and try again.";
+            }
         }
 
 

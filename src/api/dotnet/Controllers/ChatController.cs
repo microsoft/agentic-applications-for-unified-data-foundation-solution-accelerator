@@ -141,6 +141,12 @@ public class ChatController : ControllerBase
             var errorEnvelope = new { error = ex.Message };
             await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during chat streaming");
+            var errorEnvelope = new { error = ex.Message };
+            await Response.WriteAsync(JsonSerializer.Serialize(errorEnvelope) + "\n\n", ct);
+        }
     }
 
 

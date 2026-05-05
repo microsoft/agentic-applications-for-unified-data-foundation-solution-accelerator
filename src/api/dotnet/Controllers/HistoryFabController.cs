@@ -215,15 +215,15 @@ public class HistoryFabController : ControllerBase
                     var generatedTitle = await _titleService.GenerateTitleAsync(req.Messages, ct);
                     await _repo.UpdateConversationTitleAsync(user, convId, generatedTitle, ct);
                 }
-                catch (OperationCanceledException)
-                {
-                    // Request was cancelled, propagate cancellation
-                    throw;
-                }
                 catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
                 {
                     _logger.LogError(ex, "Title generation timed out for conversation {ConversationId}", convId);
                     await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Request was cancelled, propagate cancellation
+                    throw;
                 }
                 catch (RequestFailedException ex)
                 {
