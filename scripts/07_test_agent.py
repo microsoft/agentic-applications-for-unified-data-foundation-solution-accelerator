@@ -23,8 +23,10 @@ import re
 import struct
 import argparse
 import asyncio
-import logging
 import traceback
+import warnings
+
+warnings.filterwarnings("ignore", module="agent_framework_foundry")
 
 # Parse arguments first
 parser = argparse.ArgumentParser()
