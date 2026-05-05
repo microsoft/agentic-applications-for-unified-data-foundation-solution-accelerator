@@ -240,6 +240,11 @@ public class HistoryFabController : ControllerBase
                     _logger.LogError(ex, "Failed to generate title for conversation {ConversationId}", convId);
                     await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unexpected error generating title for conversation {ConversationId}", convId);
+                    await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
+                }
             }
             // Add messages (store last user+assistant like Python logic)
             // But first check if they already exist to avoid duplicates
@@ -298,6 +303,11 @@ public class HistoryFabController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Error updating conversation {ConversationId}", req.Conversation_Id);
+            return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error updating conversation {ConversationId}", req.Conversation_Id);
             return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");
         }
     }
