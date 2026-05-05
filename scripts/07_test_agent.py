@@ -467,54 +467,51 @@ async def main():
 
     print("-" * 60)
 
-    project_client = AIProjectClient(
+    async with AIProjectClient(
         endpoint=ENDPOINT,
         credential=AsyncDefaultAzureCredential(),
-    )
-    openai_client = project_client.get_openai_client()
-    conv = await openai_client.conversations.create()
-    conversation_id = conv.id
+    ) as project_client:
+        openai_client = project_client.get_openai_client()
+        conv = await openai_client.conversations.create()
+        conversation_id = conv.id
 
-    # Main chat loop
-    while True:
-        try:
-            user_input = input("\nYou: ").strip()
-            
-            if not user_input:
-                continue
-            
-            if user_input.lower() in ['quit', 'exit', 'q']:
-                print("Goodbye!")
+        # Main chat loop
+        while True:
+            try:
+                user_input = input("\nYou: ").strip()
+                
+                if not user_input:
+                    continue
+                
+                if user_input.lower() in ['quit', 'exit', 'q']:
+                    print("Goodbye!")
+                    break
+                
+                if user_input.lower() == 'help':
+                    show_help()
+                    continue
+                
+                # Check for numbered question shortcuts
+                if user_input.isdigit():
+                    idx = int(user_input) - 1
+                    if 0 <= idx < len(sample_questions):
+                        user_input = sample_questions[idx]
+                        print(f"  → {user_input}")
+                
+                await chat(user_input, agent, conversation_id)
+                
+            except KeyboardInterrupt:
+                print("\n\nGoodbye!")
                 break
-            
-            if user_input.lower() == 'help':
-                show_help()
-                continue
-            
-            # Check for numbered question shortcuts
-            if user_input.isdigit():
-                idx = int(user_input) - 1
-                if 0 <= idx < len(sample_questions):
-                    user_input = sample_questions[idx]
-                    print(f"  → {user_input}")
-            
-            await chat(user_input, agent, conversation_id)
-            
-        except KeyboardInterrupt:
-            print("\n\nGoodbye!")
-            break
-        except EOFError:
-            print("\nGoodbye!")
-            break
+            except EOFError:
+                print("\nGoodbye!")
+                break
 
-    # Cleanup: delete the conversation
-    try:
-        await openai_client.conversations.delete(conversation_id=conversation_id)
-        print(f"Conversation {conversation_id} deleted.")
-    except Exception as e:
-        print(f"Warning: Could not delete conversation: {e}")
-
-    # Close async client to avoid unclosed session warnings
-    await project_client.close()
+        # Cleanup: delete the conversation
+        try:
+            await openai_client.conversations.delete(conversation_id=conversation_id)
+            print(f"Conversation {conversation_id} deleted.")
+        except Exception as e:
+            print(f"Warning: Could not delete conversation: {e}")
 
 asyncio.run(main())
