@@ -355,23 +355,19 @@ def show_help():
 # Chat Loop
 # ============================================================================
 
-async def chat(user_message: str, agent):
-    """Send a message to the agent and stream the response.
-    
-    Args:
-        user_message: The user's input message
-        agent: The agent framework Agent instance
-    """
+async def chat(user_message: str, agent, conversation_id: str = None):
+    """Send a message to the agent and stream the response."""
     try:
         text_output = ""
 
-        async for chunk in agent.run(user_message, stream=True):
-            if chunk.text:
-                delta = chunk.text
-                # Remove citation markers like 【4:0†source】
-                delta = re.sub(r'【\d+:\d+†[^】]+】', '', delta)
-                if delta:
-                    text_output += delta
+        run_kwargs = {"stream": True}
+        if conversation_id:
+            run_kwargs["options"] = {"conversation_id": conversation_id}
+
+        async for chunk in agent.run(user_message, **run_kwargs):
+            chunk_text = str(chunk.text) if chunk.text else ""
+            if chunk_text:
+                text_output += chunk_text
 
         if text_output:
             print(f"\nAssistant: {text_output}")
@@ -397,6 +393,14 @@ async def main():
 
     print("-" * 60)
 
+    project_client = AIProjectClient(
+        endpoint=ENDPOINT,
+        credential=AsyncDefaultAzureCredential(),
+    )
+    openai_client = project_client.get_openai_client()
+    conv = await openai_client.conversations.create()
+    conversation_id = conv.id
+
     # Main chat loop
     while True:
         try:
@@ -420,7 +424,7 @@ async def main():
                     user_input = sample_questions[idx]
                     print(f"  → {user_input}")
             
-            await chat(user_input, agent)
+            await chat(user_input, agent, conversation_id)
             
         except KeyboardInterrupt:
             print("\n\nGoodbye!")
@@ -428,5 +432,15 @@ async def main():
         except EOFError:
             print("\nGoodbye!")
             break
+
+    # Cleanup: delete the conversation
+    try:
+        await openai_client.conversations.delete(conversation_id=conversation_id)
+        print(f"Conversation {conversation_id} deleted.")
+    except Exception as e:
+        print(f"Warning: Could not delete conversation: {e}")
+
+    # Close async client to avoid unclosed session warnings
+    await project_client.close()
 
 asyncio.run(main())
