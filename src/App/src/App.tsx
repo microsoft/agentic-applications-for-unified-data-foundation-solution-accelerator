@@ -6,7 +6,16 @@ import {
   Body2,
   webLightTheme,
   Avatar,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
+  MenuDivider,
+  Button,
+  Tooltip,
 } from "@fluentui/react-components";
+import { SignOut24Regular, Person24Regular } from "@fluentui/react-icons";
 import "./App.css";
 import { ChatHistoryPanel } from "./components/ChatHistoryPanel/ChatHistoryPanel";
 
@@ -60,12 +69,15 @@ const Dashboard: React.FC = () => {
   const OFFSET_INCREMENT = 25;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
   const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const isInitialFetchStarted = useRef(false);
 
   useEffect(() => {
     dispatch(fetchUserInfo()).unwrap().then((res) => {
       const name: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'name')?.val ?? ''
+      const email: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'preferred_username' || claim.typ === 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress')?.val ?? ''
       setName(name)
+      setEmail(email)
     }).catch(() => {
       // Error fetching user info - silent fail
     })
@@ -193,6 +205,10 @@ const Dashboard: React.FC = () => {
     }, 1000);
   };
 
+  const handleLogout = () => {
+    window.location.href = "/.auth/logout?post_logout_redirect_uri=" + encodeURIComponent(window.location.origin);
+  };
+
   return (
     <FluentProvider
       theme={webLightTheme}
@@ -207,9 +223,42 @@ const Dashboard: React.FC = () => {
           </Subtitle2>
         </div>
         <div className="header-right-section">
-          <div>
-            <Avatar name={name} title={name} />
-          </div>
+          {name ? (
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <Tooltip content={`Signed in as ${name}`} relationship="label">
+                  <Button
+                    appearance="subtle"
+                    style={{ minWidth: "auto", padding: "4px" }}
+                    icon={
+                      <Avatar
+                        name={name}
+                        size={28}
+                        color="colorful"
+                        style={{ fontWeight: "bold" }}
+                      />
+                    }
+                  />
+                </Tooltip>
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList>
+                  <MenuItem icon={<Person24Regular />} disabled>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                      <span style={{ fontWeight: 600, fontSize: "13px" }}>{name}</span>
+                      {email && <span style={{ fontSize: "11px", color: "#616161" }}>{email}</span>}
+                    </div>
+                  </MenuItem>
+                  <MenuDivider />
+                  <MenuItem icon={<SignOut24Regular />} onClick={handleLogout}>
+                    Sign out
+                  </MenuItem>
+                </MenuList>
+              </MenuPopover>
+            </Menu>
+          ) : (
+            <Avatar icon={<Person24Regular />} size={28} color="neutral" />
+          )}
         </div>
       </div>
       <div className="main-container">
