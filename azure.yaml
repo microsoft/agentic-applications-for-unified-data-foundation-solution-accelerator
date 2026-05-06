@@ -26,6 +26,9 @@ hooks:
             Write-Host "Azure CLI is not logged in. Run 'az login' (and 'az account set --subscription <id>' if needed), then retry." -ForegroundColor Red
             exit 1
         }
+        if (-not $env:AZURE_SUBSCRIPTION_ID) {
+            $env:AZURE_SUBSCRIPTION_ID = (az account show --query id -o tsv).Trim()
+        }
         $bashPath = $null
         $candidates = @(
             "$env:ProgramFiles\Git\bin\bash.exe",
@@ -48,7 +51,7 @@ hooks:
         }
       shell: pwsh
       continueOnError: false
-      interactive: true
+      interactive: false
     posix:
       run: |
         echo "Checking Azure OpenAI quota for required models before provisioning..."
@@ -60,11 +63,14 @@ hooks:
           echo "Azure CLI is not logged in. Run 'az login' (and 'az account set --subscription <id>' if needed), then retry." >&2
           exit 1
         fi
+        if [ -z "$AZURE_SUBSCRIPTION_ID" ]; then
+          export AZURE_SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+        fi
         chmod +x ./infra/scripts/quota_check_params.sh
         ./infra/scripts/quota_check_params.sh
       shell: sh
       continueOnError: false
-      interactive: true
+      interactive: false
   postprovision:
     windows:
       run: |
