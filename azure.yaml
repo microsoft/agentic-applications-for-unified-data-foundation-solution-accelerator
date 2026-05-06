@@ -17,6 +17,15 @@ hooks:
     windows:
       run: |
         Write-Host "Checking Azure OpenAI quota for required models before provisioning..." -ForegroundColor Cyan
+        if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+            Write-Host "Azure CLI ('az') not found on PATH. Install it from https://aka.ms/installazurecliwindows, then run 'az login' and retry." -ForegroundColor Red
+            exit 1
+        }
+        az account show --only-show-errors 1>$null 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Azure CLI is not logged in. Run 'az login' (and 'az account set --subscription <id>' if needed), then retry." -ForegroundColor Red
+            exit 1
+        }
         $bashPath = $null
         $candidates = @(
             "$env:ProgramFiles\Git\bin\bash.exe",
@@ -43,6 +52,14 @@ hooks:
     posix:
       run: |
         echo "Checking Azure OpenAI quota for required models before provisioning..."
+        if ! command -v az >/dev/null 2>&1; then
+          echo "Azure CLI ('az') not found on PATH. Install it from https://aka.ms/InstallAzureCli, then run 'az login' and retry." >&2
+          exit 1
+        fi
+        if ! az account show --only-show-errors >/dev/null 2>&1; then
+          echo "Azure CLI is not logged in. Run 'az login' (and 'az account set --subscription <id>' if needed), then retry." >&2
+          exit 1
+        fi
         chmod +x ./infra/scripts/quota_check_params.sh
         ./infra/scripts/quota_check_params.sh
       shell: sh
