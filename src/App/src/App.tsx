@@ -209,6 +209,8 @@ const Dashboard: React.FC = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("userId");
+    sessionStorage.removeItem("accessToken");
     window.location.href = "/.auth/logout?post_logout_redirect_uri=" + encodeURIComponent(window.location.origin);
   };
 
