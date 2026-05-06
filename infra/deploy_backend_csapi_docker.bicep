@@ -62,7 +62,7 @@ module appService 'deploy_app_service.bicep' = {
   }
 }
 
-resource aiServices 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' existing = {
+resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
   name: aiServicesName
   scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
 }

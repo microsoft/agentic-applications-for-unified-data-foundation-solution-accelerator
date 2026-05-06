@@ -16,7 +16,7 @@ jobs:
     environment: production
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set timestamp
         run: echo "HHMM=$(date -u +'%H%M')" >> $GITHUB_ENV
@@ -36,7 +36,7 @@ jobs:
           AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AZURE_ENV_AI_DEPLOYMENTS_LOCATION: ${{ vars.AZURE_ENV_AI_DEPLOYMENTS_LOCATION }}
-          AZURE_ENV_USE_CASE: ${{ vars.AZURE_ENV_USE_CASE }}
+          USE_CASE: ${{ vars.USE_CASE }}
           DEPLOYING_USER_PRINCIPAL_TYPE: ServicePrincipal
 
       - name: Print result

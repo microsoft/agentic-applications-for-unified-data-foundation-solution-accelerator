@@ -353,8 +353,8 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
         # Subscription
         "AZURE_SUBSCRIPTION_ID",
         # Azure AI Services
-        "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT_MODEL", "AZURE_CHAT_MODEL",
-        "AZURE_OPENAI_EMBEDDING_MODEL", "AZURE_EMBEDDING_MODEL",
+        "AZURE_OPENAI_ENDPOINT", "AZURE_ENV_GPT_MODEL_NAME", "AZURE_CHAT_MODEL",
+        "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME", "AZURE_EMBEDDING_MODEL",
         # AI Foundry
         "AZURE_AI_AGENT_ENDPOINT", "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "AZURE_AI_PROJECT_NAME",
         "FOUNDRY_PROJECT_PID",
@@ -364,7 +364,7 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
         # CosmosDB
         "AZURE_COSMOSDB_ACCOUNT", "AZURE_COSMOSDB_DATABASE", "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER",
         # SQL
-        "SQLDB_SERVER", "SQLDB_DATABASE", "SQLDB_USER_MID",
+        "AZURE_SQLDB_SERVER", "AZURE_SQLDB_DATABASE", "AZURE_SQLDB_USER_MID",
         # Managed Identity
         "API_UID", "API_PID", "MID_DISPLAY_NAME",
         # App Service
@@ -517,9 +517,9 @@ def generate_env_content(resource_group: str) -> str:
         "",
         "# --- Azure AI Services ---",
         f"AZURE_OPENAI_ENDPOINT={openai_endpoint}",
-        f"AZURE_OPENAI_DEPLOYMENT_MODEL={chat_model}",
+        f"AZURE_ENV_GPT_MODEL_NAME={chat_model}",
         f"AZURE_CHAT_MODEL={chat_model}",
-        f"AZURE_OPENAI_EMBEDDING_MODEL={embedding_model}",
+        f"AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME={embedding_model}",
         f"AZURE_EMBEDDING_MODEL={embedding_model}",
         "",
         "# --- Azure AI Foundry ---",
@@ -539,9 +539,9 @@ def generate_env_content(resource_group: str) -> str:
         f"AZURE_COSMOSDB_CONVERSATIONS_CONTAINER=conversations",
         "",
         "# --- Azure SQL ---",
-        f"SQLDB_SERVER={sql_server}",
-        f"SQLDB_DATABASE={sql_db}",
-        f"SQLDB_USER_MID={mid_client_id}",
+        f"AZURE_SQLDB_SERVER={sql_server}",
+        f"AZURE_SQLDB_DATABASE={sql_db}",
+        f"AZURE_SQLDB_USER_MID={mid_client_id}",
         "",
         "# --- Managed Identity ---",
         f"API_UID={mid_client_id}",

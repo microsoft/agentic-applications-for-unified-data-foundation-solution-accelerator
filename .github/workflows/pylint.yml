@@ -7,6 +7,13 @@ on:
       - 'infra/scripts/**/*.py'
       - '.github/workflows/pylint.yml'
       - '.flake8'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'src/api/python/**'
+      - 'infra/scripts/**/*.py'
+      - '.github/workflows/pylint.yml'
+      - '.flake8'
 
 jobs:
   build:
@@ -15,7 +22,7 @@ jobs:
       matrix:
         python-version: ["3.11"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6

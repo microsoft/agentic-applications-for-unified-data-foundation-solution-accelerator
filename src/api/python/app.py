@@ -117,9 +117,8 @@ def build_app() -> FastAPI:
                         conversation_id_var.set(cid)
                         if span and span.is_recording():
                             span.set_attribute("conversation_id", cid)
-            except Exception:
-                pass
-
+            except Exception as ex:
+                logging.warning("Failed to parse request body for conversation_id: %s", ex)
         return await call_next(request)
 
     # Include routers

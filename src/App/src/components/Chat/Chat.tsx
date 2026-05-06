@@ -32,7 +32,7 @@ import {
   type ConversationRequest,
   type ParsedChunk,
   type ChatMessage,
-  ToolMessageContent,
+  type Citation,
 } from "../../types/AppTypes";
 import { ChatAdd24Regular } from "@fluentui/react-icons";
 import { generateUUIDv4 } from "../../configs/Utils";
@@ -122,16 +122,14 @@ const Chat: React.FC<ChatProps> = ({
   }, [selectedConversationId, conversationHistory, dispatch]);
   const parseCitationFromMessage = useCallback((message: string) => {
   try {
-    message = '{' + message;
-    const toolMessage = JSON.parse(message as string) as ToolMessageContent;
-
-    if (toolMessage?.citations?.length) {
-      return toolMessage.citations.filter(
-        (c) => c.url?.trim() || c.title?.trim()
+    const parsed = JSON.parse(message);
+    if (Array.isArray(parsed)) {
+      return parsed.filter(
+        (c: Citation & { title?: string }) => c.url?.trim() || c.source?.trim() || (c as any).title?.trim()
       );
     }
   } catch {
-    // Error parsing tool content
+    // Not parseable
   }
   return [];
 }, []);
@@ -225,117 +223,6 @@ const Chat: React.FC<ChatProps> = ({
     return chartResponse;
   }, []);
 
-  const makeApiRequestForChart = async (
-    question: string,
-    conversationId: string
-  ) => {
-    if (generatingResponse || !question.trim()) return;
-
-    const newMessage: ChatMessage = {
-      id: generateUUIDv4(),
-      role: USER,
-      content: question,
-      date: new Date().toISOString()
-    };
-    
-    dispatch(setGeneratingResponse(true));
-    
-    dispatch(addMessages([newMessage]));
-    
-    dispatch(setUserMessageAction(questionInputRef?.current?.value || ""));
-    
-    scrollChatToBottom();
-    
-    const abortController = new AbortController();
-    abortFuncs.current.unshift(abortController);
-
-    const request: ConversationRequest = {
-      id: conversationId,
-      query: question
-    };
-
-    let updatedMessages: ChatMessage[] = [];
-    
-    try {
-      const result = await dispatch(sendMessage({ request, abortSignal: abortController.signal }));
-      if (!sendMessage.fulfilled.match(result)) {
-        throw new Error('Failed to send message');
-      }
-      const response = result.payload;
-
-      if (response?.body) {
-        const reader = response.body.getReader();
-        let runningText = "";
-        let hasError = false;
-        
-        // Read stream
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          
-          const text = new TextDecoder("utf-8").decode(value);
-          try {
-            const textObj = JSON.parse(text);
-            if (textObj?.object?.data) {
-              runningText = text;
-            }
-            if (textObj?.error) {
-              hasError = true;
-              runningText = text;
-            }
-          } catch (e) {
-            // Non-JSON chunk, continue
-          }
-        }
-        
-        // Process response
-        if (hasError) {
-          const errorMsg = JSON.parse(runningText).error;
-          const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
-          updatedMessages = [newMessage, errorMessage];
-        } else if (isChartQuery(question)) {
-          try {
-            const parsedResponse = JSON.parse(runningText);
-            
-            if ((parsedResponse?.object?.type || parsedResponse?.object?.chartType) && parsedResponse?.object?.data) {
-              const chartMessage = createAndDispatchMessage(
-                ASSISTANT, 
-                parsedResponse.object as unknown as ChartDataResponse
-              );
-              updatedMessages = [newMessage, chartMessage];
-            } else if (parsedResponse.error || parsedResponse?.object?.message) {
-              const errorMsg = parsedResponse.error || parsedResponse.object.message;
-              const errorMessage = createAndDispatchMessage(ERROR, errorMsg);
-              updatedMessages = [newMessage, errorMessage];
-            }
-          } catch {
-            // Error parsing chart response
-          }
-        }
-      }
-      
-      if (updatedMessages.length > 0) {
-        saveToDB(updatedMessages, conversationId, 'graph');
-      }
-    } catch (e) {
-      // Error in chart API request
-
-      if (abortController.signal.aborted) {
-        updatedMessages = [newMessage];
-        saveToDB(updatedMessages, conversationId, 'graph');
-      } else if (e instanceof Error) {
-        alert(e.message);
-      } else {
-        alert("An error occurred. Please try again. If the problem persists, please contact the site administrator.");
-      }
-    } finally {
-      dispatch(setGeneratingResponse(false));
-      dispatch(setStreamingFlag(false));
-      setIsChartLoading(false);
-      abortController.abort();
-    }
-  };
-
   const makeApiRequestWithCosmosDB = async (
     question: string,
     conversationId: string
@@ -388,6 +275,7 @@ const Chat: React.FC<ChatProps> = ({
         const reader = response.body.getReader();
         let runningText = "";
         let hasError = false;
+        let lineBuffer = ""; // Carry-over buffer for partial JSON lines
         
         // Read and process stream
         while (true) {
@@ -411,10 +299,13 @@ const Chat: React.FC<ChatProps> = ({
           }
           
           if (!isChartResponseReceived) {
-            // Text-based streaming response
-            const objects = text.split("\n").filter((val) => val !== "");
-            
-            objects.forEach((textValue) => {
+            // Prepend any leftover partial line from previous chunk
+            const combined = lineBuffer + text;
+            const lines = combined.split("\n");
+            // Last element may be incomplete — carry it over
+            lineBuffer = lines.pop() || "";
+
+            lines.forEach((textValue) => {
               if (!textValue || textValue === "{}") return;
               
               try {
@@ -423,22 +314,54 @@ const Chat: React.FC<ChatProps> = ({
                 if (parsed?.error && !hasError) {
                   hasError = true;
                   runningText = parsed?.error;
-                } else if (isChartQuery(userMessage) && !hasError) {
-                  runningText += textValue;
                 } else if (typeof parsed === "object" && !hasError) {
-                  const responseContent = parsed?.choices?.[0]?.messages?.[0]?.content;
-                  
-                  if (responseContent) {
-                    const { answerText, citationString } = extractAnswerAndCitations(responseContent);
-                    // Backend sends accumulated content, so we use it directly
-                    // Create a new object to ensure Redux detects the change
-                    streamMessage.content = answerText || "";
-                    streamMessage.role = parsed?.choices?.[0]?.messages?.[0]?.role || ASSISTANT;
-                    streamMessage.citations = citationString;
-                    
-                    // Dispatch with a new object reference to trigger re-render
-                    dispatch(updateMessageById({ ...streamMessage }));
-                    scrollChatToBottom();
+                  const delta = parsed?.choices?.[0]?.delta;
+                  const legacyMsg = parsed?.choices?.[0]?.messages?.[0];
+                  // Delta format (Python workshop) yields incremental fragments;
+                  // messages format (Python non-workshop, dotnet) yields the full accumulated text each time.
+                  if (delta) {
+                    const role = delta.role;
+                    const content = delta.content;
+                    if (role === "tool" && content) {
+                      streamMessage.citations = content;
+                    } else if (role === "assistant" && content) {
+                      if (isChartQuery(userMessage)) {
+                        runningText += content;
+                      } else {
+                        streamMessage.content = (streamMessage.content || "") + content;
+                        streamMessage.role = ASSISTANT;
+                      }
+                    }
+                    if (!isChartQuery(userMessage)) {
+                      // Strip {"answer":"...", "citations":[]} wrapper for display
+                      const displayContent = typeof streamMessage.content === "string"
+                        ? extractAnswerAndCitations(streamMessage.content).answerText
+                        : streamMessage.content;
+                      dispatch(updateMessageById({ ...streamMessage, content: displayContent }));
+                      scrollChatToBottom();
+                    }
+                  } else if (legacyMsg) {
+                    const role = legacyMsg.role;
+                    const content = legacyMsg.content;
+                    if (role === "assistant" && content) {
+                      if (isChartQuery(userMessage)) {
+                        runningText = content;
+                      } else {
+                        // Use extractAnswerAndCitations to handle {"answer":"...","citations":[]} wrapper
+                        // During incremental streaming, content grows each chunk — wrapper won't parse until complete
+                        const { answerText, citationString } = extractAnswerAndCitations(content);
+                        streamMessage.content = answerText || "";
+                        streamMessage.role = ASSISTANT;
+                        if (citationString) {
+                          streamMessage.citations = citationString;
+                        }
+                        dispatch(updateMessageById({ ...streamMessage }));
+                        scrollChatToBottom();
+                      }
+                    }
+                  } else if (isChartQuery(userMessage)) {
+                    // Legacy chart format fallback
+                    runningText += textValue;
                   }
                 }
               } catch (e) {
@@ -461,21 +384,37 @@ const Chat: React.FC<ChatProps> = ({
           updatedMessages = [newMessage, errorMessage];
         } else if (isChartQuery(userMessage)) {
           try {
-            // Workshop mode: single complete response chunk — parse directly
-            // Non-workshop mode: multiple streaming chunks concatenated — split and take last segment
+            // Delta format: runningText is the accumulated chart JSON content directly
+            // Legacy format: runningText is concatenated delta JSON lines — split and take last segment
             let chartTextToParse: string;
-            const splitRunningText = runningText.split("}{");
-            chartTextToParse = splitRunningText.length > 1
-              ? "{" + splitRunningText[splitRunningText.length - 1]
-              : splitRunningText[0];
-            const parsedChartResponse = JSON.parse(chartTextToParse);
             
-            const rawChartContent = parsedChartResponse?.choices[0]?.messages[0]?.content;
+            // Try parsing directly first (delta format accumulates content only)
+            try {
+              JSON.parse(runningText);
+              chartTextToParse = runningText;
+            } catch {
+              // Legacy fallback: split concatenated JSON objects
+              const splitRunningText = runningText.split("}{");
+              const lastSegment = splitRunningText.length > 1
+                ? "{" + splitRunningText[splitRunningText.length - 1]
+                : splitRunningText[0];
+              
+              // Check if legacy format with choices[0].messages[0].content
+              try {
+                const legacyParsed = JSON.parse(lastSegment);
+                const legacyContent = legacyParsed?.choices?.[0]?.messages?.[0]?.content;
+                chartTextToParse = typeof legacyContent === "string" ? legacyContent : lastSegment;
+              } catch {
+                chartTextToParse = lastSegment;
+              }
+            }
             
-            // **OPTIMIZED: Use helper function for parsing**
-            let chartResponse = typeof rawChartContent === "string" 
-              ? parseChartContent(rawChartContent) 
-              : rawChartContent || "Chart can't be generated, please try again.";
+            const parsedChartContent = JSON.parse(chartTextToParse);
+            
+            // Use helper function for parsing — parsedChartContent is the chart object directly
+            let chartResponse = typeof parsedChartContent === "string" 
+              ? parseChartContent(parsedChartContent) 
+              : parsedChartContent || "Chart can't be generated, please try again.";
 
             chartResponse = extractChartData(chartResponse);
 
@@ -487,23 +426,24 @@ const Chat: React.FC<ChatProps> = ({
                 chartResponse as unknown as ChartDataResponse
               );
               updatedMessages = [newMessage, chartMessage];
-            } else if (parsedChartResponse?.error || parsedChartResponse?.choices[0]?.messages[0]?.content) {
-              let content = parsedChartResponse?.choices[0]?.messages[0]?.content;
-              let displayContent = content;
+            } else {
+              let displayContent = typeof parsedChartContent === "string" 
+                ? parsedChartContent 
+                : JSON.stringify(parsedChartContent);
               
               try {
-                const parsed = typeof content === "string" ? JSON.parse(content) : content;
+                const parsed = typeof parsedChartContent === "object" ? parsedChartContent : JSON.parse(displayContent);
                 if (parsed && typeof parsed === "object" && "answer" in parsed) {
                   displayContent = parsed.answer;
                 }
               } catch {
-                displayContent = content;
+                // keep displayContent as-is
               }
               
-              let errorMsg = parsedChartResponse?.error || displayContent;
+              let errorMsg = displayContent;
               
-              // **OPTIMIZED: Use helper function for validation**
-              if (isMalformedChartJSON(errorMsg, !!parsedChartResponse?.error)) {
+              // Use helper function for validation
+              if (isMalformedChartJSON(errorMsg, false)) {
                 errorMsg = "Chart can not be generated, please try again later";
               }
               
@@ -517,6 +457,13 @@ const Chat: React.FC<ChatProps> = ({
         
         // If no messages have been added yet but we have streamed content, save it
         if (updatedMessages.length === 0 && streamMessage.content) {
+          if (typeof streamMessage.content === "string") {
+            const { answerText, citationString } = extractAnswerAndCitations(streamMessage.content);
+            streamMessage.content = answerText || streamMessage.content;
+            if (citationString) {
+              streamMessage.citations = citationString;
+            }
+          }
           updatedMessages = [newMessage, streamMessage];
         }
       }

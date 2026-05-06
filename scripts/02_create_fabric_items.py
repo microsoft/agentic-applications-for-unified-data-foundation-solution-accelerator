@@ -51,7 +51,7 @@ p.add_argument("--clean", action="store_true",
 p.add_argument("--skip-data-agent", action="store_true",
                help="Skip Data Agent creation step")
 p.add_argument("--datasource-type", choices=["ontology", "lakehouse"], default="lakehouse",
-               help="Data source type for Data Agent: 'ontology' (default) or 'lakehouse'")
+               help="Data source type for Data Agent: 'ontology' or 'lakehouse' (default)")
 args = p.parse_args()
 
 WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
@@ -1130,7 +1130,6 @@ if not args.skip_data_agent and data_agent_id:
             datasource_folder = None
             draft_datasource = None
             draft_fewshots = None
-            draft_fewshots_path = None
 
             for p in current_parts:
                 path = p.get("path", "")
@@ -1171,7 +1170,7 @@ if not args.skip_data_agent and data_agent_id:
             elif update_resp.status_code == 202:
                 op_url = update_resp.headers.get("Location")
                 if op_url:
-                    result = wait_for_lro(op_url, "Data Agent publish")
+                    _ = wait_for_lro(op_url, "Data Agent publish")
                 print(f"  [OK] Data Agent published")
             else:
                 raise Exception(f"Publish failed: {update_resp.status_code} {update_resp.text[:300]}")

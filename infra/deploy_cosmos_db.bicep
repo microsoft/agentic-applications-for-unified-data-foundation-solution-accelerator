@@ -21,7 +21,7 @@ param kind string = 'GlobalDocumentDB'
 @description('Tags to apply to the Cosmos DB resources.')
 param tags object = {}
 
-resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' = {
   name: accountName
   kind: kind
   location: solutionLocation
@@ -45,7 +45,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
 }
 
 
-resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-11-15' = {
+resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2025-10-15' = {
   parent: cosmos
   name: databaseName
   properties: {
