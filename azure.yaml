@@ -13,6 +13,41 @@ metadata:
   template: agentic-applications-for-unified-data-foundation@1.1
 
 hooks:
+  preprovision:
+    windows:
+      run: |
+        Write-Host "Checking Azure OpenAI quota for required models before provisioning..." -ForegroundColor Cyan
+        $bashPath = $null
+        $candidates = @(
+            "$env:ProgramFiles\Git\bin\bash.exe",
+            "${env:ProgramFiles(x86)}\Git\bin\bash.exe",
+            "$env:LOCALAPPDATA\Programs\Git\bin\bash.exe"
+        )
+        foreach ($c in $candidates) { if ($c -and (Test-Path $c)) { $bashPath = $c; break } }
+        if (-not $bashPath) {
+            $cmd = Get-Command bash.exe -ErrorAction SilentlyContinue | Where-Object { $_.Source -notlike '*System32*' } | Select-Object -First 1
+            if ($cmd) { $bashPath = $cmd.Source }
+        }
+        if (-not $bashPath) {
+            Write-Host "bash not found. Install Git for Windows (https://git-scm.com/download/win) or run from WSL/Cloud Shell." -ForegroundColor Red
+            exit 1
+        }
+        & $bashPath ./infra/scripts/quota_check_params.sh
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Quota check failed. Aborting provisioning." -ForegroundColor Red
+            exit $LASTEXITCODE
+        }
+      shell: pwsh
+      continueOnError: false
+      interactive: true
+    posix:
+      run: |
+        echo "Checking Azure OpenAI quota for required models before provisioning..."
+        chmod +x ./infra/scripts/quota_check_params.sh
+        ./infra/scripts/quota_check_params.sh
+      shell: sh
+      continueOnError: false
+      interactive: true
   postprovision:
     windows:
       run: |
