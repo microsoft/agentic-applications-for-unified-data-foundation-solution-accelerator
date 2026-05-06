@@ -79,10 +79,5 @@
     "webpack-dev-server": "5.2.3",
     "follow-redirects": "1.16.0",
     "uuid": "14.0.0"
-  },
-  "jest": {
-    "transformIgnorePatterns": [
-      "node_modules/(?!(@fluentui)/)"
-    ]
   }
 }
