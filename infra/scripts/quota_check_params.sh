@@ -54,13 +54,24 @@ IFS=',' read -r -a MODEL_CAPACITY_PAIRS <<< "$DEFAULT_MODEL_CAPACITY"
 
 echo "🔄 Fetching available Azure subscriptions..."
 SUBSCRIPTIONS=$(az account list --query "[?state=='Enabled'].{Name:name, ID:id}" --output tsv)
-SUB_COUNT=$(echo "$SUBSCRIPTIONS" | wc -l)
+# Note: do not derive SUB_COUNT via 'echo "$SUBSCRIPTIONS" | wc -l' before the
+# emptiness check — 'echo' on an empty string still emits a newline, which
+# would make wc -l report 1 and mask the zero-subscription case. Test '-z' first.
+if [ -z "$SUBSCRIPTIONS" ]; then
+    SUB_COUNT=0
+else
+    SUB_COUNT=$(printf '%s\n' "$SUBSCRIPTIONS" | wc -l | tr -d ' ')
+fi
 
 # Honor a pre-set AZURE_SUBSCRIPTION_ID (e.g., from azd, CI, or 'az account set').
 # This makes the script non-interactive when the caller has already picked a subscription,
 # avoiding hangs in pipelines like 'azd up --no-prompt'.
 if [ -n "$AZURE_SUBSCRIPTION_ID" ]; then
-    if echo "$SUBSCRIPTIONS" | awk '{print $NF}' | grep -qx "$AZURE_SUBSCRIPTION_ID"; then
+    if [ "$SUB_COUNT" -eq 0 ]; then
+        echo "❌ ERROR: AZURE_SUBSCRIPTION_ID is set but no enabled subscriptions are visible to the current account. Run 'az login' and verify access."
+        exit 1
+    fi
+    if printf '%s\n' "$SUBSCRIPTIONS" | awk '{print $NF}' | grep -qx "$AZURE_SUBSCRIPTION_ID"; then
         echo "✅ Using AZURE_SUBSCRIPTION_ID from environment: $AZURE_SUBSCRIPTION_ID"
     else
         echo "❌ ERROR: AZURE_SUBSCRIPTION_ID '$AZURE_SUBSCRIPTION_ID' is not in the list of enabled subscriptions for the current account."
