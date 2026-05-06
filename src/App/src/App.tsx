@@ -13,7 +13,6 @@ import {
   MenuItem,
   MenuDivider,
   Button,
-  Tooltip,
 } from "@fluentui/react-components";
 import { SignOut24Regular, Person24Regular } from "@fluentui/react-icons";
 import "./App.css";
@@ -70,14 +69,18 @@ const Dashboard: React.FC = () => {
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const isInitialFetchStarted = useRef(false);
 
   useEffect(() => {
     dispatch(fetchUserInfo()).unwrap().then((res) => {
-      const name: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'name')?.val ?? ''
-      const email: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'preferred_username' || claim.typ === 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress')?.val ?? ''
-      setName(name)
-      setEmail(email)
+      if (res[0]) {
+        setIsAuthenticated(true);
+        const name: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'name')?.val ?? ''
+        const email: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'preferred_username' || claim.typ === 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress')?.val ?? ''
+        setName(name)
+        setEmail(email)
+      }
     }).catch(() => {
       // Error fetching user info - silent fail
     })
@@ -223,29 +226,29 @@ const Dashboard: React.FC = () => {
           </Subtitle2>
         </div>
         <div className="header-right-section">
-          {name ? (
+          {isAuthenticated ? (
             <Menu>
               <MenuTrigger disableButtonEnhancement>
-                <Tooltip content={`Signed in as ${name}`} relationship="label">
-                  <Button
-                    appearance="subtle"
-                    style={{ minWidth: "auto", padding: "4px" }}
-                    icon={
-                      <Avatar
-                        name={name}
-                        size={28}
-                        color="colorful"
-                        style={{ fontWeight: "bold" }}
-                      />
-                    }
-                  />
-                </Tooltip>
+                <Button
+                  appearance="subtle"
+                  style={{ minWidth: "auto", padding: "4px" }}
+                  aria-label={name ? `Signed in as ${name}` : "User menu"}
+                  icon={
+                    <Avatar
+                      name={name || undefined}
+                      icon={!name ? <Person24Regular /> : undefined}
+                      size={28}
+                      color={name ? "colorful" : "neutral"}
+                      style={{ fontWeight: "bold" }}
+                    />
+                  }
+                />
               </MenuTrigger>
               <MenuPopover>
                 <MenuList>
                   <MenuItem icon={<Person24Regular />} disabled>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                      <span style={{ fontWeight: 600, fontSize: "13px" }}>{name}</span>
+                      <span style={{ fontWeight: 600, fontSize: "13px" }}>{name || "User"}</span>
                       {email && <span style={{ fontSize: "11px", color: "#616161" }}>{email}</span>}
                     </div>
                   </MenuItem>
