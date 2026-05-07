@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.1.21952",
-      "templateHash": "1212548231713466792"
+      "templateHash": "3815064248701275278"
     }
   },
   "parameters": {
@@ -3802,6 +3802,7 @@
               "APPLICATIONINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.applicationInsightsConnectionString.value]",
               "SOLUTION_NAME": "[variables('solutionSuffix')]",
               "APP_ENV": "Prod",
+              "DISPLAY_CHART_DEFAULT": "False",
               "AGENT_NAME_CHAT": "",
               "AGENT_NAME_TITLE": "",
               "FABRIC_SQL_DATABASE": "",
