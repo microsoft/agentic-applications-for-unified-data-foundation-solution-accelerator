@@ -333,6 +333,7 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
       APPLICATIONINSIGHTS_CONNECTION_STRING: aifoundry.outputs.applicationInsightsConnectionString
       SOLUTION_NAME: solutionSuffix
       APP_ENV: 'Prod'
+      DISPLAY_CHART_DEFAULT: 'False'
 
       AGENT_NAME_CHAT: ''
       AGENT_NAME_TITLE: ''
