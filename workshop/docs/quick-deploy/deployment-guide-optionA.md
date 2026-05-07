@@ -244,7 +244,9 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 3. If you do not see the Data Agent immediately, wait a few minutes and refresh the workspace.
 4. Ask the sample questions below.
 
-> Note: The Ontology setup may take up to 15 minutes to fully propagate, so retry after some time if you do not see good responses.
+> **Note:** The Ontology setup may take up to 15 minutes to fully propagate, so retry after some time if you do not see good responses. You can check the status in the **Monitor** tab in [Microsoft Fabric](https://app.fabric.microsoft.com/monitoringhub) - once activities show **Succeeded**, the Data Agent is ready.
+>
+> ![Monitor tab showing Succeeded status](../assets/fabric/16-workspace-monitor.png)
 
 **Sample questions to try:**
 

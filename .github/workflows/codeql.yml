@@ -55,7 +55,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
     
     # Installing DotNet version
     - name: Setup dotnet ${{ matrix.dotnet-version }}

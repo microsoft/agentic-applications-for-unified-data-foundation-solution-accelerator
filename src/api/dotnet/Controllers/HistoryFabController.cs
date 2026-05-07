@@ -213,7 +213,12 @@ public class HistoryFabController : ControllerBase
                     var generatedTitle = await _titleService.GenerateTitleAsync(req.Messages, ct);
                     await _repo.UpdateConversationTitleAsync(user, convId, generatedTitle, ct);
                 }
-                catch (Exception ex)
+                catch (OperationCanceledException)
+                {
+                    // Request was cancelled, propagate cancellation
+                    throw;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError(ex, "Failed to generate title for conversation {ConversationId}", convId);
                     await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
@@ -268,7 +273,7 @@ public class HistoryFabController : ControllerBase
             // Client disconnected or request was cancelled
             return StatusCode(499);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not UnauthorizedAccessException && ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Error updating conversation {ConversationId}", req.Conversation_Id);
             return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");

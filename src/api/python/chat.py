@@ -22,7 +22,7 @@ from azure.monitor.events.extension import track_event
 from azure.ai.projects.aio import AIProjectClient
 
 # Agent Framework
-from agent_framework.azure import AzureAIProjectAgentProvider
+from agent_framework_foundry import FoundryAgent
 
 # Azure Auth
 from auth.auth_utils import get_authenticated_user_details
@@ -43,10 +43,10 @@ router = APIRouter()
 
 logger = logging.getLogger(__name__)
 
-# Suppress informational warnings from agent_framework about runtime
-# tool/structured_output overrides not being supported by AzureAIClient.
+# Suppress informational warnings from agent_framework_foundry about runtime
+# tool/structured_output overrides not being supported by FoundryAgent.
 agent_log_level = os.getenv("AGENT_FRAMEWORK_LOG_LEVEL", "ERROR").upper()
-logging.getLogger("agent_framework.azure").setLevel(getattr(logging, agent_log_level, logging.ERROR))
+logging.getLogger("agent_framework_foundry").setLevel(getattr(logging, agent_log_level, logging.ERROR))
 
 
 class ExpCache(TTLCache):
@@ -129,11 +129,12 @@ def get_thread_cache():
     return thread_cache
 
 
-async def stream_openai_text(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None) -> StreamingResponse:
+async def stream_openai_text(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None):
     """
-    Get a streaming text response from OpenAI using azure-ai-projects SDK.
+    Async generator yielding plain text chunks from OpenAI.
+
     Uses responses.create() with conversation caching for chat history continuity.
-    If user_assertion is provided, uses OBO (On-Behalf-Of) credential for user context.
+    If *user_assertion* is provided, uses OBO credential for user context.
     """
     logger.info("stream_openai_text called: conversation_id=%s, query_length=%d",
                 conversation_id, len(query) if query else 0)
@@ -180,7 +181,7 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
             response = await openai_client.responses.create(
                 conversation=thread_conversation_id,
                 input=query,
-                extra_body={"agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
+                extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
             )
 
             # Process response - handle function calls iteratively
@@ -254,7 +255,7 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                 response = await openai_client.responses.create(
                     conversation=thread_conversation_id,
                     input=tool_outputs,
-                    extra_body={"agent": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
+                    extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
                 )
 
             if iteration >= max_iterations:
@@ -299,12 +300,50 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
             yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
-async def stream_openai_text_workshop(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None) -> StreamingResponse:
+_MARKER_RE = re.compile(r'【\d+:(\d+)†([^】]*)】')
+
+
+def _parse_mcp_docs(mcp_text: str, mcp_docs: dict):
+    """Parse JSON document blocks from MCP output text keyed by section index."""
+    sections = re.split(r'【\d+:(\d+)†[^】]*】', mcp_text)
+    # sections alternates: [preamble, idx0, content0, idx1, content1, ...]
+    for i in range(1, len(sections) - 1, 2):
+        sec_idx = sections[i]
+        sec_content = sections[i + 1]
+        json_match = re.search(r'\{[^{}]*"id"\s*:\s*"[^"]*"[^{}]*\}', sec_content)
+        if json_match:
+            try:
+                doc = json.loads(json_match.group())
+                if "id" in doc:
+                    mcp_docs[sec_idx] = doc
+            except (json.JSONDecodeError, ValueError):
+                pass  # Skip malformed JSON fragments; parsing continues
+
+
+def _extract_mcp_from_raw(raw_repr, mcp_docs: dict):
+    """Extract MCP docs from any raw_representation type."""
+    # Direct McpCall with string output
+    raw_output = getattr(raw_repr, "output", None)
+    if raw_output and isinstance(raw_output, str):
+        _parse_mcp_docs(raw_output, mcp_docs)
+        return
+    # ResponseCompletedEvent → traverse response.output for McpCall objects
+    response = getattr(raw_repr, "response", None)
+    if response:
+        output_items = getattr(response, "output", None) or []
+        for item in output_items:
+            item_output = getattr(item, "output", None)
+            if item_output and isinstance(item_output, str):
+                _parse_mcp_docs(item_output, mcp_docs)
+
+
+async def stream_openai_text_workshop(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None):
     """
-    Get a streaming text response from OpenAI with workshop mode using AzureAIProjectAgentProvider.
-    Uses agent_framework to handle function calls (SQL) and search tools automatically.
-    Uses Fabric SQL when AZURE_ENV_ONLY is false, otherwise uses Azure SQL.
-    If user_assertion is provided, uses OBO (On-Behalf-Of) credential for user context.
+    Async generator yielding ``(role, content)`` tuples (workshop mode).
+
+    Uses FoundryAgent with agent_framework to handle function calls (SQL)
+    and search tools automatically.  Fabric SQL is used when AZURE_ENV_ONLY
+    is false, otherwise Azure SQL.  *user_assertion* enables OBO credential.
     """
     complete_response = ""
     credential = None
@@ -347,16 +386,18 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
             else:
                 logger.info("Workshop mode: Using Fabric Data Agent (MCP) - skipping local SQL tool")
 
-            # Create provider and get agent with tools
-            provider = AzureAIProjectAgentProvider(project_client=project_client)
+            # Create agent with tools
+            agent_name = os.getenv("AGENT_NAME_CHAT")
             if use_data_agent:
-                agent = await provider.get_agent(
-                    name=os.getenv("AGENT_NAME_CHAT")
+                agent = FoundryAgent(
+                    project_client=project_client,
+                    agent_name=agent_name,
                 )
             else:
-                agent = await provider.get_agent(
-                    name=os.getenv("AGENT_NAME_CHAT"),
-                    tools=custom_tool.execute_sql if custom_tool else None
+                agent = FoundryAgent(
+                    project_client=project_client,
+                    agent_name=agent_name,
+                    tools=custom_tool.execute_sql if custom_tool else None,
                 )
 
             # Create or retrieve conversation
@@ -367,73 +408,96 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
                 cache[conversation_id] = conv_id
 
             # Citation tracking
-            citations = []
-            first_chunk = True
-            # citation_marker_map = {}  # Maps original markers to sequential numbers
-            # citation_counter = 0
+            mcp_docs = {}  # Map section index → {id, title, source} from MCP output
+            marker_buf = ""  # Buffer for incomplete marker fragments
+            citation_idx = 0  # Sequential citation counter
+            marker_re = _MARKER_RE
 
-            # def replace_citation_marker(match):
-            #     nonlocal citation_counter
-            #     marker = match.group(0)
-            #     if marker not in citation_marker_map:
-            #         citation_counter += 1
-            #         citation_marker_map[marker] = citation_counter
-            #     return f"[{citation_marker_map[marker]}]"
-
-            # Stream response using agent_framework - handles function calls automatically
-            async for chunk in agent.run(query, stream=True, conversation_id=conv_id):
-                # # Collect citations from Azure AI Search responses
-                # for content in getattr(chunk, "contents", []):
-                #     annotations = getattr(content, "annotations", [])
-                #     if annotations:
-                #         citations.extend(annotations)
+            # Stream response — incrementally process complete markers, buffer incomplete ones
+            async for chunk in agent.run(query, stream=True, options={"conversation_id": conv_id}):
+                for content in getattr(chunk, "contents", []) or []:
+                    raw_repr = getattr(content, "raw_representation", None)
+                    if raw_repr:
+                        _extract_mcp_from_raw(raw_repr, mcp_docs)
 
                 chunk_text = str(chunk.text) if chunk.text else ""
+                if not chunk_text:
+                    continue
+                complete_response += chunk_text
+                marker_buf += chunk_text
 
-                # Remove citation markers like 【4:0†source】 from response text until citation issue resolved
-                chunk_text = re.sub(r'【\d+:\d+†[^】]+】', '', chunk_text)
-                # Replace citation markers like 【4:0†source】 with [1], [2], etc.
-                # chunk_text = re.sub(r'【\d+:\d+†[^】]+】', replace_citation_marker, chunk_text)
+                # Process all complete markers in buffer; keep trailing incomplete fragment
+                while True:
+                    m = marker_re.search(marker_buf)
+                    if not m:
+                        open_pos = marker_buf.rfind('【')
+                        if open_pos == -1:
+                            if marker_buf:
+                                yield ("assistant", marker_buf)
+                            marker_buf = ""
+                        elif open_pos > 0:
+                            yield ("assistant", marker_buf[:open_pos])
+                            marker_buf = marker_buf[open_pos:]
+                        break
 
-                if chunk_text:
-                    complete_response += chunk_text
-                    if first_chunk:
-                        first_chunk = False
-                        yield "{ \"answer\": " + chunk_text
-                    else:
-                        yield chunk_text
+                    # Flush text before this marker
+                    if m.start() > 0:
+                        yield ("assistant", marker_buf[:m.start()])
+
+                    # Replace marker: drop section 0, renumber rest (consolidate same source)
+                    sec_idx = m.group(1)
+                    if sec_idx != "0":
+                        citation_idx += 1
+                        yield ("assistant", f"[{citation_idx}]")
+
+                    marker_buf = marker_buf[m.end():]
+
+            # Flush any remaining buffer
+            if marker_buf:
+                yield ("assistant", marker_buf)
 
             cache[conversation_id] = conv_id
 
-            logger.info("Streaming complete for conversation %s: response_length=%d, citation_count=%d",
-                        conversation_id, len(complete_response), len(citations))
+            # Collect original markers from complete_response for citation building
+            original_markers = [
+                m for m in marker_re.finditer(complete_response)
+                if m.group(1) != "0"
+            ]
+
+            logger.info("Streaming complete for conversation %s: response_length=%d, mcp_doc_count=%d",
+                        conversation_id, len(complete_response), len(mcp_docs))
             track_event_if_configured("ChatResponseCompleted", {
                 "conversation_id": conversation_id,
                 "user_id": user_id,
                 "response_length": str(len(complete_response)),
-                "citation_count": str(len(citations)),
+                "citation_count": str(len(mcp_docs)),
             })
 
-            # Yield citations at end of stream
-            if citations:
-                citation_list = []
-                seen_doc_ids = set()
+            # Yield citations as a tool message — deduplicated by source
+            citation_list = []
+            if original_markers:
+                search_endpoint = os.getenv("AZURE_AI_SEARCH_ENDPOINT", "")
+                search_index = os.getenv("AZURE_AI_SEARCH_INDEX", "")
 
-                for citation in citations:
-                    # URL is directly on the citation object, fallback to additional_properties.get_url
-                    url = citation.get("url") or (citation.get("additional_properties") or {}).get("get_url") or "N/A"
-                    title = citation.get("title", "N/A")
+                for m in original_markers:
+                    sec_idx = m.group(1)
+                    marker_source = m.group(2)
+                    mcp_doc = mcp_docs.get(sec_idx, {})
+                    doc_source = mcp_doc.get("source") or marker_source or f"source_{sec_idx}"
+                    doc_id = mcp_doc.get("id", "")
 
-                    # Skip duplicate citations based on title
-                    if title in seen_doc_ids:
-                        continue
-                    seen_doc_ids.add(title)
+                    doc_url = ""
+                    if search_endpoint and search_index and doc_id:
+                        from urllib.parse import quote
+                        doc_url = (
+                            f"{search_endpoint.rstrip('/')}/indexes/{search_index}"
+                            f"/docs/{quote(doc_id, safe='')}?api-version=2024-07-01"
+                            f"&$select=id,chunk_id,content,source"
+                        )
 
-                    citation_list.append(json.dumps({"url": url, "title": title}))
+                    citation_list.append({"url": doc_url, "source": doc_source, "id": doc_id})
 
-                yield ", \"citations\": [" + ",".join(citation_list) + "]}"
-            else:
-                yield ", \"citations\": []}"
+            yield ("tool", json.dumps(citation_list))
 
     except Exception as e:
         complete_response = str(e)
@@ -453,12 +517,15 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
         # Provide a fallback response when no data is received from OpenAI.
         if complete_response == "":
             logger.info("No response received from OpenAI.")
-            yield "I cannot answer this question with the current data. Please rephrase or add more details."
+            yield ("assistant", "I cannot answer this question with the current data. Please rephrase or add more details.")
 
 
 async def stream_chat_request(conversation_id, query, user_id: str = "", user_assertion: str = None):
     """
     Handles streaming chat requests.
+
+    Workshop mode uses delta format (incremental fragments).
+    Non-workshop mode uses messages format (accumulated text).
     """
     logger.info("stream_chat_request called: conversation_id=%s", conversation_id)
 
@@ -467,18 +534,33 @@ async def stream_chat_request(conversation_id, query, user_id: str = "", user_as
             assistant_content = ""
             # Use workshop function if IS_WORKSHOP is enabled
             stream_func = stream_openai_text_workshop if IS_WORKSHOP else stream_openai_text
-            async for chunk in stream_func(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
-                if isinstance(chunk, dict):
-                    chunk = json.dumps(chunk)  # Convert dict to JSON string
-                assistant_content += str(chunk)
-
-                if assistant_content:
+            if IS_WORKSHOP:
+                # Workshop: delta format — incremental fragments, frontend appends
+                async for role, content in stream_func(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
+                    if not content:
+                        continue
+                    if role == "assistant":
+                        assistant_content += content
                     response = {
                         "choices": [{
-                            "messages": [{"role": "assistant", "content": assistant_content}]
+                            "delta": {"role": role, "content": content}
                         }]
                     }
-                    yield json.dumps(response, ensure_ascii=False) + "\n\n"
+                    yield json.dumps(response, ensure_ascii=False) + "\n"
+            else:
+                # Non-workshop: messages format — accumulated text, frontend replaces
+                async for chunk in stream_func(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
+                    if isinstance(chunk, dict):
+                        chunk = json.dumps(chunk)
+                    assistant_content += str(chunk)
+
+                    if assistant_content:
+                        response = {
+                            "choices": [{
+                                "messages": [{"role": "assistant", "content": assistant_content}]
+                            }]
+                        }
+                        yield json.dumps(response, ensure_ascii=False) + "\n\n"
 
         except HTTPException as e:
             error_message = str(e.detail) if hasattr(e, 'detail') else str(e)
@@ -501,6 +583,126 @@ async def stream_chat_request(conversation_id, query, user_id: str = "", user_as
     return generate()
 
 
+@router.post("/fetch-azure-search-content")
+async def fetch_azure_search_content(request: Request):
+    """Fetch document content from Azure AI Search by citation URL."""
+    try:
+        request_json = await request.json()
+        citation_url = request_json.get("url")
+        fallback_label = request_json.get("source") or request_json.get("title", "")
+        logger.info(
+            "POST /fetch-azure-search-content called: url=%s",
+            citation_url,
+        )
+
+        if not citation_url:
+            return JSONResponse(
+                content={"error": "URL is required"}, status_code=400
+            )
+
+        # --- SSRF protection: only allow requests to the configured search endpoint ---
+        from urllib.parse import urlparse, parse_qs, quote
+
+        search_endpoint = os.getenv("AZURE_SEARCH_ENDPOINT") or os.getenv(
+            "AZURE_AI_SEARCH_ENDPOINT", ""
+        )
+        if not search_endpoint:
+            return JSONResponse(
+                content={"error": "Search endpoint not configured"},
+                status_code=500,
+            )
+
+        allowed_host = urlparse(search_endpoint).netloc.lower()
+        parsed = urlparse(citation_url)
+        if parsed.netloc.lower() != allowed_host:
+            logger.warning(
+                "Blocked fetch to non-allowed host: %s (allowed: %s)",
+                parsed.netloc,
+                allowed_host,
+            )
+            return JSONResponse(
+                content={"error": "URL host not allowed"}, status_code=403
+            )
+
+        # Parse the doc id from the URL: .../docs/{doc_id}?api-version=...
+        path_parts = parsed.path.rstrip("/").split("/")
+        doc_id = None
+        for i, part in enumerate(path_parts):
+            if part == "docs" and i + 1 < len(path_parts):
+                doc_id = path_parts[i + 1]
+                break
+
+        if not doc_id:
+            return JSONResponse(
+                content={"error": "Could not parse document ID from URL"},
+                status_code=400,
+            )
+
+        # Reconstruct URL using OData key lookup (no $select — causes 400)
+        idx = parsed.path.find("/docs/")
+        base_path = parsed.path[:idx]
+        qs = parse_qs(parsed.query)
+        api_version = qs.get("api-version", ["2024-07-01"])[0]
+
+        from urllib.parse import unquote
+        decoded_doc_id = unquote(doc_id)
+        encoded_key = quote(decoded_doc_id, safe="")
+        lookup_url = (
+            f"{parsed.scheme}://{parsed.netloc}{base_path}"
+            f"/docs('{encoded_key}')?api-version={api_version}"
+        )
+
+        credential = await get_azure_credential_async()
+        try:
+            token = await credential.get_token(
+                "https://search.azure.com/.default"
+            )
+            access_token = token.token
+        finally:
+            await credential.close()
+
+        def fetch_content():
+            try:
+                import requests as req
+
+                headers = {
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/json",
+                }
+                response = req.get(
+                    lookup_url, headers=headers, timeout=10
+                )
+                logger.info(
+                    "Azure Search lookup: status=%d, url=%s",
+                    response.status_code,
+                    lookup_url,
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    content = data.get("content", "")
+                    source = data.get("source", fallback_label)
+                    return {"content": content, "title": source}
+                logger.warning(
+                    "Azure Search fetch failed: status=%d, body=%s",
+                    response.status_code,
+                    response.text[:500],
+                )
+                return {"error": f"HTTP {response.status_code}"}
+            except Exception:
+                logger.exception("Exception fetching search content")
+                return {"error": "Unable to fetch content"}
+
+        result = await asyncio.to_thread(fetch_content)
+        return JSONResponse(content=result)
+
+    except Exception:
+        logger.exception("Error in fetch_azure_search_content")
+        return JSONResponse(
+            content={"error": "Internal server error"}, status_code=500
+        )
+
+
 @router.post("/chat")
 async def conversation(request: Request):
     """Handle chat requests - streaming text or chart generation based on query keywords."""
@@ -511,7 +713,7 @@ async def conversation(request: Request):
         query = request_json.get("query")
         authenticated_user = get_authenticated_user_details(request_headers=request.headers)
         user_id = authenticated_user.get("user_principal_id", "")
-        
+
         # Get user's access token for OBO flow (needed for Work IQ Teams)
         user_assertion = authenticated_user.get("aad_access_token")
 
@@ -528,8 +730,10 @@ async def conversation(request: Request):
                 status_code=400
             )
 
-        logger.info("POST /chat called: conversation_id=%s, query_length=%d, has_user_token=%s", 
-                    conversation_id, len(query) if query else 0, bool(user_assertion))
+        logger.info(
+            "POST /chat called: conversation_id=%s, query_length=%d, has_user_token=%s",
+            conversation_id, len(query) if query else 0, bool(user_assertion),
+        )
 
         # Track chat request initiation
         track_event_if_configured("ChatRequestReceived", {

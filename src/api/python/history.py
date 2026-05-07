@@ -311,7 +311,7 @@ async def generate_title(conversation_messages):
                 response = await openai_client.responses.create(
                     conversation=conversation.id,
                     input=final_prompt,
-                    extra_body={"agent": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
+                    extra_body={"agent_reference": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
                 )
 
                 result_text = ""

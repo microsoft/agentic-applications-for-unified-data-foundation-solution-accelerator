@@ -110,7 +110,9 @@ const Dashboard: React.FC = () => {
   }, [appConfig]);
 
   const onHandlePanelStates = (panelName: string) => {
-    dispatch(clearCitation());
+    if (panelName !== panels.CHATHISTORY) {
+      dispatch(clearCitation());
+    }
     const newState = {
       ...panelShowStates,
       [panelName]: !panelShowStates[panelName],
