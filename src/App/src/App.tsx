@@ -214,6 +214,19 @@ const Dashboard: React.FC = () => {
     window.location.href = "/.auth/logout?post_logout_redirect_uri=" + encodeURIComponent(window.location.origin);
   };
 
+  const getUserInitials = (fullName: string | undefined): string => {
+    if (!fullName) return "U";
+    const cleanName = fullName.replace(/\s*\([^)]*\)/g, "").trim();
+    if (!cleanName) return "U";
+    const parts = cleanName.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return cleanName.charAt(0).toUpperCase();
+  };
+
+  const displayName = name || "User";
+
   return (
     <FluentProvider
       theme={webLightTheme}
@@ -234,10 +247,12 @@ const Dashboard: React.FC = () => {
                 <Button
                   appearance="subtle"
                   style={{ minWidth: "auto", padding: "4px" }}
-                  aria-label={name ? `Signed in as ${name}` : "User menu"}
+                  title={name ? `Signed in as ${name}` : "User menu"}
+                  aria-label={name ? `User menu for ${name}` : "User menu"}
                   icon={
                     <Avatar
-                      name={name || undefined}
+                      name={displayName}
+                      initials={getUserInitials(name)}
                       icon={!name ? <Person24Regular /> : undefined}
                       size={28}
                       color={name ? "colorful" : "neutral"}
@@ -249,9 +264,35 @@ const Dashboard: React.FC = () => {
               <MenuPopover>
                 <MenuList>
                   <MenuItem icon={<Person24Regular />} disabled>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                      <span style={{ fontWeight: 600, fontSize: "13px" }}>{name || "User"}</span>
-                      {email && <span style={{ fontSize: "11px", color: "#616161" }}>{email}</span>}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", maxWidth: 260, minWidth: 0 }}>
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          fontSize: "13px",
+                          maxWidth: "100%",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        title={name || "User"}
+                      >
+                        {name || "User"}
+                      </span>
+                      {email && (
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            color: "#616161",
+                            maxWidth: "100%",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          title={email}
+                        >
+                          {email}
+                        </span>
+                      )}
                     </div>
                   </MenuItem>
                   <MenuDivider />
