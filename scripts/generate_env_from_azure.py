@@ -84,6 +84,15 @@ def get_resources_by_type(resource_group: str, resource_type: str) -> list:
     return result if isinstance(result, list) else []
 
 
+def get_fabric_capacity(resource_group: str) -> tuple[str, str]:
+    """Get Fabric capacity resource ID and name, if one exists in the resource group."""
+    resources = get_resources_by_type(resource_group, "Microsoft.Fabric/capacities")
+    if resources:
+        capacity = resources[0]
+        return capacity.get("id", ""), capacity.get("name", "")
+    return "", ""
+
+
 def get_ai_search_endpoint(resource_group: str) -> tuple[str, str]:
     """Get Azure AI Search endpoint and name."""
     resources = get_resources_by_type(resource_group, "Microsoft.Search/searchServices")
@@ -442,6 +451,18 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
         if key not in important_vars:
             if key.startswith("AZURE_") or key.startswith("AI_") or key.startswith("SQL"):
                 lines.append(f"{key}={value}")
+
+    # Check for Fabric capacity in the resource group
+    fabric_capacity_id, fabric_capacity_name = get_fabric_capacity(resource_group)
+    if fabric_capacity_id:
+        _log(f"  Found Fabric capacity: {fabric_capacity_name}")
+        lines.extend([
+            "",
+            "# --- Fabric Capacity (auto-detected) ---",
+            f"CREATE_FABRIC_WORKSPACE=true",
+            f"FABRIC_CAPACITY_ID={fabric_capacity_id}",
+            f"FABRIC_CAPACITY_NAME={fabric_capacity_name}",
+        ])
     
     return "\n".join(lines)
 
@@ -492,6 +513,9 @@ def generate_env_content(resource_group: str) -> str:
     mid_name, mid_client_id, mid_principal_id = get_managed_identity(resource_group)
     _log(f"  Found Managed Identity: {mid_name or 'not found'}")
     
+    fabric_capacity_id, fabric_capacity_name = get_fabric_capacity(resource_group)
+    _log(f"  Found Fabric capacity: {fabric_capacity_name or 'not found'}")
+
     web_app_url, _ = get_app_service(resource_group, "app-")
     if not web_app_url:
         # Frontend app may be named app-<suffix> (not containing "web")
@@ -555,6 +579,16 @@ def generate_env_content(resource_group: str) -> str:
         "IS_WORKSHOP=true",
         "USE_CASE=Network operations with outage tracking and trouble ticket management",
     ]
+
+    # Add Fabric capacity settings if a capacity resource was found
+    if fabric_capacity_id:
+        lines.extend([
+            "",
+            "# --- Fabric Capacity (auto-detected) ---",
+            f"CREATE_FABRIC_WORKSPACE=true",
+            f"FABRIC_CAPACITY_ID={fabric_capacity_id}",
+            f"FABRIC_CAPACITY_NAME={fabric_capacity_name}",
+        ])
     
     return "\n".join(lines)
 
@@ -563,7 +597,9 @@ def get_default_env_content() -> str:
     """Get default env content for new .env files (Fabric settings, agent IDs, etc.)."""
     lines = [
         "",
-        "# --- Fabric Settings (fill in manually) ---",
+        "# --- Fabric Settings ---",
+        "# FABRIC_WORKSPACE_ID is auto-created when CREATE_FABRIC_WORKSPACE=true,",
+        "# otherwise set it manually to an existing workspace ID.",
         "FABRIC_WORKSPACE_ID=",
         "DATA_FOLDER=data/default",
         "INDUSTRY=Telecommunications",

@@ -95,6 +95,9 @@
     "serviceFabricCluster": "sf-",
     "serviceFabricManagedCluster": "sfmc-"
   },
+  "fabric": {
+    "fabricCapacity": "fc"
+  },
   "databases": {
     "cosmosDBDatabase": "cosmos-",
     "cosmosDBApacheCassandra": "coscas-",

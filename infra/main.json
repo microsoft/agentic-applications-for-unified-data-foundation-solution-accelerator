@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "3645839045207447954"
+      "templateHash": "8612344795394675897"
     }
   },
   "parameters": {
@@ -169,6 +169,28 @@
       "defaultValue": false,
       "metadata": {
         "description": "Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used."
+      }
+    },
+    "createFabricWorkspace": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Set to true to create a new Fabric capacity and workspace for workshop mode. When false, an existing FABRIC_WORKSPACE_ID must be provided."
+      }
+    },
+    "fabricCapacitySku": {
+      "type": "string",
+      "defaultValue": "F8",
+      "allowedValues": [
+        "F2",
+        "F4",
+        "F8",
+        "F16",
+        "F32",
+        "F64"
+      ],
+      "metadata": {
+        "description": "SKU for the Fabric capacity resource. Only used when createFabricWorkspace is true."
       }
     },
     "useChatHistoryEnabled": {
@@ -344,6 +366,9 @@
         "serviceFabricCluster": "sf-",
         "serviceFabricManagedCluster": "sfmc-"
       },
+      "fabric": {
+        "fabricCapacity": "fc"
+      },
       "databases": {
         "cosmosDBDatabase": "cosmos-",
         "cosmosDBApacheCassandra": "coscas-",
@@ -485,6 +510,7 @@
     "deployerInfo": "[deployer()]",
     "deployingUserPrincipalId": "[variables('deployerInfo').objectId]",
     "existingTags": "[coalesce(resourceGroup().tags, createObject())]",
+    "fabricCapacityAdminMembers": "[if(contains(variables('deployerInfo'), 'userPrincipalName'), createArray(variables('deployerInfo').userPrincipalName), createArray())]",
     "landingText": "[if(equals(parameters('usecase'), 'Retail-sales-analysis'), 'You can ask questions around sales, products and orders.', 'You can ask questions around customer policies, claims and communications.')]"
   },
   "resources": [
@@ -495,6 +521,112 @@
       "name": "default",
       "properties": {
         "tags": "[union(variables('existingTags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name, 'Type', 'Non-WAF'))]"
+      }
+    },
+    {
+      "condition": "[parameters('createFabricWorkspace')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy_fabric_capacity",
+      "resourceGroup": "[resourceGroup().name]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "capacityName": {
+            "value": "[format('{0}{1}', variables('abbrs').fabric.fabricCapacity, variables('solutionSuffix'))]"
+          },
+          "solutionLocation": {
+            "value": "[variables('solutionLocation')]"
+          },
+          "skuName": {
+            "value": "[parameters('fabricCapacitySku')]"
+          },
+          "adminMembers": {
+            "value": "[variables('fabricCapacityAdminMembers')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "13459595293541482427"
+            }
+          },
+          "parameters": {
+            "capacityName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Fabric capacity resource."
+              }
+            },
+            "solutionLocation": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the Fabric capacity resource."
+              }
+            },
+            "skuName": {
+              "type": "string",
+              "defaultValue": "F8",
+              "allowedValues": [
+                "F2",
+                "F4",
+                "F8",
+                "F16",
+                "F32",
+                "F64"
+              ],
+              "metadata": {
+                "description": "SKU name for the Fabric capacity (e.g., F2, F4, F8, F16, F32, F64)."
+              }
+            },
+            "adminMembers": {
+              "type": "array",
+              "metadata": {
+                "description": "Array of admin member UPNs or object IDs for the Fabric capacity."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Fabric/capacities",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('capacityName')]",
+              "location": "[parameters('solutionLocation')]",
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "Fabric"
+              },
+              "properties": {
+                "administration": {
+                  "members": "[parameters('adminMembers')]"
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "capacityId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the deployed Fabric capacity."
+              },
+              "value": "[resourceId('Microsoft.Fabric/capacities', parameters('capacityName'))]"
+            },
+            "capacityName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the deployed Fabric capacity."
+              },
+              "value": "[parameters('capacityName')]"
+            }
+          }
+        }
       }
     },
     {
@@ -678,7 +810,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "16848402676405380264"
+              "templateHash": "16258553752543885674"
             }
           },
           "parameters": {
@@ -889,6 +1021,9 @@
                 "containerInstance": "ci",
                 "serviceFabricCluster": "sf-",
                 "serviceFabricManagedCluster": "sfmc-"
+              },
+              "fabric": {
+                "fabricCapacity": "fc"
               },
               "databases": {
                 "cosmosDBDatabase": "cosmos-",
@@ -5140,6 +5275,27 @@
         "description": "Flag indicating whether user access token forwarding is enabled"
       },
       "value": "[variables('useUserAccessTokenSetting')]"
+    },
+    "CREATE_FABRIC_WORKSPACE": {
+      "type": "bool",
+      "metadata": {
+        "description": "Flag indicating whether to create a new Fabric workspace"
+      },
+      "value": "[parameters('createFabricWorkspace')]"
+    },
+    "FABRIC_CAPACITY_ID": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the deployed Fabric capacity (empty when createFabricWorkspace is false)"
+      },
+      "value": "[if(parameters('createFabricWorkspace'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_fabric_capacity'), '2025-04-01').outputs.capacityId.value, '')]"
+    },
+    "FABRIC_CAPACITY_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the deployed Fabric capacity (empty when createFabricWorkspace is false)"
+      },
+      "value": "[if(parameters('createFabricWorkspace'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_fabric_capacity'), '2025-04-01').outputs.capacityName.value, '')]"
     }
   }
 }

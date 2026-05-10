@@ -90,6 +90,20 @@ param isWorkshop bool = true
 @description('Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used.')
 param azureEnvOnly bool = false
 
+@description('Set to true to create a new Fabric capacity and workspace for workshop mode. When false, an existing FABRIC_WORKSPACE_ID must be provided.')
+param createFabricWorkspace bool = false
+
+@description('SKU for the Fabric capacity resource. Only used when createFabricWorkspace is true.')
+@allowed([
+  'F2'
+  'F4'
+  'F8'
+  'F16'
+  'F32'
+  'F64'
+])
+param fabricCapacitySku string = 'F8'
+
 @description('Enable chat history.')
 param useChatHistoryEnabled bool = true
 
@@ -155,6 +169,19 @@ var existingTags = resourceGroup().tags ?? {}
 @description('The principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC.')
 @allowed(['User', 'ServicePrincipal'])
 param deployingUserPrincipalType string = 'User'
+
+// ========== Fabric Capacity (optional, for workshop mode) ========== //
+var fabricCapacityAdminMembers = contains(deployerInfo, 'userPrincipalName') ? [deployerInfo.userPrincipalName] : []
+module fabricCapacityModule 'deploy_fabric_capacity.bicep' = if (createFabricWorkspace) {
+  name: 'deploy_fabric_capacity'
+  params: {
+    capacityName: '${abbrs.fabric.fabricCapacity}${solutionSuffix}'
+    solutionLocation: solutionLocation
+    skuName: fabricCapacitySku
+    adminMembers: fabricCapacityAdminMembers
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
 
 // ========== Resource Group Tag ========== //
 resource resourceGroupTags 'Microsoft.Resources/tags@2023-07-01' = if (!isWorkshop) {
@@ -482,3 +509,12 @@ output AZURE_ENV_ONLY bool = azureEnvOnly
 
 @description('Flag indicating whether user access token forwarding is enabled')
 output USE_USER_ACCESS_TOKEN string = useUserAccessTokenSetting
+
+@description('Flag indicating whether to create a new Fabric workspace')
+output CREATE_FABRIC_WORKSPACE bool = createFabricWorkspace
+
+@description('Resource ID of the deployed Fabric capacity (empty when createFabricWorkspace is false)')
+output FABRIC_CAPACITY_ID string = createFabricWorkspace ? fabricCapacityModule!.outputs.capacityId : ''
+
+@description('Name of the deployed Fabric capacity (empty when createFabricWorkspace is false)')
+output FABRIC_CAPACITY_NAME string = createFabricWorkspace ? fabricCapacityModule!.outputs.capacityName : ''

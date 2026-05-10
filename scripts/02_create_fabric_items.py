@@ -54,9 +54,12 @@ p.add_argument("--datasource-type", choices=["ontology", "lakehouse"], default="
                help="Data source type for Data Agent: 'ontology' or 'lakehouse' (default)")
 args = p.parse_args()
 
+CREATE_FABRIC_WORKSPACE = os.getenv("CREATE_FABRIC_WORKSPACE", "false").lower() == "true"
 WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
-if not WORKSPACE_ID:
+
+if not WORKSPACE_ID and not CREATE_FABRIC_WORKSPACE:
     print("ERROR: FABRIC_WORKSPACE_ID not set in .env")
+    print("       Set FABRIC_WORKSPACE_ID or set CREATE_FABRIC_WORKSPACE=true to auto-create a workspace.")
     sys.exit(1)
 
 # Get data folder - use arg if provided, else from .env with proper path resolution
@@ -100,7 +103,8 @@ with open(config_path) as f:
 print(f"\n{'='*60}")
 print(f"Setting up Fabric for: {SOLUTION_NAME}")
 print(f"{'='*60}")
-print(f"Workspace ID: {WORKSPACE_ID}")
+print(f"Workspace ID: {WORKSPACE_ID or '(will be created)'}")
+print(f"Create Fabric Workspace: {CREATE_FABRIC_WORKSPACE}")
 print(f"Scenario: {ontology_config['name']}")
 print(f"Datasource type: {args.datasource_type}")
 print(f"Tables: {', '.join(ontology_config['tables'].keys())}")
@@ -268,6 +272,100 @@ def b64encode(content):
     if isinstance(content, str):
         content = content.encode("utf-8")
     return base64.b64encode(content).decode("utf-8")
+
+# ============================================================================
+# Workspace creation and capacity assignment (when CREATE_FABRIC_WORKSPACE is true)
+# ============================================================================
+
+if CREATE_FABRIC_WORKSPACE:
+    FABRIC_CAPACITY_ID = os.getenv("FABRIC_CAPACITY_ID")
+    if not FABRIC_CAPACITY_ID:
+        print("ERROR: FABRIC_CAPACITY_ID not set. Deploy with createFabricWorkspace=true first.")
+        sys.exit(1)
+
+    # Step A: Create workspace if it doesn't exist yet
+    if not WORKSPACE_ID:
+        ws_display_name = f"workspace-{SOLUTION_NAME}"
+        print(f"\n[AUTO] Creating Fabric workspace: {ws_display_name}")
+
+        # Check if workspace already exists
+        list_resp = make_request("GET", f"{FABRIC_API}/workspaces")
+        if list_resp.status_code == 200:
+            for ws in list_resp.json().get("value", []):
+                if ws["displayName"] == ws_display_name:
+                    WORKSPACE_ID = ws["id"]
+                    print(f"  [OK] Reusing existing workspace: {WORKSPACE_ID}")
+                    break
+
+        if not WORKSPACE_ID:
+            create_resp = make_request("POST", f"{FABRIC_API}/workspaces", json={
+                "displayName": ws_display_name,
+                "description": f"Auto-created workspace for {SOLUTION_NAME}"
+            })
+            if create_resp.status_code in [200, 201]:
+                WORKSPACE_ID = create_resp.json()["id"]
+                print(f"  [OK] Created workspace: {WORKSPACE_ID}")
+            else:
+                print(f"ERROR: Failed to create workspace: {create_resp.status_code} {create_resp.text}")
+                sys.exit(1)
+
+        # Persist workspace ID to scripts/.env for future runs and refresh in-process env
+        env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+        os.environ["FABRIC_WORKSPACE_ID"] = WORKSPACE_ID
+        with open(env_file, "r") as f:
+            env_content = f.read()
+        if "FABRIC_WORKSPACE_ID" not in env_content:
+            with open(env_file, "a") as f:
+                f.write(f"\nFABRIC_WORKSPACE_ID={WORKSPACE_ID}\n")
+            print(f"  [OK] Saved FABRIC_WORKSPACE_ID to scripts/.env")
+        else:
+            import re
+            updated = re.sub(r'^FABRIC_WORKSPACE_ID=.*$', f'FABRIC_WORKSPACE_ID={WORKSPACE_ID}', env_content, flags=re.MULTILINE)
+            with open(env_file, "w") as f:
+                f.write(updated)
+            print(f"  [OK] Updated FABRIC_WORKSPACE_ID in scripts/.env")
+
+    # Step B: Check if capacity is already assigned, assign if not
+    ws_resp = make_request("GET", f"{FABRIC_API}/workspaces/{WORKSPACE_ID}")
+    if ws_resp.status_code == 200:
+        ws_capacity = ws_resp.json().get("capacityId", "")
+    else:
+        ws_capacity = ""
+
+    if ws_capacity:
+        print(f"  [OK] Workspace already has capacity assigned: {ws_capacity}")
+    else:
+        # Resolve FABRIC_CAPACITY_ID to a GUID if it's an ARM resource ID
+        capacity_guid = FABRIC_CAPACITY_ID
+        if "/" in FABRIC_CAPACITY_ID:
+            capacity_name = FABRIC_CAPACITY_ID.rstrip("/").split("/")[-1]
+            print(f"  Resolving capacity name '{capacity_name}' to GUID...")
+            cap_resp = make_request("GET", f"{FABRIC_API}/capacities")
+            if cap_resp.status_code == 200:
+                for cap in cap_resp.json().get("value", []):
+                    if cap.get("displayName", "").lower() == capacity_name.lower():
+                        capacity_guid = cap["id"]
+                        print(f"  [OK] Resolved capacity GUID: {capacity_guid}")
+                        break
+                else:
+                    print(f"  [WARN] Could not find capacity '{capacity_name}' in Fabric API. Trying raw ID.")
+            else:
+                print(f"  [WARN] Failed to list capacities: {cap_resp.status_code}. Trying raw ID.")
+
+        print(f"  Assigning capacity to workspace...")
+        assign_resp = make_request("POST", f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/assignToCapacity", json={
+            "capacityId": capacity_guid
+        })
+        if assign_resp.status_code in [200, 202]:
+            print(f"  [OK] Capacity assigned to workspace")
+        elif assign_resp.status_code == 409:
+            print(f"  [OK] Workspace already assigned to a capacity")
+        else:
+            print(f"  [FAIL] Capacity assignment failed: {assign_resp.status_code}: {assign_resp.text}")
+            print(f"         Lakehouse requires an assigned capacity. Fix FABRIC_CAPACITY_ID and retry.")
+            sys.exit(1)
+
+print(f"Workspace ID: {WORKSPACE_ID}")
 
 # ============================================================================
 # Step 0: Determine lakehouse/ontology names (use local tracking, minimize API calls)
@@ -477,7 +575,7 @@ create_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items"
 # Retry notebook creation in case the name is not yet released after deletion
 for nb_attempt in range(5):
     resp = make_request("POST", create_url, json=create_nb_payload)
-    if resp.status_code == 400 and "NotAvailableYet" in resp.text:
+    if resp.status_code in [400, 409] and "NotAvailableYet" in resp.text:
         wait_secs = 15 * (nb_attempt + 1)
         print(f"  Name not released yet (attempt {nb_attempt+1}/5). Waiting {wait_secs}s...")
         time.sleep(wait_secs)

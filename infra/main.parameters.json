@@ -61,6 +61,12 @@
     },
     "deployingUserPrincipalType": {
       "value": "${DEPLOYING_USER_PRINCIPAL_TYPE=User}"
+    },
+    "useUserAccessToken":{
+      "value": "${USE_USER_ACCESS_TOKEN}"
+    },
+    "createFabricWorkspace": {
+      "value": "${CREATE_FABRIC_WORKSPACE}"
     }
   }
 }
