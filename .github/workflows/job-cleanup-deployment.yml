@@ -117,7 +117,7 @@ jobs:
           PYTHONIOENCODING: utf-8
         id: cleanup_fabric
         run: |
-          bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh \
+          bash ./infra/scripts/post-provision/fabric_scripts/delete_fabric_items_scripts.sh \
             "${{ secrets.FABRIC_WORKSPACE_ID }}"
         continue-on-error: true
 

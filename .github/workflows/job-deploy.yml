@@ -331,10 +331,10 @@ jobs:
           GPT_MIN_CAPACITY: ${{ env.GPT_MIN_CAPACITY }}
           AZURE_REGIONS: ${{ vars.AZURE_REGIONS }}
         run: |
-          chmod +x infra/scripts/checkquota_agentic_application.sh
-          if ! infra/scripts/checkquota_agentic_application.sh; then
+          chmod +x infra/scripts/pre-provision/checkquota_agentic_application.sh
+          if ! infra/scripts/pre-provision/checkquota_agentic_application.sh; then
             # If quota check fails due to insufficient quota, set the flag
-            if grep -q "No region with sufficient quota found" infra/scripts/checkquota_agentic_application.sh; then
+            if grep -q "No region with sufficient quota found" infra/scripts/pre-provision/checkquota_agentic_application.sh; then
               echo "QUOTA_FAILED=true" >> $GITHUB_ENV
             fi
             exit 1  # Fail the pipeline if any other failure occurs

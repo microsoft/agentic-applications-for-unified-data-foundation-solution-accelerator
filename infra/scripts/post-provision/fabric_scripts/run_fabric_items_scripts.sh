@@ -226,14 +226,14 @@ fi
 # sed -i "s/kv_to-be-replaced/${keyvaultName}/g" "create_fabric_items.py"
 # sed -i "s/solutionName_to-be-replaced/${solutionName}/g" "create_fabric_items.py"
 # sed -i "s/workspaceId_to-be-replaced/${fabricWorkspaceId}/g" "create_fabric_items.py"
-python -m pip install -r infra/scripts/fabric_scripts/requirements.txt --quiet
+python -m pip install -r infra/scripts/post-provision/fabric_scripts/requirements.txt --quiet
 
 # Run Python unbuffered so prints show immediately.
 tmp="$(mktemp)"
 cleanup() { rm -f "$tmp"; }
 trap cleanup EXIT
 
-python -u infra/scripts/fabric_scripts/create_fabric_items.py --workspaceId "$fabricWorkspaceId" --solutionname "$solutionName" --backend_app_pid "$backend_app_pid" --backend_app_uid "$backend_app_uid" --usecase "$usecase" --exports-file "$tmp"
+python -u infra/scripts/post-provision/fabric_scripts/create_fabric_items.py --workspaceId "$fabricWorkspaceId" --solutionname "$solutionName" --backend_app_pid "$backend_app_pid" --backend_app_uid "$backend_app_uid" --usecase "$usecase" --exports-file "$tmp"
 
 if [ $? -eq 0 ]; then
     echo ""

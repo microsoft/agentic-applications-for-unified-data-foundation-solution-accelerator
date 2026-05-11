@@ -249,8 +249,8 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
    If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
 5. Once the deployment has completed successfully, copy the 2 bash commands from the terminal (ex. 
-`bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh` and
-`bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
+`bash ./infra/scripts/post-provision/agent_scripts/run_create_agents_scripts.sh` and
+`bash ./infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
 
 > **Note**: If you are running this deployment in GitHub Codespaces or VS Code Dev Container or Visual Studio Code (WEB) skip to step 7. 
 
@@ -279,11 +279,11 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 8. Run the bash script from the output of the azd deployment. The script will look like the following:
     
     ```Shell
-    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
+    bash ./infra/scripts/post-provision/agent_scripts/run_create_agents_scripts.sh
     ```
     If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
     ```Shell
-    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <ai-project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group> <usecase> [<is-workshop>]
+    bash ./infra/scripts/post-provision/agent_scripts/run_create_agents_scripts.sh <ai-project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group> <usecase> [<is-workshop>]
     ```
 
     **Step 8 Parameter Reference:**
@@ -301,12 +301,12 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 9. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
     ```Shell
-    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>
+    bash ./infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>
     ```
 
     If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
     ```Shell
-    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup> <usecase>
+    bash ./infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup> <usecase>
     ```
 
     **Step 9 Parameter Reference:**
@@ -342,13 +342,13 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
      If you are done trying out the accelerator and want to clean up the Fabric resources (lakehouse, SQL database, and role assignments), run the following script:
 
      ```shell
-     bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId>
+     bash ./infra/scripts/post-provision/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId>
      ```
 
      If you don't have azd env then you need to pass parameters along with the command:
      
      ```shell
-     bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-principal-id>
+     bash ./infra/scripts/post-provision/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-principal-id>
      ```
 
      **Note**: This script will remove the lakehouse, SQL database, and service principal role assignments from the Fabric workspace. To completely remove all Azure resources, use `azd down`.

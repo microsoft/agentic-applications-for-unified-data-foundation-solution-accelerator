@@ -349,9 +349,9 @@ jobs:
         run: |
           set -e
           
-          bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
+          bash ./infra/scripts/post-provision/agent_scripts/run_create_agents_scripts.sh
 
-          bash infra/scripts/fabric_scripts/run_fabric_items_scripts.sh \
+          bash infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh \
             "${{ secrets.FABRIC_WORKSPACE_ID }}"
 
       - name: Generate Deploy Job Summary

@@ -35,7 +35,7 @@ if usecase == 'retail-sales-analysis':
 else: 
     usecase = 'insurance'
 
-# Use the location of tables.json in infra/scripts/fabric_scripts/sql_files/tables.json
+# Use the location of tables.json in infra/scripts/post-provision/fabric_scripts/sql_files/tables.json
 file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'fabric_scripts', 'data', 'tables.json'))
 if not os.path.isfile(file_path):
     raise FileNotFoundError(f"Could not find tables.json at {file_path}")

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "siteName": { "value": "myenv-csapi-prod" },
+    "keyVaultName": { "value": "myenv-csapi-prod-kv" },
+    "openAiSecretValue": { "value": "<YOUR_OPENAI_KEY_HERE>" },
+    "sqlSecretValue": { "value": "<YOUR_SQL_CONNECTION_STRING_HERE>" },
+    "skuName": { "value": "P1v2" },
+    "location": { "value": "eastus" }
+  }
+}

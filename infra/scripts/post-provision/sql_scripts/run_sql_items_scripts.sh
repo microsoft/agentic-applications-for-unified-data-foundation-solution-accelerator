@@ -111,7 +111,7 @@ else
 fi
 
 # Install Python dependencies
-python -m pip install -r infra/scripts/sql_scripts/requirements.txt --quiet
+python -m pip install -r infra/scripts/post-provision/sql_scripts/requirements.txt --quiet
 
 # Run Python unbuffered so prints show immediately.
 tmp="$(mktemp)"
@@ -125,7 +125,7 @@ echo "SQL Database: $sqlDatabase"
 echo "Use Case: $usecase"
 echo ""
 
-python -u infra/scripts/sql_scripts/create_sql_items.py \
+python -u infra/scripts/post-provision/sql_scripts/create_sql_items.py \
     --sql-server "$sqlServer" \
     --sql-database "$sqlDatabase" \
     --backend_app_uid "$backend_app_uid" \

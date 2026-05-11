@@ -28,10 +28,10 @@ hooks:
         } else {
             Write-Host "`nRun the following commands in the bash terminal:"
             Write-Host "1. Create agents:"
-            Write-Host "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
+            Write-Host "bash ./infra/scripts/post-provision/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
 
             Write-Host "`n2. Create Fabric items:"
-            Write-Host "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
+            Write-Host "bash ./infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
         }
 
       shell: pwsh
@@ -50,10 +50,10 @@ hooks:
         else
             echo "Run the following commands in the bash terminal:"
             echo "1. Create agents:"
-            echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"
+            echo "bash ./infra/scripts/post-provision/agent_scripts/run_create_agents_scripts.sh"
             echo ""
             echo "2. Create Fabric items:"
-            echo "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+            echo "bash ./infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
         fi
 
       shell: sh

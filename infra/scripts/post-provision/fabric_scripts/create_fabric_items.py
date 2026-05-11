@@ -86,7 +86,7 @@ directory_client = file_system_client.get_directory_client(f"{data_path}/{folder
 print('uploading files')
 # upload audio files
 file_client = directory_client.get_file_client("data/" + 'tables.json')
-with open(file='infra/scripts/fabric_scripts/data/tables.json', mode="rb") as data:
+with open(file='infra/scripts/post-provision/fabric_scripts/data/tables.json', mode="rb") as data:
         # print('data', data)
     file_client.upload_data(data, overwrite=True)
 
@@ -194,7 +194,7 @@ if conn is None:
     raise SystemExit("Cannot proceed without a connection to Fabric SQL Database.")
 cursor = conn.cursor()
 print(cursor)
-sql_filename = 'infra/scripts/fabric_scripts/sql_files/data_sql.sql'
+sql_filename = 'infra/scripts/post-provision/fabric_scripts/sql_files/data_sql.sql'
 with open(sql_filename, 'r', encoding='utf-8') as f:
     sql_script = f.read()
     cursor.execute(sql_script)
@@ -281,7 +281,7 @@ else:
     cursor.commit()
 
 
-file_path = "infra/scripts/fabric_scripts/data/tables.json"
+file_path = "infra/scripts/post-provision/fabric_scripts/data/tables.json"
 
 time.sleep(120)
 with open(file_path, "r", encoding="utf-8") as f:

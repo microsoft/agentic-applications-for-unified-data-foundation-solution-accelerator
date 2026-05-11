@@ -218,7 +218,7 @@ else
 fi
 
 
-requirementFile="infra/scripts/agent_scripts/requirements.txt"
+requirementFile="infra/scripts/post-provision/agent_scripts/requirements.txt"
 
 # Download and install Python requirements
 python -m pip install --upgrade pip
@@ -228,7 +228,7 @@ python -m pip install --quiet -r "$requirementFile"
 echo "Running Python agents creation script..."
 echo "  Workshop deployment: $isWorkshopDeployment"
 
-eval $(python infra/scripts/agent_scripts/01_create_agents.py \
+eval $(python infra/scripts/post-provision/agent_scripts/01_create_agents.py \
     --ai_project_endpoint="$projectEndpoint" \
     --solution_name="$solutionName" \
     --gpt_model_name="$gptModelName" \

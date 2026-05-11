@@ -38,7 +38,7 @@ fi
 
 # Install required Python packages
 echo "Installing required Python packages..."
-python -m pip install -r infra/scripts/fabric_scripts/requirements.txt --quiet
+python -m pip install -r infra/scripts/post-provision/fabric_scripts/requirements.txt --quiet
 
 # Run deletion script
 echo ""
@@ -47,7 +47,7 @@ echo "Workspace ID: $fabricWorkspaceId"
 echo "============================================================"
 echo ""
 
-python -u infra/scripts/fabric_scripts/delete_fabric_items.py \
+python -u infra/scripts/post-provision/fabric_scripts/delete_fabric_items.py \
     --workspaceId "$fabricWorkspaceId" \
     --solutionname "$solutionName" \
     --backend_app_pid "$backend_app_pid"
