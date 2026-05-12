@@ -307,7 +307,9 @@ ontology_id = None
 # Calculate total steps dynamically
 total_steps = 5  # Always: Lakehouse, Workspace, Upload, Notebook, Ontology
 if not args.skip_data_agent:
-    total_steps += 2  # Data Agent + Publish
+    total_steps += 2  # Primary Data Agent + Publish
+    if args.datasource_type == "lakehouse":
+        total_steps += 1  # Secondary ontology Data Agent
 total_steps += 1  # Save
 step = 1
 
@@ -879,234 +881,227 @@ else:
 time.sleep(3)
 
 # ============================================================================
-# Step 6: Create Data Agent (via Fabric REST API)
+# Data Agent helper functions
 # ============================================================================
 
-data_agent_id = None
-data_agent_name = None
-
-if not args.skip_data_agent:
-    data_agent_name = f"dataagent_{SOLUTION_NAME}_{new_suffix}"
-    step += 1
-    print(f"\n[{step}/{total_steps}] Creating Data Agent...")
+def create_data_agent(agent_name, ds_type):
+    """Create a Data Agent with the given datasource type. Returns (agent_id, final_name) or (None, agent_name)."""
+    is_lakehouse = (ds_type == "lakehouse")
 
     # Check if Data Agent already exists
-    existing_da = find_item("DataAgent", data_agent_name)
-    # Also check via dataAgents endpoint
+    existing_da = find_item("DataAgent", agent_name)
     if not existing_da:
         da_list_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents"
         da_list_resp = make_request("GET", da_list_url)
         if da_list_resp.status_code == 200:
             for da in da_list_resp.json().get("value", []):
-                if da["displayName"] == data_agent_name:
+                if da["displayName"] == agent_name:
                     existing_da = da
                     break
     if existing_da:
-        data_agent_id = existing_da["id"]
-        print(f"  [OK] Using existing Data Agent: {data_agent_name} ({data_agent_id})")
+        print(f"  [OK] Using existing Data Agent: {agent_name} ({existing_da['id']})")
+        return existing_da["id"], agent_name
+
+    # Schema URL base for Data Agent definition parts
+    DA_SCHEMA_BASE = "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition"
+
+    # --- Build definition parts (matching Fabric portal format) ---
+
+    # 1. data_agent.json (required - schema version)
+    data_agent_config = {"$schema": f"{DA_SCHEMA_BASE}/dataAgent/2.1.0/schema.json"}
+
+    # 2. stage_config.json (AI instructions)
+    schema_prompt_path = os.path.join(config_dir, "schema_prompt.txt")
+    ai_instructions = None
+    if os.path.exists(schema_prompt_path):
+        with open(schema_prompt_path, "r") as f:
+            ai_instructions = f.read().strip()
+        print(f"  Loaded AI instructions ({len(ai_instructions)} chars)")
+
+    stage_config = {
+        "$schema": f"{DA_SCHEMA_BASE}/stageConfiguration/1.0.0/schema.json",
+        "aiInstructions": ai_instructions
+    }
+
+    # 3. datasource.json (ontology or lakehouse reference)
+    if is_lakehouse:
+        da_source_name = f"lakehouse-{lakehouse_name}"
+        # Build the full element hierarchy so tables are selected at creation time
+        elements = build_lakehouse_elements(ontology_config["tables"])
+
+        datasource = {
+            "$schema": f"{DA_SCHEMA_BASE}/dataSource/1.0.0/schema.json",
+            "artifactId": lakehouse_id,
+            "workspaceId": WORKSPACE_ID,
+            "dataSourceInstructions": None,
+            "displayName": lakehouse_name,
+            "type": "lakehouse",
+            "userDescription": None,
+            "metadata": {},
+            "elements": elements
+        }
     else:
-        # Schema URL base for Data Agent definition parts
-        DA_SCHEMA_BASE = "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition"
+        da_source_name = f"ontology-{ontology_name}"
+        elements = []
+        for table_name, table_def in ontology_config["tables"].items():
+            entity_name = table_name.title().replace("_", "")
+            col_list = ",".join(table_def["columns"])
+            elements.append({
+                "id": entity_name,
+                "is_selected": True,
+                "display_name": entity_name,
+                "type": "ontology.entity",
+                "description": col_list,
+                "children": []
+            })
 
-        # --- Build definition parts (matching Fabric portal format) ---
-
-        # 1. data_agent.json (required - schema version)
-        data_agent_config = {"$schema": f"{DA_SCHEMA_BASE}/dataAgent/2.1.0/schema.json"}
-
-        # 2. stage_config.json (AI instructions)
-        schema_prompt_path = os.path.join(config_dir, "schema_prompt.txt")
-        ai_instructions = None
-        if os.path.exists(schema_prompt_path):
-            with open(schema_prompt_path, "r") as f:
-                ai_instructions = f.read().strip()
-            print(f"  Loaded AI instructions ({len(ai_instructions)} chars)")
-
-        stage_config = {
-            "$schema": f"{DA_SCHEMA_BASE}/stageConfiguration/1.0.0/schema.json",
-            "aiInstructions": ai_instructions
+        datasource = {
+            "$schema": f"{DA_SCHEMA_BASE}/dataSource/1.0.0/schema.json",
+            "artifactId": ontology_id,
+            "workspaceId": WORKSPACE_ID,
+            "dataSourceInstructions": None,
+            "displayName": ontology_name,
+            "type": "ontology",
+            "userDescription": None,
+            "metadata": {},
+            "elements": elements
         }
 
-        # 3. datasource.json (ontology or lakehouse reference)
-        if use_lakehouse_datasource:
-            da_source_name = f"lakehouse-{lakehouse_name}"
-            # Build the full element hierarchy so tables are selected at creation time
-            elements = build_lakehouse_elements(ontology_config["tables"])
-
-            datasource = {
-                "$schema": f"{DA_SCHEMA_BASE}/dataSource/1.0.0/schema.json",
-                "artifactId": lakehouse_id,
-                "workspaceId": WORKSPACE_ID,
-                "dataSourceInstructions": None,
-                "displayName": lakehouse_name,
-                "type": "lakehouse",
-                "userDescription": None,
-                "metadata": {},
-                "elements": elements
-            }
-        else:
-            da_source_name = f"ontology-{ontology_name}"
-            elements = []
-            for table_name, table_def in ontology_config["tables"].items():
-                entity_name = table_name.title().replace("_", "")
-                col_list = ",".join(table_def["columns"])
-                elements.append({
-                    "id": entity_name,
-                    "is_selected": True,
-                    "display_name": entity_name,
-                    "type": "ontology.entity",
-                    "description": col_list,
-                    "children": []
+    # 4. fewshots.json (sample questions, if available)
+    fewshots = {"$schema": f"{DA_SCHEMA_BASE}/fewShots/1.0.0/schema.json", "fewShots": []}
+    sample_questions_path = os.path.join(config_dir, "sample_questions.txt")
+    if os.path.exists(sample_questions_path):
+        with open(sample_questions_path, "r") as f:
+            content = f.read()
+        in_sql = False
+        for line in content.split("\n"):
+            line = line.strip()
+            if "SQL QUESTIONS" in line:
+                in_sql = True
+                continue
+            if line.startswith("===") and in_sql:
+                break
+            if in_sql and line and line[0].isdigit():
+                question = line.split(". ", 1)[-1] if ". " in line else line
+                fewshots["fewShots"].append({
+                    "id": str(uuid.uuid4()),
+                    "question": question,
+                    "query": ""
                 })
-
-            datasource = {
-                "$schema": f"{DA_SCHEMA_BASE}/dataSource/1.0.0/schema.json",
-                "artifactId": ontology_id,
-                "workspaceId": WORKSPACE_ID,
-                "dataSourceInstructions": None,
-                "displayName": ontology_name,
-                "type": "ontology",
-                "userDescription": None,
-                "metadata": {},
-                "elements": elements
-            }
-
-        # 4. fewshots.json (sample questions, if available)
-        fewshots = {"$schema": f"{DA_SCHEMA_BASE}/fewShots/1.0.0/schema.json", "fewShots": []}
-        sample_questions_path = os.path.join(config_dir, "sample_questions.txt")
-        if os.path.exists(sample_questions_path):
-            with open(sample_questions_path, "r") as f:
-                content = f.read()
-            in_sql = False
-            for line in content.split("\n"):
-                line = line.strip()
-                if "SQL QUESTIONS" in line:
-                    in_sql = True
-                    continue
-                if line.startswith("===") and in_sql:
-                    break
-                if in_sql and line and line[0].isdigit():
-                    question = line.split(". ", 1)[-1] if ". " in line else line
-                    fewshots["fewShots"].append({
-                        "id": str(uuid.uuid4()),
-                        "question": question,
-                        "query": ""
-                    })
-            if fewshots["fewShots"]:
-                print(f"  Loaded {len(fewshots['fewShots'])} fewshot questions")
-
-        # Build definition parts (same structure for both datasource types)
-        da_definition_parts = [
-            {"path": "Files/Config/data_agent.json", "payload": b64encode(data_agent_config), "payloadType": "InlineBase64"},
-            {"path": "Files/Config/draft/stage_config.json", "payload": b64encode(stage_config), "payloadType": "InlineBase64"},
-            {"path": f"Files/Config/draft/{da_source_name}/datasource.json", "payload": b64encode(datasource), "payloadType": "InlineBase64"},
-        ]
         if fewshots["fewShots"]:
-            da_definition_parts.append(
-                {"path": f"Files/Config/draft/{da_source_name}/fewshots.json", "payload": b64encode(fewshots), "payloadType": "InlineBase64"}
-            )
-        da_payload = {
-            "displayName": data_agent_name,
-            "description": f"Data Agent for {ontology_config['name']}",
-            "definition": {
-                "parts": da_definition_parts
-            }
+            print(f"  Loaded {len(fewshots['fewShots'])} fewshot questions")
+
+    # Build definition parts (same structure for both datasource types)
+    da_definition_parts = [
+        {"path": "Files/Config/data_agent.json", "payload": b64encode(data_agent_config), "payloadType": "InlineBase64"},
+        {"path": "Files/Config/draft/stage_config.json", "payload": b64encode(stage_config), "payloadType": "InlineBase64"},
+        {"path": f"Files/Config/draft/{da_source_name}/datasource.json", "payload": b64encode(datasource), "payloadType": "InlineBase64"},
+    ]
+    if fewshots["fewShots"]:
+        da_definition_parts.append(
+            {"path": f"Files/Config/draft/{da_source_name}/fewshots.json", "payload": b64encode(fewshots), "payloadType": "InlineBase64"}
+        )
+    da_payload = {
+        "displayName": agent_name,
+        "description": f"Data Agent for {ontology_config['name']}",
+        "definition": {
+            "parts": da_definition_parts
         }
-        if use_lakehouse_datasource:
-            table_count = len(ontology_config.get("tables", {}))
-            datasource_label = f"lakehouse {lakehouse_name}"
-            print(f"  Creating '{data_agent_name}' with {len(da_definition_parts)} definition parts...")
-            print(f"  Datasource: {datasource_label} ({table_count} tables pre-selected)")
-        else:
-            datasource_label = f"ontology {ontology_name}"
-            print(f"  Creating '{data_agent_name}' with {len(da_definition_parts)} definition parts...")
-            print(f"  Datasource: {datasource_label} ({len(elements)} entities)")
+    }
+    if is_lakehouse:
+        table_count = len(ontology_config.get("tables", {}))
+        datasource_label = f"lakehouse {lakehouse_name}"
+        print(f"  Creating '{agent_name}' with {len(da_definition_parts)} definition parts...")
+        print(f"  Datasource: {datasource_label} ({table_count} tables pre-selected)")
+    else:
+        datasource_label = f"ontology {ontology_name}"
+        print(f"  Creating '{agent_name}' with {len(da_definition_parts)} definition parts...")
+        print(f"  Datasource: {datasource_label} ({len(elements)} entities)")
 
-        url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents"
+    url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents"
 
-        # Save payload for debugging regardless of outcome
-        da_debug_path = os.path.join(config_dir, "data_agent_payload_debug.json")
-        with open(da_debug_path, "w") as f:
-            json.dump(da_payload, f, indent=2)
-        print(f"  Payload saved to {da_debug_path} for debugging")
+    # Save payload for debugging regardless of outcome
+    da_debug_path = os.path.join(config_dir, f"data_agent_payload_debug_{ds_type}.json")
+    with open(da_debug_path, "w") as f:
+        json.dump(da_payload, f, indent=2)
+    print(f"  Payload saved to {da_debug_path} for debugging")
 
-        resp = make_request("POST", url, json=da_payload)
+    agent_id = None
+    final_name = agent_name
+    resp = make_request("POST", url, json=da_payload)
 
-        if resp.status_code == 201:
-            data_agent_id = resp.json()["id"]
-            print(f"  [OK] Created Data Agent: {data_agent_name} ({data_agent_id})")
-        elif resp.status_code == 202:
-            operation_url = resp.headers.get("Location")
-            try:
-                if operation_url:
-                    result = wait_for_lro(operation_url, "Data Agent creation")
-                    data_agent_id = result.get("id")
-                if not data_agent_id:
-                    created_da = find_item("DataAgent", data_agent_name)
-                    data_agent_id = created_da["id"] if created_da else None
-                if data_agent_id:
-                    print(f"  [OK] Created Data Agent: {data_agent_name} ({data_agent_id})")
-                else:
-                    print(f"  [WARN] Could not find Data Agent after async creation")
-            except Exception as e:
-                print(f"  [WARN] Data Agent creation failed: {e}")
-                created_da = find_item("DataAgent", data_agent_name)
-                if created_da:
-                    data_agent_id = created_da["id"]
-                    print(f"  [OK] Found Data Agent despite LRO error: {data_agent_id}")
-        else:
-            if resp.status_code == 400 and "AlreadyInUse" in resp.text:
-                # Name is reserved by a zombie agent — try with timestamp suffix
-                ts_suffix = int(time.time()) % 10000
-                alt_name = f"dataagent_{SOLUTION_NAME}_{ts_suffix}"
-                print(f"  [WARN] Name '{data_agent_name}' is reserved (zombie). Trying '{alt_name}'...")
-                da_payload["displayName"] = alt_name
-                resp2 = make_request("POST", url, json=da_payload)
-                if resp2.status_code == 201:
-                    data_agent_id = resp2.json()["id"]
-                    data_agent_name = alt_name
-                    print(f"  [OK] Created Data Agent: {data_agent_name} ({data_agent_id})")
-                elif resp2.status_code == 202:
-                    operation_url = resp2.headers.get("Location")
-                    try:
-                        if operation_url:
-                            result = wait_for_lro(operation_url, "Data Agent creation")
-                            data_agent_id = result.get("id")
-                        if not data_agent_id:
-                            created_da = find_item("DataAgent", alt_name)
-                            data_agent_id = created_da["id"] if created_da else None
-                        if data_agent_id:
-                            data_agent_name = alt_name
-                            print(f"  [OK] Created Data Agent: {data_agent_name} ({data_agent_id})")
-                    except Exception as e2:
-                        print(f"  [WARN] Retry also failed: {e2}")
-                else:
-                    print(f"  [WARN] Retry also failed: {resp2.status_code} {resp2.text}")
+    if resp.status_code == 201:
+        agent_id = resp.json()["id"]
+        print(f"  [OK] Created Data Agent: {final_name} ({agent_id})")
+    elif resp.status_code == 202:
+        operation_url = resp.headers.get("Location")
+        try:
+            if operation_url:
+                result = wait_for_lro(operation_url, "Data Agent creation")
+                agent_id = result.get("id")
+            if not agent_id:
+                created_da = find_item("DataAgent", agent_name)
+                agent_id = created_da["id"] if created_da else None
+            if agent_id:
+                print(f"  [OK] Created Data Agent: {final_name} ({agent_id})")
             else:
-                print(f"  [WARN] Failed to create Data Agent: {resp.status_code}")
-                print(f"    Response: {resp.text}")
-                print(f"    Continuing without Data Agent (create manually in Fabric portal)")
+                print(f"  [WARN] Could not find Data Agent after async creation")
+        except Exception as e:
+            print(f"  [WARN] Data Agent creation failed: {e}")
+            created_da = find_item("DataAgent", agent_name)
+            if created_da:
+                agent_id = created_da["id"]
+                print(f"  [OK] Found Data Agent despite LRO error: {agent_id}")
+    else:
+        if resp.status_code == 400 and "AlreadyInUse" in resp.text:
+            # Name is reserved by a zombie agent — try with timestamp suffix
+            ts_suffix = int(time.time()) % 10000
+            alt_name = f"dataagent_{SOLUTION_NAME}_{ts_suffix}"
+            print(f"  [WARN] Name '{agent_name}' is reserved (zombie). Trying '{alt_name}'...")
+            da_payload["displayName"] = alt_name
+            resp2 = make_request("POST", url, json=da_payload)
+            if resp2.status_code == 201:
+                agent_id = resp2.json()["id"]
+                final_name = alt_name
+                print(f"  [OK] Created Data Agent: {final_name} ({agent_id})")
+            elif resp2.status_code == 202:
+                operation_url = resp2.headers.get("Location")
+                try:
+                    if operation_url:
+                        result = wait_for_lro(operation_url, "Data Agent creation")
+                        agent_id = result.get("id")
+                    if not agent_id:
+                        created_da = find_item("DataAgent", alt_name)
+                        agent_id = created_da["id"] if created_da else None
+                    if agent_id:
+                        final_name = alt_name
+                        print(f"  [OK] Created Data Agent: {final_name} ({agent_id})")
+                except Exception as e2:
+                    print(f"  [WARN] Retry also failed: {e2}")
+            else:
+                print(f"  [WARN] Retry also failed: {resp2.status_code} {resp2.text}")
+        else:
+            print(f"  [WARN] Failed to create Data Agent: {resp.status_code}")
+            print(f"    Response: {resp.text}")
+            print(f"    Continuing without Data Agent (create manually in Fabric portal)")
 
-        # Save definition parts for debugging
-        if data_agent_id:
-            da_def_path = os.path.join(config_dir, "data_agent_definition_parts.json")
-            saved_parts = da_payload.get("definition", {}).get("parts", [])
-            with open(da_def_path, "w") as f:
-                json.dump(saved_parts, f)
-            print(f"  [OK] Saved definition parts")
-else:
-    print(f"\n[--] Skipping Data Agent creation (--skip-data-agent)")
+    # Save definition parts for debugging
+    if agent_id:
+        da_def_path = os.path.join(config_dir, f"data_agent_definition_parts_{ds_type}.json")
+        saved_parts = da_payload.get("definition", {}).get("parts", [])
+        with open(da_def_path, "w") as f:
+            json.dump(saved_parts, f)
+        print(f"  [OK] Saved definition parts")
 
-# ============================================================================
-# Step 7: Publish Data Agent (so it can be used as MCP server)
-# ============================================================================
+    return agent_id, final_name
 
-if not args.skip_data_agent and data_agent_id:
-    step += 1
-    print(f"\n[{step}/{total_steps}] Publishing Data Agent as MCP server...")
 
+def publish_data_agent(agent_id, agent_name):
+    """Publish a Data Agent as MCP server."""
+    print(f"  Publishing '{agent_name}' ({agent_id})...")
     try:
         # Get current definition
-        get_def_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents/{data_agent_id}/getDefinition"
+        get_def_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents/{agent_id}/getDefinition"
         get_def_resp = make_request("POST", get_def_url)
 
         if get_def_resp.status_code == 202:
@@ -1124,69 +1119,117 @@ if not args.skip_data_agent and data_agent_id:
         already_published = any("publish_info.json" in p.get("path", "") for p in current_parts)
         if already_published:
             print(f"  [OK] Data Agent already published")
+            return
+
+        # Find draft parts to copy to published folder
+        draft_stage_config = None
+        datasource_folder = None
+        draft_datasource = None
+        draft_fewshots = None
+
+        for p in current_parts:
+            path = p.get("path", "")
+            if "draft/stage_config.json" in path:
+                draft_stage_config = p["payload"]
+            elif "draft/" in path and "datasource.json" in path:
+                draft_datasource = p["payload"]
+                segs = path.split("/")
+                idx = segs.index("draft")
+                datasource_folder = segs[idx + 1]
+            elif "draft/" in path and "fewshots.json" in path:
+                draft_fewshots = p["payload"]
+
+        if not (draft_stage_config and draft_datasource and datasource_folder):
+            raise Exception("Could not find draft parts to publish")
+
+        # Build publish parts
+        DA_SCHEMA_BASE_PUB = "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition"
+        publish_info = {
+            "$schema": f"{DA_SCHEMA_BASE_PUB}/publishInfo/1.0.0/schema.json",
+            "description": ontology_config.get("description", f"Data Agent for {ontology_config.get('name', 'data analysis')}")
+        }
+
+        new_parts = list(current_parts)
+        new_parts.append({"path": "Files/Config/publish_info.json", "payload": b64encode(publish_info), "payloadType": "InlineBase64"})
+        new_parts.append({"path": "Files/Config/published/stage_config.json", "payload": draft_stage_config, "payloadType": "InlineBase64"})
+        new_parts.append({"path": f"Files/Config/published/{datasource_folder}/datasource.json", "payload": draft_datasource, "payloadType": "InlineBase64"})
+        if draft_fewshots:
+            new_parts.append({"path": f"Files/Config/published/{datasource_folder}/fewshots.json", "payload": draft_fewshots, "payloadType": "InlineBase64"})
+
+        print(f"  Publishing with {len(new_parts)} parts (added {len(new_parts) - len(current_parts)} publish parts)...")
+
+        update_def_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents/{agent_id}/updateDefinition"
+        update_resp = make_request("POST", update_def_url, json={"definition": {"parts": new_parts}})
+
+        if update_resp.status_code == 200:
+            print(f"  [OK] Data Agent published")
+        elif update_resp.status_code == 202:
+            op_url = update_resp.headers.get("Location")
+            if op_url:
+                _ = wait_for_lro(op_url, "Data Agent publish")
+            print(f"  [OK] Data Agent published")
         else:
-            # Find draft parts to copy to published folder
-            draft_stage_config = None
-            datasource_folder = None
-            draft_datasource = None
-            draft_fewshots = None
+            raise Exception(f"Publish failed: {update_resp.status_code} {update_resp.text[:300]}")
 
-            for p in current_parts:
-                path = p.get("path", "")
-                if "draft/stage_config.json" in path:
-                    draft_stage_config = p["payload"]
-                elif "draft/" in path and "datasource.json" in path:
-                    draft_datasource = p["payload"]
-                    segs = path.split("/")
-                    idx = segs.index("draft")
-                    datasource_folder = segs[idx + 1]
-                elif "draft/" in path and "fewshots.json" in path:
-                    draft_fewshots = p["payload"]
-
-            if not (draft_stage_config and draft_datasource and datasource_folder):
-                raise Exception("Could not find draft parts to publish")
-
-            # Build publish parts
-            DA_SCHEMA_BASE_PUB = "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition"
-            publish_info = {
-                "$schema": f"{DA_SCHEMA_BASE_PUB}/publishInfo/1.0.0/schema.json",
-                "description": ontology_config.get("description", f"Data Agent for {ontology_config.get('name', 'data analysis')}")
-            }
-
-            new_parts = list(current_parts)
-            new_parts.append({"path": "Files/Config/publish_info.json", "payload": b64encode(publish_info), "payloadType": "InlineBase64"})
-            new_parts.append({"path": "Files/Config/published/stage_config.json", "payload": draft_stage_config, "payloadType": "InlineBase64"})
-            new_parts.append({"path": f"Files/Config/published/{datasource_folder}/datasource.json", "payload": draft_datasource, "payloadType": "InlineBase64"})
-            if draft_fewshots:
-                new_parts.append({"path": f"Files/Config/published/{datasource_folder}/fewshots.json", "payload": draft_fewshots, "payloadType": "InlineBase64"})
-
-            print(f"  Publishing with {len(new_parts)} parts (added {len(new_parts) - len(current_parts)} publish parts)...")
-
-            update_def_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents/{data_agent_id}/updateDefinition"
-            update_resp = make_request("POST", update_def_url, json={"definition": {"parts": new_parts}})
-
-            if update_resp.status_code == 200:
-                print(f"  [OK] Data Agent published")
-            elif update_resp.status_code == 202:
-                op_url = update_resp.headers.get("Location")
-                if op_url:
-                    _ = wait_for_lro(op_url, "Data Agent publish")
-                print(f"  [OK] Data Agent published")
-            else:
-                raise Exception(f"Publish failed: {update_resp.status_code} {update_resp.text[:300]}")
-
-            # Build MCP endpoint URL
-            mcp_endpoint = f"https://api.fabric.microsoft.com/v1/mcp/workspaces/{WORKSPACE_ID}/dataagents/{data_agent_id}/agent"
-            print(f"  MCP Endpoint: {mcp_endpoint}")
+        # Build MCP endpoint URL
+        mcp_endpoint = f"https://api.fabric.microsoft.com/v1/mcp/workspaces/{WORKSPACE_ID}/dataagents/{agent_id}/agent"
+        print(f"  MCP Endpoint: {mcp_endpoint}")
 
     except Exception as e:
-        print(f"  [WARN] Failed to publish Data Agent: {e}")
+        print(f"  [WARN] Failed to publish Data Agent '{agent_name}': {e}")
         print(f"         You can publish manually in the Fabric portal")
         print(f"         Open the Data Agent > Home tab > Publish")
 
-if not args.skip_data_agent and not data_agent_id:
+
+# ============================================================================
+# Step 6: Create Data Agents (via Fabric REST API)
+# ============================================================================
+
+data_agent_id = None
+data_agent_name = None
+
+if not args.skip_data_agent:
+    # Primary data agent (controlled by --datasource-type flag)
+    data_agent_name = f"dataagent_{SOLUTION_NAME}_{new_suffix}"
     step += 1
-    print(f"\n[{step}/{total_steps}] Skipping publish (Data Agent not created)")
+    print(f"\n[{step}/{total_steps}] Creating Data Agent ({args.datasource_type})...")
+    data_agent_id, data_agent_name = create_data_agent(data_agent_name, args.datasource_type)
+
+    # Secondary data agent with ontology datasource (only when primary is lakehouse)
+    other_agent_id = None
+    other_agent_name = None
+    if args.datasource_type == "lakehouse":
+        other_agent_name = f"dataagent_{SOLUTION_NAME}_ontology_{new_suffix}"
+        step += 1
+        print(f"\n[{step}/{total_steps}] Creating Data Agent (ontology)...")
+        if not ontology_id:
+            print(f"  [SKIP] No ontology ID available, skipping ontology data agent")
+        else:
+            other_agent_id, other_agent_name = create_data_agent(other_agent_name, "ontology")
+else:
+    other_agent_id = None
+    print(f"\n[--] Skipping Data Agent creation (--skip-data-agent)")
+
+# ============================================================================
+# Step 7: Publish Data Agents (so they can be used as MCP servers)
+# ============================================================================
+
+if not args.skip_data_agent:
+    step += 1
+    print(f"\n[{step}/{total_steps}] Publishing Data Agents as MCP servers...")
+
+    if data_agent_id:
+        publish_data_agent(data_agent_id, data_agent_name)
+    else:
+        print(f"  [SKIP] Primary Data Agent not created, skipping publish")
+
+    if other_agent_id:
+        publish_data_agent(other_agent_id, other_agent_name)
+    else:
+        print(f"  [SKIP] Secondary Data Agent not created, skipping publish")
+
+    if not data_agent_id and not other_agent_id:
+        print(f"  No Data Agents were created")
 
 # ============================================================================
 # Step 8: Save IDs for later scripts
