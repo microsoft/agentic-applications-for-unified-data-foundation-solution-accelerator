@@ -3,6 +3,8 @@ using CsApi.Repositories;
 using CsApi.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
+using Azure;
+using System.Data.Common;
 
 namespace CsApi.Controllers;
 
@@ -213,14 +215,34 @@ public class HistoryFabController : ControllerBase
                     var generatedTitle = await _titleService.GenerateTitleAsync(req.Messages, ct);
                     await _repo.UpdateConversationTitleAsync(user, convId, generatedTitle, ct);
                 }
+                catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+                {
+                    _logger.LogError(ex, "Title generation timed out for conversation {ConversationId}", convId);
+                    await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
+                }
                 catch (OperationCanceledException)
                 {
                     // Request was cancelled, propagate cancellation
                     throw;
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException)
+                catch (RequestFailedException ex)
+                {
+                    _logger.LogError(ex, "Azure request failed during title generation for conversation {ConversationId}", convId);
+                    await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    _logger.LogError(ex, "Invalid operation during title generation for conversation {ConversationId}", convId);
+                    await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
+                }
+                catch (DbException ex)
                 {
                     _logger.LogError(ex, "Failed to generate title for conversation {ConversationId}", convId);
+                    await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unexpected error generating title for conversation {ConversationId}", convId);
                     await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
                 }
             }
@@ -273,9 +295,19 @@ public class HistoryFabController : ControllerBase
             // Client disconnected or request was cancelled
             return StatusCode(499);
         }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException && ex is not OperationCanceledException)
+        catch (DbException ex)
+        {
+            _logger.LogError(ex, "Database error updating conversation {ConversationId}", req.Conversation_Id);
+            return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Error updating conversation {ConversationId}", req.Conversation_Id);
+            return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error updating conversation {ConversationId}", req.Conversation_Id);
             return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");
         }
     }

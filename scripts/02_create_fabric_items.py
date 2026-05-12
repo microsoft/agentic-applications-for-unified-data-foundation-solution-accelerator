@@ -1170,7 +1170,7 @@ if not args.skip_data_agent and data_agent_id:
             elif update_resp.status_code == 202:
                 op_url = update_resp.headers.get("Location")
                 if op_url:
-                    _ = wait_for_lro(op_url, "Data Agent publish")
+                    wait_for_lro(op_url, "Data Agent publish")
                 print(f"  [OK] Data Agent published")
             else:
                 raise Exception(f"Publish failed: {update_resp.status_code} {update_resp.text[:300]}")

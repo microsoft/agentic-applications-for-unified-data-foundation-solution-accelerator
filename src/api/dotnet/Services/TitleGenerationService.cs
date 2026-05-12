@@ -68,11 +68,6 @@ public class TitleGenerationService : ITitleGenerationService
             _logger.LogWarning(ex, "Invalid operation while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
             return GenerateFallbackTitle(messages);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException && ex is not RequestFailedException && ex is not InvalidOperationException)
-        {
-            _logger.LogWarning(ex, "Error generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
-            return GenerateFallbackTitle(messages);
-        }
     }
 
     private string GenerateFallbackTitle(List<Models.ChatMessage> messages)
@@ -172,11 +167,6 @@ public class TitleGenerationService : ITitleGenerationService
         catch (UriFormatException ex)
         {
             _logger.LogError(ex, "Invalid endpoint URI generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
-            return GenerateFallbackTitle(messages);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException && ex is not RequestFailedException && ex is not InvalidOperationException && ex is not UriFormatException)
-        {
-            _logger.LogError(ex, "Unexpected error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
             return GenerateFallbackTitle(messages);
         }
     }

@@ -41,7 +41,6 @@ from load_env import load_all_env, get_data_folder
 load_all_env()
 
 from azure.identity import DefaultAzureCredential
-from azure.identity.aio import DefaultAzureCredential as AsyncDefaultAzureCredential
 from azure.ai.projects.aio import AIProjectClient
 from agent_framework.foundry import FoundryAgent
 import requests
