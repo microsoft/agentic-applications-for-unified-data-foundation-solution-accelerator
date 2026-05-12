@@ -83,8 +83,5 @@ output name string = workspace.outputs.name
 @description('Location of the workspace.')
 output location string = location
 
-@description('Primary shared key.')
-output primarySharedKey string = workspace.outputs.primarySharedKey
-
 @description('Log Analytics workspace customer ID.')
 output logAnalyticsWorkspaceId string = workspace.outputs.logAnalyticsWorkspaceId
