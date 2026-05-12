@@ -53,12 +53,10 @@ resource appService 'Microsoft.Web/sites@2025-05-01' = {
   }
 }
 
-module configAppSettings 'app-service-appsettings.bicep' = {
-  name: '${appService.name}-appSettings'
-  params: {
-    name: appService.name
-    appSettings: appSettings
-  }
+resource configAppSettings 'Microsoft.Web/sites/config@2025-05-01' = {
+  name: 'appsettings'
+  parent: appService
+  properties: appSettings
 }
 
 resource configLogs 'Microsoft.Web/sites/config@2025-05-01' = {

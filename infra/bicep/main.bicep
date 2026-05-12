@@ -184,6 +184,17 @@ module managedIdentityModule './modules/identity/managed-identity.bicep' = {
   scope: resourceGroup(resourceGroup().name)
 }
 
+// ========== Monitoring (Log Analytics + Application Insights) ========== //
+module monitoring './modules/monitoring/monitoring.bicep' = {
+  name: 'deploy_monitoring'
+  params: {
+    solutionName: solutionSuffix
+    solutionLocation: aiDeploymentsLocation
+    existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
+
 // ==========AI Foundry and related resources ========== //
 module aifoundry './modules/ai/ai-foundry.bicep' = {
   name: 'deploy_ai_foundry'
@@ -197,12 +208,37 @@ module aifoundry './modules/ai/ai-foundry.bicep' = {
     embeddingModel: embeddingModel
     embeddingDeploymentCapacity: embeddingDeploymentCapacity
     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
-    existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
-    deployingUserPrincipalId: deployingUserPrincipalId
-    deployingUserPrincipalType: deployingUserPrincipalType
+    applicationInsightsId: monitoring.outputs.applicationInsightsId
+    applicationInsightsInstrumentationKey: monitoring.outputs.applicationInsightsInstrumentationKey
     isWorkshop: isWorkshop
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
+
+module ai_search './modules/ai/ai-search.bicep' = if (isWorkshop) {
+  name: 'deploy_ai_search'
+  params: {
+    solutionName: solutionSuffix
     searchServiceLocation: searchServiceLocation
+    isWorkshop: isWorkshop
+    aiServicesName: aifoundry.outputs.aiServicesName
+    aiProjectName: aifoundry.outputs.aiProjectName
+    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
+    storageBlobEndpoint: isWorkshop ? storage_account!.outputs.storageBlobEndpoint : ''
+    storageAccountId: isWorkshop ? storage_account!.outputs.storageAccountId : ''
+    storageAccountName: isWorkshop ? storage_account!.outputs.storageAccountName : ''
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
+
+// ========== Storage Account module ========== //
+module storage_account './modules/data/storage-account.bicep' = if (isWorkshop) {
+  name: 'deploy_storage_account'
+  params: {
+    solutionName: solutionSuffix
+    solutionLocation: aiDeploymentsLocation
+    tags: {}
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -247,13 +283,12 @@ module backend_docker './modules/compute/backend-docker.bicep' = if (shouldDeplo
     imageTag: imageTag
     acrName: acrName
     appServicePlanId: hostingplan!.outputs.name
-    applicationInsightsId: aifoundry.outputs.applicationInsightsId
+    applicationInsightsId: monitoring.outputs.applicationInsightsId
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
     // keyVaultName: kvault.outputs.keyvaultName
     aiServicesName: aifoundry.outputs.aiServicesName
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
     enableCosmosDb: shouldDeployApp && isWorkshop
-    aiSearchName: isWorkshop ? aifoundry.outputs.aiSearchName : ''
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
@@ -272,13 +307,13 @@ module backend_docker './modules/compute/backend-docker.bicep' = if (shouldDeplo
       AZURE_SQLDB_SERVER: (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
       AZURE_SQLDB_USER_MID: (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-      AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
+      AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? ai_search!.outputs.aiSearchTarget : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'knowledge_index' : ''
-      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
+      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? ai_search!.outputs.aiSearchConnectionName : ''
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: aifoundry.outputs.applicationInsightsConnectionString
+      APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
@@ -309,7 +344,7 @@ module backend_csapi_docker './modules/compute/backend-csapi-docker.bicep' = if 
     imageTag: imageTag
     acrName: acrName
     appServicePlanId: hostingplan!.outputs.name
-    applicationInsightsId: aifoundry.outputs.applicationInsightsId
+    applicationInsightsId: monitoring.outputs.applicationInsightsId
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
     aiServicesName: aifoundry.outputs.aiServicesName
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
@@ -328,13 +363,13 @@ module backend_csapi_docker './modules/compute/backend-csapi-docker.bicep' = if 
       AZURE_COSMOSDB_DATABASE: isWorkshop ? cosmosDBModule!.outputs.cosmosDatabaseName : ''
       AZURE_COSMOSDB_ENABLE_FEEDBACK: isWorkshop ? 'True' : ''
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-      AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
+      AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? ai_search!.outputs.aiSearchTarget : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'call_transcripts_index' : ''
-      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
+      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? ai_search!.outputs.aiSearchConnectionName : ''
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: aifoundry.outputs.applicationInsightsConnectionString
+      APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix 
       APP_ENV: 'Prod'
@@ -360,7 +395,7 @@ module frontend_docker './modules/compute/frontend-docker.bicep' = if (shouldDep
     imageTag: imageTag
     acrName: acrName
     appServicePlanId: hostingplan!.outputs.name
-    applicationInsightsId: aifoundry.outputs.applicationInsightsId
+    applicationInsightsId: monitoring.outputs.applicationInsightsId
     appSettings:{
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
       CHAT_LANDING_TEXT: landingText
@@ -368,6 +403,26 @@ module frontend_docker './modules/compute/frontend-docker.bicep' = if (shouldDep
       APP_TITLE_PRIMARY: appTitlePrimary
       APP_TITLE_SECONDARY: appTitleSecondary
     }
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
+
+module role_assignments './modules/identity/role-assignments.bicep' = {
+  name: 'deploy_role_assignments'
+  params: {
+    solutionName: solutionSuffix
+    isWorkshop: isWorkshop
+    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
+    managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
+    aiServicesName: aifoundry.outputs.aiServicesName
+    aiSearchName: isWorkshop ? ai_search!.outputs.aiSearchName : ''
+    storageAccountName: isWorkshop ? storage_account!.outputs.storageAccountName : ''
+    aiProjectPrincipalId: empty(azureExistingAIProjectResourceId) ? aifoundry.outputs.aiProjectPrincipalId : ''
+    existingAiProjectPrincipalId: !empty(azureExistingAIProjectResourceId) ? aifoundry.outputs.aiProjectPrincipalId : ''
+    searchPrincipalId: isWorkshop ? ai_search!.outputs.searchPrincipalId : ''
+    deployingUserPrincipalId: deployingUserPrincipalId
+    deployingUserPrincipalType: deployingUserPrincipalType
+    backendAppPrincipalId: shouldDeployApp && backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : ''
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -434,22 +489,22 @@ output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : 
 output USE_CASE string = usecase
 
 @description('Azure AI Search service endpoint URL')
-output AZURE_AI_SEARCH_ENDPOINT string = isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
+output AZURE_AI_SEARCH_ENDPOINT string = isWorkshop ? ai_search!.outputs.aiSearchTarget : ''
 
 @description('Azure AI Search index name for document search')
 output AZURE_AI_SEARCH_INDEX string = isWorkshop ? 'knowledge_index' : ''
 
 @description('Azure AI Search service resource name')
-output AZURE_AI_SEARCH_NAME string = isWorkshop ? aifoundry.outputs.aiSearchName : ''
+output AZURE_AI_SEARCH_NAME string = isWorkshop ? ai_search!.outputs.aiSearchName : ''
 
 @description('Local path to documents folder for search indexing')
 output SEARCH_DATA_FOLDER string = isWorkshop ? 'data/default/documents' : ''
 
 @description('AI Foundry connection name for Azure AI Search')
-output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
+output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkshop ? ai_search!.outputs.aiSearchConnectionName : ''
 
 @description('AI Foundry connection ID for Azure AI Search')
-output AZURE_AI_SEARCH_CONNECTION_ID string = isWorkshop ? aifoundry.outputs.aiSearchConnectionId : ''
+output AZURE_AI_SEARCH_CONNECTION_ID string = isWorkshop ? ai_search!.outputs.aiSearchConnectionId : ''
 
 @description('Azure AI Foundry project endpoint URL')
 output AZURE_AI_PROJECT_ENDPOINT string = aifoundry.outputs.projectEndpoint
