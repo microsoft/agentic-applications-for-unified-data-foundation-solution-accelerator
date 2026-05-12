@@ -12,7 +12,7 @@ Create a Microsoft Fabric workspace and link it to your Fabric capacity.
 
 ## Steps
 
-1. Navigate to [Microsoft Fabric](https://app.fabric.microsoft.com/) and sign in with your Azure account.
+1. Navigate to [Microsoft Fabric](https://app.fabric.microsoft.com/home?experience=fabric-developer) and sign in with your Azure account.
 
 3. Click **Workspaces** in the left navigation panel.
 
