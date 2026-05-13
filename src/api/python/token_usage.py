@@ -151,3 +151,56 @@ def track_token_usage(
         )
     except Exception as e:
         logger.warning("Failed to emit token usage telemetry: %s", e)
+
+
+class UsageAccumulator:
+    """Accumulates LLM token usage across multiple model calls / streaming chunks.
+
+    Typical use:
+        usage = UsageAccumulator()
+        usage.add_from_response(response)              # OpenAI Responses object
+        async for chunk in agent.run(...):
+            usage.add_from_update(chunk)               # agent_framework streaming update
+        usage.emit(agent_name, model_deployment_name,
+                   user_id=user_id, conversation_id=conversation_id)
+    """
+
+    __slots__ = ("input", "output", "total")
+
+    def __init__(self) -> None:
+        self.input = 0
+        self.output = 0
+        self.total = 0
+
+    def add(self, usage: Optional[UsageTuple]) -> None:
+        """Add a (input, output, total) usage tuple, ignoring None."""
+        if usage:
+            self.input += usage[0]
+            self.output += usage[1]
+            self.total += usage[2]
+
+    def add_from_response(self, response) -> None:
+        """Extract and add usage from an OpenAI Responses API response object."""
+        self.add(extract_usage_from_response(response))
+
+    def add_from_update(self, update) -> None:
+        """Extract and add usage from an agent_framework streaming update."""
+        self.add(extract_usage_from_update(update))
+
+    def emit(
+        self,
+        agent_name: str,
+        model_deployment_name: str,
+        user_id: str = "",
+        conversation_id: str = "",
+    ) -> None:
+        """Emit accumulated token usage telemetry to Application Insights."""
+        track_token_usage(
+            agent_name=agent_name,
+            model_deployment_name=model_deployment_name,
+            input_tokens=self.input,
+            output_tokens=self.output,
+            total_tokens=self.total,
+            user_id=user_id,
+            conversation_id=conversation_id,
+        )

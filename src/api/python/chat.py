@@ -28,12 +28,7 @@ from auth.auth_utils import get_authenticated_user_details
 from auth.azure_credential_utils import get_azure_credential_async
 
 # Token usage telemetry helpers (modular, reusable)
-from token_usage import (
-    track_event_if_configured,
-    extract_usage_from_update as _extract_usage_from_update,
-    extract_usage_from_response as _extract_usage_from_response,
-    track_token_usage as _track_token_usage,
-)
+from token_usage import track_event_if_configured, UsageAccumulator
 
 load_dotenv()
 
@@ -139,10 +134,8 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
     complete_response = ""
     credential = None
     db_connection = None
-    # Accumulators for LLM token usage across all iterations of this request
-    total_input_tokens = 0
-    total_output_tokens = 0
-    total_tokens_sum = 0
+    # Accumulator for LLM token usage across all iterations of this request
+    usage = UsageAccumulator()
 
     try:
         if not query:
@@ -187,11 +180,7 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
             )
 
             # Accumulate token usage from initial response
-            _usage = _extract_usage_from_response(response)
-            if _usage:
-                total_input_tokens += _usage[0]
-                total_output_tokens += _usage[1]
-                total_tokens_sum += _usage[2]
+            usage.add_from_response(response)
 
             # Process response - handle function calls iteratively
             max_iterations = 10
@@ -268,11 +257,7 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                 )
 
                 # Accumulate token usage from follow-up response
-                _usage = _extract_usage_from_response(response)
-                if _usage:
-                    total_input_tokens += _usage[0]
-                    total_output_tokens += _usage[1]
-                    total_tokens_sum += _usage[2]
+                usage.add_from_response(response)
 
             if iteration >= max_iterations:
                 logger.warning("Max iterations reached for conversation %s", conversation_id)
@@ -287,12 +272,9 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
             })
 
             # Emit LLM token usage telemetry
-            _track_token_usage(
+            usage.emit(
                 agent_name=os.getenv("AGENT_NAME_CHAT", "") or "",
                 model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or "",
-                input_tokens=total_input_tokens,
-                output_tokens=total_output_tokens,
-                total_tokens=total_tokens_sum,
                 user_id=user_id,
                 conversation_id=conversation_id,
             )
@@ -375,10 +357,8 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
     complete_response = ""
     credential = None
     db_connection = None
-    # Accumulators for LLM token usage across all streaming updates
-    total_input_tokens = 0
-    total_output_tokens = 0
-    total_tokens_sum = 0
+    # Accumulator for LLM token usage across all streaming updates
+    usage = UsageAccumulator()
 
     try:
         if not query:
@@ -452,11 +432,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
                         _extract_mcp_from_raw(raw_repr, mcp_docs)
 
                 # Accumulate token usage from this streaming update
-                _usage = _extract_usage_from_update(chunk)
-                if _usage:
-                    total_input_tokens += _usage[0]
-                    total_output_tokens += _usage[1]
-                    total_tokens_sum += _usage[2]
+                usage.add_from_update(chunk)
 
                 chunk_text = str(chunk.text) if chunk.text else ""
                 if not chunk_text:
@@ -512,12 +488,9 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
             })
 
             # Emit LLM token usage telemetry
-            _track_token_usage(
+            usage.emit(
                 agent_name=os.getenv("AGENT_NAME_CHAT", "") or "",
                 model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or "",
-                input_tokens=total_input_tokens,
-                output_tokens=total_output_tokens,
-                total_tokens=total_tokens_sum,
                 user_id=user_id,
                 conversation_id=conversation_id,
             )
