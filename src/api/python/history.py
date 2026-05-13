@@ -272,7 +272,7 @@ async def init_cosmosdb_client():
         raise
 
 
-async def generate_title(conversation_messages):
+async def generate_title(conversation_messages, user_id: str = "", conversation_id: str = ""):
     """Generate a title for a conversation using Azure AI Foundry agent."""
     try:
         user_messages = [msg for msg in conversation_messages if msg["role"] == "user"]
@@ -312,6 +312,8 @@ async def generate_title(conversation_messages):
                 _title_usage.emit(
                     agent_name=AGENT_NAME_TITLE or "",
                     model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or "",
+                    user_id=user_id or "",
+                    conversation_id=conversation_id or "",
                 )
 
                 result_text = ""
@@ -363,7 +365,7 @@ async def add_conversation(user_id: str, request_json: dict):
             raise ValueError("CosmosDB is not configured or unavailable")
 
         if not conversation_id:
-            title = await generate_title(messages)
+            title = await generate_title(messages, user_id=user_id)
             conversation_dict = await cosmos_conversation_client.create_conversation(user_id, title)
             conversation_id = conversation_dict["id"]
             history_metadata["title"] = title
@@ -397,7 +399,7 @@ async def update_conversation(user_id: str, request_json: dict):
     # Retrieve or create conversation
     conversation = await cosmos_conversation_client.get_conversation(user_id, conversation_id)
     if not conversation:
-        title = await generate_title(messages)
+        title = await generate_title(messages, user_id=user_id, conversation_id=conversation_id)
         conversation = await cosmos_conversation_client.create_conversation(
             user_id=user_id, conversation_id=conversation_id, title=title
         )

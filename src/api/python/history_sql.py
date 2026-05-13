@@ -510,12 +510,14 @@ async def rename_conversation(user_id: str, conversation_id, title) -> bool:
         return False
 
 
-async def generate_title(conversation_messages):
+async def generate_title(conversation_messages, user_id: str = "", conversation_id: str = ""):
     """
     Generate a concise title for a conversation using Azure AI Foundry agent.
 
     Args:
         conversation_messages (list): List of messages in the conversation.
+        user_id (str): Optional user id propagated to telemetry events.
+        conversation_id (str): Optional conversation id propagated to telemetry events.
 
     Returns:
         str: A 4-word or less title summarizing the conversation.
@@ -554,6 +556,8 @@ async def generate_title(conversation_messages):
             _title_usage.emit(
                 agent_name=AGENT_NAME_TITLE or "",
                 model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or "",
+                user_id=user_id or "",
+                conversation_id=conversation_id or "",
             )
 
             # Extract text from response output
@@ -750,7 +754,7 @@ async def update_conversation(user_id: str, request_json: dict):
         conversation = await run_query_params(query, (conversation_id,))
 
         if not conversation or len(conversation) == 0:
-            title = await generate_title(messages)
+            title = await generate_title(messages, user_id=user_id, conversation_id=conversation_id)
             await create_conversation(user_id=user_id, conversation_id=conversation_id, title=title)
 
         messages = request_json["messages"]

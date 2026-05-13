@@ -39,15 +39,69 @@ def track_event_if_configured(event_name: str, event_data: dict) -> None:
         )
 
 
+def _first_non_none(*values, default=0):
+    """Return the first value that is not None; otherwise the default.
+
+    Unlike ``a or b``, this preserves explicit zero values (treating ``0`` as
+    a legitimate token count rather than as "missing").
+    """
+    for v in values:
+        if v is not None:
+            return v
+    return default
+
+
 def extract_usage_from_dict(d: dict) -> Optional[UsageTuple]:
     """Extract (input, output, total) token counts from a usage-like dict."""
     if not isinstance(d, dict) or not d:
         return None
     try:
-        inp = d.get("input_token_count", 0) or d.get("prompt_tokens", 0) or d.get("input_tokens", 0) or 0
-        out = d.get("output_token_count", 0) or d.get("completion_tokens", 0) or d.get("output_tokens", 0) or 0
-        tot = d.get("total_token_count", 0) or d.get("total_tokens", 0) or (inp + out)
-        inp_i, out_i, tot_i = int(inp), int(out), int(tot)
+        inp = _first_non_none(
+            d.get("input_token_count"),
+            d.get("prompt_tokens"),
+            d.get("input_tokens"),
+            default=0,
+        )
+        out = _first_non_none(
+            d.get("output_token_count"),
+            d.get("completion_tokens"),
+            d.get("output_tokens"),
+            default=0,
+        )
+        tot = _first_non_none(
+            d.get("total_token_count"),
+            d.get("total_tokens"),
+            default=None,
+        )
+        inp_i, out_i = int(inp), int(out)
+        tot_i = int(tot) if tot is not None else inp_i + out_i
+    except (TypeError, ValueError):
+        return None
+    if tot_i > 0:
+        return (inp_i, out_i, tot_i)
+    return None
+
+
+def _extract_usage_obj(usage_obj) -> Optional[UsageTuple]:
+    """Extract a UsageTuple from a dict or object exposing token attributes."""
+    if usage_obj is None:
+        return None
+    if isinstance(usage_obj, dict):
+        return extract_usage_from_dict(usage_obj)
+    try:
+        inp = _first_non_none(
+            getattr(usage_obj, "prompt_tokens", None),
+            getattr(usage_obj, "input_tokens", None),
+            default=0,
+        )
+        out = _first_non_none(
+            getattr(usage_obj, "completion_tokens", None),
+            getattr(usage_obj, "output_tokens", None),
+            default=0,
+        )
+        tot = getattr(usage_obj, "total_tokens", None)
+        inp_i, out_i = int(inp), int(out)
+        tot_i = int(tot) if tot is not None else inp_i + out_i
     except (TypeError, ValueError):
         return None
     if tot_i > 0:
@@ -60,7 +114,12 @@ def extract_usage_from_update(update) -> Optional[UsageTuple]:
 
     Checks, in order:
       1. update.contents[*].usage_details (dict)
-      2. update.raw_representation.usage (dict or object with token attributes)
+      2. update.contents[*].raw_representation.usage (workshop streaming)
+      3. update.contents[*].raw_representation.response.usage
+         (OpenAI Responses completion event nested inside a content item)
+      4. update.raw_representation.usage
+      5. update.raw_representation.response.usage
+         (OpenAI Responses completion event surfaced at the update level)
     """
     contents = getattr(update, "contents", None) or []
     for item in contents:
@@ -69,25 +128,27 @@ def extract_usage_from_update(update) -> Optional[UsageTuple]:
             result = extract_usage_from_dict(usage_details)
             if result:
                 return result
+        item_raw = getattr(item, "raw_representation", None)
+        if item_raw is not None:
+            result = _extract_usage_obj(getattr(item_raw, "usage", None))
+            if result:
+                return result
+            item_response = getattr(item_raw, "response", None)
+            if item_response is not None:
+                result = _extract_usage_obj(getattr(item_response, "usage", None))
+                if result:
+                    return result
 
     raw = getattr(update, "raw_representation", None)
     if raw is not None:
-        usage_obj = getattr(raw, "usage", None)
-        if usage_obj is not None:
-            if isinstance(usage_obj, dict):
-                result = extract_usage_from_dict(usage_obj)
-                if result:
-                    return result
-            else:
-                try:
-                    inp = getattr(usage_obj, "prompt_tokens", 0) or getattr(usage_obj, "input_tokens", 0) or 0
-                    out = getattr(usage_obj, "completion_tokens", 0) or getattr(usage_obj, "output_tokens", 0) or 0
-                    tot = getattr(usage_obj, "total_tokens", 0) or (inp + out)
-                    inp_i, out_i, tot_i = int(inp), int(out), int(tot)
-                except (TypeError, ValueError):
-                    return None
-                if tot_i > 0:
-                    return (inp_i, out_i, tot_i)
+        result = _extract_usage_obj(getattr(raw, "usage", None))
+        if result:
+            return result
+        response = getattr(raw, "response", None)
+        if response is not None:
+            result = _extract_usage_obj(getattr(response, "usage", None))
+            if result:
+                return result
     return None
 
 
@@ -101,10 +162,19 @@ def extract_usage_from_response(response) -> Optional[UsageTuple]:
     if isinstance(usage_obj, dict):
         return extract_usage_from_dict(usage_obj)
     try:
-        inp = getattr(usage_obj, "input_tokens", 0) or getattr(usage_obj, "prompt_tokens", 0) or 0
-        out = getattr(usage_obj, "output_tokens", 0) or getattr(usage_obj, "completion_tokens", 0) or 0
-        tot = getattr(usage_obj, "total_tokens", 0) or (inp + out)
-        inp_i, out_i, tot_i = int(inp), int(out), int(tot)
+        inp = _first_non_none(
+            getattr(usage_obj, "input_tokens", None),
+            getattr(usage_obj, "prompt_tokens", None),
+            default=0,
+        )
+        out = _first_non_none(
+            getattr(usage_obj, "output_tokens", None),
+            getattr(usage_obj, "completion_tokens", None),
+            default=0,
+        )
+        tot = getattr(usage_obj, "total_tokens", None)
+        inp_i, out_i = int(inp), int(out)
+        tot_i = int(tot) if tot is not None else inp_i + out_i
     except (TypeError, ValueError):
         return None
     if tot_i > 0:
