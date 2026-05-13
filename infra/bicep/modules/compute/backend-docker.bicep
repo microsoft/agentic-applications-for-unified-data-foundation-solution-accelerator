@@ -20,20 +20,6 @@ param appServicePlanId string
 @description('The resource ID of the user-assigned managed identity.')
 param userassignedIdentityId string
 
-@description('The name of the Azure AI Services account.')
-param aiServicesName string
-
-@description('The resource ID of an existing AI project, if reusing one.')
-param azureExistingAIProjectResourceId string = ''
-
-@description('Whether to enable Cosmos DB integration for chat history.')
-param enableCosmosDb bool = false
-
-var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
-var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
-var existingAIServicesName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[8] : ''
-var existingAIProjectName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[10] : ''
-
 var imageName = 'DOCKER|${acrName}.azurecr.io/da-api:${imageTag}'
 
 @description('The name of the App Service.')
@@ -64,56 +50,6 @@ module appService 'app-service.bicep' = {
         REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
       }
     )
-  }
-}
-
-resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = if (enableCosmosDb) {
-  name: appSettings.AZURE_COSMOSDB_ACCOUNT
-}
-
-resource contributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-10-15' existing = if (enableCosmosDb) {
-  parent: cosmos
-  name: '00000000-0000-0000-0000-000000000002'
-}
-
-resource role 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-10-15' = if (enableCosmosDb) {
-  parent: cosmos
-  name: guid(contributorRoleDefinition.id, cosmos.id)
-  properties: {
-    principalId: appService.outputs.identityPrincipalId
-    roleDefinitionId: contributorRoleDefinition.id
-    scope: cosmos.id
-  }
-}
-
-resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
-  name: aiServicesName
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
-}
-
-resource aiUser 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
-  name: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
-}
-
-module existing_aiServicesModule '../ai/existing-foundry-project.bicep' = if (!empty(azureExistingAIProjectResourceId)) {
-  name: 'existing_foundry_project'
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
-  params: {
-    aiServicesName: existingAIServicesName
-    aiProjectName: existingAIProjectName
-  }
-}
-
-module assignAiUserRoleToAiProject '../identity/foundry-role-assignment.bicep' = {
-  name: 'assignAiUserRoleToAiProject'
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
-  params: {
-    principalId: appService.outputs.identityPrincipalId
-    roleDefinitionId: aiUser.id
-    roleAssignmentName: guid(appService.name, aiServices.id, aiUser.id)
-    aiServicesName: !empty(azureExistingAIProjectResourceId) ? existingAIServicesName : aiServicesName
-    aiProjectName: !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[10] : ''
-    enableSystemAssignedIdentity: false
   }
 }
 

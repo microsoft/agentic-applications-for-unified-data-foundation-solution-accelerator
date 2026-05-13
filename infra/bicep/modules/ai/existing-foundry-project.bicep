@@ -53,3 +53,6 @@ output projectKind string = aiProject.kind
 
 @description('The provisioning state of the AI Project.')
 output projectProvisioningState string = aiProject.properties.provisioningState
+
+@description('The principal ID of the AI Project system-assigned managed identity (empty if none).')
+output projectPrincipalId string = contains(aiProject, 'identity') && contains(aiProject.identity, 'principalId') ? aiProject.identity.principalId : ''

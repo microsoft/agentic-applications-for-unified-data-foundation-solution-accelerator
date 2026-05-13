@@ -1,7 +1,7 @@
 // ========== ai-foundry.bicep ========== //
-// Creates Azure AI Services account, AI Foundry project, model deployments,
-// and the Application Insights connection to the project.
-// Monitoring resources (Log Analytics + App Insights) are deployed separately via modules/monitoring/.
+// Creates NEW Azure AI Services account, AI Foundry project, model deployments,
+// and the Application Insights connection.
+// For existing projects: only computes endpoint/name outputs (setup is handled by existing-project-setup.bicep).
 
 targetScope = 'resourceGroup'
 
@@ -29,9 +29,6 @@ param embeddingModel string
 
 @description('The capacity for the embedding model deployment.')
 param embeddingDeploymentCapacity int
-
-@description('The object ID of the managed identity to assign roles to.')
-param managedIdentityObjectId string = ''
 
 @description('The resource ID of an existing Azure AI Foundry project. If provided, the existing project will be used instead of creating a new one.')
 param azureExistingAIProjectResourceId string = ''
@@ -74,6 +71,7 @@ var aiModelDeployments = concat([
   }
 ] : [])
 
+// Derived vars for existing project outputs
 var existingOpenAIEndpoint = !empty(azureExistingAIProjectResourceId) ? format('https://{0}.openai.azure.com/', split(azureExistingAIProjectResourceId, '/')[8]) : ''
 var existingProjEndpoint = !empty(azureExistingAIProjectResourceId) ? format('https://{0}.services.ai.azure.com/api/projects/{1}', split(azureExistingAIProjectResourceId, '/')[8], split(azureExistingAIProjectResourceId, '/')[10]) : ''
 var existingAIServicesName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[8] : ''
@@ -81,7 +79,7 @@ var existingAIProjectName = !empty(azureExistingAIProjectResourceId) ? split(azu
 var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
 
-// ========== AI Services ========== //
+// ========== AI Services (NEW only) ========== //
 
 resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' = if (empty(azureExistingAIProjectResourceId)) {
   name: aiServicesName
@@ -106,19 +104,7 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' = if (empt
   }
 }
 
-resource existingAiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = if (!empty(azureExistingAIProjectResourceId)) {
-  name: existingAIServicesName
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
-}
-
-module existing_aiServicesModule 'existing-foundry-project.bicep' = if (!empty(azureExistingAIProjectResourceId)) {
-  name: 'existing_foundry_project'
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
-  params: {
-    aiServicesName: existingAIServicesName
-    aiProjectName: existingAIProjectName
-  }
-}
+// ========== AI Project (NEW only) ========== //
 
 resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = if (empty(azureExistingAIProjectResourceId)) {
   parent: aiServices
@@ -131,31 +117,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = 
   properties: {}
 }
 
-// This cross-scope module must remain here because it is the only place that can both
-// rehydrate an existing AI project with a system-assigned identity and return its principal ID.
-module assignFoundryRoleToMIExisting '../identity/foundry-role-assignment.bicep' = if (!empty(azureExistingAIProjectResourceId)) {
-  name: 'assignFoundryRoleToMI'
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
-  params: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '53ca6127-db72-4b80-b1b0-d745d6d5456d')
-    roleAssignmentName: guid(resourceGroup().id, managedIdentityObjectId, '53ca6127-db72-4b80-b1b0-d745d6d5456d', 'foundry')
-    aiServicesName: existingAIServicesName
-    aiProjectName: existingAIProjectName
-    principalId: managedIdentityObjectId
-    aiLocation: existing_aiServicesModule.outputs.location
-    aiKind: existing_aiServicesModule.outputs.kind
-    aiSkuName: existing_aiServicesModule.outputs.skuName
-    customSubDomainName: existing_aiServicesModule.outputs.customSubDomainName
-    publicNetworkAccess: existing_aiServicesModule.outputs.publicNetworkAccess
-    enableSystemAssignedIdentity: true
-    defaultNetworkAction: existing_aiServicesModule.outputs.defaultNetworkAction
-    vnetRules: existing_aiServicesModule.outputs.vnetRules
-    ipRules: existing_aiServicesModule.outputs.ipRules
-    aiModelDeployments: aiModelDeployments
-  }
-}
-
-// ========== Application Insights Connection ========== //
+// ========== Application Insights Connection (NEW only) ========== //
 
 resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (empty(azureExistingAIProjectResourceId)) {
   parent: aiProject
@@ -175,6 +137,8 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/co
     }
   }
 }
+
+// ========== Model Deployments (NEW only) ========== //
 
 @batchSize(1)
 resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments@2025-12-01' = [for aiModeldeployment in aiModelDeployments: if (empty(azureExistingAIProjectResourceId)) {
@@ -214,8 +178,11 @@ output projectEndpoint string = !empty(existingProjEndpoint) ? existingProjEndpo
 @description('The resource ID of the AI Foundry account.')
 output aiFoundryResourceId string = !empty(azureExistingAIProjectResourceId) ? azureExistingAIProjectResourceId : aiServices.id
 
-@description('The principal ID of the AI Foundry project managed identity.')
-output aiProjectPrincipalId string = !empty(existingAIProjectName) ? assignFoundryRoleToMIExisting.outputs.aiProjectPrincipalId : aiProject.identity.principalId
+@description('The principal ID of the AI Foundry project managed identity (for NEW projects only; existing projects get this from existing-project-setup).')
+output aiProjectPrincipalId string = empty(azureExistingAIProjectResourceId) ? aiProject.identity.principalId : ''
 
 @description('The resource ID of the AI Services account.')
-output aiServicesId string = !empty(azureExistingAIProjectResourceId) ? existingAiServices.id : aiServices.id
+output aiServicesId string = !empty(azureExistingAIProjectResourceId) ? resourceId(existingAIServiceSubscription, existingAIServiceResourceGroup, 'Microsoft.CognitiveServices/accounts', existingAIServicesName) : aiServices.id
+
+@description('The AI model deployments array (for passing to existing-project-setup).')
+output aiModelDeployments array = aiModelDeployments
