@@ -125,6 +125,23 @@ class TestTrackEventIfConfigured:
             track_event_if_configured("E", {"k": "v"})
             mock_track.assert_not_called()
 
+    def test_warns_only_once_when_not_configured(self, monkeypatch):
+        """Repeated calls without App Insights should warn at most once
+        (subsequent calls log at DEBUG to avoid flooding logs)."""
+        import token_usage
+
+        monkeypatch.delenv("APPLICATIONINSIGHTS_CONNECTION_STRING", raising=False)
+        monkeypatch.setattr(token_usage, "_app_insights_warning_emitted", False)
+
+        with patch("token_usage.logger.warning") as mock_warning, \
+             patch("token_usage.logger.debug") as mock_debug:
+            track_event_if_configured("E1", {})
+            track_event_if_configured("E2", {})
+            track_event_if_configured("E3", {})
+
+            assert mock_warning.call_count == 1
+            assert mock_debug.call_count == 2
+
 
 class TestTrackTokenUsage:
     def test_no_events_when_total_zero(self):

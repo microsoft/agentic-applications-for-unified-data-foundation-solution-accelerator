@@ -538,38 +538,42 @@ async def generate_title(conversation_messages, user_id: str = "", conversation_
             logger.warning("Azure AI Agent endpoint not configured, using fallback title generation")
             return generate_fallback_title(conversation_messages)
 
-        async with AIProjectClient(
-            endpoint=AZURE_AI_AGENT_ENDPOINT,
-            credential=await get_azure_credential_async()
-        ) as project_client:
-            openai_client = project_client.get_openai_client()
-            conversation = await openai_client.conversations.create()
+        credential = await get_azure_credential_async()
+        try:
+            async with AIProjectClient(
+                endpoint=AZURE_AI_AGENT_ENDPOINT,
+                credential=credential
+            ) as project_client:
+                openai_client = project_client.get_openai_client()
+                conversation = await openai_client.conversations.create()
 
-            response = await openai_client.responses.create(
-                conversation=conversation.id,
-                input=final_prompt,
-                extra_body={"agent_reference": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
-            )
+                response = await openai_client.responses.create(
+                    conversation=conversation.id,
+                    input=final_prompt,
+                    extra_body={"agent_reference": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
+                )
 
-            _title_usage = UsageAccumulator()
-            _title_usage.add_from_response(response)
-            _title_usage.emit(
-                agent_name=AGENT_NAME_TITLE or "",
-                model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or "",
-                user_id=user_id or "",
-                conversation_id=conversation_id or "",
-            )
+                _title_usage = UsageAccumulator()
+                _title_usage.add_from_response(response)
+                _title_usage.emit(
+                    agent_name=AGENT_NAME_TITLE or "",
+                    model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or "",
+                    user_id=user_id or "",
+                    conversation_id=conversation_id or "",
+                )
 
-            # Extract text from response output
-            result_text = ""
-            for item in response.output:
-                if getattr(item, 'type', None) == 'message':
-                    if hasattr(item, 'content') and item.content is not None:
-                        for content in item.content:
-                            if hasattr(content, 'text'):
-                                result_text += content.text
+                # Extract text from response output
+                result_text = ""
+                for item in response.output:
+                    if getattr(item, 'type', None) == 'message':
+                        if hasattr(item, 'content') and item.content is not None:
+                            for content in item.content:
+                                if hasattr(content, 'text'):
+                                    result_text += content.text
 
-            return result_text.strip() if result_text else generate_fallback_title(conversation_messages)
+                return result_text.strip() if result_text else generate_fallback_title(conversation_messages)
+        finally:
+            await credential.close()
 
     except HttpResponseError as sre:
         logger.warning("HttpResponseError generating title with Azure AI Foundry agent: %s", sre)

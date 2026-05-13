@@ -1067,9 +1067,12 @@ class TestMissingLineCoverage:
     def test_track_event_if_configured_without_instrumentation_key(self, monkeypatch):
         """Test line 125: track_event_if_configured when APPLICATIONINSIGHTS_CONNECTION_STRING is not set."""
         from chat import track_event_if_configured
+        import token_usage
 
         # Ensure no instrumentation key
         monkeypatch.delenv("APPLICATIONINSIGHTS_CONNECTION_STRING", raising=False)
+        # Reset the warn-once flag so we can deterministically observe the warning.
+        monkeypatch.setattr(token_usage, "_app_insights_warning_emitted", False)
 
         with patch('token_usage.logger.warning') as mock_warning:
             track_event_if_configured("test_event", {"data": "value"})

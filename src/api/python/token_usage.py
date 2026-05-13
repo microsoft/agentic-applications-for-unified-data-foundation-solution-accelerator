@@ -26,17 +26,31 @@ logger = logging.getLogger(__name__)
 
 UsageTuple = Tuple[int, int, int]  # (input_tokens, output_tokens, total_tokens)
 
+# Module-level flag so we only emit the "App Insights not configured" warning
+# once per process. Without this, every track_event_if_configured() call (3+ per
+# request from token usage tracking) would flood logs in dev/misconfigured envs.
+_app_insights_warning_emitted = False
+
 
 def track_event_if_configured(event_name: str, event_data: dict) -> None:
     """Track event to Application Insights if a connection string is configured."""
+    global _app_insights_warning_emitted
     instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
     if instrumentation_key:
         track_event(event_name, event_data)
     else:
-        logger.warning(
-            "Skipping track_event for %s as Application Insights is not configured",
-            event_name,
-        )
+        if not _app_insights_warning_emitted:
+            logger.warning(
+                "Skipping track_event for %s as Application Insights is not "
+                "configured (further occurrences will be logged at DEBUG)",
+                event_name,
+            )
+            _app_insights_warning_emitted = True
+        else:
+            logger.debug(
+                "Skipping track_event for %s as Application Insights is not configured",
+                event_name,
+            )
 
 
 def _first_non_none(*values, default=0):
