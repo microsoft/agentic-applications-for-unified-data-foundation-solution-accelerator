@@ -1,0 +1,48 @@
+// ============================================================================
+// Module: Proximity Placement Group
+// Description: AVM wrapper for Azure Proximity Placement Group
+// AVM Module: avm/res/compute/proximity-placement-group
+// WAF: https://learn.microsoft.com/en-us/azure/well-architected/service-guides/virtual-machines
+// ============================================================================
+
+@description('Name of the proximity placement group.')
+param name string
+
+@description('Azure region for the resource.')
+param location string
+
+@description('Tags to apply to the resource.')
+param tags object = {}
+
+@description('Optional. Enable/Disable usage telemetry for module.')
+param enableTelemetry bool = true
+
+@description('Availability zone for the proximity placement group.')
+param availabilityZone int = 1
+
+@description('VM sizes intent for the proximity placement group.')
+param vmSizes array = []
+
+// ============================================================================
+// AVM Module Deployment
+// ============================================================================
+module proximityPlacementGroup 'br/public:avm/res/compute/proximity-placement-group:0.4.1' = {
+  name: 'deploy-ppg-${name}'
+  params: {
+    name: name
+    location: location
+    tags: tags
+    enableTelemetry: enableTelemetry
+    availabilityZone: availabilityZone
+    intent: !empty(vmSizes) ? { vmSizes: vmSizes } : null
+  }
+}
+
+// ============================================================================
+// Outputs
+// ============================================================================
+@description('Resource ID of the proximity placement group.')
+output resourceId string = proximityPlacementGroup.outputs.resourceId
+
+@description('Name of the proximity placement group.')
+output name string = proximityPlacementGroup.outputs.name
