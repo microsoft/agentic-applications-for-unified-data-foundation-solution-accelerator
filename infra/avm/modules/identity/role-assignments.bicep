@@ -1,6 +1,6 @@
 // ============================================================================
-// Module: Role Assignments (cross-service only — service-scoped roles are inline)
-// Description: RG-level and cross-service RBAC that can't be handled inline
+// Module: Role Assignments (centralized — all cross-service + data plane RBAC)
+// Description: RG-level, cross-service, and data-plane role assignments
 // ============================================================================
 
 @description('Principal ID of the primary managed identity.')
@@ -21,11 +21,22 @@ param storageAccountResourceId string = ''
 @description('Whether workshop mode resources are deployed.')
 param isWorkshop bool = false
 
+// --- Backend App Service system-assigned identity roles ---
+@description('Name of the Cosmos DB account (empty if not deployed).')
+param cosmosDbAccountName string = ''
+
+@description('Principal ID of the backend App Service system-assigned identity (empty if not deployed).')
+param backendAppServicePrincipalId string = ''
+
+@description('Resource ID of the AI Services account (empty if not deployed).')
+param aiServicesResourceId string = ''
+
 // ============================================================================
 // Role Definitions
 // ============================================================================
 var roleDefinitions = {
   owner: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
+  azureAiUser: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
   searchIndexDataReader: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
   searchServiceContributor: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
   storageBlobDataContributor: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
@@ -109,6 +120,59 @@ resource searchStorageReader 'Microsoft.Authorization/roleAssignments@2022-04-01
   properties: {
     principalId: aiSearchPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.storageBlobDataReader)
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ============================================================================
+// Data Plane: Backend App Service → Cosmos DB (Built-in Data Contributor)
+// Uses Microsoft.DocumentDB sqlRoleAssignments (NOT ARM roleAssignments)
+// ============================================================================
+resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' existing = if (!empty(cosmosDbAccountName)) {
+  name: cosmosDbAccountName
+}
+
+resource cosmosContributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-11-15' existing = if (!empty(cosmosDbAccountName)) {
+  parent: cosmosAccount
+  name: '00000000-0000-0000-0000-000000000002'
+}
+
+resource backendAppCosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-11-15' = if (!empty(cosmosDbAccountName) && !empty(backendAppServicePrincipalId)) {
+  parent: cosmosAccount
+  name: guid(cosmosContributorRoleDefinition.id, cosmosAccount.id, backendAppServicePrincipalId)
+  properties: {
+    principalId: backendAppServicePrincipalId
+    roleDefinitionId: cosmosContributorRoleDefinition.id
+    scope: cosmosAccount.id
+  }
+}
+
+// ============================================================================
+// Backend App Service (system-assigned identity) → AI Services
+// ============================================================================
+resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = if (!empty(aiServicesResourceId)) {
+  name: last(split(aiServicesResourceId, '/'))
+}
+
+resource backendAppAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(aiServicesResourceId) && !empty(backendAppServicePrincipalId)) {
+  name: guid(resourceGroup().id, backendAppServicePrincipalId, roleDefinitions.azureAiUser, 'backend-ai-services')
+  scope: aiServicesAccount
+  properties: {
+    principalId: backendAppServicePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.azureAiUser)
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ============================================================================
+// Backend App Service (system-assigned identity) → AI Search
+// ============================================================================
+resource backendAppSearchReaderAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(aiSearchResourceId) && !empty(backendAppServicePrincipalId) && isWorkshop) {
+  name: guid(resourceGroup().id, backendAppServicePrincipalId, roleDefinitions.searchIndexDataReader, 'backend-search')
+  scope: aiSearchService
+  properties: {
+    principalId: backendAppServicePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.searchIndexDataReader)
     principalType: 'ServicePrincipal'
   }
 }

@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.43.1.21952",
-      "templateHash": "5330404519865744640"
+      "version": "0.43.8.12551",
+      "templateHash": "1044884784569735161"
     }
   },
   "parameters": {
@@ -467,8 +467,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "2848548694525258940"
+              "version": "0.43.8.12551",
+              "templateHash": "13661089478649655998"
             }
           },
           "parameters": {
@@ -3708,13 +3708,6 @@
               },
               "value": "[parameters('location')]"
             },
-            "primarySharedKey": {
-              "type": "string",
-              "metadata": {
-                "description": "Primary shared key."
-              },
-              "value": "[listOutputsWithSecureValues('workspace', '2025-04-01').primarySharedKey]"
-            },
             "logAnalyticsWorkspaceId": {
               "type": "string",
               "metadata": {
@@ -3763,8 +3756,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "10279816115213998273"
+              "version": "0.43.8.12551",
+              "templateHash": "3663567556522079213"
             }
           },
           "parameters": {
@@ -4665,8 +4658,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "18274586883032840469"
+              "version": "0.43.8.12551",
+              "templateHash": "17129416714969346060"
             }
           },
           "parameters": {
@@ -5265,8 +5258,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "18274586883032840469"
+              "version": "0.43.8.12551",
+              "templateHash": "17129416714969346060"
             }
           },
           "parameters": {
@@ -5876,8 +5869,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "1842148777371846643"
+              "version": "0.43.8.12551",
+              "templateHash": "16005314592475387975"
             }
           },
           "definitions": {
@@ -8708,8 +8701,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "8276909572045322472"
+              "version": "0.43.8.12551",
+              "templateHash": "9506923332362182897"
             }
           },
           "parameters": {
@@ -10598,8 +10591,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "17607088101586892488"
+              "version": "0.43.8.12551",
+              "templateHash": "8758564979752809957"
             }
           },
           "parameters": {
@@ -11130,8 +11123,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "10089950628878345681"
+              "version": "0.43.8.12551",
+              "templateHash": "1913999301783059104"
             }
           },
           "parameters": {
@@ -12551,8 +12544,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "13919607449900051705"
+              "version": "0.43.8.12551",
+              "templateHash": "11606868749281061791"
             }
           },
           "parameters": {
@@ -13038,8 +13031,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "9823061161500027450"
+              "version": "0.43.8.12551",
+              "templateHash": "10750190137468524375"
             }
           },
           "parameters": {
@@ -22343,8 +22336,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "11379772291769765150"
+              "version": "0.43.8.12551",
+              "templateHash": "12605080973168068503"
             }
           },
           "parameters": {
@@ -25798,7 +25791,7 @@
       "condition": "[variables('useExistingAIProject')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "[take(format('ai-services-deployments-existing-{0}', variables('aiServicesResourceName')), 64)]",
+      "name": "ai-existing-foundry-project",
       "subscriptionId": "[variables('aiServicesSubscriptionId')]",
       "resourceGroup": "[variables('aiServicesResourceGroupName')]",
       "properties": {
@@ -25825,16 +25818,6 @@
                 "roleDefinitionIdOrName": "53ca6127-db72-4b80-b1b0-d745d6d5456d",
                 "principalId": "[reference('primaryIdentity').outputs.principalId.value]",
                 "principalType": "ServicePrincipal"
-              },
-              {
-                "roleDefinitionIdOrName": "64702f94-c441-49e6-a78b-ef80e0188fee",
-                "principalId": "[reference('primaryIdentity').outputs.principalId.value]",
-                "principalType": "ServicePrincipal"
-              },
-              {
-                "roleDefinitionIdOrName": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd",
-                "principalId": "[reference('primaryIdentity').outputs.principalId.value]",
-                "principalType": "ServicePrincipal"
               }
             ]
           }
@@ -25846,8 +25829,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "13709964074523873260"
+              "version": "0.43.8.12551",
+              "templateHash": "12630010559658558400"
             }
           },
           "definitions": {
@@ -26204,7 +26187,7 @@
             ]
           },
           "roleAssignments": {
-            "value": "[union(createArray(createObject('roleDefinitionIdOrName', '53ca6127-db72-4b80-b1b0-d745d6d5456d', 'principalId', reference('primaryIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '64702f94-c441-49e6-a78b-ef80e0188fee', 'principalId', reference('primaryIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalId', reference('primaryIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', variables('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType')), createObject('roleDefinitionIdOrName', '53ca6127-db72-4b80-b1b0-d745d6d5456d', 'principalId', variables('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'))), if(parameters('isWorkshop'), createArray(createObject('roleDefinitionIdOrName', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalId', reference('aiSearch').outputs.identityPrincipalId.value, 'principalType', 'ServicePrincipal')), createArray()))]"
+            "value": "[union(createArray(createObject('roleDefinitionIdOrName', '53ca6127-db72-4b80-b1b0-d745d6d5456d', 'principalId', reference('primaryIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal'), createObject('roleDefinitionIdOrName', 'a97b65f3-24c7-4388-baec-2e87135dc908', 'principalId', variables('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType')), createObject('roleDefinitionIdOrName', '53ca6127-db72-4b80-b1b0-d745d6d5456d', 'principalId', variables('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'))), if(parameters('isWorkshop'), createArray(createObject('roleDefinitionIdOrName', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd', 'principalId', reference('aiSearch').outputs.identityPrincipalId.value, 'principalType', 'ServicePrincipal')), createArray()))]"
           }
         },
         "template": {
@@ -26214,8 +26197,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "7330844308505684132"
+              "version": "0.43.8.12551",
+              "templateHash": "320339999939016514"
             }
           },
           "parameters": {
@@ -28993,8 +28976,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "7703818318817127424"
+              "version": "0.43.8.12551",
+              "templateHash": "17699970922118158670"
             }
           },
           "parameters": {
@@ -29709,9 +29692,9 @@
       },
       "dependsOn": [
         "aiServices",
-        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').openAI)]",
-        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').aiServices)]",
         "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
+        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').aiServices)]",
+        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').openAI)]",
         "virtualNetwork"
       ]
     },
@@ -29767,8 +29750,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "10580179572556473868"
+              "version": "0.43.8.12551",
+              "templateHash": "11716458015939614336"
             }
           },
           "parameters": {
@@ -32104,8 +32087,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "11248255534519458927"
+              "version": "0.43.8.12551",
+              "templateHash": "15422386514845266639"
             }
           },
           "parameters": {
@@ -32377,8 +32360,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "14379525748551975239"
+              "version": "0.43.8.12551",
+              "templateHash": "12955960719875348639"
             }
           },
           "parameters": {
@@ -38322,8 +38305,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "10011293840549117331"
+              "version": "0.43.8.12551",
+              "templateHash": "11392672569620143527"
             }
           },
           "parameters": {
@@ -38459,6 +38442,9 @@
                         "name": "[parameters('databaseName')]"
                       }
                     ]
+                  },
+                  "sqlRoleAssignments": {
+                    "value": []
                   },
                   "diagnosticSettings": "[if(not(empty(parameters('diagnosticSettings'))), createObject('value', parameters('diagnosticSettings')), createObject('value', createArray()))]",
                   "networkRestrictions": {
@@ -44478,8 +44464,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "11618658957318615594"
+              "version": "0.43.8.12551",
+              "templateHash": "2118816479193431592"
             }
           },
           "parameters": {
@@ -51207,8 +51193,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "13165540669678028442"
+              "version": "0.43.8.12551",
+              "templateHash": "8002949051452736795"
             }
           },
           "parameters": {
@@ -51978,8 +51964,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "4253364308847432928"
+              "version": "0.43.8.12551",
+              "templateHash": "900336837531553634"
             }
           },
           "parameters": {
@@ -57695,8 +57681,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "4253364308847432928"
+              "version": "0.43.8.12551",
+              "templateHash": "900336837531553634"
             }
           },
           "parameters": {
@@ -63387,8 +63373,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "4253364308847432928"
+              "version": "0.43.8.12551",
+              "templateHash": "900336837531553634"
             }
           },
           "parameters": {
@@ -69043,7 +69029,10 @@
           "storageAccountResourceId": "[if(parameters('isWorkshop'), createObject('value', reference('storageAccount').outputs.resourceId.value), createObject('value', ''))]",
           "isWorkshop": {
             "value": "[parameters('isWorkshop')]"
-          }
+          },
+          "cosmosDbAccountName": "[if(and(parameters('isWorkshop'), variables('shouldDeployApp')), createObject('value', reference('cosmosDb').outputs.name.value), createObject('value', ''))]",
+          "backendAppServicePrincipalId": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), createObject('value', reference('backendApi').outputs.identityPrincipalId.value), createObject('value', reference('backendCsApi').outputs.identityPrincipalId.value)), createObject('value', ''))]",
+          "aiServicesResourceId": "[if(not(variables('useExistingAIProject')), createObject('value', reference('aiServices').outputs.resourceId.value), createObject('value', ''))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -69051,8 +69040,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.1.21952",
-              "templateHash": "12114835247739866977"
+              "version": "0.43.8.12551",
+              "templateHash": "14129842559814215955"
             }
           },
           "parameters": {
@@ -69096,11 +69085,33 @@
               "metadata": {
                 "description": "Whether workshop mode resources are deployed."
               }
+            },
+            "cosmosDbAccountName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Name of the Cosmos DB account (empty if not deployed)."
+              }
+            },
+            "backendAppServicePrincipalId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Principal ID of the backend App Service system-assigned identity (empty if not deployed)."
+              }
+            },
+            "aiServicesResourceId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Resource ID of the AI Services account (empty if not deployed)."
+              }
             }
           },
           "variables": {
             "roleDefinitions": {
               "owner": "8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
+              "azureAiUser": "53ca6127-db72-4b80-b1b0-d745d6d5456d",
               "searchIndexDataReader": "1407120a-92aa-4202-b7e9-c0e197c71c8f",
               "searchServiceContributor": "7ca78c08-252a-4471-8644-bb5ff32d4ba0",
               "storageBlobDataContributor": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
@@ -69177,6 +69188,41 @@
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').storageBlobDataReader)]",
                 "principalType": "ServicePrincipal"
               }
+            },
+            {
+              "condition": "[and(not(empty(parameters('cosmosDbAccountName'))), not(empty(parameters('backendAppServicePrincipalId'))))]",
+              "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
+              "apiVersion": "2024-11-15",
+              "name": "[format('{0}/{1}', parameters('cosmosDbAccountName'), guid(resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', parameters('cosmosDbAccountName'), '00000000-0000-0000-0000-000000000002'), resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDbAccountName')), parameters('backendAppServicePrincipalId')))]",
+              "properties": {
+                "principalId": "[parameters('backendAppServicePrincipalId')]",
+                "roleDefinitionId": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', parameters('cosmosDbAccountName'), '00000000-0000-0000-0000-000000000002')]",
+                "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDbAccountName'))]"
+              }
+            },
+            {
+              "condition": "[and(not(empty(parameters('aiServicesResourceId'))), not(empty(parameters('backendAppServicePrincipalId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', last(split(parameters('aiServicesResourceId'), '/')))]",
+              "name": "[guid(resourceGroup().id, parameters('backendAppServicePrincipalId'), variables('roleDefinitions').azureAiUser, 'backend-ai-services')]",
+              "properties": {
+                "principalId": "[parameters('backendAppServicePrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').azureAiUser)]",
+                "principalType": "ServicePrincipal"
+              }
+            },
+            {
+              "condition": "[and(and(not(empty(parameters('aiSearchResourceId'))), not(empty(parameters('backendAppServicePrincipalId')))), parameters('isWorkshop'))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Search/searchServices', last(split(parameters('aiSearchResourceId'), '/')))]",
+              "name": "[guid(resourceGroup().id, parameters('backendAppServicePrincipalId'), variables('roleDefinitions').searchIndexDataReader, 'backend-search')]",
+              "properties": {
+                "principalId": "[parameters('backendAppServicePrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').searchIndexDataReader)]",
+                "principalType": "ServicePrincipal"
+              }
             }
           ]
         }
@@ -69184,6 +69230,10 @@
       "dependsOn": [
         "aiProject",
         "aiSearch",
+        "aiServices",
+        "backendApi",
+        "backendCsApi",
+        "cosmosDb",
         "primaryIdentity",
         "storageAccount"
       ]

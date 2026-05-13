@@ -510,8 +510,8 @@ resource existingAiServices 'Microsoft.CognitiveServices/accounts@2025-06-01' ex
 }
 
 // Deploy model deployments + role assignments to existing AI Services (when using existing project)
-module existingAiServicesDeployments './modules/ai/openai-deployments.bicep' = if (useExistingAIProject) {
-  name: take('ai-services-deployments-existing-${aiServicesResourceName}', 64)
+module existingAiServicesDeployments './modules/ai/existing-foundry-project.bicep' = if (useExistingAIProject) {
+  name: 'ai-existing-foundry-project'
   scope: resourceGroup(aiServicesSubscriptionId, aiServicesResourceGroupName)
   params: {
     name: existingAiServices.name
@@ -533,16 +533,6 @@ module existingAiServicesDeployments './modules/ai/openai-deployments.bicep' = i
     roleAssignments: [
       {
         roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
-        principalId: primaryIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: '64702f94-c441-49e6-a78b-ef80e0188fee' // Azure AI Developer
-        principalId: primaryIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services OpenAI User
         principalId: primaryIdentity.outputs.principalId
         principalType: 'ServicePrincipal'
       }
@@ -580,16 +570,6 @@ module aiServices './modules/ai/ai-services.bicep' = if (!useExistingAIProject) 
       [
         {
           roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
-          principalId: primaryIdentity.outputs.principalId
-          principalType: 'ServicePrincipal'
-        }
-        {
-          roleDefinitionIdOrName: '64702f94-c441-49e6-a78b-ef80e0188fee' // Azure AI Developer
-          principalId: primaryIdentity.outputs.principalId
-          principalType: 'ServicePrincipal'
-        }
-        {
-          roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services OpenAI User
           principalId: primaryIdentity.outputs.principalId
           principalType: 'ServicePrincipal'
         }
@@ -943,7 +923,7 @@ module frontendApp './modules/compute/app-service.bicep' = if (shouldDeployApp) 
 }
 
 // ============================================================================
-// Module: Role Assignments
+// Module: Role Assignments (centralized)
 // ============================================================================
 
 module roleAssignments './modules/identity/role-assignments.bicep' = {
@@ -955,6 +935,11 @@ module roleAssignments './modules/identity/role-assignments.bicep' = {
     aiSearchResourceId: isWorkshop ? aiSearch!.outputs.resourceId : ''
     storageAccountResourceId: isWorkshop ? storageAccount!.outputs.resourceId : ''
     isWorkshop: isWorkshop
+    cosmosDbAccountName: (isWorkshop && shouldDeployApp) ? cosmosDb!.outputs.name : ''
+    backendAppServicePrincipalId: shouldDeployApp
+      ? (backendRuntimeStack == 'python' ? backendApi!.outputs.identityPrincipalId : backendCsApi!.outputs.identityPrincipalId)
+      : ''
+    aiServicesResourceId: !useExistingAIProject ? aiServices!.outputs.resourceId : ''
   }
 }
 

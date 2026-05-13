@@ -1,8 +1,8 @@
 // ============================================================================
-// Module: AI Services Deployments (for existing AI Services accounts)
+// Module: Existing Foundry Project (AI Services deployments + roles)
 // Description: Deploys model deployments + role assignments to an existing
 //              AI Services account. Used when useExistingAIProject = true.
-// Pattern: Same as MACAE ai-services-deployments.bicep
+// Pattern: Matches infra/bicep/modules/ai/existing-foundry-project.bicep
 // ============================================================================
 
 @description('Required. The name of the existing Cognitive Services account.')

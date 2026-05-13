@@ -71,6 +71,7 @@ module cosmosAccount 'br/public:avm/res/document-db/database-account:0.19.0' = {
         }]
       }
     ]
+    sqlRoleAssignments: []
     diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []
     networkRestrictions: {
       networkAclBypass: 'None'
