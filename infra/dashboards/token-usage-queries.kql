@@ -125,23 +125,25 @@ customEvents
 | render piechart
 
 // 11. Estimated cost by model (adjust pricing per model)
-let gpt4o_input = 2.50;
-let gpt4o_output = 10.00;
-let gpt4o_mini_input = 0.15;
-let gpt4o_mini_output = 0.60;
+let gpt41_input = 2.00;
+let gpt41_output = 8.00;
+let gpt41_mini_input = 0.40;
+let gpt41_mini_output = 1.60;
 customEvents
 | where name == 'LLM_Model_Token_Usage'
 | where timestamp > ago(30d)
-| extend model = tostring(customDimensions['model_deployment_name'])
+| extend model = tolower(tostring(customDimensions['model_deployment_name']))
 | extend input_tokens = toint(customDimensions['input_tokens'])
 | extend output_tokens = toint(customDimensions['output_tokens'])
 | summarize TotalInput = sum(input_tokens), TotalOutput = sum(output_tokens) by model
 | extend InputPrice = case(
-    model has "mini", gpt4o_mini_input,
-    gpt4o_input)
+    model has "4.1-mini", gpt41_mini_input,
+    model has "4.1",      gpt41_input,
+    gpt41_mini_input)
 | extend OutputPrice = case(
-    model has "mini", gpt4o_mini_output,
-    gpt4o_output)
+    model has "4.1-mini", gpt41_mini_output,
+    model has "4.1",      gpt41_output,
+    gpt41_mini_output)
 | extend InputCost = round(TotalInput * InputPrice / 1000000.0, 4)
 | extend OutputCost = round(TotalOutput * OutputPrice / 1000000.0, 4)
 | extend TotalCost = InputCost + OutputCost
