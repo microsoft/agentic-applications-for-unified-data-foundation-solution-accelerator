@@ -32,6 +32,58 @@ AGENT_NAME_TITLE = os.getenv("AGENT_NAME_TITLE")
 # Database configuration
 
 
+def _track_title_token_usage(response, agent_name: str, user_id: str = "", conversation_id: str = "") -> None:
+    """Extract usage from a Responses API result and emit LLM_* telemetry events."""
+    try:
+        usage_obj = getattr(response, "usage", None)
+        if usage_obj is None:
+            return
+        if isinstance(usage_obj, dict):
+            inp = usage_obj.get("input_tokens", 0) or usage_obj.get("prompt_tokens", 0) or 0
+            out = usage_obj.get("output_tokens", 0) or usage_obj.get("completion_tokens", 0) or 0
+            tot = usage_obj.get("total_tokens", 0) or (inp + out)
+        else:
+            inp = getattr(usage_obj, "input_tokens", 0) or getattr(usage_obj, "prompt_tokens", 0) or 0
+            out = getattr(usage_obj, "output_tokens", 0) or getattr(usage_obj, "completion_tokens", 0) or 0
+            tot = getattr(usage_obj, "total_tokens", 0) or (inp + out)
+        if not tot or tot <= 0:
+            return
+        inp, out, tot = int(inp), int(out), int(tot)
+        model_deployment_name = os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or ""
+        track_event_if_configured("LLM_Token_Usage_Summary", {
+            "total_input_tokens": str(inp),
+            "total_output_tokens": str(out),
+            "total_tokens": str(tot),
+            "agent_count": "1",
+            "model_count": "1",
+            "user_id": user_id or "",
+            "conversation_id": conversation_id or "",
+        })
+        track_event_if_configured("LLM_Agent_Token_Usage", {
+            "agent_name": agent_name or "",
+            "input_tokens": str(inp),
+            "output_tokens": str(out),
+            "total_tokens": str(tot),
+            "model_deployment_name": model_deployment_name,
+            "user_id": user_id or "",
+            "conversation_id": conversation_id or "",
+        })
+        track_event_if_configured("LLM_Model_Token_Usage", {
+            "model_deployment_name": model_deployment_name,
+            "input_tokens": str(inp),
+            "output_tokens": str(out),
+            "total_tokens": str(tot),
+            "user_id": user_id or "",
+            "conversation_id": conversation_id or "",
+        })
+        logger.info(
+            "[TOKEN USAGE] agent=%s model=%s input=%d output=%d total=%d",
+            agent_name, model_deployment_name, inp, out, tot,
+        )
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Failed to emit token usage telemetry: %s", e)
+
+
 def track_event_if_configured(event_name: str, event_data: dict):
     """
     Track an event with Application Insights if configured.
@@ -561,6 +613,8 @@ async def generate_title(conversation_messages):
                 input=final_prompt,
                 extra_body={"agent_reference": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
             )
+
+            _track_title_token_usage(response, agent_name=AGENT_NAME_TITLE or "")
 
             # Extract text from response output
             result_text = ""

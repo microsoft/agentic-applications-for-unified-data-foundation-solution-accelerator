@@ -117,6 +117,120 @@ def track_event_if_configured(event_name: str, event_data: dict):
         logging.warning("Skipping track_event for %s as Application Insights is not configured", event_name)
 
 
+def _extract_usage_from_dict(d: dict) -> "tuple[int, int, int] | None":
+    """Extract (input, output, total) token counts from a usage-like dict."""
+    if not isinstance(d, dict) or not d:
+        return None
+    inp = d.get("input_token_count", 0) or d.get("prompt_tokens", 0) or d.get("input_tokens", 0) or 0
+    out = d.get("output_token_count", 0) or d.get("completion_tokens", 0) or d.get("output_tokens", 0) or 0
+    tot = d.get("total_token_count", 0) or d.get("total_tokens", 0) or (inp + out)
+    if tot > 0:
+        return (int(inp), int(out), int(tot))
+    return None
+
+
+def _extract_usage_from_update(update) -> "tuple[int, int, int] | None":
+    """Extract (input, output, total) token counts from an agent_framework streaming update.
+
+    Checks, in order:
+      1. update.contents[*].usage_details (dict)
+      2. update.raw_representation.usage (dict or object with token attributes)
+    """
+    contents = getattr(update, "contents", None) or []
+    for item in contents:
+        usage_details = getattr(item, "usage_details", None)
+        if isinstance(usage_details, dict):
+            result = _extract_usage_from_dict(usage_details)
+            if result:
+                return result
+
+    raw = getattr(update, "raw_representation", None)
+    if raw is not None:
+        usage_obj = getattr(raw, "usage", None)
+        if usage_obj is not None:
+            if isinstance(usage_obj, dict):
+                result = _extract_usage_from_dict(usage_obj)
+                if result:
+                    return result
+            else:
+                inp = getattr(usage_obj, "prompt_tokens", 0) or getattr(usage_obj, "input_tokens", 0) or 0
+                out = getattr(usage_obj, "completion_tokens", 0) or getattr(usage_obj, "output_tokens", 0) or 0
+                tot = getattr(usage_obj, "total_tokens", 0) or (inp + out)
+                if tot > 0:
+                    return (int(inp), int(out), int(tot))
+    return None
+
+
+def _extract_usage_from_response(response) -> "tuple[int, int, int] | None":
+    """Extract (input, output, total) tokens from an OpenAI Responses API response object."""
+    if response is None:
+        return None
+    usage_obj = getattr(response, "usage", None)
+    if usage_obj is None:
+        return None
+    if isinstance(usage_obj, dict):
+        return _extract_usage_from_dict(usage_obj)
+    inp = getattr(usage_obj, "input_tokens", 0) or getattr(usage_obj, "prompt_tokens", 0) or 0
+    out = getattr(usage_obj, "output_tokens", 0) or getattr(usage_obj, "completion_tokens", 0) or 0
+    tot = getattr(usage_obj, "total_tokens", 0) or (inp + out)
+    if tot > 0:
+        return (int(inp), int(out), int(tot))
+    return None
+
+
+def _track_token_usage(
+    agent_name: str,
+    model_deployment_name: str,
+    input_tokens: int,
+    output_tokens: int,
+    total_tokens: int,
+    user_id: str = "",
+    conversation_id: str = "",
+) -> None:
+    """Emit LLM token usage events to Application Insights.
+
+    Emits three events:
+      - LLM_Token_Usage_Summary  : overall totals per request
+      - LLM_Agent_Token_Usage    : usage attributed to the agent
+      - LLM_Model_Token_Usage    : usage attributed to the model deployment
+    """
+    if total_tokens <= 0:
+        return
+    try:
+        track_event_if_configured("LLM_Token_Usage_Summary", {
+            "total_input_tokens": str(input_tokens),
+            "total_output_tokens": str(output_tokens),
+            "total_tokens": str(total_tokens),
+            "agent_count": "1",
+            "model_count": "1",
+            "user_id": user_id or "",
+            "conversation_id": conversation_id or "",
+        })
+        track_event_if_configured("LLM_Agent_Token_Usage", {
+            "agent_name": agent_name or "",
+            "input_tokens": str(input_tokens),
+            "output_tokens": str(output_tokens),
+            "total_tokens": str(total_tokens),
+            "model_deployment_name": model_deployment_name or "",
+            "user_id": user_id or "",
+            "conversation_id": conversation_id or "",
+        })
+        track_event_if_configured("LLM_Model_Token_Usage", {
+            "model_deployment_name": model_deployment_name or "",
+            "input_tokens": str(input_tokens),
+            "output_tokens": str(output_tokens),
+            "total_tokens": str(total_tokens),
+            "user_id": user_id or "",
+            "conversation_id": conversation_id or "",
+        })
+        logger.info(
+            "[TOKEN USAGE] agent=%s model=%s input=%d output=%d total=%d",
+            agent_name, model_deployment_name, input_tokens, output_tokens, total_tokens,
+        )
+    except Exception as e:
+        logger.warning("Failed to emit token usage telemetry: %s", e)
+
+
 # Global thread cache
 thread_cache = None
 
@@ -141,6 +255,10 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
     complete_response = ""
     credential = None
     db_connection = None
+    # Accumulators for LLM token usage across all iterations of this request
+    total_input_tokens = 0
+    total_output_tokens = 0
+    total_tokens_sum = 0
 
     try:
         if not query:
@@ -183,6 +301,13 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                 input=query,
                 extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
             )
+
+            # Accumulate token usage from initial response
+            _usage = _extract_usage_from_response(response)
+            if _usage:
+                total_input_tokens += _usage[0]
+                total_output_tokens += _usage[1]
+                total_tokens_sum += _usage[2]
 
             # Process response - handle function calls iteratively
             max_iterations = 10
@@ -258,6 +383,13 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                     extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
                 )
 
+                # Accumulate token usage from follow-up response
+                _usage = _extract_usage_from_response(response)
+                if _usage:
+                    total_input_tokens += _usage[0]
+                    total_output_tokens += _usage[1]
+                    total_tokens_sum += _usage[2]
+
             if iteration >= max_iterations:
                 logger.warning("Max iterations reached for conversation %s", conversation_id)
                 yield "\n\n(Response processing reached maximum iterations)"
@@ -269,6 +401,17 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                 "user_id": user_id,
                 "response_length": str(len(complete_response)),
             })
+
+            # Emit LLM token usage telemetry
+            _track_token_usage(
+                agent_name=os.getenv("AGENT_NAME_CHAT", "") or "",
+                model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or "",
+                input_tokens=total_input_tokens,
+                output_tokens=total_output_tokens,
+                total_tokens=total_tokens_sum,
+                user_id=user_id,
+                conversation_id=conversation_id,
+            )
 
     except HttpResponseError as e:
         complete_response = str(e)
@@ -348,6 +491,10 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
     complete_response = ""
     credential = None
     db_connection = None
+    # Accumulators for LLM token usage across all streaming updates
+    total_input_tokens = 0
+    total_output_tokens = 0
+    total_tokens_sum = 0
 
     try:
         if not query:
@@ -420,6 +567,13 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
                     if raw_repr:
                         _extract_mcp_from_raw(raw_repr, mcp_docs)
 
+                # Accumulate token usage from this streaming update
+                _usage = _extract_usage_from_update(chunk)
+                if _usage:
+                    total_input_tokens += _usage[0]
+                    total_output_tokens += _usage[1]
+                    total_tokens_sum += _usage[2]
+
                 chunk_text = str(chunk.text) if chunk.text else ""
                 if not chunk_text:
                     continue
@@ -472,6 +626,17 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
                 "response_length": str(len(complete_response)),
                 "citation_count": str(len(mcp_docs)),
             })
+
+            # Emit LLM token usage telemetry
+            _track_token_usage(
+                agent_name=os.getenv("AGENT_NAME_CHAT", "") or "",
+                model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or "",
+                input_tokens=total_input_tokens,
+                output_tokens=total_output_tokens,
+                total_tokens=total_tokens_sum,
+                user_id=user_id,
+                conversation_id=conversation_id,
+            )
 
             # Yield citations as a tool message — deduplicated by source
             citation_list = []
