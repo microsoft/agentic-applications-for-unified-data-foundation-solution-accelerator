@@ -5,18 +5,10 @@ import {
   Subtitle2,
   Body2,
   webLightTheme,
-  Avatar,
-  Menu,
-  MenuTrigger,
-  MenuPopover,
-  MenuList,
-  MenuItem,
-  MenuDivider,
-  Button,
 } from "@fluentui/react-components";
-import { SignOut24Regular, Person24Regular } from "@fluentui/react-icons";
 import "./App.css";
 import { ChatHistoryPanel } from "./components/ChatHistoryPanel/ChatHistoryPanel";
+import LoginButton from "./components/LoginButton/LoginButton";
 
 
 import { useAppDispatch, useAppSelector } from "./store/hooks";
@@ -67,24 +59,11 @@ const Dashboard: React.FC = () => {
   const [offset, setOffset] = useState<number>(0);
   const OFFSET_INCREMENT = 25;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
-  const [name, setName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const isInitialFetchStarted = useRef(false);
 
   useEffect(() => {
-    dispatch(fetchUserInfo()).unwrap().then((res) => {
-      if (res[0]) {
-        setIsAuthenticated(true);
-        const name: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'name')?.val ?? ''
-        const email: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'preferred_username' || claim.typ === 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress')?.val ?? ''
-        setName(name)
-        setEmail(email)
-      }
-    }).catch(() => {
-      // Error fetching user info - silent fail
-    })
-  }, []);
+    dispatch(fetchUserInfo());
+  }, [dispatch]);
 
   const updateLayoutWidths = (newState: Record<string, boolean>) => {
     const noOfWidgetsOpen = Object.values(newState).filter((val) => val).length;
@@ -208,25 +187,6 @@ const Dashboard: React.FC = () => {
     }, 1000);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("userId");
-    sessionStorage.removeItem("accessToken");
-    window.location.href = "/.auth/logout?post_logout_redirect_uri=" + encodeURIComponent(window.location.origin);
-  };
-
-  const getUserInitials = (fullName: string | undefined): string => {
-    if (!fullName) return "U";
-    const cleanName = fullName.replace(/\s*\([^)]*\)/g, "").trim();
-    if (!cleanName) return "U";
-    const parts = cleanName.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return cleanName.charAt(0).toUpperCase();
-  };
-
-  const displayName = name || "User";
-
   return (
     <FluentProvider
       theme={webLightTheme}
@@ -241,70 +201,7 @@ const Dashboard: React.FC = () => {
           </Subtitle2>
         </div>
         <div className="header-right-section">
-          {isAuthenticated ? (
-            <Menu>
-              <MenuTrigger disableButtonEnhancement>
-                <Button
-                  appearance="subtle"
-                  style={{ minWidth: "auto", padding: "4px" }}
-                  title={name ? `Signed in as ${name}` : "User menu"}
-                  aria-label={name ? `User menu for ${name}` : "User menu"}
-                  icon={
-                    <Avatar
-                      name={displayName}
-                      initials={getUserInitials(name)}
-                      icon={!name ? <Person24Regular /> : undefined}
-                      size={28}
-                      color={name ? "colorful" : "neutral"}
-                      style={{ fontWeight: "bold" }}
-                    />
-                  }
-                />
-              </MenuTrigger>
-              <MenuPopover>
-                <MenuList>
-                  <MenuItem icon={<Person24Regular />} disabled>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", maxWidth: 260, minWidth: 0 }}>
-                      <span
-                        style={{
-                          fontWeight: 600,
-                          fontSize: "13px",
-                          maxWidth: "100%",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                        title={name || "User"}
-                      >
-                        {name || "User"}
-                      </span>
-                      {email && (
-                        <span
-                          style={{
-                            fontSize: "11px",
-                            color: "#616161",
-                            maxWidth: "100%",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                          title={email}
-                        >
-                          {email}
-                        </span>
-                      )}
-                    </div>
-                  </MenuItem>
-                  <MenuDivider />
-                  <MenuItem icon={<SignOut24Regular />} onClick={handleLogout}>
-                    Sign out
-                  </MenuItem>
-                </MenuList>
-              </MenuPopover>
-            </Menu>
-          ) : (
-            <Avatar icon={<Person24Regular />} size={28} color="neutral" />
-          )}
+          <LoginButton />
         </div>
       </div>
       <div className="main-container">
