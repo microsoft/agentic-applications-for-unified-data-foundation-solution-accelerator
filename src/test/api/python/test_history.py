@@ -715,7 +715,77 @@ class TestHelperFunctions:
             with patch('history.AIProjectClient', return_value=mock_project):
                 result = await generate_title([{"role": "user", "content": "Hello"}])
                 assert result == "Generated Title"
-    
+
+    @pytest.mark.asyncio
+    async def test_generate_title_emits_token_telemetry(self, monkeypatch):
+        """generate_title should emit the three LLM_* telemetry events with
+        the supplied user_id/conversation_id when response.usage is present."""
+        from history import generate_title
+
+        monkeypatch.setattr('history.AZURE_AI_AGENT_ENDPOINT', 'https://test.ai.azure.com')
+        monkeypatch.setattr('history.AGENT_NAME_TITLE', 'title-agent')
+        monkeypatch.setenv('APPLICATIONINSIGHTS_CONNECTION_STRING', 'test-conn-str')
+        monkeypatch.setenv('AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME', 'gpt-4.1-mini')
+
+        mock_content = MagicMock()
+        mock_content.text = "Generated Title"
+        mock_item = MagicMock()
+        mock_item.type = 'message'
+        mock_item.content = [mock_content]
+        mock_response = MagicMock()
+        mock_response.output = [mock_item]
+        mock_response.usage = {
+            "input_tokens": 12,
+            "output_tokens": 7,
+            "total_tokens": 19,
+        }
+
+        mock_conversation = MagicMock()
+        mock_conversation.id = "conv-id"
+
+        mock_openai = AsyncMock()
+        mock_openai.conversations.create = AsyncMock(return_value=mock_conversation)
+        mock_openai.responses.create = AsyncMock(return_value=mock_response)
+
+        mock_project = AsyncMock()
+        mock_project.get_openai_client = MagicMock(return_value=mock_openai)
+        mock_project.__aenter__ = AsyncMock(return_value=mock_project)
+        mock_project.__aexit__ = AsyncMock(return_value=False)
+
+        mock_credential = AsyncMock()
+        mock_credential.close = AsyncMock()
+
+        with patch('history.get_azure_credential_async', return_value=mock_credential):
+            with patch('history.AIProjectClient', return_value=mock_project):
+                with patch('token_usage.track_event') as mock_track:
+                    result = await generate_title(
+                        [{"role": "user", "content": "Hello"}],
+                        user_id="user-42",
+                        conversation_id="conv-99",
+                    )
+
+        assert result == "Generated Title"
+        event_names = [call.args[0] for call in mock_track.call_args_list]
+        assert "LLM_Token_Usage_Summary" in event_names
+        assert "LLM_Agent_Token_Usage" in event_names
+        assert "LLM_Model_Token_Usage" in event_names
+
+        events_by_name = {call.args[0]: call.args[1] for call in mock_track.call_args_list}
+        summary = events_by_name["LLM_Token_Usage_Summary"]
+        assert summary.get("user_id") == "user-42"
+        assert summary.get("conversation_id") == "conv-99"
+        assert int(summary.get("total_tokens") or summary.get("total_token_count") or 0) == 19
+
+        agent_evt = events_by_name["LLM_Agent_Token_Usage"]
+        assert agent_evt.get("agent_name") == "title-agent"
+        assert agent_evt.get("user_id") == "user-42"
+        assert agent_evt.get("conversation_id") == "conv-99"
+
+        model_evt = events_by_name["LLM_Model_Token_Usage"]
+        assert model_evt.get("model_deployment_name") == "gpt-4.1-mini"
+        assert model_evt.get("user_id") == "user-42"
+        assert model_evt.get("conversation_id") == "conv-99"
+
     @pytest.mark.asyncio
     async def test_generate_title_fallback(self, monkeypatch):
         from history import generate_title
