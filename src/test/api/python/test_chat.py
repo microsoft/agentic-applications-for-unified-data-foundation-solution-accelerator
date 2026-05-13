@@ -141,7 +141,7 @@ class TestHelperFunctions:
         """Test track_event when no instrumentation key is set."""
         from chat import track_event_if_configured
 
-        with patch('chat.track_event') as mock_track:
+        with patch('token_usage.track_event') as mock_track:
             track_event_if_configured("TestEvent", {"key": "value"})
             # Should not call track_event when no instrumentation key
             mock_track.assert_not_called()
@@ -1071,7 +1071,7 @@ class TestMissingLineCoverage:
         # Ensure no instrumentation key
         monkeypatch.delenv("APPLICATIONINSIGHTS_CONNECTION_STRING", raising=False)
 
-        with patch('chat.logging.warning') as mock_warning:
+        with patch('token_usage.logger.warning') as mock_warning:
             track_event_if_configured("test_event", {"data": "value"})
             mock_warning.assert_called_once()
             assert "Skipping track_event" in str(mock_warning.call_args)
@@ -1127,6 +1127,6 @@ class TestTrackEventWithKey:
 
         monkeypatch.setenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "InstrumentationKey=test-key")
 
-        with patch('chat.track_event') as mock_track:
+        with patch('token_usage.track_event') as mock_track:
             track_event_if_configured("test_event", {"key": "value"})
             mock_track.assert_called_once_with("test_event", {"key": "value"})

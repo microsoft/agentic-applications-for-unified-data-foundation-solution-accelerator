@@ -266,7 +266,7 @@ class TestTrackEventIfConfigured:
         
         monkeypatch.setenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "InstrumentationKey=test")
         
-        with patch('history_sql.track_event') as mock_track:
+        with patch('token_usage.track_event') as mock_track:
             track_event_if_configured("TestEvent", {"key": "value"})
             mock_track.assert_called_once_with("TestEvent", {"key": "value"})
 
@@ -276,7 +276,7 @@ class TestTrackEventIfConfigured:
         
         monkeypatch.setenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "")
         
-        with patch('history_sql.track_event') as mock_track:
+        with patch('token_usage.track_event') as mock_track:
             track_event_if_configured("TestEvent", {"key": "value"})
             mock_track.assert_not_called()
 

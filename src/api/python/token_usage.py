@@ -43,11 +43,15 @@ def extract_usage_from_dict(d: dict) -> Optional[UsageTuple]:
     """Extract (input, output, total) token counts from a usage-like dict."""
     if not isinstance(d, dict) or not d:
         return None
-    inp = d.get("input_token_count", 0) or d.get("prompt_tokens", 0) or d.get("input_tokens", 0) or 0
-    out = d.get("output_token_count", 0) or d.get("completion_tokens", 0) or d.get("output_tokens", 0) or 0
-    tot = d.get("total_token_count", 0) or d.get("total_tokens", 0) or (inp + out)
-    if tot > 0:
-        return (int(inp), int(out), int(tot))
+    try:
+        inp = d.get("input_token_count", 0) or d.get("prompt_tokens", 0) or d.get("input_tokens", 0) or 0
+        out = d.get("output_token_count", 0) or d.get("completion_tokens", 0) or d.get("output_tokens", 0) or 0
+        tot = d.get("total_token_count", 0) or d.get("total_tokens", 0) or (inp + out)
+        inp_i, out_i, tot_i = int(inp), int(out), int(tot)
+    except (TypeError, ValueError):
+        return None
+    if tot_i > 0:
+        return (inp_i, out_i, tot_i)
     return None
 
 
@@ -75,11 +79,15 @@ def extract_usage_from_update(update) -> Optional[UsageTuple]:
                 if result:
                     return result
             else:
-                inp = getattr(usage_obj, "prompt_tokens", 0) or getattr(usage_obj, "input_tokens", 0) or 0
-                out = getattr(usage_obj, "completion_tokens", 0) or getattr(usage_obj, "output_tokens", 0) or 0
-                tot = getattr(usage_obj, "total_tokens", 0) or (inp + out)
-                if tot > 0:
-                    return (int(inp), int(out), int(tot))
+                try:
+                    inp = getattr(usage_obj, "prompt_tokens", 0) or getattr(usage_obj, "input_tokens", 0) or 0
+                    out = getattr(usage_obj, "completion_tokens", 0) or getattr(usage_obj, "output_tokens", 0) or 0
+                    tot = getattr(usage_obj, "total_tokens", 0) or (inp + out)
+                    inp_i, out_i, tot_i = int(inp), int(out), int(tot)
+                except (TypeError, ValueError):
+                    return None
+                if tot_i > 0:
+                    return (inp_i, out_i, tot_i)
     return None
 
 
@@ -92,11 +100,15 @@ def extract_usage_from_response(response) -> Optional[UsageTuple]:
         return None
     if isinstance(usage_obj, dict):
         return extract_usage_from_dict(usage_obj)
-    inp = getattr(usage_obj, "input_tokens", 0) or getattr(usage_obj, "prompt_tokens", 0) or 0
-    out = getattr(usage_obj, "output_tokens", 0) or getattr(usage_obj, "completion_tokens", 0) or 0
-    tot = getattr(usage_obj, "total_tokens", 0) or (inp + out)
-    if tot > 0:
-        return (int(inp), int(out), int(tot))
+    try:
+        inp = getattr(usage_obj, "input_tokens", 0) or getattr(usage_obj, "prompt_tokens", 0) or 0
+        out = getattr(usage_obj, "output_tokens", 0) or getattr(usage_obj, "completion_tokens", 0) or 0
+        tot = getattr(usage_obj, "total_tokens", 0) or (inp + out)
+        inp_i, out_i, tot_i = int(inp), int(out), int(tot)
+    except (TypeError, ValueError):
+        return None
+    if tot_i > 0:
+        return (inp_i, out_i, tot_i)
     return None
 
 

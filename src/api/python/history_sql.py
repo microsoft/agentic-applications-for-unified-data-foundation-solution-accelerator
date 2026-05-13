@@ -34,7 +34,6 @@ AGENT_NAME_TITLE = os.getenv("AGENT_NAME_TITLE")
 # Database configuration
 
 
-
 async def get_azure_sql_connection():
     """
     Get a connection to Azure SQL Server using DefaultAzureCredential.

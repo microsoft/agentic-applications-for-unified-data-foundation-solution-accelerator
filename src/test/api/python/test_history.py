@@ -33,7 +33,7 @@ class TestModuleAndConfiguration:
     def test_track_event_configured(self, monkeypatch):
         from history import track_event_if_configured
         monkeypatch.setenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "test")
-        with patch('history.track_event'):
+        with patch('token_usage.track_event'):
             track_event_if_configured("event", {})
     
     def test_track_event_not_configured(self, monkeypatch):
