@@ -169,12 +169,24 @@ module managedIdentityModule './modules/identity/managed-identity.bicep' = {
 }
 
 // ========== Monitoring (Log Analytics + Application Insights) ========== //
-module monitoring './modules/monitoring/monitoring.bicep' = {
-  name: 'deploy_monitoring'
+// ========== Log Analytics module ========== //
+module log_analytics './modules/monitoring/log-analytics.bicep' = {
+  name: 'deploy_log_analytics'
   params: {
     solutionName: solutionSuffix
     solutionLocation: aiDeploymentsLocation
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
+
+// ========== Application Insights module ========== //
+module app_insights './modules/monitoring/app-insights.bicep' = {
+  name: 'deploy_app_insights'
+  params: {
+    solutionName: solutionSuffix
+    solutionLocation: aiDeploymentsLocation
+    logAnalyticsWorkspaceId: log_analytics.outputs.logAnalyticsWorkspaceId
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -191,10 +203,9 @@ module aifoundry './modules/ai/ai-foundry.bicep' = {
     gptDeploymentCapacity: gptDeploymentCapacity
     embeddingModel: embeddingModel
     embeddingDeploymentCapacity: embeddingDeploymentCapacity
-    managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
-    applicationInsightsId: monitoring.outputs.applicationInsightsId
-    applicationInsightsInstrumentationKey: monitoring.outputs.applicationInsightsInstrumentationKey
+    applicationInsightsId: app_insights.outputs.applicationInsightsId
+    applicationInsightsInstrumentationKey: app_insights.outputs.applicationInsightsInstrumentationKey
     isWorkshop: isWorkshop
   }
   scope: resourceGroup(resourceGroup().name)
@@ -208,12 +219,36 @@ module ai_search './modules/ai/ai-search.bicep' = if (isWorkshop) {
     isWorkshop: isWorkshop
     aiServicesName: aifoundry.outputs.aiServicesName
     aiProjectName: aifoundry.outputs.aiProjectName
-    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
+    useExistingProject: !empty(azureExistingAIProjectResourceId)
     storageBlobEndpoint: isWorkshop ? storage_account!.outputs.storageBlobEndpoint : ''
     storageAccountId: isWorkshop ? storage_account!.outputs.storageAccountId : ''
     storageAccountName: isWorkshop ? storage_account!.outputs.storageAccountName : ''
   }
   scope: resourceGroup(resourceGroup().name)
+}
+
+// ========== Existing Project Setup (models + connections) ========== //
+var existingAIServicesName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[8] : ''
+var existingAIProjectName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[10] : ''
+var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
+var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
+
+module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (!empty(azureExistingAIProjectResourceId)) {
+  name: 'setup_existing_project'
+  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
+  params: {
+    aiServicesName: existingAIServicesName
+    aiProjectName: existingAIProjectName
+    aiModelDeployments: aifoundry.outputs.aiModelDeployments
+    applicationInsightsId: app_insights.outputs.applicationInsightsId
+    applicationInsightsInstrumentationKey: app_insights.outputs.applicationInsightsInstrumentationKey
+    aiSearchTarget: isWorkshop ? ai_search!.outputs.aiSearchTarget : ''
+    aiSearchId: isWorkshop ? ai_search!.outputs.aiSearchId : ''
+    aiSearchConnectionName: isWorkshop ? ai_search!.outputs.aiSearchConnectionName : ''
+    storageBlobEndpoint: isWorkshop ? storage_account!.outputs.storageBlobEndpoint : ''
+    storageAccountId: isWorkshop ? storage_account!.outputs.storageAccountId : ''
+    storageAccountName: isWorkshop ? storage_account!.outputs.storageAccountName : ''
+  }
 }
 
 // ========== Storage Account module ========== //
@@ -262,22 +297,39 @@ module hostingplan './modules/compute/app-service-plan.bicep' = if (shouldDeploy
 // Uses the existing workspace ID when provided; otherwise constructs the ID from AI Foundry outputs.
 var resolvedLogAnalyticsWorkspaceId = !empty(existingLogAnalyticsWorkspaceId)
   ? existingLogAnalyticsWorkspaceId
-  : '/subscriptions/${monitoring.outputs.logAnalyticsWorkspaceSubscription}/resourceGroups/${monitoring.outputs.logAnalyticsWorkspaceResourceGroup}/providers/Microsoft.OperationalInsights/workspaces/${monitoring.outputs.logAnalyticsWorkspaceResourceName}'
+  : '/subscriptions/${log_analytics.outputs.logAnalyticsWorkspaceSubscription}/resourceGroups/${log_analytics.outputs.logAnalyticsWorkspaceResourceGroup}/providers/Microsoft.OperationalInsights/workspaces/${log_analytics.outputs.logAnalyticsWorkspaceResourceName}'
+
+// ========== Compute settings ========== //
+var backendCsApiImageName = 'DOCKER|dataagentscontainerreg.azurecr.io/da-api-dotnet:latest_v2'
+var reactAppLayoutConfig = '''{
+  "appConfig": {
+      "CHAT_CHATHISTORY": {
+        "CHAT": 70,
+        "CHATHISTORY": 30
+      }
+    }
+  }
+}'''
 
 // ========== Backend Deployment (Python) ========== //
-module backend_custom './modules/compute/backend-custom.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
+module backend_custom './modules/compute/app-service-custom.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
   name: 'deploy_backend_custom'
   params: {
-    name: 'api-${solutionSuffix}'
+    solutionName: 'api-${solutionSuffix}'
     solutionLocation: solutionLocation
     appServicePlanId: hostingplan!.outputs.name
-    applicationInsightsId: monitoring.outputs.applicationInsightsId
+    linuxFxVersion: 'PYTHON|3.11'
+    appCommandLine: 'uvicorn app:app --host 0.0.0.0 --port 8000'
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
-    aiServicesName: aifoundry.outputs.aiServicesName
-    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
-    enableCosmosDb: shouldDeployApp && isWorkshop
+    enableSystemAssignedIdentity: true
+    azdServiceName: 'api'
     logAnalyticsWorkspaceId: resolvedLogAnalyticsWorkspaceId
     appSettings: {
+      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
+      REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
+      PYTHONUNBUFFERED: '1'
+      SCM_DO_BUILD_DURING_DEPLOYMENT: 'true'
+      ENABLE_ORYX_BUILD: 'true'
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
@@ -301,7 +353,7 @@ module backend_custom './modules/compute/backend-custom.bicep' = if (shouldDeplo
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
+      APPLICATIONINSIGHTS_CONNECTION_STRING: app_insights.outputs.applicationInsightsConnectionString
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
@@ -320,20 +372,17 @@ module backend_custom './modules/compute/backend-custom.bicep' = if (shouldDeplo
 }
 
 // ========== Backend Deployment (C#) ========== //
-// C# backend continues to use the Docker-based deployment module.
-module backend_csapi_docker './modules/compute/backend-csapi-docker.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
+module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
   name: 'deploy_backend_csapi_docker'
   params: {
-    name: 'api-cs-${solutionSuffix}'
+    solutionName: 'api-cs-${solutionSuffix}'
     solutionLocation: solutionLocation
-    imageTag: 'latest_v2'
-    acrName: 'dataagentscontainerreg'
     appServicePlanId: hostingplan!.outputs.name
-    applicationInsightsId: monitoring.outputs.applicationInsightsId
+    appImageName: backendCsApiImageName
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
-    aiServicesName: aifoundry.outputs.aiServicesName
-    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
     appSettings: {
+      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
+      REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
@@ -354,7 +403,7 @@ module backend_csapi_docker './modules/compute/backend-csapi-docker.bicep' = if 
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
+      APPLICATIONINSIGHTS_CONNECTION_STRING: app_insights.outputs.applicationInsightsConnectionString
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
       APP_ENV: 'Prod'
@@ -370,15 +419,19 @@ module backend_csapi_docker './modules/compute/backend-csapi-docker.bicep' = if 
 var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
 
 // ========== Frontend Deployment ========== //
-module frontend_custom './modules/compute/frontend-custom.bicep' = if (shouldDeployApp) {
+module frontend_custom './modules/compute/app-service-custom.bicep' = if (shouldDeployApp) {
   name: 'deploy_frontend_custom'
   params: {
-    name: 'app-${solutionSuffix}'
+    solutionName: 'app-${solutionSuffix}'
     solutionLocation: solutionLocation
     appServicePlanId: hostingplan!.outputs.name
-    applicationInsightsId: monitoring.outputs.applicationInsightsId
+    linuxFxVersion: 'NODE|20-lts'
+    appCommandLine: 'npx serve -s build -l 8080'
+    enableSystemAssignedIdentity: false
+    azdServiceName: 'webapp'
     logAnalyticsWorkspaceId: resolvedLogAnalyticsWorkspaceId
     appSettings: {
+      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_custom!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
       CHAT_LANDING_TEXT: landingText
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
@@ -392,17 +445,20 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
   params: {
     solutionName: solutionSuffix
     isWorkshop: isWorkshop
+    shouldDeployApp: shouldDeployApp
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     aiServicesName: aifoundry.outputs.aiServicesName
     aiSearchName: isWorkshop ? ai_search!.outputs.aiSearchName : ''
     storageAccountName: isWorkshop ? storage_account!.outputs.storageAccountName : ''
     aiProjectPrincipalId: empty(azureExistingAIProjectResourceId) ? aifoundry.outputs.aiProjectPrincipalId : ''
-    existingAiProjectPrincipalId: !empty(azureExistingAIProjectResourceId) ? aifoundry.outputs.aiProjectPrincipalId : ''
     searchPrincipalId: isWorkshop ? ai_search!.outputs.searchPrincipalId : ''
     deployingUserPrincipalId: deployingUserPrincipalId
     deployingUserPrincipalType: deployingUserPrincipalType
     backendAppPrincipalId: shouldDeployApp && backendRuntimeStack == 'python' ? backend_custom!.outputs.identityPrincipalId : ''
+    backendCsApiPrincipalId: shouldDeployApp && backendRuntimeStack == 'dotnet' ? backend_csapi_docker!.outputs.identityPrincipalId : ''
+    cosmosAccountName: shouldDeployApp && isWorkshop ? cosmosDBModule!.outputs.cosmosAccountName : ''
+    existingAiProjectPrincipalId: !empty(azureExistingAIProjectResourceId) ? existing_project_setup!.outputs.aiProjectPrincipalId : ''
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -454,7 +510,7 @@ output AZURE_AI_AGENT_ENDPOINT string = aifoundry.outputs.projectEndpoint
 output AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME string = gptModelName
 
 @description('Backend API App Service name')
-output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_custom!.outputs.appName : backend_csapi_docker!.outputs.appName) : ''
+output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? 'api-${solutionSuffix}' : 'api-cs-${solutionSuffix}') : ''
 
 @description('Backend API managed identity object/principal ID')
 output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.objectId
@@ -484,7 +540,7 @@ output SEARCH_DATA_FOLDER string = isWorkshop ? 'data/default/documents' : ''
 output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkshop ? ai_search!.outputs.aiSearchConnectionName : ''
 
 @description('AI Foundry connection ID for Azure AI Search')
-output AZURE_AI_SEARCH_CONNECTION_ID string = isWorkshop ? ai_search!.outputs.aiSearchConnectionId : ''
+output AZURE_AI_SEARCH_CONNECTION_ID string = isWorkshop ? (!empty(azureExistingAIProjectResourceId) ? existing_project_setup!.outputs.aiSearchConnectionId : ai_search!.outputs.aiSearchConnectionId) : ''
 
 @description('Azure AI Foundry project endpoint URL')
 output AZURE_AI_PROJECT_ENDPOINT string = aifoundry.outputs.projectEndpoint
@@ -499,7 +555,7 @@ output AZURE_AI_PROJECT_NAME string = aifoundry.outputs.aiProjectName
 output AI_SERVICE_NAME string = aifoundry.outputs.aiServicesName
 
 @description('Azure AI Foundry project managed identity principal ID')
-output FOUNDRY_PROJECT_PID string = aifoundry.outputs.aiProjectPrincipalId
+output FOUNDRY_PROJECT_PID string = !empty(azureExistingAIProjectResourceId) ? existing_project_setup!.outputs.aiProjectPrincipalId : aifoundry.outputs.aiProjectPrincipalId
 
 @description('Backend runtime stack (python or dotnet)')
 output BACKEND_RUNTIME_STACK string = backendRuntimeStack
