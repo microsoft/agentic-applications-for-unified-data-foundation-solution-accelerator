@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "5766620606357753291"
+      "templateHash": "12784056208598218626"
     }
   },
   "parameters": {
@@ -259,6 +259,10 @@
     "existingAIProjectName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[10], '')]",
     "existingAIServiceSubscription": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[2], subscription().subscriptionId)]",
     "existingAIServiceResourceGroup": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[4], resourceGroup().name)]",
+    "backendApiImageName": "[format('DOCKER|{0}.azurecr.io/da-api:{1}', parameters('acrName'), parameters('imageTag'))]",
+    "backendCsApiImageName": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('acrName'), parameters('imageTag'))]",
+    "frontendImageName": "[format('DOCKER|{0}.azurecr.io/da-app:{1}', parameters('acrName'), parameters('imageTag'))]",
+    "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}",
     "landingText": "[if(equals(parameters('usecase'), 'Retail-sales-analysis'), 'You can ask questions around sales, products and orders.', 'You can ask questions around customer policies, claims and communications.')]"
   },
   "resources": [
@@ -1139,147 +1143,6 @@
       "condition": "[not(empty(parameters('azureExistingAIProjectResourceId')))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "read_existing_foundry_project",
-      "subscriptionId": "[variables('existingAIServiceSubscription')]",
-      "resourceGroup": "[variables('existingAIServiceResourceGroup')]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "aiServicesName": {
-            "value": "[variables('existingAIServicesName')]"
-          },
-          "aiProjectName": {
-            "value": "[variables('existingAIProjectName')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "9327735318064459653"
-            }
-          },
-          "parameters": {
-            "aiServicesName": {
-              "type": "string",
-              "metadata": {
-                "description": "Name of the existing Azure AI Services account"
-              }
-            },
-            "aiProjectName": {
-              "type": "string",
-              "metadata": {
-                "description": "Name of the existing AI Project under the AI Services account"
-              }
-            }
-          },
-          "resources": [],
-          "outputs": {
-            "location": {
-              "type": "string",
-              "metadata": {
-                "description": "The Azure region of the AI Services account."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01', 'full').location]"
-            },
-            "skuName": {
-              "type": "string",
-              "metadata": {
-                "description": "The SKU name of the AI Services account."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01', 'full').sku.name]"
-            },
-            "kind": {
-              "type": "string",
-              "metadata": {
-                "description": "The kind of the AI Services account."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01', 'full').kind]"
-            },
-            "allowProjectManagement": {
-              "type": "bool",
-              "metadata": {
-                "description": "Whether project management is allowed on the AI Services account."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01').allowProjectManagement]"
-            },
-            "customSubDomainName": {
-              "type": "string",
-              "metadata": {
-                "description": "The custom subdomain name of the AI Services account."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01').customSubDomainName]"
-            },
-            "publicNetworkAccess": {
-              "type": "string",
-              "metadata": {
-                "description": "The public network access setting of the AI Services account."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01').publicNetworkAccess]"
-            },
-            "defaultNetworkAction": {
-              "type": "string",
-              "metadata": {
-                "description": "The default network action of the AI Services account."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01').networkAcls.defaultAction]"
-            },
-            "ipRules": {
-              "type": "array",
-              "metadata": {
-                "description": "The IP rules configured for the AI Services account."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01').networkAcls.ipRules]"
-            },
-            "vnetRules": {
-              "type": "array",
-              "metadata": {
-                "description": "The virtual network rules configured for the AI Services account."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01').networkAcls.virtualNetworkRules]"
-            },
-            "projectLocation": {
-              "type": "string",
-              "metadata": {
-                "description": "The Azure region of the AI Project."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName')), '2025-12-01', 'full').location]"
-            },
-            "projectKind": {
-              "type": "string",
-              "metadata": {
-                "description": "The kind of the AI Project."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName')), '2025-12-01', 'full').kind]"
-            },
-            "projectProvisioningState": {
-              "type": "string",
-              "metadata": {
-                "description": "The provisioning state of the AI Project."
-              },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName')), '2025-12-01').provisioningState]"
-            },
-            "projectPrincipalId": {
-              "type": "string",
-              "metadata": {
-                "description": "The principal ID of the AI Project system-assigned managed identity (empty if none)."
-              },
-              "value": "[if(and(contains(reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName')), '2025-12-01', 'full'), 'identity'), contains(reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName')), '2025-12-01', 'full').identity, 'principalId')), reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName')), '2025-12-01', 'full').identity.principalId, '')]"
-            }
-          }
-        }
-      }
-    },
-    {
-      "condition": "[not(empty(parameters('azureExistingAIProjectResourceId')))]",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
       "name": "setup_existing_project",
       "subscriptionId": "[variables('existingAIServiceSubscription')]",
       "resourceGroup": "[variables('existingAIServiceResourceGroup')]",
@@ -1294,30 +1157,6 @@
           },
           "aiProjectName": {
             "value": "[variables('existingAIProjectName')]"
-          },
-          "aiLocation": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'read_existing_foundry_project'), '2025-04-01').outputs.location.value]"
-          },
-          "aiKind": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'read_existing_foundry_project'), '2025-04-01').outputs.kind.value]"
-          },
-          "aiSkuName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'read_existing_foundry_project'), '2025-04-01').outputs.skuName.value]"
-          },
-          "customSubDomainName": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'read_existing_foundry_project'), '2025-04-01').outputs.customSubDomainName.value]"
-          },
-          "publicNetworkAccess": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'read_existing_foundry_project'), '2025-04-01').outputs.publicNetworkAccess.value]"
-          },
-          "defaultNetworkAction": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'read_existing_foundry_project'), '2025-04-01').outputs.defaultNetworkAction.value]"
-          },
-          "vnetRules": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'read_existing_foundry_project'), '2025-04-01').outputs.vnetRules.value]"
-          },
-          "ipRules": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'read_existing_foundry_project'), '2025-04-01').outputs.ipRules.value]"
           },
           "aiModelDeployments": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiModelDeployments.value]"
@@ -1342,70 +1181,20 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "9796650698899392679"
+              "templateHash": "10400323818213191572"
             }
           },
           "parameters": {
             "aiServicesName": {
               "type": "string",
               "metadata": {
-                "description": "The name of the AI Services account."
+                "description": "The name of the existing AI Services account."
               }
             },
             "aiProjectName": {
               "type": "string",
               "metadata": {
-                "description": "The name of the AI project under the AI Services account."
-              }
-            },
-            "aiLocation": {
-              "type": "string",
-              "metadata": {
-                "description": "The Azure region for the AI Services account."
-              }
-            },
-            "aiKind": {
-              "type": "string",
-              "metadata": {
-                "description": "The kind of AI Services account (e.g., AIServices)."
-              }
-            },
-            "aiSkuName": {
-              "type": "string",
-              "metadata": {
-                "description": "The SKU name for the AI Services account."
-              }
-            },
-            "customSubDomainName": {
-              "type": "string",
-              "metadata": {
-                "description": "The custom subdomain name for the AI Services account."
-              }
-            },
-            "publicNetworkAccess": {
-              "type": "string",
-              "metadata": {
-                "description": "The public network access setting for the AI Services account."
-              }
-            },
-            "defaultNetworkAction": {
-              "type": "string",
-              "metadata": {
-                "description": "The default network action for the AI Services account."
-              }
-            },
-            "vnetRules": {
-              "type": "array",
-              "defaultValue": [],
-              "metadata": {
-                "description": "Virtual network rules for the AI Services account."
-              }
-            },
-            "ipRules": {
-              "type": "array",
-              "defaultValue": [],
-              "metadata": {
-                "description": "IP rules for the AI Services account."
+                "description": "The name of the existing AI project."
               }
             },
             "aiModelDeployments": {
@@ -1474,29 +1263,6 @@
           },
           "resources": [
             {
-              "type": "Microsoft.CognitiveServices/accounts",
-              "apiVersion": "2025-12-01",
-              "name": "[parameters('aiServicesName')]",
-              "location": "[parameters('aiLocation')]",
-              "kind": "[parameters('aiKind')]",
-              "sku": {
-                "name": "[parameters('aiSkuName')]"
-              },
-              "identity": {
-                "type": "SystemAssigned"
-              },
-              "properties": {
-                "allowProjectManagement": true,
-                "customSubDomainName": "[parameters('customSubDomainName')]",
-                "networkAcls": {
-                  "defaultAction": "[parameters('defaultNetworkAction')]",
-                  "virtualNetworkRules": "[parameters('vnetRules')]",
-                  "ipRules": "[parameters('ipRules')]"
-                },
-                "publicNetworkAccess": "[parameters('publicNetworkAccess')]"
-              }
-            },
-            {
               "copy": {
                 "name": "aiServicesDeployments",
                 "count": "[length(parameters('aiModelDeployments'))]",
@@ -1517,27 +1283,10 @@
               "sku": {
                 "name": "[parameters('aiModelDeployments')[copyIndex()].sku.name]",
                 "capacity": "[parameters('aiModelDeployments')[copyIndex()].sku.capacity]"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName'))]"
-              ]
+              }
             },
             {
-              "condition": "[not(empty(parameters('aiProjectName')))]",
-              "type": "Microsoft.CognitiveServices/accounts/projects",
-              "apiVersion": "2025-12-01",
-              "name": "[format('{0}/{1}', parameters('aiServicesName'), parameters('aiProjectName'))]",
-              "location": "[parameters('aiLocation')]",
-              "identity": {
-                "type": "SystemAssigned"
-              },
-              "properties": {},
-              "dependsOn": [
-                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName'))]"
-              ]
-            },
-            {
-              "condition": "[and(not(empty(parameters('aiProjectName'))), not(empty(parameters('applicationInsightsId'))))]",
+              "condition": "[not(empty(parameters('applicationInsightsId')))]",
               "type": "Microsoft.CognitiveServices/accounts/projects/connections",
               "apiVersion": "2025-12-01",
               "name": "[format('{0}/{1}/{2}', parameters('aiServicesName'), parameters('aiProjectName'), 'appi-connection')]",
@@ -1554,13 +1303,10 @@
                   "ApiType": "Azure",
                   "ResourceId": "[parameters('applicationInsightsId')]"
                 }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName'))]"
-              ]
+              }
             },
             {
-              "condition": "[and(not(empty(parameters('aiProjectName'))), not(empty(parameters('aiSearchTarget'))))]",
+              "condition": "[not(empty(parameters('aiSearchTarget')))]",
               "type": "Microsoft.CognitiveServices/accounts/projects/connections",
               "apiVersion": "2025-12-01",
               "name": "[format('{0}/{1}/{2}', parameters('aiServicesName'), parameters('aiProjectName'), parameters('aiSearchConnectionName'))]",
@@ -1573,13 +1319,10 @@
                   "ApiType": "Azure",
                   "ResourceId": "[parameters('aiSearchId')]"
                 }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName'))]"
-              ]
+              }
             },
             {
-              "condition": "[and(not(empty(parameters('aiProjectName'))), not(empty(parameters('storageBlobEndpoint'))))]",
+              "condition": "[not(empty(parameters('storageBlobEndpoint')))]",
               "type": "Microsoft.CognitiveServices/accounts/projects/connections",
               "apiVersion": "2025-12-01",
               "name": "[format('{0}/{1}/{2}', parameters('aiServicesName'), parameters('aiProjectName'), 'storage-connection')]",
@@ -1593,10 +1336,7 @@
                   "AccountName": "[parameters('storageAccountName')]",
                   "ContainerName": "default"
                 }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName'))]"
-              ]
+              }
             }
           ],
           "outputs": {
@@ -1605,14 +1345,14 @@
               "metadata": {
                 "description": "The principal ID of the AI Services system-assigned managed identity."
               },
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01', 'full').identity.principalId]"
+              "value": "[if(and(contains(reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01', 'full'), 'identity'), contains(reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01', 'full').identity, 'principalId')), reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName')), '2025-12-01', 'full').identity.principalId, '')]"
             },
             "aiProjectPrincipalId": {
               "type": "string",
               "metadata": {
                 "description": "The principal ID of the AI Project system-assigned managed identity."
               },
-              "value": "[if(not(empty(parameters('aiProjectName'))), reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName')), '2025-12-01', 'full').identity.principalId, '')]"
+              "value": "[if(and(contains(reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName')), '2025-12-01', 'full'), 'identity'), contains(reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName')), '2025-12-01', 'full').identity, 'principalId')), reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('aiServicesName'), parameters('aiProjectName')), '2025-12-01', 'full').identity.principalId, '')]"
             },
             "aiSearchConnectionId": {
               "type": "string",
@@ -1628,7 +1368,6 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_search')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_app_insights')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('existingAIServiceSubscription'), variables('existingAIServiceResourceGroup')), 'Microsoft.Resources/deployments', 'read_existing_foundry_project')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_storage_account')]"
       ]
     },
@@ -2198,29 +1937,25 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": {
+          "solutionName": {
             "value": "[format('api-{0}', variables('solutionSuffix'))]"
           },
           "solutionLocation": {
             "value": "[variables('solutionLocation')]"
           },
-          "imageTag": {
-            "value": "[parameters('imageTag')]"
-          },
-          "acrName": {
-            "value": "[parameters('acrName')]"
-          },
           "appServicePlanId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_app_service_plan'), '2025-04-01').outputs.name.value]"
           },
-          "applicationInsightsId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_app_insights'), '2025-04-01').outputs.applicationInsightsId.value]"
+          "appImageName": {
+            "value": "[variables('backendApiImageName')]"
           },
           "userassignedIdentityId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.id]"
           },
           "appSettings": {
             "value": {
+              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_app_insights'), '2025-04-01').outputs.applicationInsightsInstrumentationKey.value]",
+              "REACT_APP_LAYOUT_CONFIG": "[variables('reactAppLayoutConfig')]",
               "AZURE_ENV_GPT_MODEL_NAME": "[parameters('gptModelName')]",
               "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": "[parameters('embeddingModel')]",
               "AZURE_OPENAI_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesTarget.value]",
@@ -2268,26 +2003,14 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "13291861955884603159"
+              "templateHash": "1543877450537365860"
             }
           },
           "parameters": {
-            "imageTag": {
+            "solutionName": {
               "type": "string",
               "metadata": {
-                "description": "The Docker image tag to deploy."
-              }
-            },
-            "acrName": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the Azure Container Registry."
-              }
-            },
-            "applicationInsightsId": {
-              "type": "string",
-              "metadata": {
-                "description": "The resource ID of the Application Insights instance."
+                "description": "Solution Name"
               }
             },
             "solutionLocation": {
@@ -2309,235 +2032,111 @@
                 "description": "The resource ID of the App Service Plan."
               }
             },
-            "userassignedIdentityId": {
+            "appImageName": {
               "type": "string",
               "metadata": {
-                "description": "The resource ID of the user-assigned managed identity."
+                "description": "The Docker image name to deploy."
               }
             },
-            "name": {
+            "userassignedIdentityId": {
               "type": "string",
+              "defaultValue": "",
               "metadata": {
-                "description": "The name of the App Service."
+                "description": "The resource ID of the user-assigned managed identity. If empty, only system-assigned identity is used."
               }
             }
-          },
-          "variables": {
-            "imageName": "[format('DOCKER|{0}.azurecr.io/da-api:{1}', parameters('acrName'), parameters('imageTag'))]",
-            "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
           },
           "resources": [
             {
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "[format('{0}-app-module', parameters('name'))]",
+              "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'ftp')]",
               "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "solutionName": {
-                    "value": "[parameters('name')]"
-                  },
-                  "solutionLocation": {
-                    "value": "[parameters('solutionLocation')]"
-                  },
-                  "appServicePlanId": {
-                    "value": "[parameters('appServicePlanId')]"
-                  },
-                  "appImageName": {
-                    "value": "[variables('imageName')]"
-                  },
-                  "userassignedIdentityId": {
-                    "value": "[parameters('userassignedIdentityId')]"
-                  },
-                  "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(parameters('applicationInsightsId'), '2015-05-01').InstrumentationKey, 'REACT_APP_LAYOUT_CONFIG', variables('reactAppLayoutConfig')))]"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "1543877450537365860"
-                    }
-                  },
-                  "parameters": {
-                    "solutionName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Solution Name"
-                      }
-                    },
-                    "solutionLocation": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Solution Location"
-                      }
-                    },
-                    "appSettings": {
-                      "type": "secureObject",
-                      "defaultValue": {},
-                      "metadata": {
-                        "description": "Application settings for the App Service."
-                      }
-                    },
-                    "appServicePlanId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The resource ID of the App Service Plan."
-                      }
-                    },
-                    "appImageName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The Docker image name to deploy."
-                      }
-                    },
-                    "userassignedIdentityId": {
-                      "type": "string",
-                      "defaultValue": "",
-                      "metadata": {
-                        "description": "The resource ID of the user-assigned managed identity. If empty, only system-assigned identity is used."
-                      }
-                    }
-                  },
-                  "resources": [
-                    {
-                      "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'ftp')]",
-                      "properties": {
-                        "allow": false
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
-                      ]
-                    },
-                    {
-                      "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'scm')]",
-                      "properties": {
-                        "allow": false
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
-                      ]
-                    },
-                    {
-                      "type": "Microsoft.Web/sites",
-                      "apiVersion": "2025-05-01",
-                      "name": "[parameters('solutionName')]",
-                      "location": "[parameters('solutionLocation')]",
-                      "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
-                      "properties": {
-                        "serverFarmId": "[parameters('appServicePlanId')]",
-                        "siteConfig": {
-                          "alwaysOn": true,
-                          "ftpsState": "Disabled",
-                          "linuxFxVersion": "[parameters('appImageName')]"
-                        }
-                      }
-                    },
-                    {
-                      "type": "Microsoft.Web/sites/config",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'appsettings')]",
-                      "properties": "[parameters('appSettings')]",
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
-                      ]
-                    },
-                    {
-                      "type": "Microsoft.Web/sites/config",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'logs')]",
-                      "properties": {
-                        "applicationLogs": {
-                          "fileSystem": {
-                            "level": "Verbose"
-                          }
-                        },
-                        "detailedErrorMessages": {
-                          "enabled": true
-                        },
-                        "failedRequestsTracing": {
-                          "enabled": true
-                        },
-                        "httpLogs": {
-                          "fileSystem": {
-                            "enabled": true,
-                            "retentionInDays": 1,
-                            "retentionInMb": 35
-                          }
-                        }
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]",
-                        "[resourceId('Microsoft.Web/sites/config', parameters('solutionName'), 'appsettings')]"
-                      ]
-                    }
-                  ],
-                  "outputs": {
-                    "identityPrincipalId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The principal ID of the App Service system-assigned managed identity."
-                      },
-                      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('solutionName')), '2025-05-01', 'full').identity.principalId]"
-                    },
-                    "appUrl": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The URL of the deployed App Service."
-                      },
-                      "value": "[format('https://{0}.azurewebsites.net', parameters('solutionName'))]"
-                    }
-                  }
+                "allow": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'scm')]",
+              "properties": {
+                "allow": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2025-05-01",
+              "name": "[parameters('solutionName')]",
+              "location": "[parameters('solutionLocation')]",
+              "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
+              "properties": {
+                "serverFarmId": "[parameters('appServicePlanId')]",
+                "siteConfig": {
+                  "alwaysOn": true,
+                  "ftpsState": "Disabled",
+                  "linuxFxVersion": "[parameters('appImageName')]"
                 }
               }
+            },
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'appsettings')]",
+              "properties": "[parameters('appSettings')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'logs')]",
+              "properties": {
+                "applicationLogs": {
+                  "fileSystem": {
+                    "level": "Verbose"
+                  }
+                },
+                "detailedErrorMessages": {
+                  "enabled": true
+                },
+                "failedRequestsTracing": {
+                  "enabled": true
+                },
+                "httpLogs": {
+                  "fileSystem": {
+                    "enabled": true,
+                    "retentionInDays": 1,
+                    "retentionInMb": 35
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]",
+                "[resourceId('Microsoft.Web/sites/config', parameters('solutionName'), 'appsettings')]"
+              ]
             }
           ],
           "outputs": {
+            "identityPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "The principal ID of the App Service system-assigned managed identity."
+              },
+              "value": "[reference(resourceId('Microsoft.Web/sites', parameters('solutionName')), '2025-05-01', 'full').identity.principalId]"
+            },
             "appUrl": {
               "type": "string",
               "metadata": {
                 "description": "The URL of the deployed App Service."
               },
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2025-04-01').outputs.appUrl.value]"
-            },
-            "appName": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the App Service."
-              },
-              "value": "[parameters('name')]"
-            },
-            "reactAppLayoutConfig": {
-              "type": "string",
-              "metadata": {
-                "description": "The React app layout configuration JSON."
-              },
-              "value": "[variables('reactAppLayoutConfig')]"
-            },
-            "appInsightInstrumentationKey": {
-              "type": "string",
-              "metadata": {
-                "description": "The Application Insights instrumentation key."
-              },
-              "value": "[reference(parameters('applicationInsightsId'), '2015-05-01').InstrumentationKey]"
-            },
-            "identityPrincipalId": {
-              "type": "string",
-              "metadata": {
-                "description": "The principal ID of the App Service managed identity."
-              },
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2025-04-01').outputs.identityPrincipalId.value]"
+              "value": "[format('https://{0}.azurewebsites.net', parameters('solutionName'))]"
             }
           }
         }
@@ -2564,29 +2163,25 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": {
+          "solutionName": {
             "value": "[format('api-cs-{0}', variables('solutionSuffix'))]"
           },
           "solutionLocation": {
             "value": "[variables('solutionLocation')]"
           },
-          "imageTag": {
-            "value": "[parameters('imageTag')]"
-          },
-          "acrName": {
-            "value": "[parameters('acrName')]"
-          },
           "appServicePlanId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_app_service_plan'), '2025-04-01').outputs.name.value]"
           },
-          "applicationInsightsId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_app_insights'), '2025-04-01').outputs.applicationInsightsId.value]"
+          "appImageName": {
+            "value": "[variables('backendCsApiImageName')]"
           },
           "userassignedIdentityId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_managed_identity'), '2025-04-01').outputs.managedIdentityBackendAppOutput.value.id]"
           },
           "appSettings": {
             "value": {
+              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_app_insights'), '2025-04-01').outputs.applicationInsightsInstrumentationKey.value]",
+              "REACT_APP_LAYOUT_CONFIG": "[variables('reactAppLayoutConfig')]",
               "AZURE_ENV_GPT_MODEL_NAME": "[parameters('gptModelName')]",
               "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": "[parameters('embeddingModel')]",
               "AZURE_OPENAI_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_ai_foundry'), '2025-04-01').outputs.aiServicesTarget.value]",
@@ -2625,26 +2220,14 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "12590956049646350698"
+              "templateHash": "1543877450537365860"
             }
           },
           "parameters": {
-            "imageTag": {
+            "solutionName": {
               "type": "string",
               "metadata": {
-                "description": "The Docker image tag to deploy."
-              }
-            },
-            "acrName": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the Azure Container Registry."
-              }
-            },
-            "applicationInsightsId": {
-              "type": "string",
-              "metadata": {
-                "description": "The resource ID of the Application Insights instance."
+                "description": "Solution Name"
               }
             },
             "solutionLocation": {
@@ -2666,235 +2249,111 @@
                 "description": "The resource ID of the App Service Plan."
               }
             },
-            "userassignedIdentityId": {
+            "appImageName": {
               "type": "string",
               "metadata": {
-                "description": "The resource ID of the user-assigned managed identity."
+                "description": "The Docker image name to deploy."
               }
             },
-            "name": {
+            "userassignedIdentityId": {
               "type": "string",
+              "defaultValue": "",
               "metadata": {
-                "description": "The name of the App Service."
+                "description": "The resource ID of the user-assigned managed identity. If empty, only system-assigned identity is used."
               }
             }
-          },
-          "variables": {
-            "imageName": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('acrName'), parameters('imageTag'))]",
-            "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
           },
           "resources": [
             {
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "[format('{0}-app-module', parameters('name'))]",
+              "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'ftp')]",
               "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "solutionName": {
-                    "value": "[parameters('name')]"
-                  },
-                  "solutionLocation": {
-                    "value": "[parameters('solutionLocation')]"
-                  },
-                  "appServicePlanId": {
-                    "value": "[parameters('appServicePlanId')]"
-                  },
-                  "appImageName": {
-                    "value": "[variables('imageName')]"
-                  },
-                  "userassignedIdentityId": {
-                    "value": "[parameters('userassignedIdentityId')]"
-                  },
-                  "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(parameters('applicationInsightsId'), '2015-05-01').InstrumentationKey, 'REACT_APP_LAYOUT_CONFIG', variables('reactAppLayoutConfig')))]"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "1543877450537365860"
-                    }
-                  },
-                  "parameters": {
-                    "solutionName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Solution Name"
-                      }
-                    },
-                    "solutionLocation": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Solution Location"
-                      }
-                    },
-                    "appSettings": {
-                      "type": "secureObject",
-                      "defaultValue": {},
-                      "metadata": {
-                        "description": "Application settings for the App Service."
-                      }
-                    },
-                    "appServicePlanId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The resource ID of the App Service Plan."
-                      }
-                    },
-                    "appImageName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The Docker image name to deploy."
-                      }
-                    },
-                    "userassignedIdentityId": {
-                      "type": "string",
-                      "defaultValue": "",
-                      "metadata": {
-                        "description": "The resource ID of the user-assigned managed identity. If empty, only system-assigned identity is used."
-                      }
-                    }
-                  },
-                  "resources": [
-                    {
-                      "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'ftp')]",
-                      "properties": {
-                        "allow": false
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
-                      ]
-                    },
-                    {
-                      "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'scm')]",
-                      "properties": {
-                        "allow": false
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
-                      ]
-                    },
-                    {
-                      "type": "Microsoft.Web/sites",
-                      "apiVersion": "2025-05-01",
-                      "name": "[parameters('solutionName')]",
-                      "location": "[parameters('solutionLocation')]",
-                      "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
-                      "properties": {
-                        "serverFarmId": "[parameters('appServicePlanId')]",
-                        "siteConfig": {
-                          "alwaysOn": true,
-                          "ftpsState": "Disabled",
-                          "linuxFxVersion": "[parameters('appImageName')]"
-                        }
-                      }
-                    },
-                    {
-                      "type": "Microsoft.Web/sites/config",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'appsettings')]",
-                      "properties": "[parameters('appSettings')]",
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
-                      ]
-                    },
-                    {
-                      "type": "Microsoft.Web/sites/config",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'logs')]",
-                      "properties": {
-                        "applicationLogs": {
-                          "fileSystem": {
-                            "level": "Verbose"
-                          }
-                        },
-                        "detailedErrorMessages": {
-                          "enabled": true
-                        },
-                        "failedRequestsTracing": {
-                          "enabled": true
-                        },
-                        "httpLogs": {
-                          "fileSystem": {
-                            "enabled": true,
-                            "retentionInDays": 1,
-                            "retentionInMb": 35
-                          }
-                        }
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]",
-                        "[resourceId('Microsoft.Web/sites/config', parameters('solutionName'), 'appsettings')]"
-                      ]
-                    }
-                  ],
-                  "outputs": {
-                    "identityPrincipalId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The principal ID of the App Service system-assigned managed identity."
-                      },
-                      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('solutionName')), '2025-05-01', 'full').identity.principalId]"
-                    },
-                    "appUrl": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The URL of the deployed App Service."
-                      },
-                      "value": "[format('https://{0}.azurewebsites.net', parameters('solutionName'))]"
-                    }
-                  }
+                "allow": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'scm')]",
+              "properties": {
+                "allow": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2025-05-01",
+              "name": "[parameters('solutionName')]",
+              "location": "[parameters('solutionLocation')]",
+              "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
+              "properties": {
+                "serverFarmId": "[parameters('appServicePlanId')]",
+                "siteConfig": {
+                  "alwaysOn": true,
+                  "ftpsState": "Disabled",
+                  "linuxFxVersion": "[parameters('appImageName')]"
                 }
               }
+            },
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'appsettings')]",
+              "properties": "[parameters('appSettings')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'logs')]",
+              "properties": {
+                "applicationLogs": {
+                  "fileSystem": {
+                    "level": "Verbose"
+                  }
+                },
+                "detailedErrorMessages": {
+                  "enabled": true
+                },
+                "failedRequestsTracing": {
+                  "enabled": true
+                },
+                "httpLogs": {
+                  "fileSystem": {
+                    "enabled": true,
+                    "retentionInDays": 1,
+                    "retentionInMb": 35
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]",
+                "[resourceId('Microsoft.Web/sites/config', parameters('solutionName'), 'appsettings')]"
+              ]
             }
           ],
           "outputs": {
+            "identityPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "The principal ID of the App Service system-assigned managed identity."
+              },
+              "value": "[reference(resourceId('Microsoft.Web/sites', parameters('solutionName')), '2025-05-01', 'full').identity.principalId]"
+            },
             "appUrl": {
               "type": "string",
               "metadata": {
                 "description": "The URL of the deployed App Service."
               },
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2025-04-01').outputs.appUrl.value]"
-            },
-            "appName": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the App Service."
-              },
-              "value": "[parameters('name')]"
-            },
-            "reactAppLayoutConfig": {
-              "type": "string",
-              "metadata": {
-                "description": "The React app layout configuration JSON."
-              },
-              "value": "[variables('reactAppLayoutConfig')]"
-            },
-            "appInsightInstrumentationKey": {
-              "type": "string",
-              "metadata": {
-                "description": "The Application Insights instrumentation key."
-              },
-              "value": "[reference(parameters('applicationInsightsId'), '2015-05-01').InstrumentationKey]"
-            },
-            "identityPrincipalId": {
-              "type": "string",
-              "metadata": {
-                "description": "The principal ID of the App Service managed identity."
-              },
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2025-04-01').outputs.identityPrincipalId.value]"
+              "value": "[format('https://{0}.azurewebsites.net', parameters('solutionName'))]"
             }
           }
         }
@@ -2920,26 +2379,21 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "name": {
+          "solutionName": {
             "value": "[format('app-{0}', variables('solutionSuffix'))]"
           },
           "solutionLocation": {
             "value": "[variables('solutionLocation')]"
           },
-          "imageTag": {
-            "value": "[parameters('imageTag')]"
-          },
-          "acrName": {
-            "value": "[parameters('acrName')]"
-          },
           "appServicePlanId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy_app_service_plan'), '2025-04-01').outputs.name.value]"
           },
-          "applicationInsightsId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_app_insights'), '2025-04-01').outputs.applicationInsightsId.value]"
+          "appImageName": {
+            "value": "[variables('frontendImageName')]"
           },
           "appSettings": {
             "value": {
+              "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_app_insights'), '2025-04-01').outputs.applicationInsightsInstrumentationKey.value]",
               "APP_API_BASE_URL": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appUrl.value)]",
               "CHAT_LANDING_TEXT": "[variables('landingText')]",
               "IS_WORKSHOP": "[if(parameters('isWorkshop'), 'True', 'False')]",
@@ -2955,26 +2409,14 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "4101529151604883183"
+              "templateHash": "1543877450537365860"
             }
           },
           "parameters": {
-            "imageTag": {
+            "solutionName": {
               "type": "string",
               "metadata": {
-                "description": "The Docker image tag to deploy."
-              }
-            },
-            "acrName": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the Azure Container Registry."
-              }
-            },
-            "applicationInsightsId": {
-              "type": "string",
-              "metadata": {
-                "description": "The resource ID of the Application Insights instance."
+                "description": "Solution Name"
               }
             },
             "solutionLocation": {
@@ -2996,197 +2438,111 @@
                 "description": "The resource ID of the App Service Plan."
               }
             },
-            "name": {
+            "appImageName": {
               "type": "string",
               "metadata": {
-                "description": "The name of the App Service."
+                "description": "The Docker image name to deploy."
+              }
+            },
+            "userassignedIdentityId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "The resource ID of the user-assigned managed identity. If empty, only system-assigned identity is used."
               }
             }
-          },
-          "variables": {
-            "imageName": "[format('DOCKER|{0}.azurecr.io/da-app:{1}', parameters('acrName'), parameters('imageTag'))]"
           },
           "resources": [
             {
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "[format('{0}-app-module', parameters('name'))]",
+              "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'ftp')]",
               "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "solutionLocation": {
-                    "value": "[parameters('solutionLocation')]"
-                  },
-                  "solutionName": {
-                    "value": "[parameters('name')]"
-                  },
-                  "appServicePlanId": {
-                    "value": "[parameters('appServicePlanId')]"
-                  },
-                  "appImageName": {
-                    "value": "[variables('imageName')]"
-                  },
-                  "appSettings": {
-                    "value": "[union(parameters('appSettings'), createObject('APPINSIGHTS_INSTRUMENTATIONKEY', reference(parameters('applicationInsightsId'), '2015-05-01').InstrumentationKey))]"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "1543877450537365860"
-                    }
-                  },
-                  "parameters": {
-                    "solutionName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Solution Name"
-                      }
-                    },
-                    "solutionLocation": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Solution Location"
-                      }
-                    },
-                    "appSettings": {
-                      "type": "secureObject",
-                      "defaultValue": {},
-                      "metadata": {
-                        "description": "Application settings for the App Service."
-                      }
-                    },
-                    "appServicePlanId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The resource ID of the App Service Plan."
-                      }
-                    },
-                    "appImageName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The Docker image name to deploy."
-                      }
-                    },
-                    "userassignedIdentityId": {
-                      "type": "string",
-                      "defaultValue": "",
-                      "metadata": {
-                        "description": "The resource ID of the user-assigned managed identity. If empty, only system-assigned identity is used."
-                      }
-                    }
-                  },
-                  "resources": [
-                    {
-                      "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'ftp')]",
-                      "properties": {
-                        "allow": false
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
-                      ]
-                    },
-                    {
-                      "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'scm')]",
-                      "properties": {
-                        "allow": false
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
-                      ]
-                    },
-                    {
-                      "type": "Microsoft.Web/sites",
-                      "apiVersion": "2025-05-01",
-                      "name": "[parameters('solutionName')]",
-                      "location": "[parameters('solutionLocation')]",
-                      "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
-                      "properties": {
-                        "serverFarmId": "[parameters('appServicePlanId')]",
-                        "siteConfig": {
-                          "alwaysOn": true,
-                          "ftpsState": "Disabled",
-                          "linuxFxVersion": "[parameters('appImageName')]"
-                        }
-                      }
-                    },
-                    {
-                      "type": "Microsoft.Web/sites/config",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'appsettings')]",
-                      "properties": "[parameters('appSettings')]",
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
-                      ]
-                    },
-                    {
-                      "type": "Microsoft.Web/sites/config",
-                      "apiVersion": "2025-05-01",
-                      "name": "[format('{0}/{1}', parameters('solutionName'), 'logs')]",
-                      "properties": {
-                        "applicationLogs": {
-                          "fileSystem": {
-                            "level": "Verbose"
-                          }
-                        },
-                        "detailedErrorMessages": {
-                          "enabled": true
-                        },
-                        "failedRequestsTracing": {
-                          "enabled": true
-                        },
-                        "httpLogs": {
-                          "fileSystem": {
-                            "enabled": true,
-                            "retentionInDays": 1,
-                            "retentionInMb": 35
-                          }
-                        }
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]",
-                        "[resourceId('Microsoft.Web/sites/config', parameters('solutionName'), 'appsettings')]"
-                      ]
-                    }
-                  ],
-                  "outputs": {
-                    "identityPrincipalId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The principal ID of the App Service system-assigned managed identity."
-                      },
-                      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('solutionName')), '2025-05-01', 'full').identity.principalId]"
-                    },
-                    "appUrl": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The URL of the deployed App Service."
-                      },
-                      "value": "[format('https://{0}.azurewebsites.net', parameters('solutionName'))]"
-                    }
-                  }
+                "allow": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'scm')]",
+              "properties": {
+                "allow": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2025-05-01",
+              "name": "[parameters('solutionName')]",
+              "location": "[parameters('solutionLocation')]",
+              "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
+              "properties": {
+                "serverFarmId": "[parameters('appServicePlanId')]",
+                "siteConfig": {
+                  "alwaysOn": true,
+                  "ftpsState": "Disabled",
+                  "linuxFxVersion": "[parameters('appImageName')]"
                 }
               }
+            },
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'appsettings')]",
+              "properties": "[parameters('appSettings')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-05-01",
+              "name": "[format('{0}/{1}', parameters('solutionName'), 'logs')]",
+              "properties": {
+                "applicationLogs": {
+                  "fileSystem": {
+                    "level": "Verbose"
+                  }
+                },
+                "detailedErrorMessages": {
+                  "enabled": true
+                },
+                "failedRequestsTracing": {
+                  "enabled": true
+                },
+                "httpLogs": {
+                  "fileSystem": {
+                    "enabled": true,
+                    "retentionInDays": 1,
+                    "retentionInMb": 35
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('solutionName'))]",
+                "[resourceId('Microsoft.Web/sites/config', parameters('solutionName'), 'appsettings')]"
+              ]
             }
           ],
           "outputs": {
+            "identityPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "The principal ID of the App Service system-assigned managed identity."
+              },
+              "value": "[reference(resourceId('Microsoft.Web/sites', parameters('solutionName')), '2025-05-01', 'full').identity.principalId]"
+            },
             "appUrl": {
               "type": "string",
               "metadata": {
                 "description": "The URL of the deployed App Service."
               },
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-app-module', parameters('name'))), '2025-04-01').outputs.appUrl.value]"
+              "value": "[format('https://{0}.azurewebsites.net', parameters('solutionName'))]"
             }
           }
         }
@@ -3956,7 +3312,7 @@
       "metadata": {
         "description": "Backend API App Service name"
       },
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_docker'), '2025-04-01').outputs.appName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', 'deploy_backend_csapi_docker'), '2025-04-01').outputs.appName.value), '')]"
+      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), format('api-{0}', variables('solutionSuffix')), format('api-cs-{0}', variables('solutionSuffix'))), '')]"
     },
     "API_PID": {
       "type": "string",

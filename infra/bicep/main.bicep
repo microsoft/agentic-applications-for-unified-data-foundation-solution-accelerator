@@ -243,20 +243,11 @@ module ai_search './modules/ai/ai-search.bicep' = if (isWorkshop) {
   scope: resourceGroup(resourceGroup().name)
 }
 
-// ========== Existing Project Setup (identity + models + connections) ========== //
+// ========== Existing Project Setup (models + connections) ========== //
 var existingAIServicesName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[8] : ''
 var existingAIProjectName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[10] : ''
 var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
-
-module existing_foundry_read './modules/ai/existing-foundry-project.bicep' = if (!empty(azureExistingAIProjectResourceId)) {
-  name: 'read_existing_foundry_project'
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
-  params: {
-    aiServicesName: existingAIServicesName
-    aiProjectName: existingAIProjectName
-  }
-}
 
 module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (!empty(azureExistingAIProjectResourceId)) {
   name: 'setup_existing_project'
@@ -264,14 +255,6 @@ module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (
   params: {
     aiServicesName: existingAIServicesName
     aiProjectName: existingAIProjectName
-    aiLocation: existing_foundry_read!.outputs.location
-    aiKind: existing_foundry_read!.outputs.kind
-    aiSkuName: existing_foundry_read!.outputs.skuName
-    customSubDomainName: existing_foundry_read!.outputs.customSubDomainName
-    publicNetworkAccess: existing_foundry_read!.outputs.publicNetworkAccess
-    defaultNetworkAction: existing_foundry_read!.outputs.defaultNetworkAction
-    vnetRules: existing_foundry_read!.outputs.vnetRules
-    ipRules: existing_foundry_read!.outputs.ipRules
     aiModelDeployments: aifoundry.outputs.aiModelDeployments
     applicationInsightsId: app_insights.outputs.applicationInsightsId
     applicationInsightsInstrumentationKey: app_insights.outputs.applicationInsightsInstrumentationKey
@@ -326,18 +309,32 @@ module hostingplan './modules/compute/app-service-plan.bicep' = if (shouldDeploy
   }
 }
 
+// ========== Compute image names ========== //
+var backendApiImageName = 'DOCKER|${acrName}.azurecr.io/da-api:${imageTag}'
+var backendCsApiImageName = 'DOCKER|${acrName}.azurecr.io/da-api-dotnet:${imageTag}'
+var frontendImageName = 'DOCKER|${acrName}.azurecr.io/da-app:${imageTag}'
+var reactAppLayoutConfig = '''{
+  "appConfig": {
+      "CHAT_CHATHISTORY": {
+        "CHAT": 70,
+        "CHATHISTORY": 30
+      }
+    }
+  }
+}'''
+
 // ========== Backend Deployment (Python) ========== //
-module backend_docker './modules/compute/backend-docker.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
+module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
   name: 'deploy_backend_docker'
   params: {
-    name: 'api-${solutionSuffix}'
+    solutionName: 'api-${solutionSuffix}'
     solutionLocation: solutionLocation
-    imageTag: imageTag
-    acrName: acrName
     appServicePlanId: hostingplan!.outputs.name
-    applicationInsightsId: app_insights.outputs.applicationInsightsId
+    appImageName: backendApiImageName
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
     appSettings: {
+      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
+      REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
@@ -384,17 +381,17 @@ module backend_docker './modules/compute/backend-docker.bicep' = if (shouldDeplo
 }
 
 // ========== Backend Deployment (C#) ========== //
-module backend_csapi_docker './modules/compute/backend-csapi-docker.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
+module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
   name: 'deploy_backend_csapi_docker'
   params: {
-    name: 'api-cs-${solutionSuffix}'
+    solutionName: 'api-cs-${solutionSuffix}'
     solutionLocation: solutionLocation
-    imageTag: imageTag
-    acrName: acrName
     appServicePlanId: hostingplan!.outputs.name
-    applicationInsightsId: app_insights.outputs.applicationInsightsId
+    appImageName: backendCsApiImageName
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
     appSettings: {
+      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
+      REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
@@ -433,16 +430,16 @@ module backend_csapi_docker './modules/compute/backend-csapi-docker.bicep' = if 
 
 var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
 
-module frontend_docker './modules/compute/frontend-docker.bicep' = if (shouldDeployApp) {
+// ========== Frontend Deployment ========== //
+module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployApp) {
   name: 'deploy_frontend_docker'
   params: {
-    name: 'app-${solutionSuffix}'
-    solutionLocation:solutionLocation
-    imageTag: imageTag
-    acrName: acrName
+    solutionName: 'app-${solutionSuffix}'
+    solutionLocation: solutionLocation
     appServicePlanId: hostingplan!.outputs.name
-    applicationInsightsId: app_insights.outputs.applicationInsightsId
-    appSettings:{
+    appImageName: frontendImageName
+    appSettings: {
+      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
       CHAT_LANDING_TEXT: landingText
       IS_WORKSHOP: isWorkshop ? 'True' : 'False'
@@ -523,7 +520,7 @@ output AZURE_AI_AGENT_ENDPOINT string = aifoundry.outputs.projectEndpoint
 output AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME string = gptModelName
 
 @description('Backend API App Service name')
-output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appName : backend_csapi_docker!.outputs.appName) : ''
+output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? 'api-${solutionSuffix}' : 'api-cs-${solutionSuffix}') : ''
 
 @description('Backend API managed identity object/principal ID')
 output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.objectId

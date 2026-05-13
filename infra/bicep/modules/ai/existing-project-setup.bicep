@@ -1,42 +1,14 @@
 // ============================================================================
 // existing-project-setup.bicep
-// Full setup for an existing AI Foundry project:
-//   1. Updates AI Services with system-assigned managed identity
-//   2. Deploys AI model deployments (GPT + optional embedding)
-//   3. Updates AI Project with system-assigned managed identity
-//   4. Creates project connections (AppInsights, Search, Storage)
-// Called from main.bicep with cross-scope after existing-foundry-project.bicep reads properties.
+// For existing AI Foundry projects: deploys models + creates connections.
+// Follows MACAE pattern — uses `existing` refs only, no identity re-PUT.
 // ============================================================================
 
-@description('The name of the AI Services account.')
+@description('The name of the existing AI Services account.')
 param aiServicesName string
 
-@description('The name of the AI project under the AI Services account.')
+@description('The name of the existing AI project.')
 param aiProjectName string
-
-@description('The Azure region for the AI Services account.')
-param aiLocation string
-
-@description('The kind of AI Services account (e.g., AIServices).')
-param aiKind string
-
-@description('The SKU name for the AI Services account.')
-param aiSkuName string
-
-@description('The custom subdomain name for the AI Services account.')
-param customSubDomainName string
-
-@description('The public network access setting for the AI Services account.')
-param publicNetworkAccess string
-
-@description('The default network action for the AI Services account.')
-param defaultNetworkAction string
-
-@description('Virtual network rules for the AI Services account.')
-param vnetRules array = []
-
-@description('IP rules for the AI Services account.')
-param ipRules array = []
 
 @description('Array of AI model deployments to create.')
 param aiModelDeployments array = []
@@ -68,68 +40,46 @@ param storageAccountId string = ''
 param storageAccountName string = ''
 
 // ============================================================================
-// Identity Setup
+// Existing Resource References
 // ============================================================================
 
-// Update AI Services with system-assigned managed identity
-resource aiServicesWithIdentity 'Microsoft.CognitiveServices/accounts@2025-12-01' = {
+resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
   name: aiServicesName
-  location: aiLocation
-  kind: aiKind
-  sku: {
-    name: aiSkuName
-  }
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    allowProjectManagement: true
-    customSubDomainName: customSubDomainName
-    networkAcls: {
-      defaultAction: defaultNetworkAction
-      virtualNetworkRules: vnetRules
-      ipRules: ipRules
-    }
-    publicNetworkAccess: publicNetworkAccess
-  }
 }
 
-// Deploy AI models
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' existing = {
+  parent: aiServices
+  name: aiProjectName
+}
+
+// ============================================================================
+// Model Deployments
+// ============================================================================
+
 @batchSize(1)
-resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments@2025-12-01' = [for aiModeldeployment in aiModelDeployments: if (!empty(aiModelDeployments)) {
-  parent: aiServicesWithIdentity
-  name: aiModeldeployment.name
+resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments@2025-12-01' = [for deployment in aiModelDeployments: if (!empty(aiModelDeployments)) {
+  parent: aiServices
+  name: deployment.name
   properties: {
     model: {
       format: 'OpenAI'
-      name: aiModeldeployment.model
+      name: deployment.model
     }
-    raiPolicyName: aiModeldeployment.raiPolicyName
+    raiPolicyName: deployment.raiPolicyName
   }
   sku: {
-    name: aiModeldeployment.sku.name
-    capacity: aiModeldeployment.sku.capacity
+    name: deployment.sku.name
+    capacity: deployment.sku.capacity
   }
 }]
-
-// Update AI Project with system-assigned managed identity
-resource aiProjectWithIdentity 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = if (!empty(aiProjectName)) {
-  name: aiProjectName
-  parent: aiServicesWithIdentity
-  location: aiLocation
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {}
-}
 
 // ============================================================================
 // Connections
 // ============================================================================
 
 // Application Insights connection
-resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (!empty(aiProjectName) && !empty(applicationInsightsId)) {
-  parent: aiProjectWithIdentity
+resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (!empty(applicationInsightsId)) {
+  parent: aiProject
   name: 'appi-connection'
   properties: {
     category: 'AppInsights'
@@ -148,8 +98,8 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/co
 }
 
 // AI Search connection
-resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (!empty(aiProjectName) && !empty(aiSearchTarget)) {
-  parent: aiProjectWithIdentity
+resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (!empty(aiSearchTarget)) {
+  parent: aiProject
   name: aiSearchConnectionName
   properties: {
     category: 'CognitiveSearch'
@@ -164,8 +114,8 @@ resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connect
 }
 
 // Storage Blob connection
-resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (!empty(aiProjectName) && !empty(storageBlobEndpoint)) {
-  parent: aiProjectWithIdentity
+resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (!empty(storageBlobEndpoint)) {
+  parent: aiProject
   name: 'storage-connection'
   properties: {
     category: 'AzureBlob'
@@ -185,10 +135,10 @@ resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connec
 // ============================================================================
 
 @description('The principal ID of the AI Services system-assigned managed identity.')
-output aiServicesPrincipalId string = aiServicesWithIdentity.identity.principalId
+output aiServicesPrincipalId string = contains(aiServices, 'identity') && contains(aiServices.identity, 'principalId') ? aiServices.identity.principalId : ''
 
 @description('The principal ID of the AI Project system-assigned managed identity.')
-output aiProjectPrincipalId string = !empty(aiProjectName) ? aiProjectWithIdentity.identity.principalId : ''
+output aiProjectPrincipalId string = contains(aiProject, 'identity') && contains(aiProject.identity, 'principalId') ? aiProject.identity.principalId : ''
 
 @description('The resource ID of the AI Search connection.')
 output aiSearchConnectionId string = !empty(aiSearchTarget) ? searchConnection.id : ''
