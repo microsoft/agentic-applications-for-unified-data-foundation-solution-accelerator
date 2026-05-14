@@ -1,15 +1,15 @@
 {
   "_comment": "This file is populated when you run 06_create_agent.py",
-  "chat_agent_id": "ChatAgent:1",
-  "chat_agent_name": "ChatAgent",
-  "title_agent_id": "TitleAgent:1",
-  "title_agent_name": "TitleAgent",
-  "search_index": "knowledge_index",
-  "sql_mode": "azure_sql",
-  "sql_server": "sql-agenapptestgvyqn.database.windows.net",
-  "sql_database": "sqldb-agenapptestgvyqn",
-  "search_mode": "knowledge_base",
-  "knowledge_base_name": "agenapptestgvyqn-kb",
-  "mcp_connection_name": "agenapptestgvyqn-kb-mcp-connection",
-  "search_endpoint": "https://srch-agenapptestgvyqn.search.windows.net"
+  "chat_agent_id": "",
+  "chat_agent_name": "",
+  "title_agent_id": "",
+  "title_agent_name": "",
+  "search_index": "",
+  "sql_mode": "",
+  "sql_server": "",
+  "sql_database": "",
+  "search_mode": "",
+  "knowledge_base_name": "",
+  "mcp_connection_name": "",
+  "search_endpoint": ""
 }
