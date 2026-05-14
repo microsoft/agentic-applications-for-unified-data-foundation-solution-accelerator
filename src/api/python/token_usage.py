@@ -241,7 +241,7 @@ def track_token_usage(
             "user_id": user_id or "",
             "conversation_id": conversation_id or "",
         })
-        logger.info(
+        logger.debug(
             "[TOKEN USAGE] agent=%s model=%s input=%d output=%d total=%d",
             agent_name, model_deployment_name, input_tokens, output_tokens, total_tokens,
         )
