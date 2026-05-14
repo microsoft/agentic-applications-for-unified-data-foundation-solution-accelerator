@@ -3,7 +3,7 @@ from azure.ai.projects import AIProjectClient
 import sys
 import os
 import argparse
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'utilities')))
 from azure.ai.projects.models import PromptAgentDefinition, FunctionTool, AzureAISearchAgentTool, AzureAISearchToolResource, AISearchIndexResource
 from azure_credential_utils import get_azure_credential
 

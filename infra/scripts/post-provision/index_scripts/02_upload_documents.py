@@ -17,7 +17,7 @@ import os
 import re
 from pathlib import Path
 from urllib.parse import urlparse
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'utilities')))
 
 from azure.ai.inference import EmbeddingsClient
 from azure.search.documents import SearchClient
