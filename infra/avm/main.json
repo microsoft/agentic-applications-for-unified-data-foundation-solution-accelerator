@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "1044884784569735161"
+      "templateHash": "3287526941034257872"
     }
   },
   "parameters": {
@@ -329,11 +329,14 @@
     "solutionSuffix": "[toLower(trim(replace(replace(replace(replace(replace(replace(format('{0}{1}', parameters('environmentName'), parameters('solutionUniqueText')), '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))]",
     "deployerInfo": "[deployer()]",
     "deployingUserPrincipalId": "[variables('deployerInfo').objectId]",
+    "createdBy": "[if(contains(variables('deployerInfo'), 'userPrincipalName'), split(variables('deployerInfo').userPrincipalName, '@')[0], variables('deployerInfo').objectId)]",
     "shouldDeployApp": "[or(not(parameters('isWorkshop')), parameters('deployApp'))]",
     "useExistingAIProject": "[not(empty(parameters('existingAIProjectResourceId')))]",
     "useChatHistoryEnabledSetting": "[if(parameters('useChatHistoryEnabled'), 'True', 'False')]",
     "useUserAccessTokenSetting": "[if(parameters('useUserAccessToken'), 'True', 'False')]",
     "landingText": "[if(equals(parameters('usecase'), 'Retail-sales-analysis'), 'You can ask questions around sales, products and orders.', 'You can ask questions around customer policies, claims and communications.')]",
+    "existingTags": "[coalesce(resourceGroup().tags, createObject())]",
+    "resourceTags": "[union(variables('existingTags'), parameters('tags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', variables('createdBy'), 'DeploymentName', deployment().name, 'Type', if(parameters('enablePrivateNetworking'), 'WAF', 'Non-WAF')))]",
     "replicaRegionPairs": {
       "australiaeast": "australiasoutheast",
       "eastus": "centralus",
@@ -404,9 +407,20 @@
     "virtualMachineAvailabilityZone": 1,
     "aiServicesResourceGroupName": "[if(variables('useExistingAIProject'), split(parameters('existingAIProjectResourceId'), '/')[4], resourceGroup().name)]",
     "aiServicesSubscriptionId": "[if(variables('useExistingAIProject'), split(parameters('existingAIProjectResourceId'), '/')[2], subscription().subscriptionId)]",
-    "aiServicesResourceName": "[if(variables('useExistingAIProject'), split(parameters('existingAIProjectResourceId'), '/')[8], variables('names').aiServices)]"
+    "aiServicesResourceName": "[if(variables('useExistingAIProject'), split(parameters('existingAIProjectResourceId'), '/')[8], variables('names').aiServices)]",
+    "existingHasProjectSegment": "[and(variables('useExistingAIProject'), greater(length(split(parameters('existingAIProjectResourceId'), '/')), 10))]",
+    "existingOpenAIEndpoint": "[if(variables('useExistingAIProject'), format('https://{0}.openai.azure.com/', split(parameters('existingAIProjectResourceId'), '/')[8]), '')]",
+    "existingProjectEndpoint": "[if(variables('existingHasProjectSegment'), format('https://{0}.services.ai.azure.com/api/projects/{1}', split(parameters('existingAIProjectResourceId'), '/')[8], split(parameters('existingAIProjectResourceId'), '/')[10]), '')]"
   },
   "resources": {
+    "resourceGroupTags": {
+      "type": "Microsoft.Resources/tags",
+      "apiVersion": "2024-11-01",
+      "name": "default",
+      "properties": {
+        "tags": "[variables('resourceTags')]"
+      }
+    },
     "existingLogAnalyticsWorkspace": {
       "condition": "[variables('useExistingLogAnalytics')]",
       "existing": true,
@@ -25813,13 +25827,7 @@
             ]
           },
           "roleAssignments": {
-            "value": [
-              {
-                "roleDefinitionIdOrName": "53ca6127-db72-4b80-b1b0-d745d6d5456d",
-                "principalId": "[reference('primaryIdentity').outputs.principalId.value]",
-                "principalType": "ServicePrincipal"
-              }
-            ]
+            "value": "[concat(createArray(createObject('roleDefinitionIdOrName', '53ca6127-db72-4b80-b1b0-d745d6d5456d', 'principalId', reference('primaryIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal')), if(variables('shouldDeployApp'), createArray(createObject('roleDefinitionIdOrName', '53ca6127-db72-4b80-b1b0-d745d6d5456d', 'principalId', if(equals(parameters('backendRuntimeStack'), 'python'), reference('backendApi').outputs.identityPrincipalId.value, reference('backendCsApi').outputs.identityPrincipalId.value), 'principalType', 'ServicePrincipal')), createArray()))]"
           }
         },
         "template": {
@@ -26144,6 +26152,8 @@
         }
       },
       "dependsOn": [
+        "backendApi",
+        "backendCsApi",
         "primaryIdentity"
       ]
     },
@@ -29692,8 +29702,8 @@
       },
       "dependsOn": [
         "aiServices",
-        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').aiServices)]",
+        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').openAI)]",
         "virtualNetwork"
       ]
@@ -44465,7 +44475,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "2118816479193431592"
+              "templateHash": "1167437350123554382"
             }
           },
           "parameters": {
@@ -44625,7 +44635,7 @@
                         "availabilityZone": -1,
                         "collation": "SQL_Latin1_General_CP1_CI_AS",
                         "autoPauseDelay": "[parameters('autoPauseDelay')]",
-                        "minCapacity": "[json(format('{0}', parameters('minCapacity')))]",
+                        "minCapacity": "[format('{0}', parameters('minCapacity'))]",
                         "zoneRedundant": false,
                         "sku": {
                           "name": "[parameters('skuName')]",
@@ -44636,7 +44646,7 @@
                       }
                     ]
                   },
-                  "firewallRules": "[if(equals(parameters('publicNetworkAccess'), 'Enabled'), createObject('value', createArray(createObject('name', 'AllowAllWindowsAzureIps', 'startIpAddress', '0.0.0.0', 'endIpAddress', '0.0.0.0'))), createObject('value', createArray()))]",
+                  "firewallRules": "[if(equals(parameters('publicNetworkAccess'), 'Enabled'), createObject('value', createArray(createObject('name', 'AllowSpecificRange', 'startIpAddress', '0.0.0.0', 'endIpAddress', '255.255.255.255'), createObject('name', 'AllowAllWindowsAzureIps', 'startIpAddress', '0.0.0.0', 'endIpAddress', '0.0.0.0'))), createObject('value', createArray()))]",
                   "privateEndpoints": "[if(not(empty(parameters('privateEndpoints'))), createObject('value', parameters('privateEndpoints')), createObject('value', createArray()))]"
                 },
                 "template": {
@@ -51921,10 +51931,10 @@
             "value": {
               "AZURE_ENV_GPT_MODEL_NAME": "[parameters('gptModelName')]",
               "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": "[parameters('embeddingModel')]",
-              "AZURE_OPENAI_ENDPOINT": "[if(variables('useExistingAIProject'), '', reference('aiServices').outputs.endpoint.value)]",
+              "AZURE_OPENAI_ENDPOINT": "[if(variables('useExistingAIProject'), variables('existingOpenAIEndpoint'), reference('aiServices').outputs.endpoint.value)]",
               "AZURE_ENV_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
-              "AZURE_OPENAI_RESOURCE": "[if(variables('useExistingAIProject'), '', reference('aiServices').outputs.name.value)]",
-              "AZURE_AI_AGENT_ENDPOINT": "[if(variables('useExistingAIProject'), '', reference('aiProject').outputs.endpoint.value)]",
+              "AZURE_OPENAI_RESOURCE": "[if(variables('useExistingAIProject'), variables('aiServicesResourceName'), reference('aiServices').outputs.name.value)]",
+              "AZURE_AI_AGENT_ENDPOINT": "[if(variables('useExistingAIProject'), variables('existingProjectEndpoint'), reference('aiProject').outputs.endpoint.value)]",
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
               "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "[parameters('gptModelName')]",
               "USE_CHAT_HISTORY_ENABLED": "[variables('useChatHistoryEnabledSetting')]",
@@ -57633,7 +57643,7 @@
             "value": "[reference('appServicePlan').outputs.resourceId.value]"
           },
           "linuxFxVersion": {
-            "value": "[format('DOCKER|{0}.azurecr.io/da-csapi:{1}', parameters('acrName'), parameters('imageTag'))]"
+            "value": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('acrName'), parameters('imageTag'))]"
           },
           "userAssignedIdentityResourceId": {
             "value": "[reference('backendAppIdentity').outputs.resourceId.value]"
@@ -57647,10 +57657,10 @@
             "value": {
               "AZURE_ENV_GPT_MODEL_NAME": "[parameters('gptModelName')]",
               "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": "[parameters('embeddingModel')]",
-              "AZURE_OPENAI_ENDPOINT": "[if(variables('useExistingAIProject'), '', reference('aiServices').outputs.endpoint.value)]",
+              "AZURE_OPENAI_ENDPOINT": "[if(variables('useExistingAIProject'), variables('existingOpenAIEndpoint'), reference('aiServices').outputs.endpoint.value)]",
               "AZURE_ENV_OPENAI_API_VERSION": "[parameters('azureOpenAIApiVersion')]",
-              "AZURE_OPENAI_RESOURCE": "[if(variables('useExistingAIProject'), '', reference('aiServices').outputs.name.value)]",
-              "AZURE_AI_AGENT_ENDPOINT": "[if(variables('useExistingAIProject'), '', reference('aiProject').outputs.endpoint.value)]",
+              "AZURE_OPENAI_RESOURCE": "[if(variables('useExistingAIProject'), variables('aiServicesResourceName'), reference('aiServices').outputs.name.value)]",
+              "AZURE_AI_AGENT_ENDPOINT": "[if(variables('useExistingAIProject'), variables('existingProjectEndpoint'), reference('aiProject').outputs.endpoint.value)]",
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
               "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "[parameters('gptModelName')]",
               "USE_CHAT_HISTORY_ENABLED": "[variables('useChatHistoryEnabledSetting')]",
@@ -69294,7 +69304,7 @@
       "metadata": {
         "description": "Azure OpenAI service endpoint URL."
       },
-      "value": "[if(not(variables('useExistingAIProject')), reference('aiServices').outputs.endpoint.value, '')]"
+      "value": "[if(not(variables('useExistingAIProject')), reference('aiServices').outputs.endpoint.value, variables('existingOpenAIEndpoint'))]"
     },
     "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": {
       "type": "string",
@@ -69336,7 +69346,7 @@
       "metadata": {
         "description": "Azure AI Agent endpoint."
       },
-      "value": "[if(not(variables('useExistingAIProject')), reference('aiProject').outputs.endpoint.value, '')]"
+      "value": "[if(not(variables('useExistingAIProject')), reference('aiProject').outputs.endpoint.value, variables('existingProjectEndpoint'))]"
     },
     "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": {
       "type": "string",
@@ -69427,7 +69437,7 @@
       "metadata": {
         "description": "AI Foundry project endpoint."
       },
-      "value": "[if(not(variables('useExistingAIProject')), reference('aiProject').outputs.endpoint.value, '')]"
+      "value": "[if(not(variables('useExistingAIProject')), reference('aiProject').outputs.endpoint.value, variables('existingProjectEndpoint'))]"
     },
     "AI_FOUNDRY_RESOURCE_ID": {
       "type": "string",
@@ -69441,14 +69451,14 @@
       "metadata": {
         "description": "AI Foundry project name."
       },
-      "value": "[if(not(variables('useExistingAIProject')), reference('aiProject').outputs.name.value, '')]"
+      "value": "[if(not(variables('useExistingAIProject')), reference('aiProject').outputs.name.value, if(variables('existingHasProjectSegment'), split(parameters('existingAIProjectResourceId'), '/')[10], ''))]"
     },
     "AI_SERVICE_NAME": {
       "type": "string",
       "metadata": {
         "description": "AI Services resource name."
       },
-      "value": "[if(not(variables('useExistingAIProject')), reference('aiServices').outputs.name.value, '')]"
+      "value": "[if(not(variables('useExistingAIProject')), reference('aiServices').outputs.name.value, variables('aiServicesResourceName'))]"
     },
     "FOUNDRY_PROJECT_PID": {
       "type": "string",

@@ -178,11 +178,21 @@ param appTitleSecondary string = '| Unified Data Analysis Agents'
 var solutionSuffix = toLower(trim(replace(replace(replace(replace(replace(replace('${environmentName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))
 var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
+var createdBy = contains(deployerInfo, 'userPrincipalName') ? split(deployerInfo.userPrincipalName, '@')[0] : deployerInfo.objectId
 var shouldDeployApp = !isWorkshop || deployApp
 var useExistingAIProject = !empty(existingAIProjectResourceId)
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
 var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
+
+// Tags: merge caller-supplied tags with standard metadata (matching old infra)
+var existingTags = resourceGroup().tags ?? {}
+var resourceTags = union(existingTags, tags, {
+  TemplateName: 'Unified Data Analysis Agents'
+  CreatedBy: createdBy
+  DeploymentName: deployment().name
+  Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
+})
 
 // WAF: Region pairs for redundancy (Log Analytics replication)
 var replicaRegionPairs = {
@@ -278,6 +288,17 @@ var aiModelDeployments = concat([
     raiPolicyName: 'Microsoft.Default'
   }
 ] : [])
+
+// ============================================================================
+// Resource Group Tags (matching old infra)
+// ============================================================================
+
+resource resourceGroupTags 'Microsoft.Resources/tags@2024-11-01' = {
+  name: 'default'
+  properties: {
+    tags: resourceTags
+  }
+}
 
 // ============================================================================
 // Module: Monitoring
@@ -504,6 +525,16 @@ var aiServicesResourceName = useExistingAIProject
   ? split(existingAIProjectResourceId, '/')[8]
   : names.aiServices
 
+// Construct endpoints from existing resource ID (matching bicep/modules/ai/ai-foundry.bicep)
+// Expected format: /subscriptions/.../providers/Microsoft.CognitiveServices/accounts/{account}/projects/{project}
+var existingHasProjectSegment = useExistingAIProject && length(split(existingAIProjectResourceId, '/')) > 10
+var existingOpenAIEndpoint = useExistingAIProject
+  ? format('https://{0}.openai.azure.com/', split(existingAIProjectResourceId, '/')[8])
+  : ''
+var existingProjectEndpoint = existingHasProjectSegment
+  ? format('https://{0}.services.ai.azure.com/api/projects/{1}', split(existingAIProjectResourceId, '/')[8], split(existingAIProjectResourceId, '/')[10])
+  : ''
+
 resource existingAiServices 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = if (useExistingAIProject) {
   name: aiServicesResourceName
   scope: resourceGroup(aiServicesSubscriptionId, aiServicesResourceGroupName)
@@ -530,13 +561,28 @@ module existingAiServicesDeployments './modules/ai/existing-foundry-project.bice
         }
       }
     ]
-    roleAssignments: [
-      {
-        roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
-        principalId: primaryIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-      }
-    ]
+    roleAssignments: concat(
+      [
+        {
+          roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
+          principalId: primaryIdentity.outputs.principalId
+          principalType: 'ServicePrincipal'
+        }
+      ],
+      // Backend system-assigned identity also needs Azure AI User on existing AI Services
+      // Matches old infra: deploy_backend_docker.bicep → assignAiUserRoleToAiProject
+      shouldDeployApp
+        ? [
+            {
+              roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
+              principalId: backendRuntimeStack == 'python'
+                ? backendApi!.outputs.identityPrincipalId
+                : backendCsApi!.outputs.identityPrincipalId
+              principalType: 'ServicePrincipal'
+            }
+          ]
+        : []
+    )
   }
 }
 
@@ -814,10 +860,10 @@ module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp &&
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
-      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? '' : aiServices!.outputs.endpoint
+      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : aiServices!.outputs.endpoint
       AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_RESOURCE: useExistingAIProject ? '' : aiServices!.outputs.name
-      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? '' : aiProject!.outputs.endpoint
+      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiServicesResourceName : aiServices!.outputs.name
+      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : aiProject!.outputs.endpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
@@ -861,7 +907,7 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: appServicePlan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${acrName}.azurecr.io/da-csapi:${imageTag}'
+    linuxFxVersion: 'DOCKER|${acrName}.azurecr.io/da-api-dotnet:${imageTag}'
     userAssignedIdentityResourceId: backendAppIdentity!.outputs.resourceId
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
@@ -869,10 +915,10 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
-      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? '' : aiServices!.outputs.endpoint
+      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : aiServices!.outputs.endpoint
       AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_RESOURCE: useExistingAIProject ? '' : aiServices!.outputs.name
-      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? '' : aiProject!.outputs.endpoint
+      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiServicesResourceName : aiServices!.outputs.name
+      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : aiProject!.outputs.endpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
@@ -969,7 +1015,7 @@ output AZURE_COSMOSDB_DATABASE string = isWorkshop ? 'db_conversation_history' :
 output AZURE_ENV_GPT_MODEL_NAME string = gptModelName
 
 @description('Azure OpenAI service endpoint URL.')
-output AZURE_OPENAI_ENDPOINT string = !useExistingAIProject ? aiServices!.outputs.endpoint : ''
+output AZURE_OPENAI_ENDPOINT string = !useExistingAIProject ? aiServices!.outputs.endpoint : existingOpenAIEndpoint
 
 @description('Embedding model deployment name.')
 output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = embeddingModel
@@ -987,7 +1033,7 @@ output AZURE_SQLDB_USER_MID string = (isWorkshop && azureEnvOnly) ? backendAppId
 output API_UID string = backendAppIdentity.outputs.clientId
 
 @description('Azure AI Agent endpoint.')
-output AZURE_AI_AGENT_ENDPOINT string = !useExistingAIProject ? aiProject!.outputs.endpoint : ''
+output AZURE_AI_AGENT_ENDPOINT string = !useExistingAIProject ? aiProject!.outputs.endpoint : existingProjectEndpoint
 
 @description('Model deployment name for AI Agent.')
 output AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME string = gptModelName
@@ -1026,16 +1072,16 @@ output AZURE_AI_SEARCH_CONNECTION_NAME string = (isWorkshop && !useExistingAIPro
 output AZURE_AI_SEARCH_CONNECTION_ID string = (isWorkshop && !useExistingAIProject) ? aiProject!.outputs.searchConnectionId : ''
 
 @description('AI Foundry project endpoint.')
-output AZURE_AI_PROJECT_ENDPOINT string = !useExistingAIProject ? aiProject!.outputs.endpoint : ''
+output AZURE_AI_PROJECT_ENDPOINT string = !useExistingAIProject ? aiProject!.outputs.endpoint : existingProjectEndpoint
 
 @description('AI Foundry resource ID.')
 output AI_FOUNDRY_RESOURCE_ID string = !useExistingAIProject ? aiServices!.outputs.resourceId : existingAIProjectResourceId
 
 @description('AI Foundry project name.')
-output AZURE_AI_PROJECT_NAME string = !useExistingAIProject ? aiProject!.outputs.name : ''
+output AZURE_AI_PROJECT_NAME string = !useExistingAIProject ? aiProject!.outputs.name : (existingHasProjectSegment ? split(existingAIProjectResourceId, '/')[10] : '')
 
 @description('AI Services resource name.')
-output AI_SERVICE_NAME string = !useExistingAIProject ? aiServices!.outputs.name : ''
+output AI_SERVICE_NAME string = !useExistingAIProject ? aiServices!.outputs.name : aiServicesResourceName
 
 @description('AI Project identity principal ID.')
 output FOUNDRY_PROJECT_PID string = !useExistingAIProject ? aiProject!.outputs.identityPrincipalId : ''

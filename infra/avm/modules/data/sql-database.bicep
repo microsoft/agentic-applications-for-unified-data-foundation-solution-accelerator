@@ -80,7 +80,7 @@ module sqlServer 'br/public:avm/res/sql/server:0.21.0' = {
         availabilityZone: -1
         collation: 'SQL_Latin1_General_CP1_CI_AS'
         autoPauseDelay: autoPauseDelay
-        minCapacity: json('${minCapacity}')
+        minCapacity: '${minCapacity}'
         zoneRedundant: false
         sku: {
           name: skuName
@@ -91,6 +91,11 @@ module sqlServer 'br/public:avm/res/sql/server:0.21.0' = {
       }
     ]
     firewallRules: publicNetworkAccess == 'Enabled' ? [
+      {
+        name: 'AllowSpecificRange'
+        startIpAddress: '0.0.0.0'
+        endIpAddress: '255.255.255.255'
+      }
       {
         name: 'AllowAllWindowsAzureIps'
         startIpAddress: '0.0.0.0'
