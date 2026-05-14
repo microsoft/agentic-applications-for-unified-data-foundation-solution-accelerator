@@ -2,6 +2,7 @@ using CsApi.Models;
 using CsApi.Repositories;
 using CsApi.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Azure;
 using System.Data.Common;
@@ -12,6 +13,12 @@ namespace CsApi.Controllers;
 [Route("historyfab")] // SQL-backed history endpoints
 public class HistoryFabController : ControllerBase
 {
+    private static string SanitizeForLog(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        return value.Replace("\r", "").Replace("\n", "");
+    }
+
     private readonly ISqlConversationRepository _repo;
     private readonly ITitleGenerationService _titleService;
     private readonly ILogger<HistoryFabController> _logger;
@@ -188,7 +195,8 @@ public class HistoryFabController : ControllerBase
             return Problem(statusCode:400, title:"Bad Request", detail:"messages are required");
         
         var user = GetUserId();
-        
+        var sanitizedConversationId = SanitizeForLog(req.Conversation_Id);
+
         try
         {
             // Ensure conversation exists and user has permission
@@ -240,7 +248,7 @@ public class HistoryFabController : ControllerBase
                     _logger.LogError(ex, "Failed to generate title for conversation {ConversationId}", convId);
                     await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
                 }
-                catch (Exception ex)
+                catch (JsonException ex)
                 {
                     _logger.LogError(ex, "Unexpected error generating title for conversation {ConversationId}", convId);
                     await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
@@ -297,17 +305,12 @@ public class HistoryFabController : ControllerBase
         }
         catch (DbException ex)
         {
-            _logger.LogError(ex, "Database error updating conversation {ConversationId}", req.Conversation_Id);
+            _logger.LogError(ex, "Database error updating conversation {ConversationId}", sanitizedConversationId);
             return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "Error updating conversation {ConversationId}", req.Conversation_Id);
-            return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error updating conversation {ConversationId}", req.Conversation_Id);
+            _logger.LogError(ex, "Error updating conversation {ConversationId}", sanitizedConversationId);
             return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");
         }
     }
