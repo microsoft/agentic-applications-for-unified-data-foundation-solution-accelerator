@@ -773,7 +773,7 @@ module cosmosDb './modules/data/cosmos-db.bicep' = if (isWorkshop && shouldDeplo
   name: 'data-cosmos-db'
   params: {
     accountName: names.cosmosDb
-    location: secondaryLocation
+    location: location
     tags: tags
     enableTelemetry: enableTelemetry
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
