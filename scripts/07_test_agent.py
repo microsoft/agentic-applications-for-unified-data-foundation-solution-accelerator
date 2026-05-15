@@ -468,8 +468,8 @@ async def main():
     print("-" * 60)
 
     async with AIProjectClient(
-        endpoint=ENDPOINT,AsyncDefaultAzureCredential
-        credential=(),
+        endpoint=ENDPOINT,
+        credential=AsyncDefaultAzureCredential(),
     ) as project_client:
         openai_client = project_client.get_openai_client()
         conv = await openai_client.conversations.create()
