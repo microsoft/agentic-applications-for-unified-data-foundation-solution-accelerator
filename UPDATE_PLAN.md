@@ -68,6 +68,21 @@ No changes to the existing `azd up` provisioning flow. All current Azure resourc
    - Remove the manual "create a Fabric capacity in the portal" prerequisite step
    - Document `azd env set DEPLOY_FABRIC_CAPACITY false` as the opt-out for users with an existing capacity
 
+---
+
+### Create Fabric workspace in `02_create_fabric_items.py`
+
+**What it is:** Currently users must create a Fabric workspace manually and supply `FABRIC_WORKSPACE_ID` before running the scripts. This step extends `02_create_fabric_items.py` to create the workspace automatically using the capacity that `azd up` just provisioned, eliminating the last remaining manual Fabric portal step.
+
+**Implementation steps:**
+
+1. At the start of `02_create_fabric_items.py`, check whether `FABRIC_WORKSPACE_ID` is already set in the environment. If it is, skip creation and use the existing workspace.
+2. If `FABRIC_WORKSPACE_ID` is not set, call the Fabric REST API to create a new workspace, assigning it to the capacity identified by `FABRIC_CAPACITY_NAME` (written to `.env` by azd post-deployment).
+3. Write the newly created workspace ID back to the environment file so all subsequent scripts (`03` through `08`) can reference it without any manual step.
+4. Log clearly: `Created Fabric workspace <name> (<id>) on capacity <FABRIC_CAPACITY_NAME>`.
+
+**Done when:** Running `python scripts/00_build_solution.py --scenario-pack <name>` from a clean environment (no `FABRIC_WORKSPACE_ID` set) creates a Fabric workspace automatically and completes all subsequent steps without prompting the user.
+
 **Done when:** `azd up` with default parameters provisions a Fabric capacity in the resource group. Setting `DEPLOY_FABRIC_CAPACITY=false` skips creation and all other resources still provision successfully.
 
 ---
