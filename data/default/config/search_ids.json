@@ -1,7 +1,5 @@
 {
   "index_name": "knowledge_index",
-  "knowledge_base_name": "agenapptestgvyqn-kb",
-  "knowledge_source_name": "agenapptestgvyqn-ks",
   "document_count": 2,
   "pdf_files": [
     "inspection_procedures.pdf",
