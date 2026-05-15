@@ -8,7 +8,7 @@
     "environmentName": {
       "value": "${AZURE_ENV_NAME}"
     },
-    "AZURE_LOCATION": {
+    "location": {
       "value": "${AZURE_LOCATION}"
     },
     "secondaryLocation": {
