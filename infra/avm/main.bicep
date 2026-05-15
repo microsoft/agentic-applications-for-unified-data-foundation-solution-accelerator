@@ -594,7 +594,8 @@ module aiServices './modules/ai/ai-services.bicep' = if (!useExistingAIProject) 
     location: aiDeploymentsLocation
     tags: tags
     enableTelemetry: enableTelemetry
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    // Temporarily public — AI Search Knowledge Base needs to call the AI Services model endpoint for answer synthesis.
+    publicNetworkAccess: 'Enabled'
     userAssignedIdentityResourceIds: [primaryIdentity.outputs.resourceId]
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
     deployments: [
@@ -677,7 +678,8 @@ module aiSearch './modules/ai/ai-search.bicep' = if (isWorkshop) {
     location: searchServiceLocation
     tags: tags
     enableTelemetry: enableTelemetry
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    // Temporarily public — Foundry Agent runtime runs outside the VNET and cannot resolve private DNS for AI Search.
+    publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
     roleAssignments: [
       {
@@ -696,19 +698,8 @@ module aiSearch './modules/ai/ai-search.bicep' = if (isWorkshop) {
         principalType: deployingUserPrincipalType
       }
     ]
-    privateEndpoints: enablePrivateNetworking ? [
-      {
-        name: 'pep-${names.aiSearch}'
-        customNetworkInterfaceName: 'nic-${names.aiSearch}'
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: [
-            { privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.search]!.outputs.resourceId }
-          ]
-        }
-        service: 'searchService'
-        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
-      }
-    ] : []
+    // Temporarily no private endpoint — Foundry Agent cannot resolve private DNS for AI Search.
+    privateEndpoints: []
   }
 }
 
