@@ -78,7 +78,7 @@
       "value": true
     },
     "enableRedundancy": {
-      "value": true
+      "value": false
     },
     "vmAdminUsername": {
       "value": "${AZURE_ENV_VM_ADMIN_USERNAME}"
