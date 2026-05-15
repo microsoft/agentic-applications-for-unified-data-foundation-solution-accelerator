@@ -275,7 +275,7 @@ public class ChatControllerTests
         _controller.HttpContext.Response.Body.Seek(0, SeekOrigin.Begin);
         using var reader = new StreamReader(_controller.HttpContext.Response.Body);
         var responseBody = reader.ReadToEnd();
-        Assert.Contains("error", responseBody);
+        Assert.Contains("\"error\":", responseBody);
     }
 
     #endregion
