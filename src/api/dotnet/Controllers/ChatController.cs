@@ -53,57 +53,57 @@ public class ChatController : ControllerBase
         
         var user = _userContextAccessor.GetCurrentUser();
         var userId = user.UserPrincipalId;
-        
-        var (convId, _) = await _sqlRepo.EnsureConversationAsync(userId ?? string.Empty, request.ConversationId, title: string.Empty, ct);
-
-        // Sanitize user input to prevent log forging attacks
-        var sanitizedQuery = request.Query.Replace(Environment.NewLine, "").Replace("\r", "").Replace("\n", "");
-        var sanitizedConvId = convId.Replace(Environment.NewLine, "").Replace("\r", "").Replace("\n", "");
-        _logger.LogInformation("Chat request received - query: {Query}, conversation_id: {ConversationId}", sanitizedQuery, sanitizedConvId);
-        
-        // Use Agent Framework AIAgent for RAG/AI response with function tools  
-        AIAgent agent = agentService.Agent;
-
-        AgentThread? thread = null;
-        if (_threadCache.TryGet(convId, out var cachedThread))
-        {
-            thread = cachedThread;
-        }
-
-        // If no cached thread or cached thread was null, create a new one
-        if (thread == null)
-        {
-            var chatClientAgent = agent as ChatClientAgent 
-                ?? throw new InvalidOperationException("Agent must be a ChatClientAgent to create conversation threads.");
-            
-            var endpoint = _configuration["AZURE_AI_AGENT_ENDPOINT"] 
-                ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is not configured.");
-            
-            var credentialFactory = new AzureCredentialFactory(_configuration);
-            var credential = credentialFactory.Create();
-            var projectClient = new AIProjectClient(new Uri(endpoint), credential);
-
-            ProjectConversation conversationResponse = await projectClient
-                .GetProjectOpenAIClient()
-                .GetProjectConversationsClient()
-                .CreateProjectConversationAsync()
-                .ConfigureAwait(false);
-
-            thread = chatClientAgent.GetNewThread(conversationResponse.Id);
-            _threadCache.Set(convId, thread);
-        }
 
         try
         {
+            var (convId, _) = await _sqlRepo.EnsureConversationAsync(userId ?? string.Empty, request.ConversationId, title: string.Empty, ct);
+
+            // Sanitize user input to prevent log forging attacks
+            var sanitizedQuery = request.Query.Replace(Environment.NewLine, "").Replace("\r", "").Replace("\n", "");
+            var sanitizedConvId = convId.Replace(Environment.NewLine, "").Replace("\r", "").Replace("\n", "");
+            _logger.LogInformation("Chat request received - query: {Query}, conversation_id: {ConversationId}", sanitizedQuery, sanitizedConvId);
+
+            // Use Agent Framework AIAgent for RAG/AI response with function tools  
+            AIAgent agent = agentService.Agent;
+
+            AgentThread? thread = null;
+            if (_threadCache.TryGet(convId, out var cachedThread))
+            {
+                thread = cachedThread;
+            }
+
+            // If no cached thread or cached thread was null, create a new one
+            if (thread == null)
+            {
+                var chatClientAgent = agent as ChatClientAgent
+                    ?? throw new InvalidOperationException("Agent must be a ChatClientAgent to create conversation threads.");
+
+                var endpoint = _configuration["AZURE_AI_AGENT_ENDPOINT"]
+                    ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is not configured.");
+
+                var credentialFactory = new AzureCredentialFactory(_configuration);
+                var credential = credentialFactory.Create();
+                var projectClient = new AIProjectClient(new Uri(endpoint), credential);
+
+                ProjectConversation conversationResponse = await projectClient
+                    .GetProjectOpenAIClient()
+                    .GetProjectConversationsClient()
+                    .CreateProjectConversationAsync()
+                    .ConfigureAwait(false);
+
+                thread = chatClientAgent.GetNewThread(conversationResponse.Id);
+                _threadCache.Set(convId, thread);
+            }
+
             var accumulatedResponse = new System.Text.StringBuilder();
-            
+
             await foreach (var update in agent.RunStreamingAsync(request.Query, thread).WithCancellation(ct))
             {
                 var content = update?.ToString();
                 if (string.IsNullOrEmpty(content)) continue;
-                
+
                 accumulatedResponse.Append(content);
-                
+
                 var envelope = new
                 {
                     choices = new[] { new { messages = new[] { new { role = "assistant", content = accumulatedResponse.ToString() } } } }

@@ -251,14 +251,15 @@ public class ChatControllerTests
 
         // Assert
         _controller.HttpContext.Response.Body.Seek(0, SeekOrigin.Begin);
-        var responseBody = new StreamReader(_controller.HttpContext.Response.Body).ReadToEnd();
+        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
+        var responseBody = reader.ReadToEnd();
         Assert.Contains("query is required", responseBody);
     }
 
     [Fact]
-    public async Task Chat_InvalidOperationException_ThrowsWhenAgentNotChatClient()
+    public async Task Chat_InvalidOperationException_ReturnsErrorEnvelopeWhenAgentNotChatClient()
     {
-        // Arrange - Agent that is not a ChatClientAgent throws InvalidOperationException
+        // Arrange - Agent that is not a ChatClientAgent causes InvalidOperationException
         var mockAgent = new Mock<AIAgent>();
         var mockAgentService = new Mock<IAgentFrameworkService>();
         mockAgentService.Setup(a => a.Agent).Returns(mockAgent.Object);
@@ -267,9 +268,14 @@ public class ChatControllerTests
 
         var request = new ChatRequest { Query = "test query", ConversationId = "conv-123" };
 
-        // Act & Assert - InvalidOperationException is thrown before try-catch for non-ChatClientAgent
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _controller.Chat(request, mockAgentService.Object, CancellationToken.None));
+        // Act - InvalidOperationException is caught and returned as an error envelope
+        await _controller.Chat(request, mockAgentService.Object, CancellationToken.None);
+
+        // Assert - error envelope is written to the response body
+        _controller.HttpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
+        var responseBody = reader.ReadToEnd();
+        Assert.Contains("\"error\":", responseBody);
     }
 
     #endregion
