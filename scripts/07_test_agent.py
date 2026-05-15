@@ -41,6 +41,7 @@ from load_env import load_all_env, get_data_folder
 load_all_env()
 
 from azure.identity import DefaultAzureCredential
+from azure.identity.aio import DefaultAzureCredential as AsyncDefaultAzureCredential
 from azure.ai.projects.aio import AIProjectClient
 from agent_framework.foundry import FoundryAgent
 import requests
@@ -467,8 +468,8 @@ async def main():
     print("-" * 60)
 
     async with AIProjectClient(
-        endpoint=ENDPOINT,
-        credential=AsyncDefaultAzureCredential(),
+        endpoint=ENDPOINT,AsyncDefaultAzureCredential
+        credential=(),
     ) as project_client:
         openai_client = project_client.get_openai_client()
         conv = await openai_client.conversations.create()
