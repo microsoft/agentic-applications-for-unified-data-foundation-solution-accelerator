@@ -1,6 +1,7 @@
 import requests
 import time
 import json
+import sys
 from azure.identity import AzureCliCredential
 import shlex
 import argparse
@@ -8,15 +9,78 @@ import os
 import pandas as pd
 
 p = argparse.ArgumentParser()
-p.add_argument("--workspaceId", required=True)
-p.add_argument("--solutionname", required=True)
-p.add_argument("--backend_app_pid", required=True)
-p.add_argument("--backend_app_uid", required=True)
-p.add_argument("--usecase", required=True)
-p.add_argument("--exports-file", required=True)
+p.add_argument("--workspaceId", required=False, default="")
+p.add_argument("--solutionname", required=False, default="")
+p.add_argument("--backend_app_pid", required=False, default="")
+p.add_argument("--backend_app_uid", required=False, default="")
+p.add_argument("--usecase", required=False, default="")
+p.add_argument("--exports-file", required=False, default="")
+p.add_argument("--capacity-name", default="", help="Fabric capacity name for workspace auto-creation")
+p.add_argument("--cleanup", action="store_true", help="Delete Fabric workspace (used by azd down predown hook)")
+p.add_argument("--yes", "-y", action="store_true", help="Skip confirmation prompts")
 args = p.parse_args()
 
-workspaceId = args.workspaceId
+# ============================================================================
+# Cleanup Mode (early exit — no other args required)
+# ============================================================================
+
+FABRIC_API_BASE = "https://api.fabric.microsoft.com/v1"
+
+def get_fabric_headers():
+    credential = AzureCliCredential()
+    cred = credential.get_token('https://api.fabric.microsoft.com/.default')
+    token = cred.token
+    fabric_headers = {"Authorization": "Bearer " + token.strip()}
+    return(fabric_headers)
+
+def delete_workspace_api(workspace_id):
+    """Delete a Fabric workspace by ID."""
+    resp = requests.delete(f"{FABRIC_API_BASE}/workspaces/{workspace_id}", headers=get_fabric_headers(), timeout=60)
+    if resp.status_code in [200, 202, 204]:
+        return True
+    raise Exception(f"Failed to delete workspace: {resp.status_code} {resp.text}")
+
+if args.cleanup:
+    workspace_id = args.workspaceId or os.getenv("FABRIC_WORKSPACE_ID", "").strip()
+    if not workspace_id:
+        print("  No FABRIC_WORKSPACE_ID found. Skipping workspace cleanup.")
+        sys.exit(0)
+
+    print(f"\n{'='*60}")
+    print(f"Fabric Workspace Cleanup")
+    print(f"{'='*60}")
+    print(f"  Workspace ID: {workspace_id}")
+
+    try:
+        resp = requests.get(f"{FABRIC_API_BASE}/workspaces/{workspace_id}", headers=get_fabric_headers(), timeout=60)
+        if resp.status_code == 404:
+            print(f"  [OK] Workspace {workspace_id} not found (already deleted).")
+            sys.exit(0)
+        if resp.status_code == 200:
+            ws_name = resp.json().get("displayName", "Unknown")
+            print(f"  Workspace:    {ws_name}")
+            confirm = "y" if args.yes else input(f"\n  Delete workspace '{ws_name}' ({workspace_id})? [y/N]: ").strip().lower()
+            if confirm != "y":
+                print("  Skipped workspace deletion.")
+                sys.exit(0)
+            delete_workspace_api(workspace_id)
+            print(f"  [OK] Workspace '{ws_name}' deleted successfully.")
+        else:
+            print(f"  [WARN] Could not verify workspace: {resp.status_code}")
+            print("  Skipping deletion to be safe.")
+    except Exception as exc:
+        print(f"  [WARN] Failed to delete workspace: {exc}")
+        print("  You can delete it manually from https://app.fabric.microsoft.com")
+    sys.exit(0)
+
+# ============================================================================
+# Main Script (requires full args)
+# ============================================================================
+
+if not args.solutionname or not args.backend_app_pid or not args.backend_app_uid or not args.usecase or not args.exports_file:
+    print("ERROR: --solutionname, --backend_app_pid, --backend_app_uid, --usecase, and --exports-file are required.")
+    sys.exit(1)
+
 solutionname = args.solutionname
 backend_app_pid = args.backend_app_pid
 backend_app_uid = args.backend_app_uid
@@ -28,12 +92,97 @@ if usecase == 'retail-sales-analysis':
 else: 
     usecase = 'insurance'
 
-def get_fabric_headers():
-    credential = AzureCliCredential()
-    cred = credential.get_token('https://api.fabric.microsoft.com/.default')
-    token = cred.token
-    fabric_headers = {"Authorization": "Bearer " + token.strip()}
-    return(fabric_headers)
+def get_capacity_by_name(capacity_name):
+    """Look up a Fabric capacity by name (case-insensitive). Returns capacity dict or None."""
+    resp = requests.get(f"{FABRIC_API_BASE}/capacities", headers=get_fabric_headers(), timeout=60)
+    if resp.status_code == 200:
+        for cap in resp.json().get("value", []):
+            if cap.get("displayName", "").lower() == capacity_name.lower():
+                return cap
+    return None
+
+def get_workspace_by_name(workspace_name):
+    """Look up a Fabric workspace by name (case-insensitive). Returns workspace dict or None."""
+    resp = requests.get(f"{FABRIC_API_BASE}/workspaces", headers=get_fabric_headers(), timeout=60)
+    if resp.status_code == 200:
+        for ws in resp.json().get("value", []):
+            if ws.get("displayName", "").lower() == workspace_name.lower():
+                return ws
+    return None
+
+def create_workspace_api(workspace_name):
+    """Create a new Fabric workspace. Returns workspace ID."""
+    resp = requests.post(f"{FABRIC_API_BASE}/workspaces", headers=get_fabric_headers(),
+                         json={"displayName": workspace_name}, timeout=60)
+    if resp.status_code in [200, 201]:
+        workspace_id = resp.json().get("id")
+        if not workspace_id:
+            raise Exception(f"Workspace creation returned no ID: {resp.text}")
+        return workspace_id
+    raise Exception(f"Failed to create workspace: {resp.status_code} {resp.text}")
+
+def assign_workspace_to_capacity(workspace_id, capacity_id):
+    """Assign a workspace to a Fabric capacity."""
+    resp = requests.post(f"{FABRIC_API_BASE}/workspaces/{workspace_id}/assignToCapacity",
+                         headers=get_fabric_headers(), json={"capacityId": capacity_id}, timeout=60)
+    if resp.status_code not in [200, 201, 202]:
+        raise Exception(f"Failed to assign workspace to capacity: {resp.status_code} {resp.text}")
+
+def setup_workspace(capacity_name, workspace_name):
+    """Create or retrieve a Fabric workspace and assign it to a capacity. Returns workspace ID."""
+    print(f"  Looking up capacity: {capacity_name}")
+    capacity = get_capacity_by_name(capacity_name)
+    if not capacity:
+        raise Exception(f"Capacity '{capacity_name}' not found")
+
+    capacity_id = capacity["id"]
+    print(f"  [OK] Found capacity: {capacity_name} ({capacity_id})")
+
+    print(f"  Checking if workspace '{workspace_name}' exists...")
+    workspace = get_workspace_by_name(workspace_name)
+
+    if workspace:
+        workspace_id = workspace["id"]
+        print(f"  [OK] Workspace already exists: {workspace_name} ({workspace_id})")
+        current_capacity_id = workspace.get("capacityId")
+        if current_capacity_id != capacity_id:
+            print(f"  Assigning workspace to capacity: {capacity_name}")
+            assign_workspace_to_capacity(workspace_id, capacity_id)
+            print(f"  [OK] Successfully assigned workspace to capacity")
+    else:
+        print(f"  Creating new workspace: {workspace_name}")
+        workspace_id = create_workspace_api(workspace_name)
+        print(f"  [OK] Created workspace: {workspace_name} ({workspace_id})")
+        print(f"  Assigning workspace to capacity: {capacity_name}")
+        assign_workspace_to_capacity(workspace_id, capacity_id)
+        print(f"  [OK] Successfully assigned workspace to capacity")
+
+    return workspace_id
+
+# ============================================================================
+# Workspace Resolution
+# ============================================================================
+
+create_workspace_flag = os.getenv("CREATE_FABRIC_WORKSPACE", "false").strip().lower() == "true"
+capacity_name = args.capacity_name or os.getenv("AZURE_FABRIC_CAPACITY_NAME", "").strip()
+
+if args.workspaceId:
+    workspaceId = args.workspaceId
+elif create_workspace_flag and capacity_name:
+    workspace_name = os.getenv("FABRIC_WORKSPACE_NAME") or f"Agentic Apps UDF - {solutionname}"
+    print(f"\nCreating Fabric Workspace...")
+    print(f"  Capacity:  {capacity_name}")
+    print(f"  Workspace: {workspace_name}")
+    try:
+        workspaceId = setup_workspace(capacity_name, workspace_name)
+    except Exception as exc:
+        print(f"  [FAIL] Workspace creation failed: {exc}")
+        sys.exit(1)
+    print(f"  [OK] FABRIC_WORKSPACE_ID={workspaceId}")
+    print(f"  URL: https://app.fabric.microsoft.com/groups/{workspaceId}")
+else:
+    print("ERROR: --workspaceId is required (or set CREATE_FABRIC_WORKSPACE=true with AZURE_FABRIC_CAPACITY_NAME)")
+    sys.exit(1)
 
 fabric_headers = get_fabric_headers()
 
@@ -497,3 +646,4 @@ with open(args.exports_file, "w", encoding="utf-8", newline="\n") as f:
     f.write("export FABRIC_SQL_SERVER1=" + shlex.quote(FABRIC_SQL_SERVER) + "\n")
     f.write("export FABRIC_SQL_DATABASE1=" + shlex.quote(FABRIC_SQL_DATABASE) + "\n")
     f.write("export FABRIC_SQL_CONNECTION_STRING1=" + shlex.quote(FABRIC_SQL_CONNECTION_STRING_18) + "\n")
+    f.write("export FABRIC_WORKSPACE_ID=" + shlex.quote(workspaceId) + "\n")

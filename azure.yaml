@@ -13,6 +13,37 @@ metadata:
   template: agentic-applications-for-unified-data-foundation@1.1
 
 hooks:
+  predown:
+    windows:
+      run: |
+        $createWorkspace = $env:CREATE_FABRIC_WORKSPACE
+        if ($createWorkspace -eq "true") {
+            $isWorkshop = $env:IS_WORKSHOP
+            if ($isWorkshop -eq "true") {
+                python scripts/02_create_fabric_items.py --cleanup --yes
+            } else {
+                python infra/scripts/post-provision/fabric_scripts/create_fabric_items.py --cleanup --yes
+            }
+        } else {
+            Write-Host "Skipping Fabric workspace cleanup (CREATE_FABRIC_WORKSPACE is not true)."
+        }
+      shell: pwsh
+      continueOnError: true
+      interactive: true
+    posix:
+      run: |
+        if [ "${CREATE_FABRIC_WORKSPACE:-}" = "true" ]; then
+            if [ "${IS_WORKSHOP:-}" = "true" ]; then
+                python scripts/02_create_fabric_items.py --cleanup --yes
+            else
+                python infra/scripts/post-provision/fabric_scripts/create_fabric_items.py --cleanup --yes
+            fi
+        else
+            echo "Skipping Fabric workspace cleanup (CREATE_FABRIC_WORKSPACE is not true)."
+        fi
+      shell: sh
+      continueOnError: true
+      interactive: true
   postprovision:
     windows:
       run: |
@@ -31,7 +62,11 @@ hooks:
             Write-Host "bash ./infra/scripts/post-provision/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
 
             Write-Host "`n2. Create Fabric items:"
-            Write-Host "bash ./infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
+            if ($env:CREATE_FABRIC_WORKSPACE -eq "true") {
+                Write-Host "bash ./infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh" -ForegroundColor Cyan
+            } else {
+                Write-Host "bash ./infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
+            }
         }
 
       shell: pwsh
@@ -53,7 +88,11 @@ hooks:
             echo "bash ./infra/scripts/post-provision/agent_scripts/run_create_agents_scripts.sh"
             echo ""
             echo "2. Create Fabric items:"
-            echo "bash ./infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+            if [ "${CREATE_FABRIC_WORKSPACE:-}" = "true" ]; then
+                echo "bash ./infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh"
+            else
+                echo "bash ./infra/scripts/post-provision/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+            fi
         fi
 
       shell: sh

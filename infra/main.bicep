@@ -153,6 +153,23 @@ param tags object = {}
 @description('Enable/Disable usage telemetry for AVM modules.')
 param enableTelemetry bool = true
 
+// ============================================================================
+// Parameters — Fabric Capacity
+// ============================================================================
+
+@description('Set to true to auto-create a Fabric workspace during post-provision.')
+param createFabricWorkspace bool = false
+
+@description('Optional. Name of an existing Fabric capacity to reuse. If empty, a new capacity is auto-created.')
+param azureFabricCapacityName string = ''
+
+@allowed(['F2', 'F4', 'F8', 'F16', 'F32', 'F64', 'F128', 'F256', 'F512', 'F1024', 'F2048'])
+@description('Optional. SKU tier of the Fabric capacity resource.')
+param fabricCapacitySku string = 'F2'
+
+@description('Optional. Additional user/service principal object IDs to assign as Fabric Capacity admins.')
+param fabricAdminMembers array = []
+
 @secure()
 @description('Optional. VM admin username (AVM-WAF only, when private networking is enabled).')
 param vmAdminUsername string?
@@ -220,6 +237,10 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     usecase: usecase
     appTitlePrimary: appTitlePrimary
     appTitleSecondary: appTitleSecondary
+    createFabricWorkspace: createFabricWorkspace
+    azureFabricCapacityName: azureFabricCapacityName
+    fabricCapacitySku: fabricCapacitySku
+    fabricAdminMembers: fabricAdminMembers
   }
 }
 
@@ -259,6 +280,10 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     usecase: usecase
     appTitlePrimary: appTitlePrimary
     appTitleSecondary: appTitleSecondary
+    createFabricWorkspace: createFabricWorkspace
+    azureFabricCapacityName: azureFabricCapacityName
+    fabricCapacitySku: fabricCapacitySku
+    fabricAdminMembers: fabricAdminMembers
   }
 }
 
@@ -379,3 +404,15 @@ output AZURE_ENV_ONLY bool = isAvm ? avmDeployment!.outputs.AZURE_ENV_ONLY : bic
 
 @description('User access token forwarding flag.')
 output USE_USER_ACCESS_TOKEN string = isAvm ? avmDeployment!.outputs.USE_USER_ACCESS_TOKEN : bicepDeployment!.outputs.USE_USER_ACCESS_TOKEN
+
+@description('The name of the Fabric capacity resource.')
+output AZURE_FABRIC_CAPACITY_NAME string = isAvm ? avmDeployment!.outputs.AZURE_FABRIC_CAPACITY_NAME : bicepDeployment!.outputs.AZURE_FABRIC_CAPACITY_NAME
+
+@description('The identities assigned as Fabric Capacity Admin members.')
+output FABRIC_ADMIN_MEMBERS array = isAvm ? avmDeployment!.outputs.FABRIC_ADMIN_MEMBERS : bicepDeployment!.outputs.FABRIC_ADMIN_MEMBERS
+
+@description('The unique solution suffix of the deployed resources.')
+output SOLUTION_SUFFIX string = isAvm ? avmDeployment!.outputs.SOLUTION_SUFFIX : bicepDeployment!.outputs.SOLUTION_SUFFIX
+
+@description('Whether Fabric workspace creation is enabled.')
+output CREATE_FABRIC_WORKSPACE bool = createFabricWorkspace

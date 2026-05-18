@@ -64,6 +64,18 @@
     },
     "deployingUserPrincipalType": {
       "value": "${DEPLOYING_USER_PRINCIPAL_TYPE=User}"
+    },
+    "createFabricWorkspace": {
+      "value": "${CREATE_FABRIC_WORKSPACE=false}"
+    },
+    "azureFabricCapacityName": {
+      "value": "${AZURE_FABRIC_CAPACITY_NAME}"
+    },
+    "fabricCapacitySku": {
+      "value": "${FABRIC_CAPACITY_SKU=F2}"
+    },
+    "fabricAdminMembers": {
+      "value": "${FABRIC_ADMIN_MEMBERS=[]}"
     }
   }
 }

@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.42.1.51946",
-      "templateHash": "12784056208598218626"
+      "version": "0.43.8.12551",
+      "templateHash": "4622093530883004136"
     }
   },
   "parameters": {
@@ -199,6 +199,47 @@
         "description": "Enable user access token forwarding to the API."
       }
     },
+    "createFabricWorkspace": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Set to true to auto-create a Fabric workspace during post-provision. When false, capacity creation is skipped."
+      }
+    },
+    "azureFabricCapacityName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Name of an existing Fabric capacity to reuse. If empty, a new capacity is auto-created when conditions are met."
+      }
+    },
+    "fabricCapacitySku": {
+      "type": "string",
+      "defaultValue": "F2",
+      "allowedValues": [
+        "F2",
+        "F4",
+        "F8",
+        "F16",
+        "F32",
+        "F64",
+        "F128",
+        "F256",
+        "F512",
+        "F1024",
+        "F2048"
+      ],
+      "metadata": {
+        "description": "Optional. SKU tier of the Fabric capacity resource."
+      }
+    },
+    "fabricAdminMembers": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Optional. Additional user/service principal object IDs to assign as Fabric Capacity admins."
+      }
+    },
     "AZURE_LOCATION": {
       "type": "string",
       "defaultValue": ""
@@ -249,6 +290,11 @@
   "variables": {
     "useChatHistoryEnabledSetting": "[if(parameters('useChatHistoryEnabled'), 'True', 'False')]",
     "useUserAccessTokenSetting": "[if(parameters('useUserAccessToken'), 'True', 'False')]",
+    "useExistingFabricCapacity": "[not(empty(parameters('azureFabricCapacityName')))]",
+    "shouldCreateFabricCapacity": "[and(and(not(parameters('azureEnvOnly')), parameters('createFabricWorkspace')), not(variables('useExistingFabricCapacity')))]",
+    "fabricCapacityResourceName": "[if(variables('useExistingFabricCapacity'), parameters('azureFabricCapacityName'), format('fc{0}', variables('solutionSuffix')))]",
+    "fabricCapacityDefaultAdmins": "[if(contains(variables('deployerInfo'), 'userPrincipalName'), createArray(variables('deployerInfo').userPrincipalName), createArray(variables('deployerInfo').objectId))]",
+    "fabricTotalAdminMembers": "[union(variables('fabricCapacityDefaultAdmins'), parameters('fabricAdminMembers'))]",
     "shouldDeployApp": "[or(not(parameters('isWorkshop')), parameters('deployApp'))]",
     "solutionLocation": "[if(empty(parameters('AZURE_LOCATION')), resourceGroup().location, parameters('AZURE_LOCATION'))]",
     "solutionSuffix": "[toLower(trim(replace(replace(replace(replace(replace(replace(format('{0}{1}', parameters('environmentName'), parameters('solutionUniqueText')), '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))]",
@@ -273,6 +319,141 @@
       "name": "default",
       "properties": {
         "tags": "[union(variables('existingTags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name, 'Type', 'Non-WAF'))]"
+      }
+    },
+    {
+      "condition": "[variables('shouldCreateFabricCapacity')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy-fabric-capacity",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[variables('fabricCapacityResourceName')]"
+          },
+          "location": {
+            "value": "[variables('solutionLocation')]"
+          },
+          "skuName": {
+            "value": "[parameters('fabricCapacitySku')]"
+          },
+          "adminMembers": {
+            "value": "[variables('fabricTotalAdminMembers')]"
+          },
+          "tags": {
+            "value": "[union(variables('existingTags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy')))]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "7111124347544428001"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Fabric capacity resource."
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for the resource."
+              }
+            },
+            "skuName": {
+              "type": "string",
+              "defaultValue": "F2",
+              "allowedValues": [
+                "F2",
+                "F4",
+                "F8",
+                "F16",
+                "F32",
+                "F64",
+                "F128",
+                "F256",
+                "F512",
+                "F1024",
+                "F2048"
+              ],
+              "metadata": {
+                "description": "SKU tier of the Fabric capacity."
+              }
+            },
+            "adminMembers": {
+              "type": "array",
+              "metadata": {
+                "description": "List of admin members (UPNs for users, object IDs for service principals)."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags to apply to the resource."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Fabric/capacities",
+              "apiVersion": "2023-11-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "Fabric"
+              },
+              "properties": {
+                "administration": {
+                  "members": "[parameters('adminMembers')]"
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the deployed Fabric capacity."
+              },
+              "value": "[parameters('name')]"
+            },
+            "resourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource ID of the deployed Fabric capacity."
+              },
+              "value": "[resourceId('Microsoft.Fabric/capacities', parameters('name'))]"
+            },
+            "resourceGroupName": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource group name."
+              },
+              "value": "[resourceGroup().name]"
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "The location of the deployed Fabric capacity."
+              },
+              "value": "[reference(resourceId('Microsoft.Fabric/capacities', parameters('name')), '2023-11-01', 'full').location]"
+            }
+          }
+        }
       }
     },
     {
@@ -302,8 +483,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "16599617067634025517"
+              "version": "0.43.8.12551",
+              "templateHash": "13536969934887418432"
             }
           },
           "parameters": {
@@ -419,8 +600,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "8844036988287026680"
+              "version": "0.43.8.12551",
+              "templateHash": "5427830310485840821"
             }
           },
           "parameters": {
@@ -527,8 +708,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "5678553987225140606"
+              "version": "0.43.8.12551",
+              "templateHash": "11579550152751494724"
             }
           },
           "parameters": {
@@ -652,8 +833,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "2500732968293958142"
+              "version": "0.43.8.12551",
+              "templateHash": "12165170758712567145"
             }
           },
           "parameters": {
@@ -943,8 +1124,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "10905680685852890445"
+              "version": "0.43.8.12551",
+              "templateHash": "2883692806427847985"
             }
           },
           "parameters": {
@@ -1180,8 +1361,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "10400323818213191572"
+              "version": "0.43.8.12551",
+              "templateHash": "5121164261577826347"
             }
           },
           "parameters": {
@@ -1399,8 +1580,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "5268210468716265888"
+              "version": "0.43.8.12551",
+              "templateHash": "9894341012169819306"
             }
           },
           "parameters": {
@@ -1518,8 +1699,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "5276047402530342059"
+              "version": "0.43.8.12551",
+              "templateHash": "11610267304629320537"
             }
           },
           "parameters": {
@@ -1694,8 +1875,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "13789806692563246245"
+              "version": "0.43.8.12551",
+              "templateHash": "11421679036623536575"
             }
           },
           "parameters": {
@@ -1849,8 +2030,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "14100113989210974449"
+              "version": "0.43.8.12551",
+              "templateHash": "9298238518588007961"
             },
             "description": "Creates an Azure App Service plan."
           },
@@ -2002,8 +2183,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "1543877450537365860"
+              "version": "0.43.8.12551",
+              "templateHash": "4464770042864268016"
             }
           },
           "parameters": {
@@ -2219,8 +2400,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "1543877450537365860"
+              "version": "0.43.8.12551",
+              "templateHash": "4464770042864268016"
             }
           },
           "parameters": {
@@ -2408,8 +2589,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "1543877450537365860"
+              "version": "0.43.8.12551",
+              "templateHash": "4464770042864268016"
             }
           },
           "parameters": {
@@ -2604,8 +2785,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "14658056232716992330"
+              "version": "0.43.8.12551",
+              "templateHash": "15518345851175611510"
             }
           },
           "parameters": {
@@ -2991,8 +3172,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "18196020217586453680"
+                      "version": "0.43.8.12551",
+                      "templateHash": "11774229215454722452"
                     }
                   },
                   "parameters": {
@@ -3069,8 +3250,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "18196020217586453680"
+                      "version": "0.43.8.12551",
+                      "templateHash": "11774229215454722452"
                     }
                   },
                   "parameters": {
@@ -3147,8 +3328,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "18196020217586453680"
+                      "version": "0.43.8.12551",
+                      "templateHash": "11774229215454722452"
                     }
                   },
                   "parameters": {
@@ -3460,6 +3641,27 @@
         "description": "Flag indicating whether user access token forwarding is enabled"
       },
       "value": "[variables('useUserAccessTokenSetting')]"
+    },
+    "AZURE_FABRIC_CAPACITY_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Fabric capacity resource."
+      },
+      "value": "[if(parameters('createFabricWorkspace'), variables('fabricCapacityResourceName'), '')]"
+    },
+    "FABRIC_ADMIN_MEMBERS": {
+      "type": "array",
+      "metadata": {
+        "description": "The identities assigned as Fabric Capacity Admin members."
+      },
+      "value": "[if(variables('shouldCreateFabricCapacity'), variables('fabricTotalAdminMembers'), createArray())]"
+    },
+    "SOLUTION_SUFFIX": {
+      "type": "string",
+      "metadata": {
+        "description": "The unique solution suffix of the deployed resources."
+      },
+      "value": "[variables('solutionSuffix')]"
     }
   }
 }

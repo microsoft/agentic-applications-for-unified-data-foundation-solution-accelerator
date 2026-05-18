@@ -140,6 +140,35 @@ param useChatHistoryEnabled bool = true
 param useUserAccessToken bool = false
 
 // ============================================================================
+// Parameters — Fabric Capacity
+// ============================================================================
+
+@description('Set to true to auto-create a Fabric workspace during post-provision. When false, capacity creation is skipped.')
+param createFabricWorkspace bool = false
+
+@description('Optional. Name of an existing Fabric capacity to reuse. If empty, a new capacity is auto-created when conditions are met.')
+param azureFabricCapacityName string = ''
+
+@allowed([
+  'F2'
+  'F4'
+  'F8'
+  'F16'
+  'F32'
+  'F64'
+  'F128'
+  'F256'
+  'F512'
+  'F1024'
+  'F2048'
+])
+@description('Optional. SKU tier of the Fabric capacity resource.')
+param fabricCapacitySku string = 'F2'
+
+@description('Optional. Additional user/service principal object IDs to assign as Fabric Capacity admins.')
+param fabricAdminMembers array = []
+
+// ============================================================================
 // Parameters — Existing Resources
 // ============================================================================
 
@@ -184,6 +213,16 @@ var useExistingAIProject = !empty(existingAIProjectResourceId)
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
 var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
+
+// Fabric Capacity: create when createFabricWorkspace=true and no existing capacity provided
+// Skipped only when isWorkshop=true AND azureEnvOnly=true (no Fabric needed in azure-only workshop mode)
+var useExistingFabricCapacity = !empty(azureFabricCapacityName)
+var shouldCreateFabricCapacity = !azureEnvOnly && createFabricWorkspace && !useExistingFabricCapacity
+var fabricCapacityResourceName = useExistingFabricCapacity ? azureFabricCapacityName : 'fc${solutionSuffix}'
+var fabricCapacityDefaultAdmins = contains(deployerInfo, 'userPrincipalName')
+  ? [deployerInfo.userPrincipalName]
+  : [deployerInfo.objectId]
+var fabricTotalAdminMembers = union(fabricCapacityDefaultAdmins, fabricAdminMembers)
 
 // Tags: merge caller-supplied tags with standard metadata (matching old infra)
 var existingTags = resourceGroup().tags ?? {}
@@ -268,6 +307,7 @@ var names = {
   maintenanceConfig: 'mc-${solutionSuffix}'
   proximityPlacementGroup: 'ppg-${solutionSuffix}'
   dataCollectionRule: 'dcr-${solutionSuffix}'
+  fabricCapacity: fabricCapacityResourceName
 }
 
 // Model deployments configuration
@@ -297,6 +337,22 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2024-11-01' = {
   name: 'default'
   properties: {
     tags: resourceTags
+  }
+}
+
+// ============================================================================
+// Module: Fabric Capacity
+// ============================================================================
+
+module fabricCapacity './modules/data/fabric-capacity.bicep' = if (shouldCreateFabricCapacity) {
+  name: take('deploy-fabric-capacity-${names.fabricCapacity}', 64)
+  params: {
+    name: names.fabricCapacity
+    location: location
+    skuName: fabricCapacitySku
+    adminMembers: fabricTotalAdminMembers
+    tags: resourceTags
+    enableTelemetry: enableTelemetry
   }
 }
 
@@ -1094,3 +1150,12 @@ output AZURE_ENV_ONLY bool = azureEnvOnly
 
 @description('User access token forwarding flag.')
 output USE_USER_ACCESS_TOKEN string = useUserAccessTokenSetting
+
+@description('The name of the Fabric capacity resource.')
+output AZURE_FABRIC_CAPACITY_NAME string = createFabricWorkspace ? fabricCapacityResourceName : ''
+
+@description('The identities assigned as Fabric Capacity Admin members.')
+output FABRIC_ADMIN_MEMBERS array = shouldCreateFabricCapacity ? fabricTotalAdminMembers : []
+
+@description('The unique solution suffix of the deployed resources.')
+output SOLUTION_SUFFIX string = solutionSuffix
