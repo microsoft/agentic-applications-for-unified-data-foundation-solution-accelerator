@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "3645839045207447954"
+      "templateHash": "3179234593522345740"
     }
   },
   "parameters": {
@@ -42,7 +42,7 @@
     },
     "createdBy": {
       "type": "string",
-      "defaultValue": "[if(contains(deployer(), 'userPrincipalName'), split(deployer().userPrincipalName, '@')[0], deployer().objectId)]",
+      "defaultValue": "[if(not(empty(coalesce(tryGet(deployer(), 'userPrincipalName'), ''))), split(deployer().userPrincipalName, '@')[0], if(not(empty(coalesce(tryGet(deployer(), 'objectId'), ''))), deployer().objectId, 'unknown-deployer'))]",
       "metadata": {
         "description": "Optional. created by user name"
       }
@@ -169,6 +169,13 @@
       "defaultValue": false,
       "metadata": {
         "description": "Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used."
+      }
+    },
+    "createdDate": {
+      "type": "string",
+      "defaultValue": "[utcNow('yyyy-MM-dd')]",
+      "metadata": {
+        "description": "Deployment date for tagging purposes."
       }
     },
     "useChatHistoryEnabled": {
@@ -489,12 +496,11 @@
   },
   "resources": [
     {
-      "condition": "[not(parameters('isWorkshop'))]",
       "type": "Microsoft.Resources/tags",
       "apiVersion": "2023-07-01",
       "name": "default",
       "properties": {
-        "tags": "[union(variables('existingTags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name, 'Type', 'Non-WAF'))]"
+        "tags": "[union(variables('existingTags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'CreatedDate', parameters('createdDate'), 'DeploymentName', deployment().name, 'Type', if(parameters('isWorkshop'), 'Workshop', 'Non-WAF')))]"
       }
     },
     {

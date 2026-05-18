@@ -1,11 +1,15 @@
 {
   "_comment": "This file is populated when you run 06_create_agent.py",
-  "chat_agent_id": null,
-  "chat_agent_name": null,
-  "title_agent_id": null,
-  "title_agent_name": null,
-  "search_index": null,
-  "sql_mode": null,
-  "sql_server": null,
-  "sql_database": null
+  "chat_agent_id": "",
+  "chat_agent_name": "",
+  "title_agent_id": "",
+  "title_agent_name": "",
+  "search_index": "",
+  "sql_mode": "",
+  "sql_server": "",
+  "sql_database": "",
+  "search_mode": "",
+  "knowledge_base_name": "",
+  "mcp_connection_name": "",
+  "search_endpoint": ""
 }
