@@ -170,7 +170,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2023-07-01' = {
         CreatedBy: createdBy
         CreatedDate: createdDate
         DeploymentName: deployment().name
-        Type: isWorkshop ? 'Workshop' : 'Non-WAF'
+        Type: 'Non-WAF'
       }
     )
   }
