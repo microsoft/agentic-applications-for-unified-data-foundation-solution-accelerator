@@ -212,7 +212,7 @@ fi
 
 # echo "Azure AI Foundry ID: $ai_foundry_resource_id"
 
-# echo "Assigning the Azure AI User role to the user..."
+# echo "Assigning the Foundry User role to the user..."
 # az role assignment create --assignee $signed_user_id --role "53ca6127-db72-4b80-b1b0-d745d6d5456d" --scope $ai_foundry_resource_id
 
 # # Check if the role assignment command was successful
