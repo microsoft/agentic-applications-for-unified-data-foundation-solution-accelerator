@@ -1,5 +1,5 @@
 // ========== main_custom.bicep ========== //
-// WAF-aligned variant of main.bicep.
+// Non-WAF variant of main.bicep.
 // Key differences from main.bicep:
 //   - Deploys App Services via Oryx source-code build (azd deploy) instead of pre-built Docker images.
 //   - Adds azd-service-name tags so `azd deploy` can target the api and webapp services.
@@ -156,7 +156,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
         CreatedBy: createdBy
         CreatedDate: createdDate
         DeploymentName: deployment().name
-        Type: isWorkshop ? 'Workshop' : 'WAF'
+        Type: isWorkshop ? 'Workshop' : 'Non-WAF'
       }
     )
   }
