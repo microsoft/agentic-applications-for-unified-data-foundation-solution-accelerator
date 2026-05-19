@@ -77,8 +77,8 @@ if args.cleanup:
 # Main Script (requires full args)
 # ============================================================================
 
-if not args.solutionname or not args.backend_app_pid or not args.backend_app_uid or not args.usecase or not args.exports_file:
-    print("ERROR: --solutionname, --backend_app_pid, --backend_app_uid, --usecase, and --exports-file are required.")
+if not args.solutionname or not args.backend_app_pid or not args.usecase or not args.exports_file:
+    print("ERROR: --solutionname, --backend_app_pid, --usecase, and --exports-file are required.")
     sys.exit(1)
 
 solutionname = args.solutionname
