@@ -88,6 +88,18 @@
     },
     "vmSize": {
       "value": "${AZURE_ENV_VM_SIZE}"
+    },
+    "createFabricWorkspace": {
+      "value": "${CREATE_FABRIC_WORKSPACE=false}"
+    },
+    "azureFabricCapacityName": {
+      "value": "${AZURE_FABRIC_CAPACITY_NAME}"
+    },
+    "fabricCapacitySku": {
+      "value": "${FABRIC_CAPACITY_SKU=F2}"
+    },
+    "fabricAdminMembers": {
+      "value": "${FABRIC_ADMIN_MEMBERS=[]}"
     }
   }
 }
