@@ -181,3 +181,19 @@ dependencies
     TotalOutput = sum(output_tokens)
     by model
 | order by TotalInput desc;
+
+// 14. Total time taken per invocation (conversation)
+customEvents
+| where name == 'LLM_Model_Token_Usage'
+| where timestamp > ago(7d)
+| extend conversation_id = tostring(customDimensions['conversation_id'])
+| extend model = tostring(customDimensions['model_deployment_name'])
+| extend total_tokens = toint(customDimensions['total_tokens'])
+| summarize
+    StartTime = min(timestamp),
+    EndTime = max(timestamp),
+    TotalTokens = sum(total_tokens),
+    Calls = count()
+    by conversation_id
+| extend TotalDuration_sec = round(datetime_diff('second', EndTime, StartTime), 0)
+| order by EndTime desc;
