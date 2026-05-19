@@ -301,24 +301,38 @@ for step in pipeline:
 
 if not azure_only:
     fabric_workspace_id = args.fabric_workspace_id or os.getenv("FABRIC_WORKSPACE_ID", "").strip()
-    if not fabric_workspace_id:
+    create_workspace_flag = os.getenv("CREATE_FABRIC_WORKSPACE", "false").strip().lower() == "true"
+
+    if not fabric_workspace_id and not create_workspace_flag:
+        # No workspace ID and auto-create not enabled — prompt user
         print("\n" + "="*60)
         print("Fabric Workspace Configuration")
         print("="*60)
         print("\nFabric mode requires a Workspace ID.")
         print("You can find it in your Fabric URL: https://app.fabric.microsoft.com/groups/<workspace-id>")
-        fabric_workspace_id = input("\nFabric Workspace ID: ").strip()
-        if not fabric_workspace_id:
+        print("\nOr enable auto-creation: azd env set CREATE_FABRIC_WORKSPACE true")
+        choice = input("\nFabric Workspace ID: ").strip()
+        if choice:
+            fabric_workspace_id = choice
+        else:
             print("ERROR: Fabric Workspace ID is required in Fabric mode.")
             print("       Pass --fabric-workspace-id <id> or set FABRIC_WORKSPACE_ID in .env")
-            print("       Or use AZURE_ENV_ONLY=true for Azure SQL mode.")
+            print("       Or enable auto-creation: azd env set CREATE_FABRIC_WORKSPACE true")
             sys.exit(1)
-    # Make it available to downstream scripts
-    os.environ["FABRIC_WORKSPACE_ID"] = fabric_workspace_id
-    # Persist to scripts/.env so subsequent runs don't need to re-enter it
-    from dotenv import set_key
-    env_path = os.path.join(script_dir, ".env")
-    set_key(env_path, "FABRIC_WORKSPACE_ID", fabric_workspace_id)
+
+    if fabric_workspace_id:
+        # Make it available to downstream scripts
+        os.environ["FABRIC_WORKSPACE_ID"] = fabric_workspace_id
+        # Persist to scripts/.env so subsequent runs don't need to re-enter it
+        from dotenv import set_key
+        env_path = os.path.join(script_dir, ".env")
+        set_key(env_path, "FABRIC_WORKSPACE_ID", fabric_workspace_id)
+        # Also persist to azd env so .azure/<env>/.env stays in sync
+        try:
+            subprocess.run(["azd", "env", "set", "FABRIC_WORKSPACE_ID", fabric_workspace_id], check=True, capture_output=True)
+        except Exception:
+            pass
+    # else: no workspace ID but CREATE_FABRIC_WORKSPACE is true — step 02 will auto-create
 
 # ============================================================================
 # Interactive Prompts for Data Generation
@@ -388,12 +402,19 @@ def run_step(step_id):
     info = STEPS[step_id]
     script_path = os.path.join(script_dir, info["script"])
     
+    # Dynamic label for step 02 based on workspace mode
+    step_name = info['name']
+    if step_id == "02":
+        create_ws = os.getenv("CREATE_FABRIC_WORKSPACE", "false").strip().lower() == "true"
+        if create_ws:
+            step_name = "Create Workspace, Lakehouse & Load Data"
+
     if args.quiet:
         # Compact progress line
-        print(f"  [{step_id}] {info['name']}...", end="", flush=True)
+        print(f"  [{step_id}] {step_name}...", end="", flush=True)
     else:
         print(f"\n{'='*60}")
-        print(f"[{step_id}] {info['name']}")
+        print(f"[{step_id}] {step_name}")
         print(f"{'='*60}")
     
     # Build command
@@ -408,8 +429,9 @@ def run_step(step_id):
         if args.size:
             cmd.extend(["--size", args.size])
     
-    if step_id == "02" and args.clean:
-        cmd.append("--clean")
+    if step_id == "02":
+        if args.clean:
+            cmd.append("--clean")
     
     if step_id == "06" and azure_only:
         cmd.append("--azure-only")
@@ -417,8 +439,8 @@ def run_step(step_id):
     # Run the script
     start_time = time.time()
     if args.quiet:
-        # Capture output in quiet mode
-        result = subprocess.run(cmd, cwd=script_dir, capture_output=True, text=True)
+        # Capture output in quiet mode (use utf-8 to handle emoji from child scripts)
+        result = subprocess.run(cmd, cwd=script_dir, capture_output=True, text=True, encoding='utf-8', errors='replace')
         elapsed = time.time() - start_time
         
         if result.returncode != 0:

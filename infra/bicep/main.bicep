@@ -106,6 +106,41 @@ var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 param useUserAccessToken bool = false
 var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
 
+// ========== Fabric Capacity Parameters ========== //
+
+@description('Set to true to auto-create a Fabric workspace during post-provision. When false, capacity creation is skipped.')
+param createFabricWorkspace bool = false
+
+@description('Optional. Name of an existing Fabric capacity to reuse. If empty, a new capacity is auto-created when conditions are met.')
+param azureFabricCapacityName string = ''
+
+@allowed([
+  'F2'
+  'F4'
+  'F8'
+  'F16'
+  'F32'
+  'F64'
+  'F128'
+  'F256'
+  'F512'
+  'F1024'
+  'F2048'
+])
+@description('Optional. SKU tier of the Fabric capacity resource.')
+param fabricCapacitySku string = 'F2'
+
+@description('Optional. Additional user/service principal object IDs to assign as Fabric Capacity admins.')
+param fabricAdminMembers array = []
+
+var useExistingFabricCapacity = !empty(azureFabricCapacityName)
+var shouldCreateFabricCapacity = !azureEnvOnly && createFabricWorkspace && !useExistingFabricCapacity
+var fabricCapacityResourceName = useExistingFabricCapacity ? azureFabricCapacityName : 'fc${solutionSuffix}'
+var fabricCapacityDefaultAdmins = contains(deployerInfo, 'userPrincipalName')
+  ? [deployerInfo.userPrincipalName]
+  : [deployerInfo.objectId]
+var fabricTotalAdminMembers = union(fabricCapacityDefaultAdmins, fabricAdminMembers)
+
 // If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
 var shouldDeployApp = !isWorkshop || deployApp
 
@@ -170,6 +205,21 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2023-07-01' = if (!isWorksh
         Type: 'Non-WAF'
       }
     )
+  }
+}
+
+// ========== Fabric Capacity ========== //
+module fabricCapacity './modules/data/fabric-capacity.bicep' = if (shouldCreateFabricCapacity) {
+  name: 'deploy-fabric-capacity'
+  params: {
+    name: fabricCapacityResourceName
+    location: solutionLocation
+    skuName: fabricCapacitySku
+    adminMembers: fabricTotalAdminMembers
+    tags: union(existingTags, {
+      TemplateName: 'Unified Data Analysis Agents'
+      CreatedBy: createdBy
+    })
   }
 }
 
@@ -569,3 +619,12 @@ output AZURE_ENV_ONLY bool = azureEnvOnly
 
 @description('Flag indicating whether user access token forwarding is enabled')
 output USE_USER_ACCESS_TOKEN string = useUserAccessTokenSetting
+
+@description('The name of the Fabric capacity resource.')
+output AZURE_FABRIC_CAPACITY_NAME string = createFabricWorkspace ? fabricCapacityResourceName : ''
+
+@description('The identities assigned as Fabric Capacity Admin members.')
+output FABRIC_ADMIN_MEMBERS array = shouldCreateFabricCapacity ? fabricTotalAdminMembers : []
+
+@description('The unique solution suffix of the deployed resources.')
+output SOLUTION_SUFFIX string = solutionSuffix

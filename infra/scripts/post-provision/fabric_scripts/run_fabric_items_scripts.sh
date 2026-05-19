@@ -31,6 +31,10 @@ app_service="$6"
 resource_group="$7"
 usecase="$8"
 
+# Resolve CREATE_FABRIC_WORKSPACE and AZURE_FABRIC_CAPACITY_NAME from env
+createFabricWorkspace="${CREATE_FABRIC_WORKSPACE:-false}"
+fabricCapacityName="${AZURE_FABRIC_CAPACITY_NAME:-}"
+
 # get parameters from azd env, if not provided
 if [ -z "$solutionName" ]; then
     solutionName=$(azd env get-value SOLUTION_NAME)
@@ -60,14 +64,30 @@ if [ -z "$usecase" ]; then
     usecase=$(azd env get-value USE_CASE)
 fi
 
+if [ -z "$fabricCapacityName" ]; then
+    fabricCapacityName=$(azd env get-value AZURE_FABRIC_CAPACITY_NAME 2>/dev/null || echo "")
+fi
+
+if [ -z "$createFabricWorkspace" ] || [ "$createFabricWorkspace" = "false" ]; then
+    createFabricWorkspace=$(azd env get-value CREATE_FABRIC_WORKSPACE 2>/dev/null || echo "false")
+fi
+
 # ─── Validate required parameters ───
 echo "Validating parameters..."
 validation_failed=false
 
-if [ -z "$fabricWorkspaceId" ]; then
+# fabricWorkspaceId is only required when NOT auto-creating workspace
+if [ "$createFabricWorkspace" = "true" ]; then
+    if [ -z "$fabricCapacityName" ]; then
+        echo "❌ ERROR: CREATE_FABRIC_WORKSPACE=true but AZURE_FABRIC_CAPACITY_NAME is not set."
+        echo "   Source:   Set via: azd env set AZURE_FABRIC_CAPACITY_NAME <your-capacity-name>"
+        validation_failed=true
+    fi
+    # fabricWorkspaceId is optional in auto-create mode
+elif [ -z "$fabricWorkspaceId" ]; then
     echo "❌ ERROR: 'fabricWorkspaceId' is missing."
     echo "   Expected: Fabric workspace GUID (e.g., 5bd3db28-534a-498d-a7e7-2a1e48fb3246)"
-    echo "   Source:   Pass as argument \$1 (this parameter must always be provided manually)"
+    echo "   Source:   Pass as argument \$1 or set CREATE_FABRIC_WORKSPACE=true with AZURE_FABRIC_CAPACITY_NAME"
     validation_failed=true
 elif [[ ! "$fabricWorkspaceId" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
     echo "❌ ERROR: 'fabricWorkspaceId' is not a valid GUID: $fabricWorkspaceId"
@@ -227,12 +247,27 @@ tmp="$(mktemp)"
 cleanup() { rm -f "$tmp"; }
 trap cleanup EXIT
 
+# Export resolved values so the Python child process can read them
+export CREATE_FABRIC_WORKSPACE="$createFabricWorkspace"
+export AZURE_FABRIC_CAPACITY_NAME="$fabricCapacityName"
+
 uid_args=""
 if [ -n "$backend_app_uid" ]; then
     uid_args="--backend_app_uid $backend_app_uid"
 fi
 
-python -u infra/scripts/post-provision/fabric_scripts/create_fabric_items.py --workspaceId "$fabricWorkspaceId" --solutionname "$solutionName" --backend_app_pid "$backend_app_pid" $uid_args --usecase "$usecase" --exports-file "$tmp"
+# Build Python command
+python_cmd="python -u infra/scripts/post-provision/fabric_scripts/create_fabric_items.py --solutionname \"$solutionName\" --backend_app_pid \"$backend_app_pid\" --backend_app_uid \"$backend_app_uid\" --usecase \"$usecase\" --exports-file \"$tmp\""
+
+if [ -n "$fabricWorkspaceId" ]; then
+    python_cmd="$python_cmd --workspaceId \"$fabricWorkspaceId\""
+fi
+
+if [ -n "$fabricCapacityName" ]; then
+    python_cmd="$python_cmd --capacity-name \"$fabricCapacityName\""
+fi
+
+eval $python_cmd
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -244,6 +279,11 @@ else
 fi
 
 source "$tmp"
+
+# Persist workspace ID to azd env (used by predown cleanup hook)
+if [ -n "$FABRIC_WORKSPACE_ID" ]; then
+    azd env set FABRIC_WORKSPACE_ID "$FABRIC_WORKSPACE_ID"
+fi
 
 FABRIC_SQL_SERVER="$FABRIC_SQL_SERVER1"
 FABRIC_SQL_DATABASE="$FABRIC_SQL_DATABASE1"
