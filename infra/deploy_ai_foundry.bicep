@@ -286,7 +286,7 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/co
 
 resource azureAIUser 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: subscription()
-  name: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
+  name: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Foundry User
 }
 
 resource cognitiveServicesOpenAIUser 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
@@ -517,7 +517,7 @@ resource userAIServicesAccess 'Microsoft.Authorization/roleAssignments@2022-04-0
   }
 }
 
-// Grant deploying user Azure AI User role on AI Services
+// Grant deploying user Foundry User role on AI Services
 resource userAzureAIAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (empty(azureExistingAIProjectResourceId)) {
   scope: aiServices
   name: guid(aiServices.id, deployingUserPrincipalId, azureAIUser.id)

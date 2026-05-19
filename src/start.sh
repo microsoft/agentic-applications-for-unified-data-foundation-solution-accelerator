@@ -372,25 +372,25 @@ else
 fi
 
 # ============================================================
-#  Azure AI User role assignment (only when AI_FOUNDRY_RESOURCE_ID is set)
+#  Foundry User role assignment (only when AI_FOUNDRY_RESOURCE_ID is set)
 # ============================================================
 if [ -n "$AI_FOUNDRY_RESOURCE_ID" ]; then
-    echo "Checking Azure AI User role assignment..."
+    echo "Checking Foundry User role assignment..."
     aiUserRoleExists=$(az role assignment list \
         --assignee "$signed_user_id" \
         --role "53ca6127-db72-4b80-b1b0-d745d6d5456d" \
         --scope "$AI_FOUNDRY_RESOURCE_ID" \
         --query "[0].id" -o tsv 2>/dev/null)
     if [ -n "$aiUserRoleExists" ]; then
-        echo "User already has the Azure AI User role."
+        echo "User already has the Foundry User role."
     else
-        echo "Assigning Azure AI User role to AI Foundry account..."
+        echo "Assigning Foundry User role to AI Foundry account..."
         az role assignment create \
             --assignee "$signed_user_id" \
             --role "53ca6127-db72-4b80-b1b0-d745d6d5456d" \
             --scope "$AI_FOUNDRY_RESOURCE_ID" \
             --output none
-        echo "Azure AI User role assigned successfully."
+        echo "Foundry User role assigned successfully."
     fi
 else
     echo "[INFO] No AI Foundry resource configured, skipping AI User role assignment."
