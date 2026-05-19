@@ -247,8 +247,6 @@ var dnsZoneIndex = {
 
 // Resource naming (parameterized — no abbreviations.json dependency)
 var names = {
-  managedIdentity: 'id-${solutionSuffix}'
-  backendAppIdentity: 'id-backend-app-mi-${solutionSuffix}'
   logAnalytics: 'log-${solutionSuffix}'
   appInsights: 'appi-${solutionSuffix}'
   aiServices: 'aisa-${solutionSuffix}'
@@ -360,30 +358,6 @@ module appInsights './modules/monitoring/app-insights.bicep' = if (enableMonitor
     workspaceResourceId: logAnalyticsWorkspaceResourceId
     retentionInDays: 365
     disableIpMasking: false
-  }
-}
-
-// ============================================================================
-// Module: Identity
-// ============================================================================
-
-module primaryIdentity './modules/identity/managed-identity.bicep' = {
-  name: 'identity-primary'
-  params: {
-    identityName: names.managedIdentity
-    location: location
-    tags: tags
-    enableTelemetry: enableTelemetry
-  }
-}
-
-module backendAppIdentity './modules/identity/managed-identity.bicep' = {
-  name: 'identity-backend-app'
-  params: {
-    identityName: names.backendAppIdentity
-    location: location
-    tags: tags
-    enableTelemetry: enableTelemetry
   }
 }
 
@@ -562,13 +536,7 @@ module existingAiServicesDeployments './modules/ai/existing-foundry-project.bice
       }
     ]
     roleAssignments: concat(
-      [
-        {
-          roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
-          principalId: primaryIdentity.outputs.principalId
-          principalType: 'ServicePrincipal'
-        }
-      ],
+      [],
       // Backend system-assigned identity also needs Azure AI User on existing AI Services
       // Matches old infra: deploy_backend_docker.bicep → assignAiUserRoleToAiProject
       shouldDeployApp
@@ -596,7 +564,6 @@ module aiServices './modules/ai/ai-services.bicep' = if (!useExistingAIProject) 
     enableTelemetry: enableTelemetry
     // Temporarily public — AI Search Knowledge Base needs to call the AI Services model endpoint for answer synthesis.
     publicNetworkAccess: 'Enabled'
-    userAssignedIdentityResourceIds: [primaryIdentity.outputs.resourceId]
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
     deployments: [
       for deployment in aiModelDeployments: {
@@ -615,11 +582,6 @@ module aiServices './modules/ai/ai-services.bicep' = if (!useExistingAIProject) 
     ]
     roleAssignments: union(
       [
-        {
-          roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
-          principalId: primaryIdentity.outputs.principalId
-          principalType: 'ServicePrincipal'
-        }
         {
           roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' // Cognitive Services User
           principalId: deployingUserPrincipalId
@@ -682,11 +644,6 @@ module aiSearch './modules/ai/ai-search.bicep' = if (isWorkshop) {
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
     roleAssignments: [
-      {
-        roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
-        principalId: primaryIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-      }
       {
         roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7' // Search Index Data Contributor
         principalId: deployingUserPrincipalId
@@ -796,8 +753,6 @@ module sqlDatabase './modules/data/sql-database.bicep' = if (isWorkshop && azure
     location: secondaryLocation
     tags: tags
     enableTelemetry: enableTelemetry
-    managedIdentityName: primaryIdentity.outputs.name
-    managedIdentityPrincipalId: primaryIdentity.outputs.principalId
     deployerPrincipalId: deployingUserPrincipalId
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     privateEndpoints: enablePrivateNetworking ? [
@@ -844,7 +799,6 @@ module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp &&
     enableTelemetry: enableTelemetry
     serverFarmResourceId: appServicePlan!.outputs.resourceId
     linuxFxVersion: 'DOCKER|${acrName}.azurecr.io/da-api:${imageTag}'
-    userAssignedIdentityResourceId: backendAppIdentity!.outputs.resourceId
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -864,8 +818,8 @@ module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp &&
       AZURE_COSMOSDB_ENABLE_FEEDBACK: isWorkshop ? 'True' : ''
       AZURE_SQLDB_DATABASE: (isWorkshop && azureEnvOnly) ? sqlDatabase!.outputs.databaseName : ''
       AZURE_SQLDB_SERVER: (isWorkshop && azureEnvOnly) ? sqlDatabase!.outputs.serverFqdn : ''
-      AZURE_SQLDB_USER_MID: (isWorkshop && azureEnvOnly) ? backendAppIdentity.outputs.clientId : ''
-      API_UID: backendAppIdentity.outputs.clientId
+      AZURE_SQLDB_USER_MID: ''
+      API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aiSearch!.outputs.endpoint : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'knowledge_index' : ''
       AZURE_AI_SEARCH_CONNECTION_NAME: (isWorkshop && !useExistingAIProject) ? aiProject!.outputs.searchConnectionName : ''
@@ -899,7 +853,6 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
     enableTelemetry: enableTelemetry
     serverFarmResourceId: appServicePlan!.outputs.resourceId
     linuxFxVersion: 'DOCKER|${acrName}.azurecr.io/da-api-dotnet:${imageTag}'
-    userAssignedIdentityResourceId: backendAppIdentity!.outputs.resourceId
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -917,7 +870,7 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: isWorkshop ? 'conversations' : ''
       AZURE_COSMOSDB_DATABASE: isWorkshop ? 'db_conversation_history' : ''
       AZURE_COSMOSDB_ENABLE_FEEDBACK: isWorkshop ? 'True' : ''
-      API_UID: backendAppIdentity!.outputs.clientId
+      API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aiSearch!.outputs.endpoint : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'call_transcripts_index' : ''
       AZURE_AI_SEARCH_CONNECTION_NAME: (isWorkshop && !useExistingAIProject) ? aiProject!.outputs.searchConnectionName : ''
@@ -966,7 +919,6 @@ module frontendApp './modules/compute/app-service.bicep' = if (shouldDeployApp) 
 module roleAssignments './modules/identity/role-assignments.bicep' = {
   name: 'identity-role-assignments'
   params: {
-    primaryIdentityPrincipalId: primaryIdentity.outputs.principalId
     aiProjectPrincipalId: (!useExistingAIProject) ? aiProject!.outputs.identityPrincipalId : ''
     aiSearchPrincipalId: isWorkshop ? aiSearch!.outputs.identityPrincipalId : ''
     aiSearchResourceId: isWorkshop ? aiSearch!.outputs.resourceId : ''
@@ -1018,10 +970,10 @@ output AZURE_SQLDB_DATABASE string = (isWorkshop && azureEnvOnly) ? sqlDatabase!
 output AZURE_SQLDB_SERVER string = (isWorkshop && azureEnvOnly) ? sqlDatabase!.outputs.serverFqdn : ''
 
 @description('Managed identity client ID for SQL auth.')
-output AZURE_SQLDB_USER_MID string = (isWorkshop && azureEnvOnly) ? backendAppIdentity!.outputs.clientId : ''
+output AZURE_SQLDB_USER_MID string = ''
 
 @description('Backend API managed identity client ID.')
-output API_UID string = backendAppIdentity.outputs.clientId
+output API_UID string = ''
 
 @description('Azure AI Agent endpoint.')
 output AZURE_AI_AGENT_ENDPOINT string = !useExistingAIProject ? aiProject!.outputs.endpoint : existingProjectEndpoint
@@ -1033,10 +985,14 @@ output AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME string = gptModelName
 output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backendApi!.outputs.name : backendCsApi!.outputs.name) : ''
 
 @description('Backend API managed identity principal ID.')
-output API_PID string = backendAppIdentity.outputs.principalId
+output API_PID string = shouldDeployApp
+  ? (backendRuntimeStack == 'python' ? backendApi!.outputs.identityPrincipalId : backendCsApi!.outputs.identityPrincipalId)
+  : ''
 
 @description('Backend API managed identity display name.')
-output MID_DISPLAY_NAME string = backendAppIdentity.outputs.name
+output MID_DISPLAY_NAME string = shouldDeployApp
+  ? (backendRuntimeStack == 'python' ? backendApi!.outputs.name : backendCsApi!.outputs.name)
+  : ''
 
 @description('Frontend web application URL.')
 output WEB_APP_URL string = shouldDeployApp ? frontendApp!.outputs.appUrl : ''

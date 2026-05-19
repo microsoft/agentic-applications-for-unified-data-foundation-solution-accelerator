@@ -1,9 +1,6 @@
 @description('The Azure region where the SQL Server and database will be deployed.')
 param solutionLocation string
 
-@description('The name of the managed identity used for SQL Server administration.')
-param managedIdentityName string
-
 @description('The name of the SQL Server.')
 param serverName string
 
@@ -11,13 +8,9 @@ param serverName string
 param sqlDBName string
 
 @description('The principal ID of the deployer for SQL Server admin access.')
-param deployerPrincipalId string = ''
+param deployerPrincipalId string
 
 var location = solutionLocation
-
-resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
-  name: managedIdentityName
-}
 
 resource sqlServer 'Microsoft.Sql/servers@2025-01-01' = {
   name: serverName
@@ -29,8 +22,8 @@ resource sqlServer 'Microsoft.Sql/servers@2025-01-01' = {
     restrictOutboundNetworkAccess: 'Disabled'
     minimalTlsVersion: '1.2'
     administrators: {
-      login: !empty(deployerPrincipalId) ? deployerPrincipalId : managedIdentityName
-      sid: !empty(deployerPrincipalId) ? deployerPrincipalId : managedIdentity.properties.principalId
+      login: deployerPrincipalId
+      sid: deployerPrincipalId
       tenantId: subscription().tenantId
       administratorType: 'ActiveDirectory'
       azureADOnlyAuthentication: true

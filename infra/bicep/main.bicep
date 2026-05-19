@@ -173,17 +173,6 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2023-07-01' = if (!isWorksh
   }
 }
 
-// ========== Managed Identity ========== //
-module managedIdentityModule './modules/identity/managed-identity.bicep' = {
-  name: 'deploy_managed_identity'
-  params: {
-    miName:'id-${solutionSuffix}'
-    solutionName: solutionSuffix
-    solutionLocation: solutionLocation
-  }
-  scope: resourceGroup(resourceGroup().name)
-}
-
 // ========== Monitoring (Log Analytics + Application Insights) ========== //
 // ========== Log Analytics module ========== //
 module log_analytics './modules/monitoring/log-analytics.bicep' = {
@@ -295,7 +284,6 @@ module sqlDBModule './modules/data/sql-db.bicep' = if(isWorkshop && azureEnvOnly
     serverName: 'sql-${solutionSuffix}'
     sqlDBName: 'sqldb-${solutionSuffix}'
     solutionLocation: secondaryLocation
-    managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
     deployerPrincipalId: deployingUserPrincipalId
   }
   scope: resourceGroup(resourceGroup().name)
@@ -331,7 +319,6 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
     solutionLocation: solutionLocation
     appServicePlanId: hostingplan!.outputs.name
     appImageName: backendApiImageName
-    userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
       REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
@@ -350,8 +337,8 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
       AZURE_COSMOSDB_ENABLE_FEEDBACK: isWorkshop ? 'True' : ''
       AZURE_SQLDB_DATABASE: (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
       AZURE_SQLDB_SERVER: (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
-      AZURE_SQLDB_USER_MID: (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
-      API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
+      AZURE_SQLDB_USER_MID: ''
+      API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? ai_search!.outputs.aiSearchTarget : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'knowledge_index' : ''
       AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? ai_search!.outputs.aiSearchConnectionName : ''
@@ -388,7 +375,6 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
     solutionLocation: solutionLocation
     appServicePlanId: hostingplan!.outputs.name
     appImageName: backendCsApiImageName
-    userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
       REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
@@ -405,7 +391,7 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: isWorkshop ? cosmosDBModule!.outputs.cosmosContainerName : ''
       AZURE_COSMOSDB_DATABASE: isWorkshop ? cosmosDBModule!.outputs.cosmosDatabaseName : ''
       AZURE_COSMOSDB_ENABLE_FEEDBACK: isWorkshop ? 'True' : ''
-      API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
+      API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? ai_search!.outputs.aiSearchTarget : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'call_transcripts_index' : ''
       AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? ai_search!.outputs.aiSearchConnectionName : ''
@@ -457,7 +443,6 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     isWorkshop: isWorkshop
     shouldDeployApp: shouldDeployApp
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
-    managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     aiServicesName: aifoundry.outputs.aiServicesName
     aiSearchName: isWorkshop ? ai_search!.outputs.aiSearchName : ''
     storageAccountName: isWorkshop ? storage_account!.outputs.storageAccountName : ''
@@ -508,10 +493,10 @@ output AZURE_SQLDB_DATABASE string = (isWorkshop && azureEnvOnly) ? sqlDBModule!
 output AZURE_SQLDB_SERVER string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
 
 @description('Managed identity client ID for SQL authentication (Azure-only mode)')
-output AZURE_SQLDB_USER_MID string = (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
+output AZURE_SQLDB_USER_MID string = ''
 
-@description('Backend API managed identity client ID')
-output API_UID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
+@description('Backend API managed identity client ID (system-assigned, resolved at runtime)')
+output API_UID string = ''
 
 @description('Azure AI Agent service endpoint URL')
 output AZURE_AI_AGENT_ENDPOINT string = aifoundry.outputs.projectEndpoint
@@ -522,11 +507,11 @@ output AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME string = gptModelName
 @description('Backend API App Service name')
 output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? 'api-${solutionSuffix}' : 'api-cs-${solutionSuffix}') : ''
 
-@description('Backend API managed identity object/principal ID')
-output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.objectId
+@description('Backend API managed identity object/principal ID (system-assigned)')
+output API_PID string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId) : ''
 
-@description('Backend API managed identity display name')
-output MID_DISPLAY_NAME string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.name
+@description('Backend API App Service name')
+output MID_DISPLAY_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? 'api-${solutionSuffix}' : 'api-cs-${solutionSuffix}') : ''
 
 @description('Frontend web application URL')
 output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : ''

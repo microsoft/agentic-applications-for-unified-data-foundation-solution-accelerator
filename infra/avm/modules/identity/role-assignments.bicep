@@ -3,9 +3,6 @@
 // Description: RG-level, cross-service, and data-plane role assignments
 // ============================================================================
 
-@description('Principal ID of the primary managed identity.')
-param primaryIdentityPrincipalId string
-
 @description('Principal ID of the AI project identity.')
 param aiProjectPrincipalId string = ''
 
@@ -35,29 +32,11 @@ param aiServicesResourceId string = ''
 // Role Definitions
 // ============================================================================
 var roleDefinitions = {
-  owner: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
   azureAiUser: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
   searchIndexDataReader: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
   searchServiceContributor: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
   storageBlobDataContributor: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
   storageBlobDataReader: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
-}
-
-// ============================================================================
-// Owner Role for Primary Identity (on Resource Group)
-// ============================================================================
-resource ownerRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
-  scope: resourceGroup()
-  name: roleDefinitions.owner
-}
-
-resource primaryIdentityOwnerAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, primaryIdentityPrincipalId, ownerRole.id)
-  properties: {
-    principalId: primaryIdentityPrincipalId
-    roleDefinitionId: ownerRole.id
-    principalType: 'ServicePrincipal'
-  }
 }
 
 // ============================================================================

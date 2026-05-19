@@ -39,266 +39,12 @@ Both modes always use:
 """
 
 import argparse
-import atexit
-import json
 import subprocess
 import sys
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# ============================================================================
-# WAF Network Access Helpers (MACAE pattern)
-# ============================================================================
-# For WAF deployments, public network access is disabled on Azure services.
-# We temporarily enable it while running post-provisioning scripts, then restore.
-
-_waf_original_state = {}  # tracks {resource_key: was_disabled}
-_waf_resource_group = ""
-
-
-_SHELL = sys.platform == "win32"  # az CLI on Windows is a .cmd, needs shell=True
-
-
-def _run_az(args_list):
-    """Run an az CLI command and return parsed JSON output (or None on error)."""
-    cmd = ["az"] + args_list + ["-o", "json"]
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, shell=_SHELL)
-        if result.returncode == 0 and result.stdout.strip():
-            return json.loads(result.stdout)
-    except Exception:
-        pass
-    return None
-
-
-def _run_az_update(args_list):
-    """Run an az CLI update command (no JSON parsing needed)."""
-    cmd = ["az"] + args_list + ["--output", "none"]
-    try:
-        subprocess.run(cmd, capture_output=True, text=True, timeout=120, shell=_SHELL)
-    except Exception:
-        pass
-
-
-def is_waf_deployment(resource_group):
-    """Check if the resource group has a Type=WAF tag (like MACAE pattern)."""
-    try:
-        cmd = ["az", "group", "show", "--name", resource_group, "--query", "tags.Type", "-o", "tsv"]
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=60, shell=_SHELL)
-        return r.stdout.strip() == "WAF"
-    except Exception:
-        return False
-
-
-def _check_public_access(resource_type, name, resource_group):
-    """Check current public network access state for a resource."""
-    try:
-        if resource_type == "search":
-            r = _run_az(["search", "service", "show", "--name", name,
-                         "--resource-group", resource_group,
-                         "--query", "publicNetworkAccess"])
-            return str(r).strip().strip('"').lower() if r else "enabled"
-        elif resource_type == "cognitiveservices":
-            r = _run_az(["cognitiveservices", "account", "show", "--name", name,
-                         "--resource-group", resource_group,
-                         "--query", "properties.publicNetworkAccess"])
-            return str(r).strip().strip('"').lower() if r else "enabled"
-        elif resource_type == "cosmosdb":
-            r = _run_az(["cosmosdb", "show", "--name", name,
-                         "--resource-group", resource_group,
-                         "--query", "publicNetworkAccess"])
-            return str(r).strip().strip('"').lower() if r else "enabled"
-        elif resource_type == "sql":
-            r = _run_az(["sql", "server", "show", "--name", name,
-                         "--resource-group", resource_group,
-                         "--query", "publicNetworkAccess"])
-            return str(r).strip().strip('"').lower() if r else "enabled"
-    except Exception:
-        pass
-    return "enabled"
-
-
-def _get_cognitiveservices_resource_id(name, resource_group):
-    """Build the resource ID for a Cognitive Services account."""
-    sub_id = os.getenv("AZURE_SUBSCRIPTION_ID", "").strip()
-    if not sub_id:
-        r = _run_az(["account", "show", "--query", "id"])
-        sub_id = str(r).strip().strip('"') if r else ""
-    if sub_id:
-        return (f"/subscriptions/{sub_id}/resourceGroups/{resource_group}"
-                f"/providers/Microsoft.CognitiveServices/accounts/{name}")
-    return ""
-
-
-def _enable_resource_public_access(resource_type, name, resource_group):
-    """Enable public network access for a specific resource."""
-    if resource_type == "search":
-        _run_az_update(["search", "service", "update", "--name", name,
-                        "--resource-group", resource_group,
-                        "--public-network-access", "enabled"])
-    elif resource_type == "cognitiveservices":
-        res_id = _get_cognitiveservices_resource_id(name, resource_group)
-        if res_id:
-            _run_az_update(["resource", "update", "--ids", res_id,
-                            "--set", "properties.publicNetworkAccess=Enabled"])
-    elif resource_type == "cosmosdb":
-        _run_az_update(["cosmosdb", "update", "--name", name,
-                        "--resource-group", resource_group,
-                        "--public-network-access", "ENABLED"])
-    elif resource_type == "sql":
-        _run_az_update(["sql", "server", "update", "--name", name,
-                        "--resource-group", resource_group,
-                        "--enable-public-network", "true"])
-
-
-def _disable_resource_public_access(resource_type, name, resource_group):
-    """Disable public network access for a specific resource."""
-    if resource_type == "search":
-        _run_az_update(["search", "service", "update", "--name", name,
-                        "--resource-group", resource_group,
-                        "--public-network-access", "disabled"])
-    elif resource_type == "cognitiveservices":
-        res_id = _get_cognitiveservices_resource_id(name, resource_group)
-        if res_id:
-            _run_az_update(["resource", "update", "--ids", res_id,
-                            "--set", "properties.publicNetworkAccess=Disabled"])
-    elif resource_type == "cosmosdb":
-        _run_az_update(["cosmosdb", "update", "--name", name,
-                        "--resource-group", resource_group,
-                        "--public-network-access", "DISABLED"])
-    elif resource_type == "sql":
-        _run_az_update(["sql", "server", "update", "--name", name,
-                        "--resource-group", resource_group,
-                        "--enable-public-network", "false"])
-
-
-def enable_waf_public_access(resource_group):
-    """Temporarily enable public access on WAF-protected resources.
-
-    Follows MACAE pattern but uses parallel execution for speed:
-    check state, enable all disabled resources concurrently, single wait, verify all.
-    """
-    global _waf_resource_group
-    _waf_resource_group = resource_group
-
-    resources = []
-
-    search_name = os.getenv("AZURE_AI_SEARCH_NAME", "").strip()
-    if search_name:
-        resources.append(("search", search_name, "AI Search"))
-
-    ai_service = os.getenv("AI_SERVICE_NAME", "").strip()
-    if ai_service:
-        resources.append(("cognitiveservices", ai_service, "AI Services"))
-
-    cosmos_account = os.getenv("AZURE_COSMOSDB_ACCOUNT", "").strip()
-    if cosmos_account:
-        resources.append(("cosmosdb", cosmos_account, "Cosmos DB"))
-
-    sql_server = os.getenv("AZURE_SQLDB_SERVER", "").strip()
-    if sql_server:
-        resources.append(("sql", sql_server, "SQL Server"))
-
-    if not resources:
-        print("  No WAF-protected resources found in environment.")
-        return
-
-    print("\n=== Temporarily enabling public network access for WAF services ===")
-
-    # Phase 1: Check current state in parallel
-    def _check_one(res_type, res_name, display_name):
-        current = _check_public_access(res_type, res_name, resource_group)
-        return res_type, res_name, display_name, current
-
-    with ThreadPoolExecutor(max_workers=len(resources)) as pool:
-        futures = [pool.submit(_check_one, rt, rn, dn) for rt, rn, dn in resources]
-        for f in as_completed(futures):
-            res_type, res_name, display_name, current = f.result()
-            if current == "disabled":
-                _waf_original_state[f"{res_type}:{res_name}"] = True
-            else:
-                _waf_original_state[f"{res_type}:{res_name}"] = False
-                print(f"  \u2713 {display_name} public access already enabled")
-
-    # Phase 2: Enable all disabled resources in parallel
-    to_enable = [(rt, rn, dn) for rt, rn, dn in resources
-                 if _waf_original_state.get(f"{rt}:{rn}")]
-    if to_enable:
-        print(f"  Enabling public access for {len(to_enable)} resource(s) in parallel...")
-        with ThreadPoolExecutor(max_workers=len(to_enable)) as pool:
-            def _enable_one(res_type, res_name, display_name):
-                _enable_resource_public_access(res_type, res_name, resource_group)
-                return display_name
-            futures = {pool.submit(_enable_one, rt, rn, dn): dn for rt, rn, dn in to_enable}
-            for f in as_completed(futures):
-                print(f"  \u2192 {f.result()} enable request sent")
-
-        # Phase 3: Single wait, then verify all in parallel
-        print(f"  Waiting 30s for changes to propagate...")
-        time.sleep(30)
-
-        def _verify_one(res_type, res_name, display_name):
-            for attempt in range(1, 6):
-                current = _check_public_access(res_type, res_name, resource_group)
-                if current == "enabled":
-                    return display_name, True, attempt
-                time.sleep(5)
-            return display_name, False, 5
-
-        with ThreadPoolExecutor(max_workers=len(to_enable)) as pool:
-            futures = [pool.submit(_verify_one, rt, rn, dn) for rt, rn, dn in to_enable]
-            for f in as_completed(futures):
-                name, ok, attempts = f.result()
-                if ok:
-                    print(f"  \u2713 {name} public access enabled successfully")
-                else:
-                    print(f"  Warning: verification timed out for {name}")
-
-    print("===================================================================\n")
-
-
-def restore_waf_network_access():
-    """Restore original public access state for WAF-protected resources.
-
-    Called via atexit to ensure cleanup even on errors/Ctrl+C.
-    Uses parallel execution for speed.
-    """
-    if not _waf_original_state or not _waf_resource_group:
-        return
-
-    to_restore = [(k, v) for k, v in _waf_original_state.items() if v]
-    if not to_restore:
-        return
-
-    print("\n=== Restoring network access settings ===")
-
-    _display_names = {
-        "search": "AI Search", "cognitiveservices": "AI Services",
-        "cosmosdb": "Cosmos DB", "sql": "SQL Server"
-    }
-
-    def _restore_one(key):
-        res_type, res_name = key.split(":", 1)
-        display_name = _display_names.get(res_type, res_type)
-        current = _check_public_access(res_type, res_name, _waf_resource_group)
-        if current == "enabled":
-            print(f"  Disabling public access for {display_name}: {res_name}")
-            _disable_resource_public_access(res_type, res_name, _waf_resource_group)
-            print(f"  \u2713 {display_name} public access disabled")
-        else:
-            print(f"  \u2713 {display_name} access unchanged (already at desired state)")
-
-    with ThreadPoolExecutor(max_workers=len(to_restore)) as pool:
-        list(pool.map(lambda kv: _restore_one(kv[0]), to_restore))
-
-    print("==========================================\n")
-
-    # Clear state to prevent double-restore (atexit + finally)
-    _waf_original_state.clear()
-
 
 # ============================================================================
 # Configuration
@@ -634,20 +380,6 @@ input("Press Enter to start (Ctrl+C to cancel)...")
 print()
 
 # ============================================================================
-# WAF: Temporarily enable public access (MACAE pattern)
-# ============================================================================
-
-_is_waf = False
-_rg = os.getenv("AZURE_RESOURCE_GROUP", "") or os.getenv("RESOURCE_GROUP_NAME", "")
-if _rg:
-    _is_waf = is_waf_deployment(_rg)
-
-if _is_waf:
-    # Register atexit handler FIRST so cleanup always runs (errors, Ctrl+C via KeyboardInterrupt)
-    atexit.register(restore_waf_network_access)
-    enable_waf_public_access(_rg)
-
-# ============================================================================
 # Run Pipeline
 # ============================================================================
 
@@ -724,23 +456,18 @@ total_start = time.time()
 successful = 0
 failed = 0
 
-try:
-    if args.quiet:
-        print(f"\nRunning {len(pipeline)} steps...")
+if args.quiet:
+    print(f"\nRunning {len(pipeline)} steps...")
 
-    for step in pipeline:
-        if run_step(step):
-            successful += 1
-            # Force reload environment after step 01 (it updates DATA_FOLDER, INDUSTRY, USECASE in .env)
-            if step == "01":
-                from load_env import reload_env
-                reload_env()
-        else:
-            failed += 1
-finally:
-    # Restore WAF network access even if pipeline fails or is interrupted
-    if _is_waf:
-        restore_waf_network_access()
+for step in pipeline:
+    if run_step(step):
+        successful += 1
+        # Force reload environment after step 01 (it updates DATA_FOLDER, INDUSTRY, USECASE in .env)
+        if step == "01":
+            from load_env import reload_env
+            reload_env()
+    else:
+        failed += 1
 
 total_elapsed = time.time() - total_start
 

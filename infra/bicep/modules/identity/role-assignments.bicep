@@ -21,9 +21,6 @@ param shouldDeployApp bool = false
 @description('The resource ID of an existing Azure AI Foundry project. If provided, the existing project will be used instead of creating a new one.')
 param azureExistingAIProjectResourceId string = ''
 
-@description('The object ID of the managed identity to assign roles to.')
-param managedIdentityObjectId string = ''
-
 @description('The name of the Azure AI Services account.')
 param aiServicesName string = ''
 
@@ -144,17 +141,6 @@ resource storageBlobDataReader 'Microsoft.Authorization/roleDefinitions@2022-04-
 // ║  AI SERVICES ROLE ASSIGNMENTS                               ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-// Managed Identity → Azure AI User on AI Services
-resource assignFoundryRoleToMI 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingProject && !empty(managedIdentityObjectId) && !empty(aiServicesName)) {
-  name: guid(resourceGroup().id, aiServices.id, azureAIUser.id)
-  scope: aiServices
-  properties: {
-    principalId: managedIdentityObjectId
-    roleDefinitionId: azureAIUser.id
-    principalType: 'ServicePrincipal'
-  }
-}
-
 // AI Search → Cognitive Services OpenAI User on AI Services
 resource assignOpenAIRoleToAISearch 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingProject && isWorkshop && !empty(searchPrincipalId) && !empty(aiServicesName)) {
   name: guid(resourceGroup().id, aiServices.id, cognitiveServicesOpenAIUser.id)
@@ -186,18 +172,6 @@ module assignOpenAIToSearchExisting './cross-scope-role-assignment.bicep' = if (
     principalId: searchPrincipalId
     roleDefinitionId: cognitiveServicesOpenAIUser.id
     roleAssignmentName: guid(resourceGroup().id, aiSearch.id, cognitiveServicesOpenAIUser.id, 'openai-foundry')
-    aiServicesName: existingAIServicesName
-  }
-}
-
-// Managed Identity → Azure AI User on existing AI Services (cross-scope)
-module assignFoundryRoleToMIExisting './cross-scope-role-assignment.bicep' = if (useExistingProject && !empty(managedIdentityObjectId)) {
-  name: 'assignFoundryRoleToMI'
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
-  params: {
-    principalId: managedIdentityObjectId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '53ca6127-db72-4b80-b1b0-d745d6d5456d')
-    roleAssignmentName: guid(resourceGroup().id, managedIdentityObjectId, '53ca6127-db72-4b80-b1b0-d745d6d5456d', 'foundry')
     aiServicesName: existingAIServicesName
   }
 }
@@ -246,17 +220,6 @@ resource assignSearchServiceContributorToExistingAiProject 'Microsoft.Authorizat
   properties: {
     principalId: existingAiProjectPrincipalId
     roleDefinitionId: searchServiceContributor.id
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Managed Identity → Search Index Data Contributor on AI Search
-resource assignSearchIndexDataContributorToMI 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingProject && isWorkshop && !empty(managedIdentityObjectId) && !empty(aiSearchName)) {
-  name: guid(resourceGroup().id, managedIdentityObjectId, searchIndexDataContributor.id)
-  scope: aiSearch
-  properties: {
-    principalId: managedIdentityObjectId
-    roleDefinitionId: searchIndexDataContributor.id
     principalType: 'ServicePrincipal'
   }
 }

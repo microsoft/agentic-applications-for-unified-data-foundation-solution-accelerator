@@ -20,14 +20,8 @@ param tags object = {}
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
-@description('Name of the managed identity for SQL admin.')
-param managedIdentityName string
-
-@description('Principal ID of the managed identity.')
-param managedIdentityPrincipalId string
-
 @description('Principal ID of the deployer for admin access.')
-param deployerPrincipalId string = ''
+param deployerPrincipalId string
 
 @description('SKU name for the database.')
 param skuName string = 'GP_S_Gen5'
@@ -69,9 +63,9 @@ module sqlServer 'br/public:avm/res/sql/server:0.21.0' = {
     restrictOutboundNetworkAccess: 'Disabled'
     administrators: {
       azureADOnlyAuthentication: true
-      login: !empty(deployerPrincipalId) ? deployerPrincipalId : managedIdentityName
+      login: deployerPrincipalId
       principalType: 'User'
-      sid: !empty(deployerPrincipalId) ? deployerPrincipalId : managedIdentityPrincipalId
+      sid: deployerPrincipalId
       tenantId: subscription().tenantId
     }
     databases: [

@@ -1,62 +1,40 @@
-// ========== Managed Identity ========== //
-targetScope = 'resourceGroup'
+// ============================================================================
+// Module: User-Assigned Managed Identity (Generic)
+// Description: Creates a user-assigned managed identity.
+//              This module is NOT called from main.bicep by default.
+//              Use it when you need a user-assigned identity for specific scenarios
+//              (e.g., Container Apps, cross-tenant access, pre-provisioned RBAC).
+// ============================================================================
 
-@minLength(3)
-@maxLength(25)
-@description('Solution Name')
-param solutionName string
+@description('Name of the managed identity.')
+param identityName string
 
-@description('Solution Location')
-param solutionLocation string
+@description('Azure region for the resource.')
+param location string = resourceGroup().location
 
-@description('Name')
-param miName string
+@description('Tags to apply to the resource.')
+param tags object = {}
 
-resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
-  name: miName
-  location: solutionLocation
-  tags: {
-    app: solutionName
-    location: solutionLocation
-  }
+// ============================================================================
+// Resource Deployment
+// ============================================================================
+resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: identityName
+  location: location
+  tags: tags
 }
 
-@description('This is the built-in owner role. See https://docs.microsoft.com/azure/role-based-access-control/built-in-roles#owner')
-resource ownerRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
-  scope: resourceGroup()
-  name: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
-}
+// ============================================================================
+// Outputs
+// ============================================================================
+@description('Resource ID of the managed identity.')
+output resourceId string = managedIdentity.id
 
-resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, managedIdentity.id, ownerRoleDefinition.id)
-  properties: {
-    principalId: managedIdentity.properties.principalId
-    roleDefinitionId:  ownerRoleDefinition.id
-    principalType: 'ServicePrincipal' 
-  }
-}
+@description('Principal ID (object ID) of the managed identity.')
+output principalId string = managedIdentity.properties.principalId
 
-resource managedIdentityBackendApp 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
-  name: 'id-backend-app-mi-${solutionName}'
-  location: solutionLocation
-  tags: {
-    app: solutionName
-    location: solutionLocation
-  }
-}
+@description('Client ID of the managed identity.')
+output clientId string = managedIdentity.properties.clientId
 
-@description('The managed identity details including id, objectId, clientId, and name.')
-output managedIdentityOutput object = {
-  id: managedIdentity.id
-  objectId: managedIdentity.properties.principalId
-  clientId: managedIdentity.properties.clientId
-  name: miName
-}
-
-@description('The backend app managed identity details including id, objectId, clientId, and name.')
-output managedIdentityBackendAppOutput object = {
-  id: managedIdentityBackendApp.id
-  objectId: managedIdentityBackendApp.properties.principalId
-  clientId: managedIdentityBackendApp.properties.clientId
-  name: managedIdentityBackendApp.name
-}
+@description('Name of the managed identity.')
+output name string = managedIdentity.name

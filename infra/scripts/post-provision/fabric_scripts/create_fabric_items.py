@@ -11,7 +11,7 @@ p = argparse.ArgumentParser()
 p.add_argument("--workspaceId", required=True)
 p.add_argument("--solutionname", required=True)
 p.add_argument("--backend_app_pid", required=True)
-p.add_argument("--backend_app_uid", required=True)
+p.add_argument("--backend_app_uid", default="", help="Client ID of backend MI (empty for system-assigned)")
 p.add_argument("--usecase", required=True)
 p.add_argument("--exports-file", required=True)
 args = p.parse_args()
@@ -490,7 +490,8 @@ else:
     exit(1)
 
 odbc_driver_18 = "{ODBC Driver 18 for SQL Server}"
-FABRIC_SQL_CONNECTION_STRING_18 = f"DRIVER={odbc_driver_18};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"
+uid_part = f";UID={backend_app_uid}" if backend_app_uid else ""
+FABRIC_SQL_CONNECTION_STRING_18 = f"DRIVER={odbc_driver_18};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE}{uid_part};Authentication=ActiveDirectoryMSI"
 
 # Write shell-safe exports
 with open(args.exports_file, "w", encoding="utf-8", newline="\n") as f:

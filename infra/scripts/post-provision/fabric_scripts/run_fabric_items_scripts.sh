@@ -15,7 +15,7 @@ echo ""
 #   $2  solutionName       - Solution name suffix used for resource naming (e.g., da5fi6dninkrjn)                                           | azd env: SOLUTION_NAME
 #   $3  aiFoundryName      - Name of the AI Foundry cognitive services account (e.g., aisa-<solutionname>)                                  | azd env: AI_SERVICE_NAME
 #   $4  backend_app_pid    - Backend app managed identity Principal (Object) ID (GUID)                                                      | azd env: API_PID
-#   $5  backend_app_uid    - Backend app managed identity Client ID (GUID)                                                                  | azd env: API_UID
+#   $5  backend_app_uid    - Backend app managed identity Client ID (GUID, optional — empty uses system-assigned)                              | azd env: API_UID
 #   $6  app_service        - Name of the backend API App Service (e.g., api-cs-<solutionname>)                                              | azd env: API_APP_NAME
 #   $7  resource_group     - Azure resource group name (e.g., rg-<envname>)                                                                 | azd env: RESOURCE_GROUP_NAME
 #   $8  usecase            - Use case identifier: 'Retail-sales-analysis' or 'Insurance-improve-customer-meetings' (case-insensitive)       | azd env: USE_CASE
@@ -45,7 +45,7 @@ if [ -z "$backend_app_pid" ]; then
 fi
 
 if [ -z "$backend_app_uid" ]; then
-    backend_app_uid=$(azd env get-value API_UID)
+    backend_app_uid=$(azd env get-value API_UID 2>/dev/null || echo "")
 fi
 
 if [ -z "$app_service" ]; then
@@ -100,15 +100,9 @@ elif [[ ! "$backend_app_pid" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0
     validation_failed=true
 fi
 
-if [ -z "$backend_app_uid" ]; then
-    echo "❌ ERROR: 'backend_app_uid' (backend app managed identity Client ID) is missing."
-    echo "   Expected: GUID (e.g., c37a7fd9-86d8-40bc-a18c-7011ec963e03)"
-    echo "   Source:   Pass as argument \$5 or set azd env variable API_UID"
-    validation_failed=true
-elif [[ ! "$backend_app_uid" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
-    echo "❌ ERROR: 'backend_app_uid' is not a valid GUID: $backend_app_uid"
-    echo "   Expected: GUID format (e.g., c37a7fd9-86d8-40bc-a18c-7011ec963e03)"
-    validation_failed=true
+if [ -n "$backend_app_uid" ] && [[ ! "$backend_app_uid" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+    echo "⚠ WARNING: 'backend_app_uid' is not a valid GUID: $backend_app_uid (will use system-assigned identity)"
+    backend_app_uid=""
 fi
 
 if [ -z "$app_service" ]; then
@@ -159,7 +153,7 @@ echo "  Fabric Workspace ID:   $fabricWorkspaceId"
 echo "  Solution Name:         $solutionName"
 echo "  AI Foundry Name:       $aiFoundryName"
 echo "  Backend App PID:       $backend_app_pid"
-echo "  Backend App UID:       $backend_app_uid"
+echo "  Backend App UID:       ${backend_app_uid:-<system-assigned>}"
 echo "  App Service:           $app_service"
 echo "  Resource Group:        $resource_group"
 echo "  Use Case:              $usecase"
@@ -233,7 +227,12 @@ tmp="$(mktemp)"
 cleanup() { rm -f "$tmp"; }
 trap cleanup EXIT
 
-python -u infra/scripts/post-provision/fabric_scripts/create_fabric_items.py --workspaceId "$fabricWorkspaceId" --solutionname "$solutionName" --backend_app_pid "$backend_app_pid" --backend_app_uid "$backend_app_uid" --usecase "$usecase" --exports-file "$tmp"
+uid_args=""
+if [ -n "$backend_app_uid" ]; then
+    uid_args="--backend_app_uid $backend_app_uid"
+fi
+
+python -u infra/scripts/post-provision/fabric_scripts/create_fabric_items.py --workspaceId "$fabricWorkspaceId" --solutionname "$solutionName" --backend_app_pid "$backend_app_pid" $uid_args --usecase "$usecase" --exports-file "$tmp"
 
 if [ $? -eq 0 ]; then
     echo ""

@@ -20,9 +20,6 @@ param serverFarmResourceId string
 @description('Docker image name (e.g., DOCKER|registry.azurecr.io/image:tag).')
 param linuxFxVersion string
 
-@description('Resource ID of the user-assigned managed identity (empty for system-assigned only).')
-param userAssignedIdentityResourceId string = ''
-
 @description('Application settings key-value pairs.')
 @secure()
 param appSettings object = {}
@@ -59,10 +56,7 @@ module appService 'br/public:avm/res/web/site:0.15.1' = {
     kind: kind
     enableTelemetry: enableTelemetry
     serverFarmResourceId: serverFarmResourceId
-    managedIdentities: !empty(userAssignedIdentityResourceId) ? {
-      systemAssigned: true
-      userAssignedResourceIds: [userAssignedIdentityResourceId]
-    } : {
+    managedIdentities: {
       systemAssigned: true
     }
     siteConfig: {
