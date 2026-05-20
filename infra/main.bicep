@@ -208,7 +208,7 @@ var isBicep = deploymentFlavor == 'bicep'
 module avmDeployment './avm/main.bicep' = if (isAvm) {
   name: take('module.avm.${solutionName}', 64)
   params: {
-    environmentName: solutionName
+    solutionName: solutionName
     solutionUniqueText: solutionUniqueText
     location: location
     secondaryLocation: secondaryLocation
@@ -221,7 +221,7 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     vmAdminUsername: vmAdminUsername
     vmAdminPassword: vmAdminPassword
     vmSize: vmSize
-    aiDeploymentsLocation: azureAiServiceLocation
+    azureAiServiceLocation: azureAiServiceLocation
     searchServiceLocation: searchServiceLocation
     deploymentType: deploymentType
     gptModelName: gptModelName
@@ -229,10 +229,10 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     gptDeploymentCapacity: gptDeploymentCapacity
     embeddingModel: embeddingModel
     embeddingDeploymentCapacity: embeddingDeploymentCapacity
-    azureOpenAIApiVersion: azureOpenaiAPIVersion
+    azureOpenaiAPIVersion: azureOpenaiAPIVersion
     azureAiAgentApiVersion: azureAiAgentApiVersion
     imageTag: imageTag
-    acrName: containerRegistryName
+    containerRegistryName: containerRegistryName
     backendRuntimeStack: backendRuntimeStack
     appServicePlanSku: appServicePlanSku
     deployApp: deployApp
@@ -241,7 +241,7 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     useChatHistoryEnabled: useChatHistoryEnabled
     useUserAccessToken: useUserAccessToken
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
-    existingAIProjectResourceId: existingFoundryProjectResourceId
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
     deployingUserPrincipalType: deployingUserPrincipalType
     usecase: usecase
     appTitlePrimary: appTitlePrimary
