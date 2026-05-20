@@ -278,7 +278,6 @@ jobs:
           azd env set BACKEND_RUNTIME_STACK="$env:BACKEND_RUNTIME_STACK"
           azd env set USE_CASE="$env:USE_CASE"
           azd env set DEPLOYING_USER_PRINCIPAL_TYPE="ServicePrincipal"
-          azd env set IS_WORKSHOP false
           
           # Set ACR name only when building Docker image
           if ($env:BUILD_DOCKER_IMAGE -eq "true") {

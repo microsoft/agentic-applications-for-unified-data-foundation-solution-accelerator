@@ -34,8 +34,6 @@ load_dotenv()
 HOST_NAME = "Agentic Applications for Unified Data Foundation"
 HOST_INSTRUCTIONS = "Answer questions about Sales, Products and Orders data."
 
-# Workshop mode configuration
-IS_WORKSHOP = os.getenv("IS_WORKSHOP", "false").lower() == "true"
 AZURE_ENV_ONLY = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
 USE_USER_ACCESS_TOKEN = os.getenv("USE_USER_ACCESS_TOKEN", "false").lower() == "true"
 
@@ -127,177 +125,6 @@ def get_thread_cache():
     if thread_cache is None:
         thread_cache = ExpCache(maxsize=1000, ttl=3600.0)
     return thread_cache
-
-
-async def stream_openai_text(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None):
-    """
-    Async generator yielding plain text chunks from OpenAI.
-
-    Uses responses.create() with conversation caching for chat history continuity.
-    If *user_assertion* is provided, uses OBO credential for user context.
-    """
-    logger.info("stream_openai_text called: conversation_id=%s, query_length=%d",
-                conversation_id, len(query) if query else 0)
-    complete_response = ""
-    credential = None
-    db_connection = None
-
-    try:
-        if not query:
-            query = "Please provide a query."
-
-        logger.info("Chat request received - query: %s, conversation_id: %s", query, conversation_id)
-
-        # Use OBO credential if user token is available and USE_USER_ACCESS_TOKEN is enabled
-        effective_assertion = user_assertion if USE_USER_ACCESS_TOKEN else None
-        credential = await get_azure_credential_async(user_assertion=effective_assertion)
-
-        async with AIProjectClient(
-            endpoint=os.getenv("AZURE_AI_AGENT_ENDPOINT"),
-            credential=credential
-        ) as project_client:
-
-            cache = get_thread_cache()
-            thread_conversation_id = cache.get(conversation_id, None)
-
-            # Get database connection
-            from history_sql import SqlQueryTool, get_db_connection
-            db_connection = await get_db_connection()
-            if not db_connection:
-                logger.error("Failed to establish database connection")
-                raise Exception("Database connection failed")
-
-            custom_tool = SqlQueryTool(pyodbc_conn=db_connection)
-
-            openai_client = project_client.get_openai_client()
-
-            # Create or reuse conversation for chat history continuity
-            if not thread_conversation_id:
-                conversation = await openai_client.conversations.create()
-                thread_conversation_id = conversation.id
-                cache[conversation_id] = thread_conversation_id
-
-            # Initial request to the agent
-            response = await openai_client.responses.create(
-                conversation=thread_conversation_id,
-                input=query,
-                extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
-            )
-
-            # Process response - handle function calls iteratively
-            max_iterations = 10
-            iteration = 0
-
-            while iteration < max_iterations:
-                iteration += 1
-
-                function_calls = []
-                text_output = ""
-
-                for item in response.output:
-                    item_type = getattr(item, 'type', None)
-
-                    if item_type == 'function_call':
-                        function_calls.append(item)
-                    elif item_type == 'message':
-                        if hasattr(item, 'content') and item.content is not None:
-                            for content in item.content:
-                                if hasattr(content, 'text'):
-                                    text_output += content.text
-                    elif item_type == 'azure_ai_search_call':
-                        args_str = getattr(item, 'arguments', '{}')
-                        try:
-                            args = json.loads(args_str) if args_str else {}
-                            logger.info("AI Search query: %s", args.get('query', 'unknown'))
-                        except Exception:
-                            logger.info("AI Search called")
-                    elif item_type in ('azure_ai_search_call_output', 'mcp_call_output'):
-                        logger.info("Search/knowledge base retrieval completed")
-                    elif item_type == 'mcp_call':
-                        logger.info("Knowledge Base MCP call: %s", getattr(item, 'name', 'unknown'))
-
-                # If no function calls, yield text and break
-                if not function_calls:
-                    if text_output:
-                        complete_response += text_output
-                        yield text_output
-                    break
-
-                # Handle function calls
-                tool_outputs = []
-                for fc in function_calls:
-                    func_name = fc.name
-                    func_args = json.loads(fc.arguments)
-                    logger.info("Calling function: %s", func_name)
-
-                    if func_name == "run_sql_query":
-                        sql_query = func_args.get("sql_query", "")
-                        logger.info("Executing SQL query: %s", sql_query[:100])
-                        result = await custom_tool.run_sql_query(sql_query=sql_query)
-                        logger.info("SQL query completed")
-                        if result is None:
-                            result_str = "No results returned"
-                        elif isinstance(result, (list, dict)):
-                            result_str = json.dumps(result, ensure_ascii=False)
-                        else:
-                            result_str = str(result)
-                    else:
-                        result_str = f"Unknown function: {func_name}"
-                        logger.warning("Unknown function called: %s", func_name)
-
-                    tool_outputs.append({
-                        "type": "function_call_output",
-                        "call_id": fc.call_id,
-                        "output": result_str
-                    })
-
-                # Submit tool outputs and get next response
-                response = await openai_client.responses.create(
-                    conversation=thread_conversation_id,
-                    input=tool_outputs,
-                    extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
-                )
-
-            if iteration >= max_iterations:
-                logger.warning("Max iterations reached for conversation %s", conversation_id)
-                yield "\n\n(Response processing reached maximum iterations)"
-
-            logger.info("Streaming complete for conversation %s: response_length=%d",
-                        conversation_id, len(complete_response))
-            track_event_if_configured("ChatResponseCompleted", {
-                "conversation_id": conversation_id,
-                "user_id": user_id,
-                "response_length": str(len(complete_response)),
-            })
-
-    except HttpResponseError as e:
-        complete_response = str(e)
-        if "Rate limit is exceeded" in str(e) or e.status_code == 429:
-            logger.error("Rate limit error: %s", e)
-            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=f"Rate limit is exceeded. {str(e)}") from e
-        else:
-            logger.error("RuntimeError: %s", e)
-            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"An unexpected runtime error occurred: {str(e)}") from e
-
-    except Exception as e:
-        complete_response = str(e)
-        logger.exception("Error in stream_openai_text: %s", e)
-        cache = get_thread_cache()
-        thread_conversation_id = cache.pop(conversation_id, None)
-        if thread_conversation_id is not None:
-            corrupt_key = f"{conversation_id}_corrupt_{random.randint(1000, 9999)}"
-            cache[corrupt_key] = thread_conversation_id
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error streaming OpenAI text") from e
-
-    finally:
-        if db_connection:
-            db_connection.close()
-        if credential is not None:
-            await credential.close()
-        # Provide a fallback response when no data is received from OpenAI.
-        if complete_response == "":
-            logger.info("No response received from OpenAI.")
-            yield "I cannot answer this question with the current data. Please rephrase or add more details."
 
 
 _MARKER_RE = re.compile(r'【\d+:(\d+)†([^】]*)】')
@@ -522,45 +349,24 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
 
 async def stream_chat_request(conversation_id, query, user_id: str = "", user_assertion: str = None):
     """
-    Handles streaming chat requests.
-
-    Workshop mode uses delta format (incremental fragments).
-    Non-workshop mode uses messages format (accumulated text).
+    Handles streaming chat requests using delta format (incremental fragments).
     """
     logger.info("stream_chat_request called: conversation_id=%s", conversation_id)
 
     async def generate():
         try:
             assistant_content = ""
-            # Use workshop function if IS_WORKSHOP is enabled
-            stream_func = stream_openai_text_workshop if IS_WORKSHOP else stream_openai_text
-            if IS_WORKSHOP:
-                # Workshop: delta format — incremental fragments, frontend appends
-                async for role, content in stream_func(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
-                    if not content:
-                        continue
-                    if role == "assistant":
-                        assistant_content += content
-                    response = {
-                        "choices": [{
-                            "delta": {"role": role, "content": content}
-                        }]
-                    }
-                    yield json.dumps(response, ensure_ascii=False) + "\n"
-            else:
-                # Non-workshop: messages format — accumulated text, frontend replaces
-                async for chunk in stream_func(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
-                    if isinstance(chunk, dict):
-                        chunk = json.dumps(chunk)
-                    assistant_content += str(chunk)
-
-                    if assistant_content:
-                        response = {
-                            "choices": [{
-                                "messages": [{"role": "assistant", "content": assistant_content}]
-                            }]
-                        }
-                        yield json.dumps(response, ensure_ascii=False) + "\n\n"
+            async for role, content in stream_openai_text_workshop(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
+                if not content:
+                    continue
+                if role == "assistant":
+                    assistant_content += content
+                response = {
+                    "choices": [{
+                        "delta": {"role": role, "content": content}
+                    }]
+                }
+                yield json.dumps(response, ensure_ascii=False) + "\n"
 
         except HTTPException as e:
             error_message = str(e.detail) if hasattr(e, 'detail') else str(e)
