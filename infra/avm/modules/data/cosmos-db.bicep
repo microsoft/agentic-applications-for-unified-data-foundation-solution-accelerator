@@ -66,7 +66,7 @@ param haLocation string = ''
 // AVM Module Deployment
 // ============================================================================
 module cosmosAccount 'br/public:avm/res/document-db/database-account:0.19.0' = {
-  name: 'deploy-cosmos-${accountName}'
+  name: take('avm.res.document-db.database-account.${accountName}', 64)
   params: {
     name: accountName
     location: location

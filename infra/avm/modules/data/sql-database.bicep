@@ -63,7 +63,7 @@ var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
 // AVM Module Deployment
 // ============================================================================
 module sqlServer 'br/public:avm/res/sql/server:0.21.0' = {
-  name: 'deploy-sql-${serverName}'
+  name: take('avm.res.sql.server.${serverName}', 64)
   params: {
     name: serverName
     location: location

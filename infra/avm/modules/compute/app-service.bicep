@@ -50,7 +50,7 @@ param publicNetworkAccess string = 'Enabled'
 // AVM Module Deployment
 // ============================================================================
 module appService 'br/public:avm/res/web/site:0.15.1' = {
-  name: 'deploy-app-${appServiceName}'
+  name: take('avm.res.web.site.${appServiceName}', 64)
   params: {
     name: appServiceName
     location: location

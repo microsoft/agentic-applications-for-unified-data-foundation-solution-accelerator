@@ -52,7 +52,7 @@ param dataSources array = []
 // AVM Module Deployment
 // ============================================================================
 module workspace 'br/public:avm/res/operational-insights/workspace:0.15.0' = {
-  name: 'deploy-log-analytics-${workspaceName}'
+  name: take('avm.res.operational-insights.workspace.${workspaceName}', 64)
   params: {
     name: workspaceName
     location: location

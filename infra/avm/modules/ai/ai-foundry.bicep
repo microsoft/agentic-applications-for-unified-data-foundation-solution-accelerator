@@ -99,7 +99,7 @@ var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
 // AI Services (AVM Module)
 // ============================================================================
 module aiFoundryAccount 'br/public:avm/res/cognitive-services/account:0.13.2' = {
-  name: 'deploy-ai-foundry-${aiFoundryName}'
+  name: take('avm.res.cognitive-services.account.${aiFoundryName}', 64)
   params: {
     name: aiFoundryName
     location: location

@@ -65,7 +65,7 @@ param extensionMonitoringAgentConfig object?
 // AVM Module Deployment
 // ============================================================================
 module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.22.0' = {
-  name: 'deploy-vm-${name}'
+  name: take('avm.res.compute.virtual-machine.${name}', 64)
   params: {
     name: name
     location: location

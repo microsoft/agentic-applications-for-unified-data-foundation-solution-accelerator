@@ -59,7 +59,7 @@ param installPatches object = {
 // AVM Module Deployment
 // ============================================================================
 module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.4.0' = {
-  name: 'deploy-mc-${name}'
+  name: take('avm.res.maintenance.maintenance-configuration.${name}', 64)
   params: {
     name: name
     location: location

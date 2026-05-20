@@ -62,7 +62,7 @@ param roleAssignments array = []
 // AVM Module Deployment
 // ============================================================================
 module searchService 'br/public:avm/res/search/search-service:0.9.1' = {
-  name: 'deploy-ai-search-${searchServiceName}'
+  name: take('avm.res.search.search-service.${searchServiceName}', 64)
   params: {
     name: searchServiceName
     location: location

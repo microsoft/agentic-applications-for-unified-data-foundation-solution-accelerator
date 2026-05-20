@@ -45,7 +45,7 @@ param zoneRedundant bool = false
 // AVM Module Deployment
 // ============================================================================
 module appServicePlan 'br/public:avm/res/web/serverfarm:0.4.1' = {
-  name: 'deploy-asp-${appServicePlanName}'
+  name: take('avm.res.web.serverfarm.${appServicePlanName}', 64)
   params: {
     name: appServicePlanName
     location: location

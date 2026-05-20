@@ -30,7 +30,7 @@ param privateDnsZoneGroup object?
 // AVM Module Deployment
 // ============================================================================
 module privateEndpoint 'br/public:avm/res/network/private-endpoint:0.12.0' = {
-  name: 'deploy-pep-${name}'
+  name: take('avm.res.network.private-endpoint.${name}', 64)
   params: {
     name: name
     location: location

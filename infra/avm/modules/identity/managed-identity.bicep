@@ -21,7 +21,7 @@ param enableTelemetry bool = true
 // AVM Module Deployment
 // ============================================================================
 module managedIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.5.0' = {
-  name: 'deploy-identity-${identityName}'
+  name: take('avm.res.managed-identity.user-assigned-identity.${identityName}', 64)
   params: {
     name: identityName
     location: location

@@ -79,7 +79,7 @@ param roleAssignments array = []
 // AVM Module Deployment
 // ============================================================================
 module storage 'br/public:avm/res/storage/storage-account:0.19.0' = {
-  name: 'deploy-storage-${storageAccountName}'
+  name: take('avm.res.storage.storage-account.${storageAccountName}', 64)
   params: {
     name: storageAccountName
     location: location

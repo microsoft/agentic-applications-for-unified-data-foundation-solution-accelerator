@@ -49,7 +49,7 @@ param publicIPDiagnosticSettings array?
 // AVM Module Deployment
 // ============================================================================
 module bastionHost 'br/public:avm/res/network/bastion-host:0.8.2' = {
-  name: 'deploy-bastion-${name}'
+  name: take('avm.res.network.bastion-host.${name}', 64)
   params: {
     name: name
     location: location

@@ -38,7 +38,7 @@ param flowType string = 'Bluefield'
 // AVM Module Deployment
 // ============================================================================
 module appInsights 'br/public:avm/res/insights/component:0.7.1' = {
-  name: 'deploy-app-insights-${appInsightsName}'
+  name: take('avm.res.insights.component.${appInsightsName}', 64)
   params: {
     name: appInsightsName
     location: location

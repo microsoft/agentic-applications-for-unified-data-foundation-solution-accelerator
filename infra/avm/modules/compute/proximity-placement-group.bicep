@@ -29,7 +29,7 @@ param vmSizes array = []
 // AVM Module Deployment
 // ============================================================================
 module proximityPlacementGroup 'br/public:avm/res/compute/proximity-placement-group:0.4.1' = {
-  name: 'deploy-ppg-${name}'
+  name: take('avm.res.compute.proximity-placement-group.${name}', 64)
   params: {
     name: name
     location: location

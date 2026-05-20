@@ -26,7 +26,7 @@ param logAnalyticsWorkspaceResourceId string
 // AVM Module Deployment
 // ============================================================================
 module dataCollectionRule 'br/public:avm/res/insights/data-collection-rule:0.11.0' = {
-  name: 'deploy-dcr-${name}'
+  name: take('avm.res.insights.data-collection-rule.${name}', 64)
   params: {
     name: name
     tags: tags
