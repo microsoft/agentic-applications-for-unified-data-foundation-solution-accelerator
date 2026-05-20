@@ -160,8 +160,8 @@ resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connec
 @description('Names of the deployed models.')
 output deploymentNames array = [for (deployment, i) in (deployments ?? []): cognitiveService_deployments[i].name]
 
-@description('The principal ID of the AI Services system-assigned managed identity.')
-output aiServicesPrincipalId string = cognitiveService.identity.principalId
+@description('The principal ID of the AI Foundry system-assigned managed identity.')
+output aiFoundryPrincipalId string = cognitiveService.identity.principalId
 
 @description('The principal ID of the AI Project system-assigned managed identity.')
 output aiProjectPrincipalId string = aiProject.identity.principalId

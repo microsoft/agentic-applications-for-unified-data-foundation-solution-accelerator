@@ -9,7 +9,7 @@
 @description('Solution name suffix used to derive resource names.')
 param solutionName string
 
-var aiServicesName = 'aif-${solutionName}'
+var aiFoundryName = 'aif-${solutionName}'
 var projectName = 'proj-${solutionName}'
 
 @description('Azure region for the resources.')
@@ -98,10 +98,10 @@ var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
 // ============================================================================
 // AI Services (AVM Module)
 // ============================================================================
-module aiServices 'br/public:avm/res/cognitive-services/account:0.13.2' = {
-  name: 'deploy-ai-services-${aiServicesName}'
+module aiFoundryAccount 'br/public:avm/res/cognitive-services/account:0.13.2' = {
+  name: 'deploy-ai-foundry-${aiFoundryName}'
   params: {
-    name: aiServicesName
+    name: aiFoundryName
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -109,7 +109,7 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.13.2' = {
     kind: 'AIServices'
     disableLocalAuth: disableLocalAuth
     allowProjectManagement: allowProjectManagement
-    customSubDomainName: aiServicesName
+    customSubDomainName: aiFoundryName
     networkAcls: {
       defaultAction: 'Allow'
       virtualNetworkRules: []
@@ -124,8 +124,8 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.13.2' = {
     roleAssignments: roleAssignments
     privateEndpoints: enablePrivateNetworking ? [
       {
-        name: 'pep-${aiServicesName}'
-        customNetworkInterfaceName: 'nic-${aiServicesName}'
+        name: 'pep-${aiFoundryName}'
+        customNetworkInterfaceName: 'nic-${aiFoundryName}'
         subnetResourceId: privateEndpointSubnetId
         privateDnsZoneGroup: {
           privateDnsZoneGroupConfigs: privateDnsZoneConfigs
@@ -138,13 +138,13 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.13.2' = {
 // ============================================================================
 // AI Foundry Project
 // ============================================================================
-resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = {
-  name: aiServicesName
-  dependsOn: [aiServices]
+resource aiFoundryResource 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = {
+  name: aiFoundryName
+  dependsOn: [aiFoundryAccount]
 }
 
 resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
-  parent: aiServicesAccount
+  parent: aiFoundryResource
   name: projectName
   location: location
   tags: tags
@@ -153,7 +153,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = 
     type: 'SystemAssigned'
   }
   properties: {}
-  dependsOn: [aiServices]
+  dependsOn: [aiFoundryAccount]
 }
 
 // ============================================================================
@@ -218,15 +218,15 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/co
 // Outputs
 // ============================================================================
 
-// --- AI Services Outputs ---
-@description('Resource ID of the AI Services account.')
-output resourceId string = aiServices.outputs.resourceId
+// --- AI Foundry Outputs ---
+@description('Resource ID of the AI Foundry account.')
+output resourceId string = aiFoundryAccount.outputs.resourceId
 
-@description('Name of the AI Services account.')
-output name string = aiServices.outputs.name
+@description('Name of the AI Foundry account.')
+output name string = aiFoundryAccount.outputs.name
 
-@description('Endpoint of the AI Services account.')
-output endpoint string = aiServices.outputs.endpoint
+@description('Endpoint of the AI Foundry account.')
+output endpoint string = aiFoundryAccount.outputs.endpoint
 
 // --- AI Foundry Project Outputs ---
 @description('Resource ID of the AI Foundry project.')

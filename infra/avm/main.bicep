@@ -296,7 +296,7 @@ var privateDnsZones = [
 var dnsZoneIndex = {
   cognitiveServices: 0
   openAI: 1
-  aiServices: 2
+  aiFoundry: 2
   cosmosDb: 3
   blob: 4
   search: 5
@@ -538,14 +538,14 @@ module privateDnsZoneDeployments './modules/networking/private-dns-zone.bicep' =
 // Module: AI Services (conditional — skip if using existing project)
 // ============================================================================
 
-// Existing AI Services reference (for cross-subscription support when using existing project)
-var aiServicesResourceGroupName = useExistingAIProject
+// Existing AI Foundry reference (for cross-subscription support when using existing project)
+var aiFoundryResourceGroupName = useExistingAIProject
   ? split(existingAIProjectResourceId, '/')[4]
   : resourceGroup().name
-var aiServicesSubscriptionId = useExistingAIProject
+var aiFoundrySubscriptionId = useExistingAIProject
   ? split(existingAIProjectResourceId, '/')[2]
   : subscription().subscriptionId
-var aiServicesResourceName = useExistingAIProject
+var aiFoundryResourceName = useExistingAIProject
   ? split(existingAIProjectResourceId, '/')[8]
   : aiFoundry!.outputs.name
 
@@ -559,17 +559,17 @@ var existingProjectEndpoint = existingHasProjectSegment
   ? format('https://{0}.services.ai.azure.com/api/projects/{1}', split(existingAIProjectResourceId, '/')[8], split(existingAIProjectResourceId, '/')[10])
   : ''
 
-resource existingAiServices 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = if (useExistingAIProject) {
-  name: aiServicesResourceName
-  scope: resourceGroup(aiServicesSubscriptionId, aiServicesResourceGroupName)
+resource existingAiFoundry 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = if (useExistingAIProject) {
+  name: aiFoundryResourceName
+  scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
 }
 
-// Deploy model deployments + connections to existing AI Services (when using existing project)
-module existingAiServicesDeployments './modules/ai/existing-foundry-project.bicep' = if (useExistingAIProject) {
+// Deploy model deployments + connections to existing AI Foundry (when using existing project)
+module existingAiFoundryDeployments './modules/ai/existing-foundry-project.bicep' = if (useExistingAIProject) {
   name: 'ai-existing-foundry-project'
-  scope: resourceGroup(aiServicesSubscriptionId, aiServicesResourceGroupName)
+  scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
   params: {
-    name: existingAiServices.name
+    name: existingAiFoundry.name
     projectName: existingHasProjectSegment ? split(existingAIProjectResourceId, '/')[10] : ''
     deployments: [
       for deployment in aiModelDeployments: {
@@ -653,7 +653,7 @@ module aiFoundry './modules/ai/ai-foundry.bicep' = if (!useExistingAIProject) {
     privateDnsZoneResourceIds: enablePrivateNetworking ? [
       privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
       privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
-      privateDnsZoneDeployments[dnsZoneIndex.aiServices]!.outputs.resourceId
+      privateDnsZoneDeployments[dnsZoneIndex.aiFoundry]!.outputs.resourceId
     ] : []
   }
   dependsOn: isWorkshop ? [aiSearch] : []
@@ -787,7 +787,7 @@ module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp &&
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : aiFoundry!.outputs.endpoint
       AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiServicesResourceName : aiFoundry!.outputs.name
+      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiFoundryResourceName : aiFoundry!.outputs.name
       AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : aiFoundry!.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
@@ -802,7 +802,7 @@ module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp &&
       API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aiSearch!.outputs.endpoint : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'knowledge_index' : ''
-      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? (useExistingAIProject ? existingAiServicesDeployments!.outputs.searchConnectionName : aiFoundry!.outputs.searchConnectionName) : ''
+      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? (useExistingAIProject ? existingAiFoundryDeployments!.outputs.searchConnectionName : aiFoundry!.outputs.searchConnectionName) : ''
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? appInsights!.outputs.connectionString : ''
@@ -841,7 +841,7 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : aiFoundry!.outputs.endpoint
       AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiServicesResourceName : aiFoundry!.outputs.name
+      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiFoundryResourceName : aiFoundry!.outputs.name
       AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : aiFoundry!.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
@@ -853,7 +853,7 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
       API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aiSearch!.outputs.endpoint : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'call_transcripts_index' : ''
-      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? (useExistingAIProject ? existingAiServicesDeployments!.outputs.searchConnectionName : aiFoundry!.outputs.searchConnectionName) : ''
+      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? (useExistingAIProject ? existingAiFoundryDeployments!.outputs.searchConnectionName : aiFoundry!.outputs.searchConnectionName) : ''
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? appInsights!.outputs.connectionString : ''
@@ -909,10 +909,10 @@ module roleAssignments './modules/identity/role-assignments.bicep' = {
     backendAppServicePrincipalId: shouldDeployApp
       ? (backendRuntimeStack == 'python' ? backendApi!.outputs.identityPrincipalId : backendCsApi!.outputs.identityPrincipalId)
       : ''
-    aiServicesResourceId: !useExistingAIProject ? aiFoundry!.outputs.resourceId : ''
+    aiFoundryResourceId: !useExistingAIProject ? aiFoundry!.outputs.resourceId : ''
     useExistingAIProject: useExistingAIProject
     existingAIProjectResourceId: existingAIProjectResourceId
-    existingAiProjectPrincipalId: useExistingAIProject ? existingAiServicesDeployments!.outputs.aiProjectPrincipalId : ''
+    existingAiProjectPrincipalId: useExistingAIProject ? existingAiFoundryDeployments!.outputs.aiProjectPrincipalId : ''
   }
 }
 
@@ -997,7 +997,7 @@ output AZURE_AI_SEARCH_NAME string = isWorkshop ? aiSearch!.outputs.name : ''
 output SEARCH_DATA_FOLDER string = isWorkshop ? 'data/default/documents' : ''
 
 @description('AI Search connection name.')
-output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkshop ? (useExistingAIProject ? existingAiServicesDeployments!.outputs.searchConnectionName : aiFoundry!.outputs.searchConnectionName) : ''
+output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkshop ? (useExistingAIProject ? existingAiFoundryDeployments!.outputs.searchConnectionName : aiFoundry!.outputs.searchConnectionName) : ''
 
 @description('AI Search connection ID.')
 output AZURE_AI_SEARCH_CONNECTION_ID string = (isWorkshop && !useExistingAIProject) ? aiFoundry!.outputs.searchConnectionId : ''
@@ -1012,7 +1012,7 @@ output AI_FOUNDRY_RESOURCE_ID string = !useExistingAIProject ? aiFoundry!.output
 output AZURE_AI_PROJECT_NAME string = !useExistingAIProject ? aiFoundry!.outputs.projectName : (existingHasProjectSegment ? split(existingAIProjectResourceId, '/')[10] : '')
 
 @description('AI Services resource name.')
-output AI_SERVICE_NAME string = !useExistingAIProject ? aiFoundry!.outputs.name : aiServicesResourceName
+output AI_SERVICE_NAME string = !useExistingAIProject ? aiFoundry!.outputs.name : aiFoundryResourceName
 
 @description('AI Project identity principal ID.')
 output FOUNDRY_PROJECT_PID string = !useExistingAIProject ? aiFoundry!.outputs.projectIdentityPrincipalId : ''

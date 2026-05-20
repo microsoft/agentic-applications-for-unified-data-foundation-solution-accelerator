@@ -28,8 +28,8 @@ param cosmosDbAccountName string = ''
 @description('Principal ID of the backend App Service system-assigned identity (empty if not deployed).')
 param backendAppServicePrincipalId string = ''
 
-@description('Resource ID of the AI Services account (empty if not deployed — new project path).')
-param aiServicesResourceId string = ''
+@description('Resource ID of the AI Foundry account (empty if not deployed — new project path).')
+param aiFoundryResourceId string = ''
 
 @description('Whether to use an existing AI project (true) or create new (false).')
 param useExistingAIProject bool = false
@@ -43,9 +43,9 @@ param existingAiProjectPrincipalId string = ''
 // ============================================================================
 // Derived Variables
 // ============================================================================
-var existingAIServicesName = useExistingAIProject ? split(existingAIProjectResourceId, '/')[8] : ''
-var existingAIServiceSubscription = useExistingAIProject ? split(existingAIProjectResourceId, '/')[2] : subscription().subscriptionId
-var existingAIServiceResourceGroup = useExistingAIProject ? split(existingAIProjectResourceId, '/')[4] : resourceGroup().name
+var existingAIFoundryName = useExistingAIProject ? split(existingAIProjectResourceId, '/')[8] : ''
+var existingAIFoundrySubscription = useExistingAIProject ? split(existingAIProjectResourceId, '/')[2] : subscription().subscriptionId
+var existingAIFoundryResourceGroup = useExistingAIProject ? split(existingAIProjectResourceId, '/')[4] : resourceGroup().name
 
 // ============================================================================
 // Role Definitions
@@ -60,16 +60,16 @@ var roleDefinitions = {
 }
 
 // ============================================================================
-// Cross-service: AI Search → Cognitive Services OpenAI User on AI Services
+// Cross-service: AI Search → Cognitive Services OpenAI User on AI Foundry
 // ============================================================================
-resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = if (!empty(aiServicesResourceId)) {
-  name: last(split(aiServicesResourceId, '/'))
+resource aiFoundryAccount 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = if (!empty(aiFoundryResourceId)) {
+  name: last(split(aiFoundryResourceId, '/'))
 }
 
-// AI Search → OpenAI User on AI Services (new project, same RG)
-resource assignOpenAIRoleToAISearch 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingAIProject && isWorkshop && !empty(aiSearchPrincipalId) && !empty(aiServicesResourceId)) {
-  name: guid(resourceGroup().id, aiServicesAccount.id, roleDefinitions.cognitiveServicesOpenAIUser, 'search-openai')
-  scope: aiServicesAccount
+// AI Search → OpenAI User on AI Foundry (new project, same RG)
+resource assignOpenAIRoleToAISearch 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingAIProject && isWorkshop && !empty(aiSearchPrincipalId) && !empty(aiFoundryResourceId)) {
+  name: guid(resourceGroup().id, aiFoundryAccount.id, roleDefinitions.cognitiveServicesOpenAIUser, 'search-openai')
+  scope: aiFoundryAccount
   properties: {
     principalId: aiSearchPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesOpenAIUser)
@@ -77,26 +77,26 @@ resource assignOpenAIRoleToAISearch 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
-// AI Search → OpenAI User on existing AI Services (cross-scope)
+// AI Search → OpenAI User on existing AI Foundry (cross-scope)
 module assignOpenAIToSearchExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && isWorkshop && !empty(aiSearchPrincipalId)) {
   name: 'assignOpenAIRoleToAISearchExisting'
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
+  scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
   params: {
     principalId: aiSearchPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesOpenAIUser)
-    roleAssignmentName: guid(solutionName, 'search-openai', existingAIServicesName, roleDefinitions.cognitiveServicesOpenAIUser)
-    aiServicesName: existingAIServicesName
+    roleAssignmentName: guid(solutionName, 'search-openai', existingAIFoundryName, roleDefinitions.cognitiveServicesOpenAIUser)
+    aiFoundryName: existingAIFoundryName
   }
 }
 
 // ============================================================================
-// Cross-service: Backend App Service → Azure AI User on AI Services
+// Cross-service: Backend App Service → Azure AI User on AI Foundry
 // ============================================================================
 
-// Backend → AI User on AI Services (new project, same RG)
-resource backendAppAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingAIProject && !empty(aiServicesResourceId) && !empty(backendAppServicePrincipalId)) {
+// Backend → AI User on AI Foundry (new project, same RG)
+resource backendAppAiUserAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingAIProject && !empty(aiFoundryResourceId) && !empty(backendAppServicePrincipalId)) {
   name: guid(resourceGroup().id, backendAppServicePrincipalId, roleDefinitions.azureAiUser, 'backend-ai-services')
-  scope: aiServicesAccount
+  scope: aiFoundryAccount
   properties: {
     principalId: backendAppServicePrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.azureAiUser)
@@ -104,15 +104,15 @@ resource backendAppAiUserAssignment 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
-// Backend → AI User on existing AI Services (cross-scope)
+// Backend → AI User on existing AI Foundry (cross-scope)
 module backendAppAiUserExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(backendAppServicePrincipalId)) {
   name: 'assignAiUserRoleToBackendExisting'
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
+  scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
   params: {
     principalId: backendAppServicePrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.azureAiUser)
-    roleAssignmentName: guid(solutionName, 'backend-aiuser', existingAIServicesName, roleDefinitions.azureAiUser)
-    aiServicesName: existingAIServicesName
+    roleAssignmentName: guid(solutionName, 'backend-aiuser', existingAIFoundryName, roleDefinitions.azureAiUser)
+    aiFoundryName: existingAIFoundryName
   }
 }
 
