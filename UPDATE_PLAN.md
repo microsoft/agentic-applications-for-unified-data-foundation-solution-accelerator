@@ -189,6 +189,46 @@ SCENARIO_REGISTRY = {
 
 ---
 
+### Make all app text configurable per scenario pack
+
+**What it is:** Several pieces of user-visible text in the frontend are currently hard-coded — the browser tab title in `index.html`, the app header/title, and the chat landing message. These should all be driven by the active scenario pack so switching packs produces a fully branded experience with no manual edits to the frontend build.
+
+**Changes to `scripts/scenarios.py`:**
+Extend each registry entry with additional text fields:
+```python
+SCENARIO_REGISTRY = {
+    "retail": {
+        "folder": "data/scenarios/retail",
+        "usecase": "Retail-sales-analysis",
+        "app_title": "Retail Sales Agent",
+        "tab_title": "Retail Sales Agent",
+        "landing_text": "You can ask questions around sales, products and orders.",
+        "description": "Retail: customers, products, transactions, and stores",
+    },
+    "insurance": {
+        "folder": "data/scenarios/insurance",
+        "usecase": "Insurance-improve-customer-meetings",
+        "app_title": "Insurance Agent",
+        "tab_title": "Insurance Agent",
+        "landing_text": "You can ask questions around customer policies, claims and communications.",
+        "description": "Insurance: policies, claims, customers, and agents",
+    },
+}
+```
+
+**Changes to `src/App/index.html`:**
+Replace the hard-coded `<title>` value with a placeholder (e.g. `<title>%REACT_APP_TAB_TITLE%</title>`) that React's build process substitutes from an environment variable.
+
+**Changes to `scripts/08_app_deployment.py`:**
+Add `app_title`, `tab_title`, and `landing_text` from the registry to the app settings pushed to the frontend App Service:
+- `REACT_APP_TAB_TITLE` → drives `<title>` in `index.html`
+- `REACT_APP_TITLE` → drives the app header
+- `CHAT_LANDING_TEXT` → drives the chat landing message
+
+**Done when:** Running `--scenario-pack retail` produces a frontend with the tab title, header, and landing text all set to retail values. No text in the frontend build is hard-coded to a specific scenario.
+
+---
+
 ### Update scripts to take a scenario pack input and build the solution dynamically
 
 **What it is:** `scripts/00_build_solution.py` has no scenario selector. Users must manually edit `DATA_FOLDER` in `.env`. A `--scenario-pack` argument resolves the data folder, sets `INDUSTRY` and `USECASE`, and routes the full pipeline — no `.env` edits required.
