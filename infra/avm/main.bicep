@@ -67,7 +67,26 @@ param vmSize string = 'Standard_D2s_v5'
 // Parameters — AI Configuration
 // ============================================================================
 
-@allowed(['australiaeast', 'eastus', 'eastus2', 'francecentral', 'japaneast', 'swedencentral', 'uksouth', 'westus', 'westus3'])
+@allowed([
+  'australiaeast'
+  'eastus'
+  'eastus2'
+  'francecentral'
+  'japaneast'
+  'swedencentral'
+  'uksouth'
+  'westus'
+  'westus3'
+])
+@metadata({
+  azd: {
+    type: 'location'
+    usageName: [
+      'OpenAI.GlobalStandard.gpt4.1-mini,100'
+      'OpenAI.GlobalStandard.text-embedding-3-small,80'
+    ]
+  }
+})
 @description('Location for AI Services and model deployments.')
 param aiDeploymentsLocation string
 
