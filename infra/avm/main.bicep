@@ -644,7 +644,7 @@ module aifoundry './modules/ai/ai-foundry.bicep' = if (!useExistingAIProject) {
     storageAccountName: isWorkshop ? storage_account!.outputs.name : ''
     storageBlobEndpoint: isWorkshop ? storage_account!.outputs.blobEndpoint : ''
     storageAccountResourceId: isWorkshop ? storage_account!.outputs.resourceId : ''
-    applicationInsightsName: app_insights!.outputs.name
+    applicationInsightsName: enableMonitoring ? app_insights!.outputs.name : ''
     applicationInsightsResourceId: enableMonitoring ? app_insights!.outputs.resourceId : ''
     applicationInsightsInstrumentationKey: enableMonitoring ? app_insights!.outputs.instrumentationKey : ''
     // Private networking
@@ -825,7 +825,7 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
 
 // Backend API (C#)
 module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
-  name: take('module.app-service.csbackend.${solutionName}', 64)
+  name: take('module.app-service-csbackend.${solutionName}', 64)
   params: {
     solutionName: 'api-cs-${solutionSuffix}'
     location: location
