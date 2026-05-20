@@ -545,12 +545,13 @@ resource existingAiServices 'Microsoft.CognitiveServices/accounts@2025-06-01' ex
   scope: resourceGroup(aiServicesSubscriptionId, aiServicesResourceGroupName)
 }
 
-// Deploy model deployments + role assignments to existing AI Services (when using existing project)
+// Deploy model deployments + connections to existing AI Services (when using existing project)
 module existingAiServicesDeployments './modules/ai/existing-foundry-project.bicep' = if (useExistingAIProject) {
   name: 'ai-existing-foundry-project'
   scope: resourceGroup(aiServicesSubscriptionId, aiServicesResourceGroupName)
   params: {
     name: existingAiServices.name
+    projectName: existingHasProjectSegment ? split(existingAIProjectResourceId, '/')[10] : ''
     deployments: [
       for deployment in aiModelDeployments: {
         name: deployment.name
@@ -566,22 +567,15 @@ module existingAiServicesDeployments './modules/ai/existing-foundry-project.bice
         }
       }
     ]
-    roleAssignments: concat(
-      [],
-      // Backend system-assigned identity also needs Azure AI User on existing AI Services
-      // Matches old infra: deploy_backend_docker.bicep → assignAiUserRoleToAiProject
-      shouldDeployApp
-        ? [
-            {
-              roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
-              principalId: backendRuntimeStack == 'python'
-                ? backendApi!.outputs.identityPrincipalId
-                : backendCsApi!.outputs.identityPrincipalId
-              principalType: 'ServicePrincipal'
-            }
-          ]
-        : []
-    )
+    // Connections (workshop-only)
+    applicationInsightsId: enableMonitoring ? appInsights!.outputs.resourceId : ''
+    applicationInsightsInstrumentationKey: enableMonitoring ? appInsights!.outputs.instrumentationKey : ''
+    aiSearchTarget: isWorkshop ? aiSearch!.outputs.endpoint : ''
+    aiSearchId: isWorkshop ? aiSearch!.outputs.resourceId : ''
+    aiSearchConnectionName: isWorkshop ? 'search-connection-${solutionSuffix}' : ''
+    storageBlobEndpoint: isWorkshop ? storageAccount!.outputs.blobEndpoint : ''
+    storageAccountId: isWorkshop ? storageAccount!.outputs.resourceId : ''
+    storageAccountName: isWorkshop ? storageAccount!.outputs.name : ''
   }
 }
 
@@ -611,27 +605,18 @@ module aiFoundry './modules/ai/ai-foundry.bicep' = if (!useExistingAIProject) {
         }
       }
     ]
-    roleAssignments: union(
-      [
-        {
-          roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' // Cognitive Services User
-          principalId: deployingUserPrincipalId
-          principalType: deployingUserPrincipalType
-        }
-        {
-          roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
-          principalId: deployingUserPrincipalId
-          principalType: deployingUserPrincipalType
-        }
-      ],
-      isWorkshop ? [
-        {
-          roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd' // Cognitive Services OpenAI User
-          principalId: aiSearch!.outputs.identityPrincipalId
-          principalType: 'ServicePrincipal'
-        }
-      ] : []
-    )
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908' // Cognitive Services User
+        principalId: deployingUserPrincipalId
+        principalType: deployingUserPrincipalType
+      }
+      {
+        roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
+        principalId: deployingUserPrincipalId
+        principalType: deployingUserPrincipalType
+      }
+    ]
     // Project connections
     enableSearchConnection: isWorkshop
     aiSearchName: isWorkshop ? aiSearch!.outputs.name : ''
@@ -798,7 +783,7 @@ module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp &&
       API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aiSearch!.outputs.endpoint : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'knowledge_index' : ''
-      AZURE_AI_SEARCH_CONNECTION_NAME: (isWorkshop && !useExistingAIProject) ? aiFoundry!.outputs.searchConnectionName : ''
+      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? (useExistingAIProject ? existingAiServicesDeployments!.outputs.searchConnectionName : aiFoundry!.outputs.searchConnectionName) : ''
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? appInsights!.outputs.connectionString : ''
@@ -849,7 +834,7 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
       API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aiSearch!.outputs.endpoint : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'call_transcripts_index' : ''
-      AZURE_AI_SEARCH_CONNECTION_NAME: (isWorkshop && !useExistingAIProject) ? aiFoundry!.outputs.searchConnectionName : ''
+      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? (useExistingAIProject ? existingAiServicesDeployments!.outputs.searchConnectionName : aiFoundry!.outputs.searchConnectionName) : ''
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? appInsights!.outputs.connectionString : ''
@@ -895,6 +880,7 @@ module frontendApp './modules/compute/app-service.bicep' = if (shouldDeployApp) 
 module roleAssignments './modules/identity/role-assignments.bicep' = {
   name: 'identity-role-assignments'
   params: {
+    solutionName: solutionSuffix
     aiProjectPrincipalId: (!useExistingAIProject) ? aiFoundry!.outputs.projectIdentityPrincipalId : ''
     aiSearchPrincipalId: isWorkshop ? aiSearch!.outputs.identityPrincipalId : ''
     aiSearchResourceId: isWorkshop ? aiSearch!.outputs.resourceId : ''
@@ -905,6 +891,9 @@ module roleAssignments './modules/identity/role-assignments.bicep' = {
       ? (backendRuntimeStack == 'python' ? backendApi!.outputs.identityPrincipalId : backendCsApi!.outputs.identityPrincipalId)
       : ''
     aiServicesResourceId: !useExistingAIProject ? aiFoundry!.outputs.resourceId : ''
+    useExistingAIProject: useExistingAIProject
+    existingAIProjectResourceId: existingAIProjectResourceId
+    existingAiProjectPrincipalId: useExistingAIProject ? existingAiServicesDeployments!.outputs.aiProjectPrincipalId : ''
   }
 }
 
@@ -989,7 +978,7 @@ output AZURE_AI_SEARCH_NAME string = isWorkshop ? aiSearch!.outputs.name : ''
 output SEARCH_DATA_FOLDER string = isWorkshop ? 'data/default/documents' : ''
 
 @description('AI Search connection name.')
-output AZURE_AI_SEARCH_CONNECTION_NAME string = (isWorkshop && !useExistingAIProject) ? aiFoundry!.outputs.searchConnectionName : ''
+output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkshop ? (useExistingAIProject ? existingAiServicesDeployments!.outputs.searchConnectionName : aiFoundry!.outputs.searchConnectionName) : ''
 
 @description('AI Search connection ID.')
 output AZURE_AI_SEARCH_CONNECTION_ID string = (isWorkshop && !useExistingAIProject) ? aiFoundry!.outputs.searchConnectionId : ''

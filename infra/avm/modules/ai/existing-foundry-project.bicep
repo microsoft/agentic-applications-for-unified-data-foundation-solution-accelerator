@@ -1,12 +1,14 @@
 // ============================================================================
-// Module: Existing Foundry Project (AI Services deployments + roles)
-// Description: Deploys model deployments + role assignments to an existing
+// Module: Existing Foundry Project (AI Services model deployments + connections)
+// Description: Deploys model deployments and project connections to an existing
 //              AI Services account. Used when useExistingAIProject = true.
-// Pattern: Matches infra/bicep/modules/ai/existing-foundry-project.bicep
 // ============================================================================
 
 @description('Required. The name of the existing Cognitive Services account.')
 param name string
+
+@description('Required. The name of the existing AI project.')
+param projectName string
 
 @description('Optional. SKU of the Cognitive Services account.')
 @allowed([
@@ -34,59 +36,42 @@ import { deploymentType } from 'br:mcr.microsoft.com/bicep/avm/res/cognitive-ser
 @description('Optional. Array of deployments about cognitive service accounts to create.')
 param deployments deploymentType[]?
 
-import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
-@description('Optional. Array of role assignments to create.')
-param roleAssignments roleAssignmentType[]?
+// ── Connection params (optional, workshop-only) ──
+
+@description('The resource ID of the Application Insights instance.')
+param applicationInsightsId string = ''
+
+@description('The instrumentation key of the Application Insights instance.')
+param applicationInsightsInstrumentationKey string = ''
+
+@description('The endpoint URL of the AI Search service.')
+param aiSearchTarget string = ''
+
+@description('The resource ID of the AI Search service.')
+param aiSearchId string = ''
+
+@description('The name of the AI Search connection.')
+param aiSearchConnectionName string = ''
+
+@description('The blob endpoint URL of the storage account.')
+param storageBlobEndpoint string = ''
+
+@description('The resource ID of the storage account.')
+param storageAccountId string = ''
+
+@description('The name of the storage account.')
+param storageAccountName string = ''
 
 // ============================================================================
-// Built-in Role Definitions
-// ============================================================================
-var builtInRoleNames = {
-  'Cognitive Services Contributor': subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    '25fbc0a9-bd7c-42a3-aa1a-3b75d497ee68'
-  )
-  'Cognitive Services OpenAI Contributor': subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    'a001fd3d-188f-4b5d-821b-7da978bf7442'
-  )
-  'Cognitive Services OpenAI User': subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
-  )
-  'Cognitive Services User': subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    'a97b65f3-24c7-4388-baec-2e87135dc908'
-  )
-  'Azure AI Developer': subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    '64702f94-c441-49e6-a78b-ef80e0188fee'
-  )
-  'Azure AI User': subscriptionResourceId(
-    'Microsoft.Authorization/roleDefinitions',
-    '53ca6127-db72-4b80-b1b0-d745d6d5456d'
-  )
-  Contributor: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
-  Owner: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')
-  Reader: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')
-}
-
-var formattedRoleAssignments = [
-  for (roleAssignment, index) in (roleAssignments ?? []): union(roleAssignment, {
-    roleDefinitionId: builtInRoleNames[?roleAssignment.roleDefinitionIdOrName] ?? (contains(
-        roleAssignment.roleDefinitionIdOrName,
-        '/providers/Microsoft.Authorization/roleDefinitions/'
-      )
-      ? roleAssignment.roleDefinitionIdOrName
-      : subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleAssignment.roleDefinitionIdOrName))
-  })
-]
-
-// ============================================================================
-// Existing Resource Reference
+// Existing Resource References
 // ============================================================================
 resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = {
   name: name
+}
+
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' existing = {
+  parent: cognitiveService
+  name: projectName
 }
 
 // ============================================================================
@@ -113,26 +98,74 @@ resource cognitiveService_deployments 'Microsoft.CognitiveServices/accounts/depl
 ]
 
 // ============================================================================
-// Role Assignments
+// Connections
 // ============================================================================
-resource cognitiveService_roleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for (roleAssignment, index) in (formattedRoleAssignments ?? []): {
-    name: roleAssignment.?name ?? guid(cognitiveService.id, roleAssignment.principalId, roleAssignment.roleDefinitionId)
-    properties: {
-      roleDefinitionId: roleAssignment.roleDefinitionId
-      principalId: roleAssignment.principalId
-      description: roleAssignment.?description
-      principalType: roleAssignment.?principalType
-      condition: roleAssignment.?condition
-      conditionVersion: !empty(roleAssignment.?condition) ? (roleAssignment.?conditionVersion ?? '2.0') : null
-      delegatedManagedIdentityResourceId: roleAssignment.?delegatedManagedIdentityResourceId
+
+// Application Insights connection
+resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = if (!empty(applicationInsightsId)) {
+  parent: aiProject
+  name: 'appi-connection'
+  properties: {
+    category: 'AppInsights'
+    target: applicationInsightsId
+    authType: 'ApiKey'
+    isSharedToAll: true
+    isDefault: true
+    credentials: {
+      key: applicationInsightsInstrumentationKey
     }
-    scope: cognitiveService
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: applicationInsightsId
+    }
   }
-]
+}
+
+// AI Search connection
+resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = if (!empty(aiSearchTarget)) {
+  parent: aiProject
+  name: aiSearchConnectionName
+  properties: {
+    category: 'CognitiveSearch'
+    target: aiSearchTarget
+    authType: 'AAD'
+    isSharedToAll: true
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: aiSearchId
+    }
+  }
+}
+
+// Storage Blob connection
+resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = if (!empty(storageBlobEndpoint)) {
+  parent: aiProject
+  name: 'storage-connection'
+  properties: {
+    category: 'AzureBlob'
+    target: storageBlobEndpoint
+    authType: 'AAD'
+    isSharedToAll: true
+    metadata: {
+      ResourceId: storageAccountId
+      AccountName: storageAccountName
+      ContainerName: 'default'
+    }
+  }
+}
 
 // ============================================================================
 // Outputs
 // ============================================================================
 @description('Names of the deployed models.')
 output deploymentNames array = [for (deployment, i) in (deployments ?? []): cognitiveService_deployments[i].name]
+
+@description('The principal ID of the AI Services system-assigned managed identity.')
+output aiServicesPrincipalId string = cognitiveService.identity.principalId
+
+@description('The principal ID of the AI Project system-assigned managed identity.')
+output aiProjectPrincipalId string = aiProject.identity.principalId
+
+@description('The name of the AI Search connection (pass-through).')
+output searchConnectionName string = !empty(aiSearchTarget) ? aiSearchConnectionName : ''
+
