@@ -498,15 +498,8 @@ cd "$ROOT_DIR/src/App"
 npm start &
 FRONTEND_PID=$!
 
-# Wait for frontend to be ready, then make port 3000 public
 if [ -n "${CODESPACE_NAME:-}" ]; then
     (
-        echo "Waiting for port 3000 to be ready..."
-        while ! curl -s http://127.0.0.1:3000 >/dev/null 2>&1; do
-            sleep 2
-        done
-        echo "Setting port 3000 visibility to public..."
-        gh codespace ports visibility 3000:public -c "$CODESPACE_NAME" || true
         echo ""
         echo "Both servers have been started."
         echo "Backend running at https://${CODESPACE_NAME}-8000.app.github.dev"
