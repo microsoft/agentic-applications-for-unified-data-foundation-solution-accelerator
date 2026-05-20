@@ -4,13 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-<<<<<<< HEAD
-      "version": "0.40.2.10011",
-      "templateHash": "14008794428094849924"
-=======
       "version": "0.43.8.12551",
-      "templateHash": "4622093530883004136"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
+      "templateHash": "7460150047511489943"
     }
   },
   "parameters": {
@@ -464,126 +459,6 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-<<<<<<< HEAD
-=======
-      "name": "deploy_managed_identity",
-      "resourceGroup": "[resourceGroup().name]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "miName": {
-            "value": "[format('id-{0}', variables('solutionSuffix'))]"
-          },
-          "solutionName": {
-            "value": "[variables('solutionSuffix')]"
-          },
-          "solutionLocation": {
-            "value": "[variables('solutionLocation')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "13536969934887418432"
-            }
-          },
-          "parameters": {
-            "solutionName": {
-              "type": "string",
-              "minLength": 3,
-              "maxLength": 25,
-              "metadata": {
-                "description": "Solution Name"
-              }
-            },
-            "solutionLocation": {
-              "type": "string",
-              "metadata": {
-                "description": "Solution Location"
-              }
-            },
-            "miName": {
-              "type": "string",
-              "metadata": {
-                "description": "Name"
-              }
-            }
-          },
-          "resources": [
-            {
-              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-              "apiVersion": "2024-11-30",
-              "name": "[parameters('miName')]",
-              "location": "[parameters('solutionLocation')]",
-              "tags": {
-                "app": "[parameters('solutionName')]",
-                "location": "[parameters('solutionLocation')]"
-              }
-            },
-            {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2022-04-01",
-              "name": "[guid(resourceGroup().id, resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('miName')), resourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'))]",
-              "properties": {
-                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('miName')), '2024-11-30').principalId]",
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')]",
-                "principalType": "ServicePrincipal"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('miName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-              "apiVersion": "2024-11-30",
-              "name": "[format('id-backend-app-mi-{0}', parameters('solutionName'))]",
-              "location": "[parameters('solutionLocation')]",
-              "tags": {
-                "app": "[parameters('solutionName')]",
-                "location": "[parameters('solutionLocation')]"
-              }
-            }
-          ],
-          "outputs": {
-            "managedIdentityOutput": {
-              "type": "object",
-              "metadata": {
-                "description": "The managed identity details including id, objectId, clientId, and name."
-              },
-              "value": {
-                "id": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('miName'))]",
-                "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('miName')), '2024-11-30').principalId]",
-                "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('miName')), '2024-11-30').clientId]",
-                "name": "[parameters('miName')]"
-              }
-            },
-            "managedIdentityBackendAppOutput": {
-              "type": "object",
-              "metadata": {
-                "description": "The backend app managed identity details including id, objectId, clientId, and name."
-              },
-              "value": {
-                "id": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-backend-app-mi-{0}', parameters('solutionName')))]",
-                "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-backend-app-mi-{0}', parameters('solutionName'))), '2024-11-30').principalId]",
-                "clientId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-backend-app-mi-{0}', parameters('solutionName'))), '2024-11-30').clientId]",
-                "name": "[format('id-backend-app-mi-{0}', parameters('solutionName'))]"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
       "name": "deploy_log_analytics",
       "resourceGroup": "[resourceGroup().name]",
       "properties": {
@@ -608,13 +483,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "15229198564219493582"
-=======
               "version": "0.43.8.12551",
               "templateHash": "5427830310485840821"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
             }
           },
           "parameters": {
@@ -721,13 +591,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "8213091093225145616"
-=======
               "version": "0.43.8.12551",
               "templateHash": "11579550152751494724"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
             }
           },
           "parameters": {
@@ -851,13 +716,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "3120174612925973106"
-=======
               "version": "0.43.8.12551",
               "templateHash": "12165170758712567145"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
             }
           },
           "parameters": {
@@ -1147,13 +1007,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "9073087057352350691"
-=======
               "version": "0.43.8.12551",
               "templateHash": "2883692806427847985"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
             }
           },
           "parameters": {
@@ -1389,13 +1244,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "15660530497747761215"
-=======
               "version": "0.43.8.12551",
               "templateHash": "5121164261577826347"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
             }
           },
           "parameters": {
@@ -1613,13 +1463,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "16915510453495019168"
-=======
               "version": "0.43.8.12551",
               "templateHash": "9894341012169819306"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
             }
           },
           "parameters": {
@@ -1737,13 +1582,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "17485477898714419733"
-=======
               "version": "0.43.8.12551",
               "templateHash": "11610267304629320537"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
             }
           },
           "parameters": {
@@ -1915,13 +1755,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "15373095325991812324"
-=======
               "version": "0.43.8.12551",
-              "templateHash": "11421679036623536575"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
+              "templateHash": "12853491648646283253"
             }
           },
           "parameters": {
@@ -2065,13 +1900,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "17676686032876430046"
-=======
               "version": "0.43.8.12551",
               "templateHash": "9298238518588007961"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
             },
             "description": "Creates an Azure App Service plan."
           },
@@ -2220,13 +2050,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "14437624616124893903"
-=======
               "version": "0.43.8.12551",
               "templateHash": "4464770042864268016"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
             }
           },
           "parameters": {
@@ -2438,13 +2263,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "14437624616124893903"
-=======
               "version": "0.43.8.12551",
               "templateHash": "4464770042864268016"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
             }
           },
           "parameters": {
@@ -2631,13 +2451,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "14437624616124893903"
-=======
               "version": "0.43.8.12551",
               "templateHash": "4464770042864268016"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
             }
           },
           "parameters": {
@@ -2829,13 +2644,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-<<<<<<< HEAD
-              "version": "0.40.2.10011",
-              "templateHash": "11816386425008558423"
-=======
               "version": "0.43.8.12551",
-              "templateHash": "15518345851175611510"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
+              "templateHash": "2739567330103784756"
             }
           },
           "parameters": {
@@ -3190,13 +3000,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-<<<<<<< HEAD
-                      "version": "0.40.2.10011",
-                      "templateHash": "2776807759041516968"
-=======
                       "version": "0.43.8.12551",
                       "templateHash": "11774229215454722452"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
                     }
                   },
                   "parameters": {
@@ -3273,91 +3078,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-<<<<<<< HEAD
-                      "version": "0.40.2.10011",
-                      "templateHash": "2776807759041516968"
-=======
                       "version": "0.43.8.12551",
                       "templateHash": "11774229215454722452"
-                    }
-                  },
-                  "parameters": {
-                    "principalId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The principal ID to assign the role to."
-                      }
-                    },
-                    "roleDefinitionId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The resource ID of the role definition to assign."
-                      }
-                    },
-                    "roleAssignmentName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "A unique name for the role assignment."
-                      }
-                    },
-                    "aiServicesName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The name of the AI Services account to scope the role assignment to."
-                      }
-                    }
-                  },
-                  "resources": [
-                    {
-                      "type": "Microsoft.Authorization/roleAssignments",
-                      "apiVersion": "2022-04-01",
-                      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName'))]",
-                      "name": "[parameters('roleAssignmentName')]",
-                      "properties": {
-                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "ServicePrincipal"
-                      }
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "condition": "[and(variables('useExistingProject'), not(empty(parameters('managedIdentityObjectId'))))]",
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "assignFoundryRoleToMI",
-              "subscriptionId": "[variables('existingAIServiceSubscription')]",
-              "resourceGroup": "[variables('existingAIServiceResourceGroup')]",
-              "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "principalId": {
-                    "value": "[parameters('managedIdentityObjectId')]"
-                  },
-                  "roleDefinitionId": {
-                    "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '53ca6127-db72-4b80-b1b0-d745d6d5456d')]"
-                  },
-                  "roleAssignmentName": {
-                    "value": "[guid(resourceGroup().id, parameters('managedIdentityObjectId'), '53ca6127-db72-4b80-b1b0-d745d6d5456d', 'foundry')]"
-                  },
-                  "aiServicesName": {
-                    "value": "[variables('existingAIServicesName')]"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.43.8.12551",
-                      "templateHash": "11774229215454722452"
->>>>>>> 72afc75472491909fd317794b32b5c583366bb10
                     }
                   },
                   "parameters": {
