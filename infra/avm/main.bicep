@@ -13,23 +13,23 @@ targetScope = 'resourceGroup'
 
 @minLength(3)
 @maxLength(20)
-@description('A unique application/solution name used as base for all resource naming.')
-param solutionName string
+@description('Optional. A unique application/solution name used as base for all resource naming.')
+param solutionName string = 'agenticappudf'
 
 @maxLength(5)
-@description('A unique text suffix appended to resource names for uniqueness.')
+@description('Optional. A unique text suffix appended to resource names for uniqueness.')
 param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, solutionName), 0, 5)
 
-@description('Primary Azure region for resource deployment.')
+@description('Optional. Primary Azure region for resource deployment.')
 param location string = resourceGroup().location
 
-@description('Secondary location for database resources.')
+@description('Optional. Secondary location for database resources.')
 param secondaryLocation string = 'eastus2'
 
-@description('Tags to apply to all resources.')
+@description('Optional. Tags to apply to all resources.')
 param tags object = {}
 
-@description('Enable/Disable usage telemetry for AVM modules.')
+@description('Optional. Enable/Disable usage telemetry for AVM modules.')
 param enableTelemetry bool = true
 
 // ============================================================================
@@ -87,82 +87,82 @@ param vmSize string = 'Standard_D2s_v5'
     ]
   }
 })
-@description('Location for AI Services and model deployments.')
+@description('Required. Location for AI Services and model deployments.')
 param azureAiServiceLocation string
 
-@description('Location for AI Search service deployment.')
+@description('Optional. Location for AI Search service deployment.')
 param searchServiceLocation string = location
 
 @allowed(['Standard', 'GlobalStandard'])
-@description('GPT model deployment type.')
+@description('Optional. GPT model deployment type.')
 param deploymentType string = 'GlobalStandard'
 
-@description('Name of the GPT model to deploy.')
+@description('Optional. Name of the GPT model to deploy.')
 param gptModelName string = 'gpt-4.1-mini'
 
-@description('Version of the GPT model to deploy.')
+@description('Optional. Version of the GPT model to deploy.')
 param gptModelVersion string = '2025-04-14'
 
 @minValue(10)
-@description('Capacity of the GPT deployment (TPM in thousands).')
+@description('Optional. Capacity of the GPT deployment (TPM in thousands).')
 param gptDeploymentCapacity int = 150
 
-@description('Name of the embedding model to deploy.')
+@description('Optional. Name of the embedding model to deploy.')
 @allowed(['text-embedding-3-small'])
 param embeddingModel string = 'text-embedding-3-small'
 
 @minValue(10)
-@description('Capacity of the embedding model deployment.')
+@description('Optional. Capacity of the embedding model deployment.')
 param embeddingDeploymentCapacity int = 80
 
-@description('Azure OpenAI API version.')
+@description('Optional. Azure OpenAI API version.')
 param azureOpenaiAPIVersion string = '2025-01-01-preview'
 
-@description('Azure AI Agent API version.')
+@description('Optional. Azure AI Agent API version.')
 param azureAiAgentApiVersion string = '2025-05-01'
 
 // ============================================================================
 // Parameters — Compute
 // ============================================================================
 
-@description('Docker image tag for app deployments.')
+@description('Optional. Docker image tag for app deployments.')
 param imageTag string = 'latest_v2'
 
-@description('Name of the Azure Container Registry.')
+@description('Optional. Name of the Azure Container Registry.')
 param containerRegistryName string = 'dataagentscontainerreg'
 
 @allowed(['python', 'dotnet'])
-@description('Backend runtime stack.')
+@description('Optional. Backend runtime stack.')
 param backendRuntimeStack string = 'python'
 
 @allowed(['F1', 'D1', 'B1', 'B2', 'B3', 'S1', 'S2', 'S3', 'P1', 'P2', 'P3', 'P1v3', 'P1v4'])
-@description('App Service Plan SKU.')
+@description('Optional. App Service Plan SKU.')
 param appServicePlanSku string = 'B2'
 
 // ============================================================================
 // Parameters — Feature Flags
 // ============================================================================
 
-@description('Deploy application components (API, Frontend, Cosmos DB).')
+@description('Optional. Deploy application components (API, Frontend, Cosmos DB).')
 param deployApp bool = true
 
-@description('Workshop deployment mode with sample data.')
+@description('Optional. Workshop deployment mode with sample data.')
 param isWorkshop bool = true
 
-@description('Azure-only mode (deploy Azure SQL instead of Fabric SQL).')
+@description('Optional. Azure-only mode (deploy Azure SQL instead of Fabric SQL).')
 param azureEnvOnly bool = false
 
-@description('Enable chat history storage.')
+@description('Optional. Enable chat history storage.')
 param useChatHistoryEnabled bool = true
 
-@description('Enable user access token forwarding.')
+@description('Optional. Enable user access token forwarding.')
 param useUserAccessToken bool = false
 
 // ============================================================================
 // Parameters — Fabric Capacity
 // ============================================================================
 
-@description('Set to true to auto-create a Fabric workspace during post-provision. When false, capacity creation is skipped.')
+@description('Optional. Set to true to auto-create a Fabric workspace during post-provision. When false, capacity creation is skipped.')
 param createFabricWorkspace bool = false
 
 @description('Optional. Name of an existing Fabric capacity to reuse. If empty, a new capacity is auto-created when conditions are met.')
@@ -191,10 +191,10 @@ param fabricAdminMembers array = []
 // Parameters — Existing Resources
 // ============================================================================
 
-@description('Resource ID of an existing Log Analytics workspace (empty = create new).')
+@description('Optional. Resource ID of an existing Log Analytics workspace (empty = create new).')
 param existingLogAnalyticsWorkspaceId string = ''
 
-@description('Resource ID of an existing AI Foundry project (empty = create new).')
+@description('Optional. Resource ID of an existing AI Foundry project (empty = create new).')
 param existingFoundryProjectResourceId string = ''
 
 // ============================================================================
@@ -202,7 +202,7 @@ param existingFoundryProjectResourceId string = ''
 // ============================================================================
 
 @allowed(['User', 'ServicePrincipal'])
-@description('Principal type of the deploying user.')
+@description('Optional. Principal type of the deploying user.')
 param deployingUserPrincipalType string = 'User'
 
 // ============================================================================
@@ -210,13 +210,13 @@ param deployingUserPrincipalType string = 'User'
 // ============================================================================
 
 @allowed(['Retail-sales-analysis', 'Insurance-improve-customer-meetings'])
-@description('Industry use case for deployment.')
+@description('Optional. Industry use case for deployment.')
 param usecase string = 'Retail-sales-analysis'
 
-@description('Primary title in the web app header.')
+@description('Optional. Primary title in the web app header.')
 param appTitlePrimary string = 'Contoso'
 
-@description('Secondary title in the web app header.')
+@description('Optional. Secondary title in the web app header.')
 param appTitleSecondary string = '| Unified Data Analysis Agents'
 
 // ============================================================================
