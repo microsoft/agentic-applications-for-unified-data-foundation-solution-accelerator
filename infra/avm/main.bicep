@@ -285,28 +285,7 @@ var dnsZoneIndex = {
 }
 
 // Resource naming (parameterized — no abbreviations.json dependency)
-var names = {
-  logAnalytics: 'log-${solutionSuffix}'
-  appInsights: 'appi-${solutionSuffix}'
-  aiServices: 'aisa-${solutionSuffix}'
-  aiProject: 'aifp-${solutionSuffix}'
-  aiSearch: 'srch-${solutionSuffix}'
-  storageAccount: take('st${toLower(replace(solutionSuffix, '-', ''))}', 24)
-  cosmosDb: 'cosmos-${solutionSuffix}'
-  sqlServer: 'sql-${solutionSuffix}'
-  sqlDatabase: 'sqldb-${solutionSuffix}'
-  appServicePlan: 'asp-${solutionSuffix}'
-  backendApi: 'api-${solutionSuffix}'
-  backendCsApi: 'api-cs-${solutionSuffix}'
-  frontendApp: 'app-${solutionSuffix}'
-  vnet: 'vnet-${solutionSuffix}'
-  bastion: 'bas-${solutionSuffix}'
-  vm: 'vm-${solutionSuffix}'
-  maintenanceConfig: 'mc-${solutionSuffix}'
-  proximityPlacementGroup: 'ppg-${solutionSuffix}'
-  dataCollectionRule: 'dcr-${solutionSuffix}'
-  fabricCapacity: fabricCapacityResourceName
-}
+// Resource names for generic modules are now derived inside each module from solutionName/solutionSuffix.
 
 // Model deployments configuration
 var aiModelDeployments = concat([
@@ -343,9 +322,9 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2024-11-01' = {
 // ============================================================================
 
 module fabricCapacity './modules/data/fabric-capacity.bicep' = if (shouldCreateFabricCapacity) {
-  name: take('deploy-fabric-capacity-${names.fabricCapacity}', 64)
+  name: take('deploy-fabric-capacity-${fabricCapacityResourceName}', 64)
   params: {
-    name: names.fabricCapacity
+    solutionName: solutionSuffix
     location: location
     skuName: fabricCapacitySku
     adminMembers: fabricTotalAdminMembers
@@ -369,7 +348,7 @@ resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces
 module logAnalytics './modules/monitoring/log-analytics.bicep' = if (enableMonitoring && !useExistingLogAnalytics) {
   name: 'monitoring-log-analytics'
   params: {
-    workspaceName: names.logAnalytics
+    solutionName: solutionSuffix
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -407,7 +386,7 @@ var logAnalyticsWorkspaceResourceId = useExistingLogAnalytics
 module appInsights './modules/monitoring/app-insights.bicep' = if (enableMonitoring) {
   name: 'monitoring-app-insights'
   params: {
-    appInsightsName: names.appInsights
+    solutionName: solutionSuffix
     location: aiDeploymentsLocation
     tags: tags
     enableTelemetry: enableTelemetry
@@ -424,7 +403,7 @@ module appInsights './modules/monitoring/app-insights.bicep' = if (enableMonitor
 module virtualNetwork './modules/networking/virtual-network.bicep' = if (enablePrivateNetworking) {
   name: 'networking-virtual-network'
   params: {
-    name: names.vnet
+    solutionName: solutionSuffix
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -438,16 +417,12 @@ module virtualNetwork './modules/networking/virtual-network.bicep' = if (enableP
 module bastionHost './modules/networking/bastion-host.bicep' = if (enablePrivateNetworking) {
   name: 'networking-bastion-host'
   params: {
-    name: names.bastion
+    solutionName: solutionSuffix
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
     virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
-    publicIPAddressObject: {
-      name: 'pip-${names.bastion}'
-      diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
-      tags: tags
-    }
+    publicIPDiagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
   }
 }
@@ -456,7 +431,7 @@ module bastionHost './modules/networking/bastion-host.bicep' = if (enablePrivate
 module maintenanceConfiguration './modules/compute/maintenance-configuration.bicep' = if (enablePrivateNetworking) {
   name: 'compute-maintenance-configuration'
   params: {
-    name: names.maintenanceConfig
+    solutionName: solutionSuffix
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -470,7 +445,7 @@ var dataCollectionRulesLocation = useExistingLogAnalytics
 module windowsVmDataCollectionRules './modules/monitoring/data-collection-rule.bicep' = if (enablePrivateNetworking && enableMonitoring) {
   name: 'monitoring-data-collection-rules'
   params: {
-    name: names.dataCollectionRule
+    solutionName: solutionSuffix
     location: dataCollectionRulesLocation
     tags: tags
     enableTelemetry: enableTelemetry
@@ -483,7 +458,7 @@ var virtualMachineAvailabilityZone = 1
 module proximityPlacementGroup './modules/compute/proximity-placement-group.bicep' = if (enablePrivateNetworking) {
   name: 'compute-proximity-placement-group'
   params: {
-    name: names.proximityPlacementGroup
+    solutionName: solutionSuffix
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -496,7 +471,7 @@ module proximityPlacementGroup './modules/compute/proximity-placement-group.bice
 module virtualMachine './modules/compute/virtual-machine.bicep' = if (enablePrivateNetworking) {
   name: 'compute-virtual-machine'
   params: {
-    name: names.vm
+    solutionName: solutionSuffix
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -512,7 +487,7 @@ module virtualMachine './modules/compute/virtual-machine.bicep' = if (enablePriv
       dataCollectionRuleAssociations: [
         {
           dataCollectionRuleResourceId: windowsVmDataCollectionRules!.outputs.resourceId
-          name: 'send-${names.logAnalytics}'
+          name: 'send-${logAnalytics!.outputs.name}'
         }
       ]
       enabled: true
@@ -532,7 +507,7 @@ module privateDnsZoneDeployments './modules/networking/private-dns-zone.bicep' =
       enableTelemetry: enableTelemetry
       virtualNetworkLinks: [
         {
-          name: take('vnetlink-${names.vnet}-${split(zone, '.')[1]}', 80)
+          name: take('vnetlink-${virtualNetwork!.outputs.name}-${split(zone, '.')[1]}', 80)
           virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
         }
       ]
@@ -553,7 +528,7 @@ var aiServicesSubscriptionId = useExistingAIProject
   : subscription().subscriptionId
 var aiServicesResourceName = useExistingAIProject
   ? split(existingAIProjectResourceId, '/')[8]
-  : names.aiServices
+  : aiFoundry!.outputs.name
 
 // Construct endpoints from existing resource ID (matching bicep/modules/ai/ai-foundry.bicep)
 // Expected format: /subscriptions/.../providers/Microsoft.CognitiveServices/accounts/{account}/projects/{project}
@@ -611,10 +586,10 @@ module existingAiServicesDeployments './modules/ai/existing-foundry-project.bice
 }
 
 // Deploy new AI Services account with deployments + role assignments via AVM
-module aiServices './modules/ai/ai-services.bicep' = if (!useExistingAIProject) {
-  name: 'ai-services'
+module aiFoundry './modules/ai/ai-foundry.bicep' = if (!useExistingAIProject) {
+  name: 'ai-foundry'
   params: {
-    aiServicesName: names.aiServices
+    solutionName: solutionSuffix
     location: aiDeploymentsLocation
     tags: tags
     enableTelemetry: enableTelemetry
@@ -657,42 +632,33 @@ module aiServices './modules/ai/ai-services.bicep' = if (!useExistingAIProject) 
         }
       ] : []
     )
+    // Project connections
+    enableSearchConnection: isWorkshop
+    aiSearchName: isWorkshop ? aiSearch!.outputs.name : ''
+    aiSearchConnectionName: isWorkshop ? 'search-connection-${solutionSuffix}' : ''
+    enableStorageConnection: isWorkshop
+    storageAccountName: isWorkshop ? storageAccount!.outputs.name : ''
+    storageBlobEndpoint: isWorkshop ? storageAccount!.outputs.blobEndpoint : ''
+    storageAccountResourceId: isWorkshop ? storageAccount!.outputs.resourceId : ''
+    applicationInsightsName: appInsights!.outputs.name
+    applicationInsightsResourceId: enableMonitoring ? appInsights!.outputs.resourceId : ''
+    applicationInsightsInstrumentationKey: enableMonitoring ? appInsights!.outputs.instrumentationKey : ''
+    // Private networking
+    enablePrivateNetworking: enablePrivateNetworking
+    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
+    privateDnsZoneResourceIds: enablePrivateNetworking ? [
+      privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+      privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
+      privateDnsZoneDeployments[dnsZoneIndex.aiServices]!.outputs.resourceId
+    ] : []
   }
   dependsOn: isWorkshop ? [aiSearch] : []
-}
-
-// Private Endpoint for AI Services — deployed after AI Services resource
-module aiServicesPrivateEndpoint './modules/networking/private-endpoint.bicep' = if (enablePrivateNetworking && !useExistingAIProject) {
-  name: 'networking-pep-ai-services'
-  params: {
-    name: 'pep-${names.aiServices}'
-    customNetworkInterfaceName: 'nic-${names.aiServices}'
-    location: location
-    tags: tags
-    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
-    privateLinkServiceConnections: [
-      {
-        name: 'pep-${names.aiServices}-connection'
-        properties: {
-          privateLinkServiceId: aiServices!.outputs.resourceId
-          groupIds: ['account']
-        }
-      }
-    ]
-    privateDnsZoneGroup: {
-      privateDnsZoneGroupConfigs: [
-        { name: 'dns-cognitiveservices', privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId }
-        { name: 'dns-openai', privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId }
-        { name: 'dns-aiservices', privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.aiServices]!.outputs.resourceId }
-      ]
-    }
-  }
 }
 
 module aiSearch './modules/ai/ai-search.bicep' = if (isWorkshop) {
   name: 'ai-search'
   params: {
-    searchServiceName: names.aiSearch
+    solutionName: solutionSuffix
     location: searchServiceLocation
     tags: tags
     enableTelemetry: enableTelemetry
@@ -716,27 +682,6 @@ module aiSearch './modules/ai/ai-search.bicep' = if (isWorkshop) {
   }
 }
 
-module aiProject './modules/ai/ai-foundry-project.bicep' = if (!useExistingAIProject) {
-  name: 'ai-foundry-project'
-  params: {
-    projectName: names.aiProject
-    aiServicesAccountName: names.aiServices
-    location: aiDeploymentsLocation
-    tags: tags
-    enableSearchConnection: isWorkshop
-    aiSearchName: isWorkshop ? names.aiSearch : ''
-    aiSearchConnectionName: isWorkshop ? 'search-connection-${solutionSuffix}' : ''
-    enableStorageConnection: isWorkshop
-    storageAccountName: isWorkshop ? names.storageAccount : ''
-    storageBlobEndpoint: isWorkshop ? storageAccount!.outputs.blobEndpoint : ''
-    storageAccountResourceId: isWorkshop ? storageAccount!.outputs.resourceId : ''
-    applicationInsightsName: names.appInsights
-    applicationInsightsResourceId: enableMonitoring ? appInsights!.outputs.resourceId : ''
-    applicationInsightsInstrumentationKey: enableMonitoring ? appInsights!.outputs.instrumentationKey : ''
-  }
-  dependsOn: [aiServices, aiServicesPrivateEndpoint]
-}
-
 // ============================================================================
 // Module: Data 
 // ============================================================================
@@ -744,7 +689,7 @@ module aiProject './modules/ai/ai-foundry-project.bicep' = if (!useExistingAIPro
 module storageAccount './modules/data/storage-account.bicep' = if (isWorkshop) {
   name: 'data-storage-account'
   params: {
-    storageAccountName: names.storageAccount
+    solutionName: solutionSuffix
     location: aiDeploymentsLocation
     tags: tags
     enableTelemetry: enableTelemetry
@@ -757,18 +702,10 @@ module storageAccount './modules/data/storage-account.bicep' = if (isWorkshop) {
         principalType: deployingUserPrincipalType
       }
     ]
-    privateEndpoints: enablePrivateNetworking ? [
-      {
-        name: 'pep-${names.storageAccount}'
-        customNetworkInterfaceName: 'nic-${names.storageAccount}'
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: [
-            { privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.blob]!.outputs.resourceId }
-          ]
-        }
-        service: 'blob'
-        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
-      }
+    enablePrivateNetworking: enablePrivateNetworking
+    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
+    privateDnsZoneResourceIds: enablePrivateNetworking ? [
+      privateDnsZoneDeployments[dnsZoneIndex.blob]!.outputs.resourceId
     ] : []
   }
 }
@@ -776,7 +713,7 @@ module storageAccount './modules/data/storage-account.bicep' = if (isWorkshop) {
 module cosmosDb './modules/data/cosmos-db.bicep' = if (isWorkshop && shouldDeployApp) {
   name: 'data-cosmos-db'
   params: {
-    accountName: names.cosmosDb
+    solutionName: solutionSuffix
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -785,18 +722,10 @@ module cosmosDb './modules/data/cosmos-db.bicep' = if (isWorkshop && shouldDeplo
     zoneRedundant: enableRedundancy
     enableAutomaticFailover: enableRedundancy
     haLocation: cosmosDbHaLocation
-    privateEndpoints: enablePrivateNetworking ? [
-      {
-        name: 'pep-${names.cosmosDb}'
-        customNetworkInterfaceName: 'nic-${names.cosmosDb}'
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: [
-            { privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cosmosDb]!.outputs.resourceId }
-          ]
-        }
-        service: 'Sql'
-        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
-      }
+    enablePrivateNetworking: enablePrivateNetworking
+    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
+    privateDnsZoneResourceIds: enablePrivateNetworking ? [
+      privateDnsZoneDeployments[dnsZoneIndex.cosmosDb]!.outputs.resourceId
     ] : []
   }
 }
@@ -804,25 +733,16 @@ module cosmosDb './modules/data/cosmos-db.bicep' = if (isWorkshop && shouldDeplo
 module sqlDatabase './modules/data/sql-database.bicep' = if (isWorkshop && azureEnvOnly) {
   name: 'data-sql-database'
   params: {
-    serverName: names.sqlServer
-    databaseName: names.sqlDatabase
+    solutionName: solutionSuffix
     location: secondaryLocation
     tags: tags
     enableTelemetry: enableTelemetry
     deployerPrincipalId: deployingUserPrincipalId
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    privateEndpoints: enablePrivateNetworking ? [
-      {
-        name: 'pep-${names.sqlServer}'
-        customNetworkInterfaceName: 'nic-${names.sqlServer}'
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: [
-            { privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.sqlServer]!.outputs.resourceId }
-          ]
-        }
-        service: 'sqlServer'
-        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
-      }
+    enablePrivateNetworking: enablePrivateNetworking
+    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
+    privateDnsZoneResourceIds: enablePrivateNetworking ? [
+      privateDnsZoneDeployments[dnsZoneIndex.sqlServer]!.outputs.resourceId
     ] : []
   }
 }
@@ -834,7 +754,7 @@ module sqlDatabase './modules/data/sql-database.bicep' = if (isWorkshop && azure
 module appServicePlan './modules/compute/app-service-plan.bicep' = if (shouldDeployApp) {
   name: 'compute-app-service-plan'
   params: {
-    appServicePlanName: names.appServicePlan
+    solutionName: solutionSuffix
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -849,7 +769,7 @@ module appServicePlan './modules/compute/app-service-plan.bicep' = if (shouldDep
 module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
   name: 'compute-backend-api'
   params: {
-    appServiceName: names.backendApi
+    solutionName: 'api-${solutionSuffix}'
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -861,10 +781,10 @@ module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp &&
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
-      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : aiServices!.outputs.endpoint
+      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : aiFoundry!.outputs.endpoint
       AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiServicesResourceName : aiServices!.outputs.name
-      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : aiProject!.outputs.endpoint
+      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiServicesResourceName : aiFoundry!.outputs.name
+      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : aiFoundry!.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
@@ -878,7 +798,7 @@ module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp &&
       API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aiSearch!.outputs.endpoint : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'knowledge_index' : ''
-      AZURE_AI_SEARCH_CONNECTION_NAME: (isWorkshop && !useExistingAIProject) ? aiProject!.outputs.searchConnectionName : ''
+      AZURE_AI_SEARCH_CONNECTION_NAME: (isWorkshop && !useExistingAIProject) ? aiFoundry!.outputs.searchConnectionName : ''
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? appInsights!.outputs.connectionString : ''
@@ -903,7 +823,7 @@ module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp &&
 module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
   name: 'compute-backend-csapi'
   params: {
-    appServiceName: names.backendCsApi
+    solutionName: 'api-cs-${solutionSuffix}'
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -915,10 +835,10 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
-      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : aiServices!.outputs.endpoint
+      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : aiFoundry!.outputs.endpoint
       AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
-      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiServicesResourceName : aiServices!.outputs.name
-      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : aiProject!.outputs.endpoint
+      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiServicesResourceName : aiFoundry!.outputs.name
+      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : aiFoundry!.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
@@ -929,7 +849,7 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
       API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aiSearch!.outputs.endpoint : ''
       AZURE_AI_SEARCH_INDEX: isWorkshop ? 'call_transcripts_index' : ''
-      AZURE_AI_SEARCH_CONNECTION_NAME: (isWorkshop && !useExistingAIProject) ? aiProject!.outputs.searchConnectionName : ''
+      AZURE_AI_SEARCH_CONNECTION_NAME: (isWorkshop && !useExistingAIProject) ? aiFoundry!.outputs.searchConnectionName : ''
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? appInsights!.outputs.connectionString : ''
@@ -948,7 +868,7 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
 module frontendApp './modules/compute/app-service.bicep' = if (shouldDeployApp) {
   name: 'compute-frontend'
   params: {
-    appServiceName: names.frontendApp
+    solutionName: 'app-${solutionSuffix}'
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -975,7 +895,7 @@ module frontendApp './modules/compute/app-service.bicep' = if (shouldDeployApp) 
 module roleAssignments './modules/identity/role-assignments.bicep' = {
   name: 'identity-role-assignments'
   params: {
-    aiProjectPrincipalId: (!useExistingAIProject) ? aiProject!.outputs.identityPrincipalId : ''
+    aiProjectPrincipalId: (!useExistingAIProject) ? aiFoundry!.outputs.projectIdentityPrincipalId : ''
     aiSearchPrincipalId: isWorkshop ? aiSearch!.outputs.identityPrincipalId : ''
     aiSearchResourceId: isWorkshop ? aiSearch!.outputs.resourceId : ''
     storageAccountResourceId: isWorkshop ? storageAccount!.outputs.resourceId : ''
@@ -984,7 +904,7 @@ module roleAssignments './modules/identity/role-assignments.bicep' = {
     backendAppServicePrincipalId: shouldDeployApp
       ? (backendRuntimeStack == 'python' ? backendApi!.outputs.identityPrincipalId : backendCsApi!.outputs.identityPrincipalId)
       : ''
-    aiServicesResourceId: !useExistingAIProject ? aiServices!.outputs.resourceId : ''
+    aiServicesResourceId: !useExistingAIProject ? aiFoundry!.outputs.resourceId : ''
   }
 }
 
@@ -1014,7 +934,7 @@ output AZURE_COSMOSDB_DATABASE string = isWorkshop ? 'db_conversation_history' :
 output AZURE_ENV_GPT_MODEL_NAME string = gptModelName
 
 @description('Azure OpenAI service endpoint URL.')
-output AZURE_OPENAI_ENDPOINT string = !useExistingAIProject ? aiServices!.outputs.endpoint : existingOpenAIEndpoint
+output AZURE_OPENAI_ENDPOINT string = !useExistingAIProject ? aiFoundry!.outputs.endpoint : existingOpenAIEndpoint
 
 @description('Embedding model deployment name.')
 output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = embeddingModel
@@ -1032,7 +952,7 @@ output AZURE_SQLDB_USER_MID string = ''
 output API_UID string = ''
 
 @description('Azure AI Agent endpoint.')
-output AZURE_AI_AGENT_ENDPOINT string = !useExistingAIProject ? aiProject!.outputs.endpoint : existingProjectEndpoint
+output AZURE_AI_AGENT_ENDPOINT string = !useExistingAIProject ? aiFoundry!.outputs.projectEndpoint : existingProjectEndpoint
 
 @description('Model deployment name for AI Agent.')
 output AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME string = gptModelName
@@ -1069,25 +989,25 @@ output AZURE_AI_SEARCH_NAME string = isWorkshop ? aiSearch!.outputs.name : ''
 output SEARCH_DATA_FOLDER string = isWorkshop ? 'data/default/documents' : ''
 
 @description('AI Search connection name.')
-output AZURE_AI_SEARCH_CONNECTION_NAME string = (isWorkshop && !useExistingAIProject) ? aiProject!.outputs.searchConnectionName : ''
+output AZURE_AI_SEARCH_CONNECTION_NAME string = (isWorkshop && !useExistingAIProject) ? aiFoundry!.outputs.searchConnectionName : ''
 
 @description('AI Search connection ID.')
-output AZURE_AI_SEARCH_CONNECTION_ID string = (isWorkshop && !useExistingAIProject) ? aiProject!.outputs.searchConnectionId : ''
+output AZURE_AI_SEARCH_CONNECTION_ID string = (isWorkshop && !useExistingAIProject) ? aiFoundry!.outputs.searchConnectionId : ''
 
 @description('AI Foundry project endpoint.')
-output AZURE_AI_PROJECT_ENDPOINT string = !useExistingAIProject ? aiProject!.outputs.endpoint : existingProjectEndpoint
+output AZURE_AI_PROJECT_ENDPOINT string = !useExistingAIProject ? aiFoundry!.outputs.projectEndpoint : existingProjectEndpoint
 
 @description('AI Foundry resource ID.')
-output AI_FOUNDRY_RESOURCE_ID string = !useExistingAIProject ? aiServices!.outputs.resourceId : existingAIProjectResourceId
+output AI_FOUNDRY_RESOURCE_ID string = !useExistingAIProject ? aiFoundry!.outputs.resourceId : existingAIProjectResourceId
 
 @description('AI Foundry project name.')
-output AZURE_AI_PROJECT_NAME string = !useExistingAIProject ? aiProject!.outputs.name : (existingHasProjectSegment ? split(existingAIProjectResourceId, '/')[10] : '')
+output AZURE_AI_PROJECT_NAME string = !useExistingAIProject ? aiFoundry!.outputs.projectName : (existingHasProjectSegment ? split(existingAIProjectResourceId, '/')[10] : '')
 
 @description('AI Services resource name.')
-output AI_SERVICE_NAME string = !useExistingAIProject ? aiServices!.outputs.name : aiServicesResourceName
+output AI_SERVICE_NAME string = !useExistingAIProject ? aiFoundry!.outputs.name : aiServicesResourceName
 
 @description('AI Project identity principal ID.')
-output FOUNDRY_PROJECT_PID string = !useExistingAIProject ? aiProject!.outputs.identityPrincipalId : ''
+output FOUNDRY_PROJECT_PID string = !useExistingAIProject ? aiFoundry!.outputs.projectIdentityPrincipalId : ''
 
 @description('Chat history enabled flag.')
 output USE_CHAT_HISTORY_ENABLED string = useChatHistoryEnabledSetting

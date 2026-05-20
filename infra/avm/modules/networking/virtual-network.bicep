@@ -7,8 +7,10 @@
 //   - avm/res/network/virtual-network:0.8.0
 // ============================================================================
 
-@description('Name of the virtual network.')
-param name string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var name = 'vnet-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string = resourceGroup().location

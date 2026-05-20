@@ -5,8 +5,10 @@
 // WAF: Monitoring for VM observability
 // ============================================================================
 
-@description('Name of the data collection rule.')
-param name string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var name = 'dcr-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string

@@ -5,8 +5,10 @@
 // WAF: https://learn.microsoft.com/azure/well-architected/service-guides/app-service-web-apps
 // ============================================================================
 
-@description('Name of the App Service Plan.')
-param appServicePlanName string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var appServicePlanName = 'asp-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string

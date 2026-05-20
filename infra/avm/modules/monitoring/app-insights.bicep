@@ -5,8 +5,10 @@
 // WAF: https://learn.microsoft.com/azure/well-architected/service-guides/application-insights
 // ============================================================================
 
-@description('Name of the Application Insights instance.')
-param appInsightsName string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var appInsightsName = 'appi-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string

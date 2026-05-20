@@ -5,8 +5,10 @@
 // WAF: https://learn.microsoft.com/azure/well-architected/service-guides/azure-cognitive-search
 // ============================================================================
 
-@description('Name of the AI Search service.')
-param searchServiceName string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var searchServiceName = 'srch-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string

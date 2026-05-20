@@ -5,11 +5,11 @@
 // WAF: https://learn.microsoft.com/azure/well-architected/service-guides/azure-sql-database
 // ============================================================================
 
-@description('Name of the SQL Server.')
-param serverName string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
 
-@description('Name of the SQL Database.')
-param databaseName string
+var serverName = 'sql-${solutionName}'
+var databaseName = 'sqldb-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string
@@ -45,8 +45,19 @@ param minCapacity int = 1
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
 
-@description('Private endpoint configurations.')
-param privateEndpoints array = []
+@description('Whether to enable private networking.')
+param enablePrivateNetworking bool = false
+
+@description('Subnet resource ID for the private endpoint.')
+param privateEndpointSubnetId string = ''
+
+@description('Private DNS zone resource IDs for SQL Server.')
+param privateDnsZoneResourceIds array = []
+
+var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
+  name: 'dns-zone-${i}'
+  privateDnsZoneResourceId: zoneId
+}]
 
 // ============================================================================
 // AVM Module Deployment
@@ -96,7 +107,17 @@ module sqlServer 'br/public:avm/res/sql/server:0.21.0' = {
         endIpAddress: '0.0.0.0'
       }
     ] : []
-    privateEndpoints: !empty(privateEndpoints) ? privateEndpoints : []
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-${serverName}'
+        customNetworkInterfaceName: 'nic-${serverName}'
+        subnetResourceId: privateEndpointSubnetId
+        service: 'sqlServer'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: privateDnsZoneConfigs
+        }
+      }
+    ] : []
   }
 }
 

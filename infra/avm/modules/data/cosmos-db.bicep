@@ -5,8 +5,10 @@
 // WAF: https://learn.microsoft.com/azure/well-architected/service-guides/cosmos-db
 // ============================================================================
 
-@description('Name of the Cosmos DB account.')
-param accountName string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var accountName = 'cosmos-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string
@@ -36,8 +38,19 @@ param diagnosticSettings array = []
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
 
-@description('Private endpoint configurations.')
-param privateEndpoints array = []
+@description('Whether to enable private networking.')
+param enablePrivateNetworking bool = false
+
+@description('Subnet resource ID for the private endpoint.')
+param privateEndpointSubnetId string = ''
+
+@description('Private DNS zone resource IDs for Cosmos DB.')
+param privateDnsZoneResourceIds array = []
+
+var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
+  name: 'dns-zone-${i}'
+  privateDnsZoneResourceId: zoneId
+}]
 
 // --- WAF: Redundancy ---
 @description('Enable zone redundancy.')
@@ -77,7 +90,17 @@ module cosmosAccount 'br/public:avm/res/document-db/database-account:0.19.0' = {
       networkAclBypass: 'None'
       publicNetworkAccess: publicNetworkAccess
     }
-    privateEndpoints: privateEndpoints
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-${accountName}'
+        customNetworkInterfaceName: 'nic-${accountName}'
+        subnetResourceId: privateEndpointSubnetId
+        service: 'Sql'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: privateDnsZoneConfigs
+        }
+      }
+    ] : []
     zoneRedundant: zoneRedundant
     enableAutomaticFailover: enableAutomaticFailover
     failoverLocations: zoneRedundant

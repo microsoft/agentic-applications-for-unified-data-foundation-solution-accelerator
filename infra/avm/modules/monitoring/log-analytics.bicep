@@ -7,8 +7,10 @@
 //       Existing workspace logic is handled in main.bicep.
 // ============================================================================
 
-@description('Name of the Log Analytics workspace.')
-param workspaceName string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var workspaceName = 'log-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string

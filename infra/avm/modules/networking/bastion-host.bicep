@@ -4,8 +4,10 @@
 // AVM Module: avm/res/network/bastion-host
 // ============================================================================
 
-@description('Name of the Bastion Host.')
-param name string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var name = 'bas-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string
@@ -40,8 +42,8 @@ param enableIpConnect bool = false
 @description('Enable shareable link functionality.')
 param enableShareableLink bool = false
 
-@description('Optional. Public IP address configuration.')
-param publicIPAddressObject object?
+@description('Optional. Diagnostic settings for the public IP address.')
+param publicIPDiagnosticSettings array?
 
 // ============================================================================
 // AVM Module Deployment
@@ -56,7 +58,11 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.8.2' = {
     skuName: skuName
     virtualNetworkResourceId: virtualNetworkResourceId
     availabilityZones: []
-    publicIPAddressObject: publicIPAddressObject
+    publicIPAddressObject: {
+      name: 'pip-${name}'
+      diagnosticSettings: publicIPDiagnosticSettings
+      tags: tags
+    }
     disableCopyPaste: disableCopyPaste
     enableFileCopy: enableFileCopy
     enableIpConnect: enableIpConnect

@@ -5,8 +5,10 @@
 // WAF: https://learn.microsoft.com/en-us/azure/well-architected/service-guides/virtual-machines
 // ============================================================================
 
-@description('Name of the proximity placement group.')
-param name string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var name = 'ppg-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string

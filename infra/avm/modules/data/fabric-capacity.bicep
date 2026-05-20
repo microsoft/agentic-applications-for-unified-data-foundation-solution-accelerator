@@ -5,8 +5,10 @@
 // Docs: https://learn.microsoft.com/azure/templates/microsoft.fabric/capacities
 // ============================================================================
 
-@description('Name of the Fabric capacity resource.')
-param name string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var name = 'fc${solutionName}'
 
 @description('Azure region for the resource.')
 param location string

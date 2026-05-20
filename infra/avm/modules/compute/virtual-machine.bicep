@@ -4,8 +4,10 @@
 // AVM Module: avm/res/compute/virtual-machine
 // ============================================================================
 
-@description('Name of the virtual machine.')
-param name string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var name = 'vm-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string

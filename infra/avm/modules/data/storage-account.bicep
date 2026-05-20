@@ -5,8 +5,10 @@
 // WAF: https://learn.microsoft.com/azure/well-architected/service-guides/storage-accounts
 // ============================================================================
 
-@description('Name of the Storage Account.')
-param storageAccountName string
+@description('Solution name suffix used to derive the resource name.')
+param solutionName string
+
+var storageAccountName = take('st${toLower(replace(solutionName, '-', ''))}', 24)
 
 @description('Azure region for the resource.')
 param location string
@@ -55,8 +57,19 @@ param networkAcls object = {
   bypass: 'AzureServices'
 }
 
-@description('Private endpoint configurations.')
-param privateEndpoints array = []
+@description('Whether to enable private networking.')
+param enablePrivateNetworking bool = false
+
+@description('Subnet resource ID for the private endpoint.')
+param privateEndpointSubnetId string = ''
+
+@description('Private DNS zone resource IDs for Storage (blob).')
+param privateDnsZoneResourceIds array = []
+
+var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
+  name: 'dns-zone-${i}'
+  privateDnsZoneResourceId: zoneId
+}]
 
 // --- Role Assignments ---
 @description('Optional. Array of role assignments to create on the Storage Account.')
@@ -89,7 +102,17 @@ module storage 'br/public:avm/res/storage/storage-account:0.19.0' = {
       diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []
     }
     diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []
-    privateEndpoints: privateEndpoints
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-${storageAccountName}'
+        customNetworkInterfaceName: 'nic-${storageAccountName}'
+        subnetResourceId: privateEndpointSubnetId
+        service: 'blob'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: privateDnsZoneConfigs
+        }
+      }
+    ] : []
     roleAssignments: !empty(roleAssignments) ? roleAssignments : []
   }
 }
