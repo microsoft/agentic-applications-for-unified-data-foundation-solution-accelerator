@@ -19,10 +19,10 @@ param isWorkshop bool = false
 param shouldDeployApp bool = false
 
 @description('The resource ID of an existing Azure AI Foundry project. If provided, the existing project will be used instead of creating a new one.')
-param azureExistingAIProjectResourceId string = ''
+param existingFoundryProjectResourceId string = ''
 
 @description('The name of the Azure AI Services account.')
-param aiServicesName string = ''
+param aiFoundryName string = ''
 
 @description('The name of the Azure AI Search service.')
 param aiSearchName string = ''
@@ -59,11 +59,11 @@ param cosmosAccountName string = ''
 // Derived Variables
 // ============================================================================
 
-var useExistingProject = !empty(azureExistingAIProjectResourceId)
-var existingAIServicesName = useExistingProject ? split(azureExistingAIProjectResourceId, '/')[8] : ''
-var existingAIProjectName = useExistingProject ? split(azureExistingAIProjectResourceId, '/')[10] : ''
-var existingAIServiceSubscription = useExistingProject ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
-var existingAIServiceResourceGroup = useExistingProject ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
+var useExistingProject = !empty(existingFoundryProjectResourceId)
+var existingAIServicesName = useExistingProject ? split(existingFoundryProjectResourceId, '/')[8] : ''
+var existingAIProjectName = useExistingProject ? split(existingFoundryProjectResourceId, '/')[10] : ''
+var existingAIServiceSubscription = useExistingProject ? split(existingFoundryProjectResourceId, '/')[2] : subscription().subscriptionId
+var existingAIServiceResourceGroup = useExistingProject ? split(existingFoundryProjectResourceId, '/')[4] : resourceGroup().name
 
 // Resolve the active backend principal ID (whichever runtime is deployed)
 var activeBackendPrincipalId = !empty(backendAppPrincipalId) ? backendAppPrincipalId : backendCsApiPrincipalId
@@ -72,8 +72,8 @@ var activeBackendPrincipalId = !empty(backendAppPrincipalId) ? backendAppPrincip
 // Existing Resource References
 // ============================================================================
 
-resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = if (!empty(aiServicesName) && !useExistingProject) {
-  name: aiServicesName
+resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = if (!empty(aiFoundryName) && !useExistingProject) {
+  name: aiFoundryName
 }
 
 resource aiSearch 'Microsoft.Search/searchServices@2025-05-01' existing = if (!empty(aiSearchName)) {
@@ -142,7 +142,7 @@ resource storageBlobDataReader 'Microsoft.Authorization/roleDefinitions@2022-04-
 // ╚══════════════════════════════════════════════════════════════╝
 
 // AI Search → Cognitive Services OpenAI User on AI Services
-resource assignOpenAIRoleToAISearch 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingProject && isWorkshop && !empty(searchPrincipalId) && !empty(aiServicesName)) {
+resource assignOpenAIRoleToAISearch 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingProject && isWorkshop && !empty(searchPrincipalId) && !empty(aiFoundryName)) {
   name: guid(resourceGroup().id, aiServices.id, cognitiveServicesOpenAIUser.id)
   scope: aiServices
   properties: {
@@ -159,8 +159,8 @@ module assignAiUserToBackend './cross-scope-role-assignment.bicep' = if (shouldD
   params: {
     principalId: activeBackendPrincipalId
     roleDefinitionId: azureAIUser.id
-    roleAssignmentName: guid(solutionName, 'backend', useExistingProject ? existingAIServicesName : aiServicesName, azureAIUser.id)
-    aiServicesName: useExistingProject ? existingAIServicesName : aiServicesName
+    roleAssignmentName: guid(solutionName, 'backend', useExistingProject ? existingAIServicesName : aiFoundryName, azureAIUser.id)
+    aiFoundryName: useExistingProject ? existingAIServicesName : aiFoundryName
   }
 }
 
@@ -172,7 +172,7 @@ module assignOpenAIToSearchExisting './cross-scope-role-assignment.bicep' = if (
     principalId: searchPrincipalId
     roleDefinitionId: cognitiveServicesOpenAIUser.id
     roleAssignmentName: guid(resourceGroup().id, aiSearch.id, cognitiveServicesOpenAIUser.id, 'openai-foundry')
-    aiServicesName: existingAIServicesName
+    aiFoundryName: existingAIServicesName
   }
 }
 
@@ -314,7 +314,7 @@ resource backendCosmosContributor 'Microsoft.DocumentDB/databaseAccounts/sqlRole
 // ╚══════════════════════════════════════════════════════════════╝
 
 // Deploying User → Cognitive Services User on AI Services
-resource userAIServicesAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingProject && !empty(deployingUserPrincipalId) && !empty(aiServicesName)) {
+resource userAIServicesAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingProject && !empty(deployingUserPrincipalId) && !empty(aiFoundryName)) {
   scope: aiServices
   name: guid(aiServices.id, deployingUserPrincipalId, cognitiveServicesUser.id)
   properties: {
@@ -325,7 +325,7 @@ resource userAIServicesAccess 'Microsoft.Authorization/roleAssignments@2022-04-0
 }
 
 // Deploying User → Azure AI User on AI Services
-resource userAzureAIAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingProject && !empty(deployingUserPrincipalId) && !empty(aiServicesName)) {
+resource userAzureAIAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingProject && !empty(deployingUserPrincipalId) && !empty(aiFoundryName)) {
   scope: aiServices
   name: guid(aiServices.id, deployingUserPrincipalId, azureAIUser.id)
   properties: {

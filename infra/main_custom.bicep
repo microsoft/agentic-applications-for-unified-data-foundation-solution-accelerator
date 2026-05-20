@@ -15,17 +15,17 @@ var abbrs = loadJsonContent('./abbreviations.json')
 @minLength(3)
 @maxLength(20)
 @description('A unique application/solution name for all resources in this deployment. This should be 3-20 characters long:')
-param environmentName string = 'agenticappudf'
+param solutionName string = 'agenticappudf'
 
 @maxLength(5)
 @description('Optional. A unique text value for the solution.')
-param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, environmentName), 0, 5)
+param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, solutionName), 0, 5)
 
 @description('Optional: Existing Log Analytics Workspace Resource ID')
 param existingLogAnalyticsWorkspaceId string = ''
 
 @description('Use this parameter to use an existing AI project resource ID')
-param azureExistingAIProjectResourceId string = ''
+param existingFoundryProjectResourceId string = ''
 
 @description('Optional. created by user name')
 param createdBy string = contains(deployer(), 'userPrincipalName') ? split(deployer().userPrincipalName, '@')[0] : deployer().objectId
@@ -66,7 +66,7 @@ param gptModelName string = 'gpt-4.1-mini'
 @description('Version of the GPT model to deploy:')
 param gptModelVersion string = '2025-04-14'
 
-param azureOpenAIApiVersion string = '2025-01-01-preview'
+param azureOpenaiAPIVersion string = '2025-01-01-preview'
 
 param azureAiAgentApiVersion string = '2025-05-01'
 
@@ -97,12 +97,12 @@ param azureEnvOnly bool = false
 // If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
 var shouldDeployApp = !isWorkshop || deployApp
 
-param AZURE_LOCATION string = ''
-var solutionLocation = empty(AZURE_LOCATION) ? resourceGroup().location : AZURE_LOCATION
+param location string = ''
+var solutionLocation = empty(location) ? resourceGroup().location : location
 
 var solutionSuffix = toLower(trim(replace(
   replace(
-    replace(replace(replace(replace('${environmentName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
+    replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
     ' ',
     ''
   ),
@@ -131,7 +131,7 @@ var solutionSuffix = toLower(trim(replace(
   }
 })
 @description('Location for AI Foundry deployment. This is the location where the AI Foundry resources will be deployed.')
-param aiDeploymentsLocation string
+param azureAiServiceLocation string
 
 @description('The principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC.')
 @allowed(['User', 'ServicePrincipal'])
@@ -174,7 +174,7 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
   name: 'deploy_ai_foundry'
   params: {
     solutionName: solutionSuffix
-    solutionLocation: aiDeploymentsLocation
+    solutionLocation: azureAiServiceLocation
     deploymentType: deploymentType
     gptModelName: gptModelName
     gptModelVersion: gptModelVersion
@@ -183,7 +183,7 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
     embeddingDeploymentCapacity: embeddingDeploymentCapacity
     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
-    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
     deployingUserPrincipalId: deployingUserPrincipalId
     deployingUserPrincipalType: deployingUserPrincipalType
     isWorkshop: isWorkshop
@@ -239,14 +239,14 @@ module backend_custom 'deploy_backend_custom.bicep' = if (shouldDeployApp && bac
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
     aiServicesName: aifoundry.outputs.aiServicesName
-    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
     enableCosmosDb: shouldDeployApp && isWorkshop
     logAnalyticsWorkspaceId: resolvedLogAnalyticsWorkspaceId
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
-      AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
       AZURE_OPENAI_RESOURCE: aifoundry.outputs.aiServicesName
       AZURE_AI_AGENT_ENDPOINT: aifoundry.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
@@ -292,17 +292,17 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
     name: 'api-cs-${solutionSuffix}'
     solutionLocation: solutionLocation
     imageTag: 'latest_v2'
-    acrName: 'dataagentscontainerreg'
+    containerRegistryName: 'dataagentscontainerreg'
     appServicePlanId: hostingplan!.outputs.name
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
     aiServicesName: aifoundry.outputs.aiServicesName
-    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
-      AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
       AZURE_OPENAI_RESOURCE: aifoundry.outputs.aiServicesName
       AZURE_AI_AGENT_ENDPOINT: aifoundry.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
@@ -462,6 +462,6 @@ output AZURE_ENV_ONLY bool = azureEnvOnly
 output USER_MID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
 
 @description('Existing or newly created AI project resource ID')
-output AZURE_EXISTING_AIPROJECT_RESOURCE_ID string = !empty(azureExistingAIProjectResourceId)
-  ? azureExistingAIProjectResourceId
+output AZURE_EXISTING_AIPROJECT_RESOURCE_ID string = !empty(existingFoundryProjectResourceId)
+  ? existingFoundryProjectResourceId
   : aifoundry.outputs.aiFoundryResourceId

@@ -13,7 +13,7 @@ targetScope = 'resourceGroup'
 // ============================================================================
 
 @allowed(['bicep', 'avm', 'avm-waf'])
-@description('Deployment flavor: bicep (vanilla Docker), avm (AVM non-WAF), or avm-waf (AVM WAF-aligned).')
+@description('Required. Deployment flavor: bicep (vanilla Docker), avm (AVM non-WAF), or avm-waf (AVM WAF-aligned).')
 param deploymentFlavor string
 
 // ============================================================================
@@ -22,24 +22,33 @@ param deploymentFlavor string
 
 @minLength(3)
 @maxLength(20)
-@description('A unique application/solution name used as base for all resource naming.')
-param environmentName string
+@description('Optional. A unique application/solution name used as base for all resource naming.')
+param solutionName string = 'agenticappudf'
 
 @maxLength(5)
 @description('Optional. A unique text suffix appended to resource names for uniqueness.')
-param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, environmentName), 0, 5)
+param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, solutionName), 0, 5)
 
-@description('Primary Azure region for resource deployment.')
+@description('Optional. Primary Azure region for resource deployment.')
 param location string = resourceGroup().location
 
-@description('Secondary location for database resources (example: eastus2).')
+@description('Optional. Secondary location for database resources (example: eastus2).')
 param secondaryLocation string = 'eastus2'
 
 @allowed(['australiaeast', 'eastus', 'eastus2', 'francecentral', 'japaneast', 'swedencentral', 'uksouth', 'westus', 'westus3'])
-@description('Location for AI Services and model deployments.')
-param aiDeploymentsLocation string
+@metadata({
+  azd:{
+    type: 'location'
+    usageName: [
+      'OpenAI.GlobalStandard.gpt4.1-mini,100'
+      'OpenAI.GlobalStandard.text-embedding-3-small,80'
+    ]
+  }
+})
+@description('Required. Location for AI Foundry and model deployments.')
+param azureAiServiceLocation string
 
-@description('Location for AI Search service deployment.')
+@description('Optional. Location for AI Search service deployment.')
 param searchServiceLocation string = location
 
 // ============================================================================
@@ -47,86 +56,86 @@ param searchServiceLocation string = location
 // ============================================================================
 
 @allowed(['Standard', 'GlobalStandard'])
-@description('GPT model deployment type.')
+@description('Optional. GPT model deployment type.')
 param deploymentType string = 'GlobalStandard'
 
-@description('Name of the GPT model to deploy.')
+@description('Optional. Name of the GPT model to deploy.')
 param gptModelName string = 'gpt-4.1-mini'
 
-@description('Version of the GPT model to deploy.')
+@description('Optional. Version of the GPT model to deploy.')
 param gptModelVersion string = '2025-04-14'
 
-@description('Azure OpenAI API version.')
-param azureOpenAIApiVersion string = '2025-01-01-preview'
+@description('Optional. Azure OpenAI API version.')
+param azureOpenaiAPIVersion string = '2025-01-01-preview'
 
-@description('Azure AI Agent API version.')
+@description('Optional. Azure AI Agent API version.')
 param azureAiAgentApiVersion string = '2025-05-01'
 
 @minValue(10)
-@description('Capacity of the GPT deployment (TPM in thousands).')
+@description('Optional. Capacity of the GPT deployment (TPM in thousands).')
 param gptDeploymentCapacity int = 150
 
 @allowed(['text-embedding-3-small'])
-@description('Name of the Text Embedding model to deploy.')
+@description('Optional. Name of the Text Embedding model to deploy.')
 param embeddingModel string = 'text-embedding-3-small'
 
 @minValue(10)
-@description('Capacity of the Embedding Model deployment.')
+@description('Optional. Capacity of the Embedding Model deployment.')
 param embeddingDeploymentCapacity int = 80
 
 // ============================================================================
 // Parameters — Compute
 // ============================================================================
 
-@description('Docker image tag for app deployments.')
+@description('Optional. Docker image tag for app deployments.')
 param imageTag string = 'latest_v2'
 
-@description('Name of the Azure Container Registry.')
-param acrName string = 'dataagentscontainerreg'
+@description('Optional. Name of the Azure Container Registry.')
+param containerRegistryName string = 'dataagentscontainerreg'
 
 @allowed(['python', 'dotnet'])
-@description('Backend runtime stack.')
+@description('Optional. Backend runtime stack.')
 param backendRuntimeStack string = 'python'
 
 @allowed(['F1', 'D1', 'B1', 'B2', 'B3', 'S1', 'S2', 'S3', 'P1', 'P2', 'P3', 'P1v3', 'P1v4'])
-@description('App Service Plan SKU (used by AVM flavors).')
+@description('Optional. App Service Plan SKU (used by AVM flavors).')
 param appServicePlanSku string = 'B2'
 
 // ============================================================================
 // Parameters — Feature Flags
 // ============================================================================
 
-@description('Deploy application components (API, Frontend, Cosmos DB).')
+@description('Optional. Deploy application components (API, Frontend, Cosmos DB).')
 param deployApp bool = true
 
-@description('Workshop deployment mode with sample data.')
+@description('Optional. Workshop deployment mode with sample data.')
 param isWorkshop bool = true
 
-@description('Azure-only mode (deploy Azure SQL instead of Fabric SQL).')
+@description('Optional. Azure-only mode (deploy Azure SQL instead of Fabric SQL).')
 param azureEnvOnly bool = false
 
-@description('Enable chat history storage.')
+@description('Optional. Enable chat history storage.')
 param useChatHistoryEnabled bool = true
 
-@description('Enable user access token forwarding.')
+@description('Optional. Enable user access token forwarding.')
 param useUserAccessToken bool = false
 
 // ============================================================================
 // Parameters — Existing Resources
 // ============================================================================
 
-@description('Resource ID of an existing Log Analytics workspace (empty = create new).')
+@description('Optional. Resource ID of an existing Log Analytics workspace. Empty creates a new one.')
 param existingLogAnalyticsWorkspaceId string = ''
 
-@description('Resource ID of an existing AI Foundry project (empty = create new).')
-param existingAIProjectResourceId string = ''
+@description('Optional. Resource ID of an existing AI Foundry project. Empty creates a new one.')
+param existingFoundryProjectResourceId string = ''
 
 // ============================================================================
 // Parameters — Identity
 // ============================================================================
 
 @allowed(['User', 'ServicePrincipal'])
-@description('Principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC.')
+@description('Optional. Principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC.')
 param deployingUserPrincipalType string = 'User'
 
 // ============================================================================
@@ -134,33 +143,33 @@ param deployingUserPrincipalType string = 'User'
 // ============================================================================
 
 @allowed(['Retail-sales-analysis', 'Insurance-improve-customer-meetings'])
-@description('Industry use case for deployment.')
+@description('Optional. Industry use case for deployment.')
 param usecase string = 'Retail-sales-analysis'
 
-@description('Primary title in the web app header.')
+@description('Optional. Primary title in the web app header.')
 param appTitlePrimary string = 'Contoso'
 
-@description('Secondary title in the web app header.')
+@description('Optional. Secondary title in the web app header.')
 param appTitleSecondary string = '| Unified Data Analysis Agents'
 
 // ============================================================================
 // Parameters — AVM-specific (ignored when deploymentFlavor = 'bicep')
 // ============================================================================
 
-@description('Tags to apply to all resources (AVM only).')
+@description('Optional. Tags to apply to all resources (AVM only).')
 param tags object = {}
 
-@description('Enable/Disable usage telemetry for AVM modules.')
+@description('Optional. Enable/Disable usage telemetry for AVM modules.')
 param enableTelemetry bool = true
 
 // ============================================================================
 // Parameters — Fabric Capacity
 // ============================================================================
 
-@description('Set to true to auto-create a Fabric workspace during post-provision.')
+@description('Optional. Set to true to auto-create a Fabric workspace during post-provision.')
 param createFabricWorkspace bool = false
 
-@description('Optional. Name of an existing Fabric capacity to reuse. If empty, a new capacity is auto-created.')
+@description('Optional. Name of an existing Fabric capacity to reuse. Empty auto-creates when conditions are met.')
 param azureFabricCapacityName string = ''
 
 @allowed(['F2', 'F4', 'F8', 'F16', 'F32', 'F64', 'F128', 'F256', 'F512', 'F1024', 'F2048'])
@@ -197,9 +206,9 @@ var isBicep = deploymentFlavor == 'bicep'
 // ============================================================================
 
 module avmDeployment './avm/main.bicep' = if (isAvm) {
-  name: 'deploy-avm'
+  name: take('module.avm.${solutionName}', 64)
   params: {
-    environmentName: environmentName
+    environmentName: solutionName
     solutionUniqueText: solutionUniqueText
     location: location
     secondaryLocation: secondaryLocation
@@ -212,7 +221,7 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     vmAdminUsername: vmAdminUsername
     vmAdminPassword: vmAdminPassword
     vmSize: vmSize
-    aiDeploymentsLocation: aiDeploymentsLocation
+    aiDeploymentsLocation: azureAiServiceLocation
     searchServiceLocation: searchServiceLocation
     deploymentType: deploymentType
     gptModelName: gptModelName
@@ -220,10 +229,10 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     gptDeploymentCapacity: gptDeploymentCapacity
     embeddingModel: embeddingModel
     embeddingDeploymentCapacity: embeddingDeploymentCapacity
-    azureOpenAIApiVersion: azureOpenAIApiVersion
+    azureOpenAIApiVersion: azureOpenaiAPIVersion
     azureAiAgentApiVersion: azureAiAgentApiVersion
     imageTag: imageTag
-    acrName: acrName
+    acrName: containerRegistryName
     backendRuntimeStack: backendRuntimeStack
     appServicePlanSku: appServicePlanSku
     deployApp: deployApp
@@ -232,7 +241,7 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     useChatHistoryEnabled: useChatHistoryEnabled
     useUserAccessToken: useUserAccessToken
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
-    existingAIProjectResourceId: existingAIProjectResourceId
+    existingAIProjectResourceId: existingFoundryProjectResourceId
     deployingUserPrincipalType: deployingUserPrincipalType
     usecase: usecase
     appTitlePrimary: appTitlePrimary
@@ -250,13 +259,13 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
 // ============================================================================
 
 module bicepDeployment './bicep/main.bicep' = if (isBicep) {
-  name: 'deploy-bicep'
+  name: take('module.bicep.${solutionName}', 64)
   params: {
-    environmentName: environmentName
+    solutionName: solutionName
     solutionUniqueText: solutionUniqueText
-    AZURE_LOCATION: location
+    location: location
     secondaryLocation: secondaryLocation
-    aiDeploymentsLocation: aiDeploymentsLocation
+    azureAiServiceLocation: azureAiServiceLocation
     searchServiceLocation: searchServiceLocation
     deploymentType: deploymentType  
     gptModelName: gptModelName
@@ -264,10 +273,10 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     gptDeploymentCapacity: gptDeploymentCapacity
     embeddingModel: embeddingModel
     embeddingDeploymentCapacity: embeddingDeploymentCapacity
-    azureOpenAIApiVersion: azureOpenAIApiVersion
+    azureOpenaiAPIVersion: azureOpenaiAPIVersion
     azureAiAgentApiVersion: azureAiAgentApiVersion
     imageTag: imageTag
-    acrName: acrName
+    containerRegistryName: containerRegistryName
     backendRuntimeStack: backendRuntimeStack
     deployApp: deployApp
     isWorkshop: isWorkshop
@@ -275,7 +284,7 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     useChatHistoryEnabled: useChatHistoryEnabled
     useUserAccessToken: useUserAccessToken
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
-    azureExistingAIProjectResourceId: existingAIProjectResourceId
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
     deployingUserPrincipalType: deployingUserPrincipalType
     usecase: usecase
     appTitlePrimary: appTitlePrimary

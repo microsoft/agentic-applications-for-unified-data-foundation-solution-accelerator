@@ -15,11 +15,11 @@ param roleDefinitionId string
 param roleAssignmentName string
 
 @description('The name of the AI Services account to scope the role assignment to.')
-param aiServicesName string
+param aiFoundryName string
 
 // Reference the existing AI Services resource in this resource group
 resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
-  name: aiServicesName
+  name: aiFoundryName
 }
 
 resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

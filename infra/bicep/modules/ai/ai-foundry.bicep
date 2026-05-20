@@ -1,7 +1,6 @@
 // ========== ai-foundry.bicep ========== //
 // Creates NEW Azure AI Services account, AI Foundry project, model deployments,
-// and the Application Insights connection.
-// For existing projects: only computes endpoint/name outputs (setup is handled by existing-project-setup.bicep).
+// and project connections (AppInsights, Search, Storage).
 
 targetScope = 'resourceGroup'
 
@@ -30,9 +29,6 @@ param embeddingModel string
 @description('The capacity for the embedding model deployment.')
 param embeddingDeploymentCapacity int
 
-@description('The resource ID of an existing Azure AI Foundry project. If provided, the existing project will be used instead of creating a new one.')
-param azureExistingAIProjectResourceId string = ''
-
 @description('The resource ID of the Application Insights instance (from monitoring module).')
 param applicationInsightsId string
 
@@ -42,10 +38,28 @@ param applicationInsightsInstrumentationKey string
 @description('When true, deploys additional resources for workshop scenarios including AI Search and Storage.')
 param isWorkshop bool = false
 
-var aiServicesName = 'aisa-${solutionName}'
+@description('The endpoint URL of the AI Search service (workshop only).')
+param aiSearchTarget string = ''
+
+@description('The resource ID of the AI Search service (workshop only).')
+param aiSearchId string = ''
+
+@description('The connection name for the AI Search service (workshop only).')
+param aiSearchConnectionName string = ''
+
+@description('The primary blob endpoint of the storage account (workshop only).')
+param storageBlobEndpoint string = ''
+
+@description('The resource ID of the storage account (workshop only).')
+param storageAccountId string = ''
+
+@description('The name of the storage account (workshop only).')
+param storageAccountName string = ''
+
+var aiFoundryName = 'aif-${solutionName}'
 var applicationInsightsName = 'appi-${solutionName}'
 var location = solutionLocation
-var aiProjectName = 'aifp-${solutionName}'
+var aiProjectName = 'proj-${solutionName}'
 
 var aiModelDeployments = concat([
   {
@@ -71,18 +85,10 @@ var aiModelDeployments = concat([
   }
 ] : [])
 
-// Derived vars for existing project outputs
-var existingOpenAIEndpoint = !empty(azureExistingAIProjectResourceId) ? format('https://{0}.openai.azure.com/', split(azureExistingAIProjectResourceId, '/')[8]) : ''
-var existingProjEndpoint = !empty(azureExistingAIProjectResourceId) ? format('https://{0}.services.ai.azure.com/api/projects/{1}', split(azureExistingAIProjectResourceId, '/')[8], split(azureExistingAIProjectResourceId, '/')[10]) : ''
-var existingAIServicesName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[8] : ''
-var existingAIProjectName = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[10] : ''
-var existingAIServiceSubscription = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[2] : subscription().subscriptionId
-var existingAIServiceResourceGroup = !empty(azureExistingAIProjectResourceId) ? split(azureExistingAIProjectResourceId, '/')[4] : resourceGroup().name
+// ========== AI Foundry Account ========== //
 
-// ========== AI Services (NEW only) ========== //
-
-resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' = if (empty(azureExistingAIProjectResourceId)) {
-  name: aiServicesName
+resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' = {
+  name: aiFoundryName
   location: location
   sku: {
     name: 'S0'
@@ -93,7 +99,7 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' = if (empt
   }
   properties: {
     allowProjectManagement: true
-    customSubDomainName: aiServicesName
+    customSubDomainName: aiFoundryName
     networkAcls: {
       defaultAction: 'Allow'
       virtualNetworkRules: []
@@ -104,9 +110,9 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' = if (empt
   }
 }
 
-// ========== AI Project (NEW only) ========== //
+// ========== AI Project ========== //
 
-resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = if (empty(azureExistingAIProjectResourceId)) {
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = {
   parent: aiServices
   name: aiProjectName
   location: solutionLocation
@@ -117,9 +123,9 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = 
   properties: {}
 }
 
-// ========== Application Insights Connection (NEW only) ========== //
+// ========== Application Insights Connection ========== //
 
-resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (empty(azureExistingAIProjectResourceId)) {
+resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = {
   parent: aiProject
   name: applicationInsightsName
   properties: {
@@ -138,10 +144,45 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/co
   }
 }
 
-// ========== Model Deployments (NEW only) ========== //
+// ========== AI Search Connection (workshop only) ========== //
+
+resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (isWorkshop) {
+  parent: aiProject
+  name: aiSearchConnectionName
+  properties: {
+    category: 'CognitiveSearch'
+    target: aiSearchTarget
+    authType: 'AAD'
+    isSharedToAll: true
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: aiSearchId
+    }
+  }
+}
+
+// ========== Storage Connection (workshop only) ========== //
+
+resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (isWorkshop) {
+  parent: aiProject
+  name: 'storage-connection'
+  properties: {
+    category: 'AzureBlob'
+    target: storageBlobEndpoint
+    authType: 'AAD'
+    isSharedToAll: true
+    metadata: {
+      ResourceId: storageAccountId
+      AccountName: storageAccountName
+      ContainerName: 'default'
+    }
+  }
+}
+
+// ========== Model Deployments ========== //
 
 @batchSize(1)
-resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments@2025-12-01' = [for aiModeldeployment in aiModelDeployments: if (empty(azureExistingAIProjectResourceId)) {
+resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments@2025-12-01' = [for aiModeldeployment in aiModelDeployments: {
   parent: aiServices
   name: aiModeldeployment.name
   properties: {
@@ -164,25 +205,22 @@ resource aiServicesDeployments 'Microsoft.CognitiveServices/accounts/deployments
 // ========== Outputs ========== //
 
 @description('The endpoint URL for the Azure OpenAI service.')
-output aiServicesTarget string = !empty(existingOpenAIEndpoint) ? existingOpenAIEndpoint : aiServices.properties.endpoints['OpenAI Language Model Instance API']
+output aiFoundryEndpoint string = aiServices.properties.endpoints['OpenAI Language Model Instance API']
 
-@description('The name of the AI Services account.')
-output aiServicesName string = !empty(existingAIServicesName) ? existingAIServicesName : aiServices.name
+@description('The name of the AI Foundry account.')
+output aiFoundryName string = aiServices.name
 
 @description('The name of the AI Foundry project.')
-output aiProjectName string = !empty(existingAIProjectName) ? existingAIProjectName : aiProject.name
+output aiProjectName string = aiProject.name
 
 @description('The endpoint URL for the AI Foundry project.')
-output projectEndpoint string = !empty(existingProjEndpoint) ? existingProjEndpoint : aiProject.properties.endpoints['AI Foundry API']
+output projectEndpoint string = aiProject.properties.endpoints['AI Foundry API']
 
 @description('The resource ID of the AI Foundry account.')
-output aiFoundryResourceId string = !empty(azureExistingAIProjectResourceId) ? azureExistingAIProjectResourceId : aiServices.id
+output aiFoundryResourceId string = aiServices.id
 
-@description('The principal ID of the AI Foundry project managed identity (for NEW projects only; existing projects get this from existing-project-setup).')
-output aiProjectPrincipalId string = empty(azureExistingAIProjectResourceId) ? aiProject.identity.principalId : ''
+@description('The principal ID of the AI Foundry project managed identity.')
+output aiProjectPrincipalId string = aiProject.identity.principalId
 
-@description('The resource ID of the AI Services account.')
-output aiServicesId string = !empty(azureExistingAIProjectResourceId) ? resourceId(existingAIServiceSubscription, existingAIServiceResourceGroup, 'Microsoft.CognitiveServices/accounts', existingAIServicesName) : aiServices.id
-
-@description('The AI model deployments array (for passing to existing-project-setup).')
-output aiModelDeployments array = aiModelDeployments
+@description('The resource ID of the AI Search connection (workshop only).')
+output aiSearchConnectionId string = isWorkshop ? searchConnection.id : ''
