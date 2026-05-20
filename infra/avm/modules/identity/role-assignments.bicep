@@ -35,7 +35,7 @@ param aiFoundryResourceId string = ''
 param useExistingAIProject bool = false
 
 @description('Resource ID of the existing AI project (for deriving AI Services name/sub/RG).')
-param existingAIProjectResourceId string = ''
+param existingFoundryProjectResourceId string = ''
 
 @description('Principal ID of the existing AI project identity (for cross-service roles).')
 param existingAiProjectPrincipalId string = ''
@@ -43,9 +43,9 @@ param existingAiProjectPrincipalId string = ''
 // ============================================================================
 // Derived Variables
 // ============================================================================
-var existingAIFoundryName = useExistingAIProject ? split(existingAIProjectResourceId, '/')[8] : ''
-var existingAIFoundrySubscription = useExistingAIProject ? split(existingAIProjectResourceId, '/')[2] : subscription().subscriptionId
-var existingAIFoundryResourceGroup = useExistingAIProject ? split(existingAIProjectResourceId, '/')[4] : resourceGroup().name
+var existingAIFoundryName = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[8] : ''
+var existingAIFoundrySubscription = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[2] : subscription().subscriptionId
+var existingAIFoundryResourceGroup = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[4] : resourceGroup().name
 
 // ============================================================================
 // Role Definitions

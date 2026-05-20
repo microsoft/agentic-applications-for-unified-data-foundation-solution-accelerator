@@ -14,11 +14,11 @@ targetScope = 'resourceGroup'
 @minLength(3)
 @maxLength(20)
 @description('A unique application/solution name used as base for all resource naming.')
-param environmentName string
+param solutionName string
 
 @maxLength(5)
 @description('A unique text suffix appended to resource names for uniqueness.')
-param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, environmentName), 0, 5)
+param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, solutionName), 0, 5)
 
 @description('Primary Azure region for resource deployment.')
 param location string = resourceGroup().location
@@ -88,7 +88,7 @@ param vmSize string = 'Standard_D2s_v5'
   }
 })
 @description('Location for AI Services and model deployments.')
-param aiDeploymentsLocation string
+param azureAiServiceLocation string
 
 @description('Location for AI Search service deployment.')
 param searchServiceLocation string = location
@@ -116,7 +116,7 @@ param embeddingModel string = 'text-embedding-3-small'
 param embeddingDeploymentCapacity int = 80
 
 @description('Azure OpenAI API version.')
-param azureOpenAIApiVersion string = '2025-01-01-preview'
+param azureOpenaiAPIVersion string = '2025-01-01-preview'
 
 @description('Azure AI Agent API version.')
 param azureAiAgentApiVersion string = '2025-05-01'
@@ -129,7 +129,7 @@ param azureAiAgentApiVersion string = '2025-05-01'
 param imageTag string = 'latest_v2'
 
 @description('Name of the Azure Container Registry.')
-param acrName string = 'dataagentscontainerreg'
+param containerRegistryName string = 'dataagentscontainerreg'
 
 @allowed(['python', 'dotnet'])
 @description('Backend runtime stack.')
@@ -195,7 +195,7 @@ param fabricAdminMembers array = []
 param existingLogAnalyticsWorkspaceId string = ''
 
 @description('Resource ID of an existing AI Foundry project (empty = create new).')
-param existingAIProjectResourceId string = ''
+param existingFoundryProjectResourceId string = ''
 
 // ============================================================================
 // Parameters — Identity
@@ -223,12 +223,12 @@ param appTitleSecondary string = '| Unified Data Analysis Agents'
 // Variables
 // ============================================================================
 
-var solutionSuffix = toLower(trim(replace(replace(replace(replace(replace(replace('${environmentName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))
+var solutionSuffix = toLower(trim(replace(replace(replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))
 var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
 var createdBy = contains(deployerInfo, 'userPrincipalName') ? split(deployerInfo.userPrincipalName, '@')[0] : deployerInfo.objectId
 var shouldDeployApp = !isWorkshop || deployApp
-var useExistingAIProject = !empty(existingAIProjectResourceId)
+var useExistingAIProject = !empty(existingFoundryProjectResourceId)
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
 var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
@@ -406,7 +406,7 @@ module appInsights './modules/monitoring/app-insights.bicep' = if (enableMonitor
   name: 'monitoring-app-insights'
   params: {
     solutionName: solutionSuffix
-    location: aiDeploymentsLocation
+    location: azureAiServiceLocation
     tags: tags
     enableTelemetry: enableTelemetry
     workspaceResourceId: logAnalyticsWorkspaceResourceId
@@ -540,23 +540,23 @@ module privateDnsZoneDeployments './modules/networking/private-dns-zone.bicep' =
 
 // Existing AI Foundry reference (for cross-subscription support when using existing project)
 var aiFoundryResourceGroupName = useExistingAIProject
-  ? split(existingAIProjectResourceId, '/')[4]
+  ? split(existingFoundryProjectResourceId, '/')[4]
   : resourceGroup().name
 var aiFoundrySubscriptionId = useExistingAIProject
-  ? split(existingAIProjectResourceId, '/')[2]
+  ? split(existingFoundryProjectResourceId, '/')[2]
   : subscription().subscriptionId
 var aiFoundryResourceName = useExistingAIProject
-  ? split(existingAIProjectResourceId, '/')[8]
+  ? split(existingFoundryProjectResourceId, '/')[8]
   : aiFoundry!.outputs.name
 
 // Construct endpoints from existing resource ID (matching bicep/modules/ai/ai-foundry.bicep)
 // Expected format: /subscriptions/.../providers/Microsoft.CognitiveServices/accounts/{account}/projects/{project}
-var existingHasProjectSegment = useExistingAIProject && length(split(existingAIProjectResourceId, '/')) > 10
+var existingHasProjectSegment = useExistingAIProject && length(split(existingFoundryProjectResourceId, '/')) > 10
 var existingOpenAIEndpoint = useExistingAIProject
-  ? format('https://{0}.openai.azure.com/', split(existingAIProjectResourceId, '/')[8])
+  ? format('https://{0}.openai.azure.com/', split(existingFoundryProjectResourceId, '/')[8])
   : ''
 var existingProjectEndpoint = existingHasProjectSegment
-  ? format('https://{0}.services.ai.azure.com/api/projects/{1}', split(existingAIProjectResourceId, '/')[8], split(existingAIProjectResourceId, '/')[10])
+  ? format('https://{0}.services.ai.azure.com/api/projects/{1}', split(existingFoundryProjectResourceId, '/')[8], split(existingFoundryProjectResourceId, '/')[10])
   : ''
 
 resource existingAiFoundry 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = if (useExistingAIProject) {
@@ -570,7 +570,7 @@ module existingAiFoundryDeployments './modules/ai/existing-foundry-project.bicep
   scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
   params: {
     name: existingAiFoundry.name
-    projectName: existingHasProjectSegment ? split(existingAIProjectResourceId, '/')[10] : ''
+    projectName: existingHasProjectSegment ? split(existingFoundryProjectResourceId, '/')[10] : ''
     deployments: [
       for deployment in aiModelDeployments: {
         name: deployment.name
@@ -603,7 +603,7 @@ module aiFoundry './modules/ai/ai-foundry.bicep' = if (!useExistingAIProject) {
   name: 'ai-foundry'
   params: {
     solutionName: solutionSuffix
-    location: aiDeploymentsLocation
+    location: azureAiServiceLocation
     tags: tags
     enableTelemetry: enableTelemetry
     // Temporarily public — AI Search Knowledge Base needs to call the AI Services model endpoint for answer synthesis.
@@ -694,7 +694,7 @@ module storageAccount './modules/data/storage-account.bicep' = if (isWorkshop) {
   name: 'data-storage-account'
   params: {
     solutionName: solutionSuffix
-    location: aiDeploymentsLocation
+    location: azureAiServiceLocation
     tags: tags
     enableTelemetry: enableTelemetry
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
@@ -778,7 +778,7 @@ module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp &&
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: appServicePlan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${acrName}.azurecr.io/da-api:${imageTag}'
+    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api:${imageTag}'
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -786,7 +786,7 @@ module backendApi './modules/compute/app-service.bicep' = if (shouldDeployApp &&
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : aiFoundry!.outputs.endpoint
-      AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
       AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiFoundryResourceName : aiFoundry!.outputs.name
       AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : aiFoundry!.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
@@ -832,7 +832,7 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: appServicePlan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${acrName}.azurecr.io/da-api-dotnet:${imageTag}'
+    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api-dotnet:${imageTag}'
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -840,7 +840,7 @@ module backendCsApi './modules/compute/app-service.bicep' = if (shouldDeployApp 
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : aiFoundry!.outputs.endpoint
-      AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
       AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiFoundryResourceName : aiFoundry!.outputs.name
       AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : aiFoundry!.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
@@ -877,7 +877,7 @@ module frontendApp './modules/compute/app-service.bicep' = if (shouldDeployApp) 
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: appServicePlan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${acrName}.azurecr.io/da-app:${imageTag}'
+    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-app:${imageTag}'
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -911,7 +911,7 @@ module roleAssignments './modules/identity/role-assignments.bicep' = {
       : ''
     aiFoundryResourceId: !useExistingAIProject ? aiFoundry!.outputs.resourceId : ''
     useExistingAIProject: useExistingAIProject
-    existingAIProjectResourceId: existingAIProjectResourceId
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
     existingAiProjectPrincipalId: useExistingAIProject ? existingAiFoundryDeployments!.outputs.aiProjectPrincipalId : ''
   }
 }
@@ -1006,10 +1006,10 @@ output AZURE_AI_SEARCH_CONNECTION_ID string = (isWorkshop && !useExistingAIProje
 output AZURE_AI_PROJECT_ENDPOINT string = !useExistingAIProject ? aiFoundry!.outputs.projectEndpoint : existingProjectEndpoint
 
 @description('AI Foundry resource ID.')
-output AI_FOUNDRY_RESOURCE_ID string = !useExistingAIProject ? aiFoundry!.outputs.resourceId : existingAIProjectResourceId
+output AI_FOUNDRY_RESOURCE_ID string = !useExistingAIProject ? aiFoundry!.outputs.resourceId : existingFoundryProjectResourceId
 
 @description('AI Foundry project name.')
-output AZURE_AI_PROJECT_NAME string = !useExistingAIProject ? aiFoundry!.outputs.projectName : (existingHasProjectSegment ? split(existingAIProjectResourceId, '/')[10] : '')
+output AZURE_AI_PROJECT_NAME string = !useExistingAIProject ? aiFoundry!.outputs.projectName : (existingHasProjectSegment ? split(existingFoundryProjectResourceId, '/')[10] : '')
 
 @description('AI Services resource name.')
 output AI_SERVICE_NAME string = !useExistingAIProject ? aiFoundry!.outputs.name : aiFoundryResourceName
