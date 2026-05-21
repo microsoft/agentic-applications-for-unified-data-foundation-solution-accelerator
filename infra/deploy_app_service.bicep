@@ -33,10 +33,13 @@ resource appService 'Microsoft.Web/sites@2025-05-01' = {
   }  
   properties: {
     serverFarmId: appServicePlanId
+    httpsOnly: true
     siteConfig: {
       alwaysOn: true
       ftpsState: 'Disabled'
       linuxFxVersion: appImageName
+      endToEndEncryptionEnabled: true
+      minTlsVersion: '1.2'
     }
   }
   resource basicPublishingCredentialsPoliciesFtp 'basicPublishingCredentialsPolicies' = {
