@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "13706723246686898966"
+      "templateHash": "11899548984467202213"
     }
   },
   "parameters": {
@@ -2978,7 +2978,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "3772771751577157364"
+              "templateHash": "9130434754659272533"
             }
           },
           "parameters": {
@@ -3133,7 +3133,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.43.8.12551",
-                      "templateHash": "2394547081637120603"
+                      "templateHash": "6010975927430793235"
                     }
                   },
                   "parameters": {
@@ -3207,11 +3207,13 @@
                       "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
                       "properties": {
                         "serverFarmId": "[parameters('appServicePlanId')]",
+                        "httpsOnly": true,
                         "siteConfig": {
                           "alwaysOn": true,
                           "ftpsState": "Disabled",
                           "linuxFxVersion": "[parameters('appImageName')]",
-                          "endToEndEncryptionEnabled": true
+                          "endToEndEncryptionEnabled": true,
+                          "minTlsVersion": "1.2"
                         }
                       }
                     },
@@ -3838,7 +3840,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "12328277943008614370"
+              "templateHash": "6571493610130307054"
             }
           },
           "parameters": {
@@ -3950,7 +3952,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.43.8.12551",
-                      "templateHash": "2394547081637120603"
+                      "templateHash": "6010975927430793235"
                     }
                   },
                   "parameters": {
@@ -4024,11 +4026,13 @@
                       "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
                       "properties": {
                         "serverFarmId": "[parameters('appServicePlanId')]",
+                        "httpsOnly": true,
                         "siteConfig": {
                           "alwaysOn": true,
                           "ftpsState": "Disabled",
                           "linuxFxVersion": "[parameters('appImageName')]",
-                          "endToEndEncryptionEnabled": true
+                          "endToEndEncryptionEnabled": true,
+                          "minTlsVersion": "1.2"
                         }
                       }
                     },
@@ -4615,7 +4619,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "1768582315617068103"
+              "templateHash": "1401984777047551263"
             }
           },
           "parameters": {
@@ -4700,7 +4704,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.43.8.12551",
-                      "templateHash": "2394547081637120603"
+                      "templateHash": "6010975927430793235"
                     }
                   },
                   "parameters": {
@@ -4774,11 +4778,13 @@
                       "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
                       "properties": {
                         "serverFarmId": "[parameters('appServicePlanId')]",
+                        "httpsOnly": true,
                         "siteConfig": {
                           "alwaysOn": true,
                           "ftpsState": "Disabled",
                           "linuxFxVersion": "[parameters('appImageName')]",
-                          "endToEndEncryptionEnabled": true
+                          "endToEndEncryptionEnabled": true,
+                          "minTlsVersion": "1.2"
                         }
                       }
                     },
