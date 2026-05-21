@@ -138,12 +138,12 @@ module aiFoundryAccount 'br/public:avm/res/cognitive-services/account:0.13.2' = 
 // ============================================================================
 // AI Foundry Project
 // ============================================================================
-resource aiFoundryResource 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = {
+resource aiFoundryResource 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
   name: aiFoundryName
   dependsOn: [aiFoundryAccount]
 }
 
-resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = {
   parent: aiFoundryResource
   name: projectName
   location: location
@@ -161,7 +161,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = 
 // ============================================================================
 
 // AI Search Connection
-resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = if (enableSearchConnection && !empty(aiSearchName)) {
+resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (enableSearchConnection && !empty(aiSearchName)) {
   parent: aiProject
   name: aiSearchConnectionName
   properties: {
@@ -177,7 +177,7 @@ resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connect
 }
 
 // Storage Connection
-resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = if (enableStorageConnection && !empty(storageAccountName)) {
+resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (enableStorageConnection && !empty(storageAccountName)) {
   parent: aiProject
   name: 'storage-connection'
   properties: {
@@ -195,7 +195,7 @@ resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connec
 }
 
 // Application Insights Connection
-resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = if (!empty(applicationInsightsResourceId)) {
+resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (!empty(applicationInsightsResourceId)) {
   parent: aiProject
   name: applicationInsightsName
   properties: {

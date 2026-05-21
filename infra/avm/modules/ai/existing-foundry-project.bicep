@@ -65,11 +65,11 @@ param storageAccountName string = ''
 // ============================================================================
 // Existing Resource References
 // ============================================================================
-resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = {
+resource cognitiveService 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
   name: name
 }
 
-resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' existing = {
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' existing = {
   parent: cognitiveService
   name: projectName
 }
@@ -78,7 +78,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' ex
 // Model Deployments
 // ============================================================================
 @batchSize(1)
-resource cognitiveService_deployments 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = [
+resource cognitiveService_deployments 'Microsoft.CognitiveServices/accounts/deployments@2025-12-01' = [
   for (deployment, index) in (deployments ?? []): {
     parent: cognitiveService
     name: deployment.?name ?? '${name}-deployments'
@@ -102,7 +102,7 @@ resource cognitiveService_deployments 'Microsoft.CognitiveServices/accounts/depl
 // ============================================================================
 
 // Application Insights connection
-resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = if (!empty(applicationInsightsId)) {
+resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (!empty(applicationInsightsId)) {
   parent: aiProject
   name: 'appi-connection'
   properties: {
@@ -122,7 +122,7 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/co
 }
 
 // AI Search connection
-resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = if (!empty(aiSearchTarget)) {
+resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (!empty(aiSearchTarget)) {
   parent: aiProject
   name: aiSearchConnectionName
   properties: {
@@ -138,7 +138,7 @@ resource searchConnection 'Microsoft.CognitiveServices/accounts/projects/connect
 }
 
 // Storage Blob connection
-resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = if (!empty(storageBlobEndpoint)) {
+resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-12-01' = if (!empty(storageBlobEndpoint)) {
   parent: aiProject
   name: 'storage-connection'
   properties: {
