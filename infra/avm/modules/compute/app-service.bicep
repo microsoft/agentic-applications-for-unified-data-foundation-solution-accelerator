@@ -66,6 +66,8 @@ module appService 'br/public:avm/res/web/site:0.15.1' = {
       ftpsState: 'Disabled'
       linuxFxVersion: linuxFxVersion
       minTlsVersion: '1.2'
+      vnetRouteAllEnabled: !empty(virtualNetworkSubnetId)
+      vnetImagePullEnabled: !empty(virtualNetworkSubnetId)
     }
     appSettingsKeyValuePairs: appSettings
     publicNetworkAccess: publicNetworkAccess

@@ -397,10 +397,13 @@ module log_analytics './modules/monitoring/log-analytics.bicep' = if (enableMoni
   }
 }
 
-// Resolve workspace resource ID — existing or new
+// Resolve workspace resource ID and name — existing or new
 var logAnalyticsWorkspaceResourceId = useExistingLogAnalytics
   ? existingLogAnalyticsWorkspace.id
   : (enableMonitoring ? log_analytics!.outputs.resourceId : '')
+var logAnalyticsWorkspaceName = useExistingLogAnalytics
+  ? split(existingLogAnalyticsWorkspaceId, '/')[8]
+  : (enableMonitoring ? log_analytics!.outputs.name : '')
 
 module app_insights './modules/monitoring/app-insights.bicep' = if (enableMonitoring) {
   name: take('module.app-insights.${solutionName}', 64)
@@ -506,7 +509,7 @@ module virtualMachine './modules/compute/virtual-machine.bicep' = if (enablePriv
       dataCollectionRuleAssociations: [
         {
           dataCollectionRuleResourceId: windowsVmDataCollectionRules!.outputs.resourceId
-          name: 'send-${log_analytics!.outputs.name}'
+          name: 'send-${logAnalyticsWorkspaceName}'
         }
       ]
       enabled: true
@@ -647,16 +650,48 @@ module aifoundry './modules/ai/ai-foundry.bicep' = if (!useExistingAIProject) {
     applicationInsightsName: enableMonitoring ? app_insights!.outputs.name : ''
     applicationInsightsResourceId: enableMonitoring ? app_insights!.outputs.resourceId : ''
     applicationInsightsInstrumentationKey: enableMonitoring ? app_insights!.outputs.instrumentationKey : ''
-    // Private networking
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-      privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
-      privateDnsZoneDeployments[dnsZoneIndex.aiFoundry]!.outputs.resourceId
-    ] : []
+    // Private networking - PE deployed separately below to avoid race condition
+    enablePrivateNetworking: false
+    privateEndpointSubnetId: ''
+    privateDnsZoneResourceIds: []
   }
   dependsOn: isWorkshop ? [ai_search] : []
+}
+
+// Separate PE for AI Foundry to avoid AccountProvisioningStateInvalid race condition
+module aifoundry_private_endpoint './modules/networking/private-endpoint.bicep' = if (!useExistingAIProject && enablePrivateNetworking) {
+  name: take('module.pe-ai-foundry.${solutionName}', 64)
+  params: {
+    name: 'pep-aif-${solutionSuffix}'
+    location: azureAiServiceLocation
+    tags: tags
+    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+    privateLinkServiceConnections: [
+      {
+        name: 'pep-aif-${solutionSuffix}'
+        properties: {
+          privateLinkServiceId: aifoundry!.outputs.resourceId
+          groupIds: ['account']
+        }
+      }
+    ]
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          name: 'dns-zone-cognitiveservices'
+          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+        }
+        {
+          name: 'dns-zone-openai'
+          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
+        }
+        {
+          name: 'dns-zone-aifoundry'
+          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.aiFoundry]!.outputs.resourceId
+        }
+      ]
+    }
+  }
 }
 
 module ai_search './modules/ai/ai-search.bicep' = if (isWorkshop) {
@@ -762,7 +797,7 @@ module hostingplan './modules/compute/app-service-plan.bicep' = if (shouldDeploy
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
-    skuName: (enableScalability || enableRedundancy) ? 'P1v3' : appServicePlanSku
+    skuName: (enableScalability || enableRedundancy) ? 'P1v4' : appServicePlanSku
     skuCapacity: enableScalability ? 3 : 1
     zoneRedundant: enableRedundancy
     diagnosticSettings: monitoringDiagnosticSettings
@@ -913,6 +948,8 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     existingAiProjectPrincipalId: useExistingAIProject ? existing_project_setup!.outputs.aiProjectPrincipalId : ''
+    deployerPrincipalId: deployingUserPrincipalId
+    deployerPrincipalType: deployingUserPrincipalType
   }
 }
 

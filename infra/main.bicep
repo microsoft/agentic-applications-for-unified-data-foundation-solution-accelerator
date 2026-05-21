@@ -162,6 +162,18 @@ param tags object = {}
 @description('Optional. Enable/Disable usage telemetry for AVM modules.')
 param enableTelemetry bool = true
 
+@description('Optional. Enable monitoring (Log Analytics, App Insights, diagnostic settings).')
+param enableMonitoring bool = false
+
+@description('Optional. Enable private networking (VNet, private endpoints, DNS zones).')
+param enablePrivateNetworking bool = false
+
+@description('Optional. Enable scalability features (zone redundant App Service Plan).')
+param enableScalability bool = false
+
+@description('Optional. Enable redundancy (zone redundant Cosmos DB, multi-region failover).')
+param enableRedundancy bool = false
+
 // ============================================================================
 // Parameters — Fabric Capacity
 // ============================================================================
@@ -195,7 +207,6 @@ param vmSize string = 'Standard_D2s_v5'
 // ============================================================================
 
 var isAvm = deploymentFlavor == 'avm' || deploymentFlavor == 'avm-waf'
-var isAvmWaf = deploymentFlavor == 'avm-waf'
 var isBicep = deploymentFlavor == 'bicep'
 
 // ============================================================================
@@ -214,10 +225,10 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     secondaryLocation: secondaryLocation
     tags: tags
     enableTelemetry: enableTelemetry
-    enableMonitoring: isAvmWaf
-    enablePrivateNetworking: isAvmWaf
-    enableScalability: isAvmWaf
-    enableRedundancy: isAvmWaf
+    enableMonitoring: enableMonitoring
+    enablePrivateNetworking: enablePrivateNetworking
+    enableScalability: enableScalability
+    enableRedundancy: enableRedundancy
     vmAdminUsername: vmAdminUsername
     vmAdminPassword: vmAdminPassword
     vmSize: vmSize

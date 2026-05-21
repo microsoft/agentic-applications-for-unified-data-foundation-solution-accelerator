@@ -40,6 +40,13 @@ param existingFoundryProjectResourceId string = ''
 @description('Principal ID of the existing AI project identity (for cross-service roles).')
 param existingAiProjectPrincipalId string = ''
 
+@description('Principal ID of the deploying user (for cross-scope roles on existing AI Foundry).')
+param deployerPrincipalId string = ''
+
+@description('Principal type of the deploying user.')
+@allowed(['User', 'ServicePrincipal'])
+param deployerPrincipalType string = 'User'
+
 // ============================================================================
 // Derived Variables
 // ============================================================================
@@ -52,6 +59,7 @@ var existingAIFoundryResourceGroup = useExistingAIProject ? split(existingFoundr
 // ============================================================================
 var roleDefinitions = {
   azureAiUser: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
+  cognitiveServicesUser: 'a97b65f3-24c7-4388-baec-2e87135dc908'
   cognitiveServicesOpenAIUser: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
   searchIndexDataReader: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
   searchServiceContributor: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
@@ -257,5 +265,36 @@ resource backendAppSearchReaderAssignment 'Microsoft.Authorization/roleAssignmen
     principalId: backendAppServicePrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.searchIndexDataReader)
     principalType: 'ServicePrincipal'
+  }
+}
+
+// ============================================================================
+// Deployer (user) → Cognitive Services User + Azure AI User on existing AI Foundry
+// Mirrors what the inline roleAssignments do for new AI Foundry (main.bicep L630-641)
+// ============================================================================
+
+// Deployer → Cognitive Services User on existing AI Foundry (cross-scope)
+module deployerCogServicesUserExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(deployerPrincipalId)) {
+  name: 'assignCogServicesUserToDeployerExisting'
+  scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
+  params: {
+    principalId: deployerPrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.cognitiveServicesUser)
+    roleAssignmentName: guid(solutionName, 'deployer-coguser', existingAIFoundryName, roleDefinitions.cognitiveServicesUser)
+    aiFoundryName: existingAIFoundryName
+    principalType: deployerPrincipalType
+  }
+}
+
+// Deployer → Azure AI User on existing AI Foundry (cross-scope)
+module deployerAiUserExisting './cross-scope-role-assignment.bicep' = if (useExistingAIProject && !empty(deployerPrincipalId)) {
+  name: 'assignAiUserToDeployerExisting'
+  scope: resourceGroup(existingAIFoundrySubscription, existingAIFoundryResourceGroup)
+  params: {
+    principalId: deployerPrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.azureAiUser)
+    roleAssignmentName: guid(solutionName, 'deployer-aiuser', existingAIFoundryName, roleDefinitions.azureAiUser)
+    aiFoundryName: existingAIFoundryName
+    principalType: deployerPrincipalType
   }
 }

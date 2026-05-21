@@ -33,10 +33,6 @@ param allowProjectManagement bool = true
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
 
-// --- WAF: Identity ---
-@description('User-assigned managed identity resource IDs to attach.')
-param userAssignedIdentityResourceIds array = []
-
 // --- WAF: Monitoring ---
 @description('Optional. Diagnostic settings for the resource.')
 param diagnosticSettings array?
@@ -116,22 +112,14 @@ module aiFoundryAccount 'br/public:avm/res/cognitive-services/account:0.13.2' = 
       ipRules: []
     }
     publicNetworkAccess: publicNetworkAccess
-    managedIdentities: !empty(userAssignedIdentityResourceIds) ? {
-      userAssignedResourceIds: userAssignedIdentityResourceIds
-    } : null
+    managedIdentities: {
+      systemAssigned: true
+    }
     diagnosticSettings: diagnosticSettings
     deployments: deployments
     roleAssignments: roleAssignments
-    privateEndpoints: enablePrivateNetworking ? [
-      {
-        name: 'pep-${aiFoundryName}'
-        customNetworkInterfaceName: 'nic-${aiFoundryName}'
-        subnetResourceId: privateEndpointSubnetId
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: privateDnsZoneConfigs
-        }
-      }
-    ] : []
+    // Private endpoints deployed separately to avoid race condition (AccountProvisioningStateInvalid)
+    privateEndpoints: []
   }
 }
 
@@ -186,7 +174,6 @@ resource storageConnection 'Microsoft.CognitiveServices/accounts/projects/connec
     authType: 'AAD'
     isSharedToAll: true
     metadata: {
-      ApiType: 'Azure'
       ResourceId: storageAccountResourceId
       AccountName: storageAccountName
       ContainerName: 'default'

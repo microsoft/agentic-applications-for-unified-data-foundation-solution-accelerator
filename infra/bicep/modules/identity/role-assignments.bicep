@@ -368,6 +368,32 @@ resource userStorageBlobContributor 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
+// Deploying User → Cognitive Services User on existing AI Services (cross-scope)
+module userCogServicesUserExisting './cross-scope-role-assignment.bicep' = if (useExistingProject && !empty(deployingUserPrincipalId)) {
+  name: 'assignCogServicesUserToDeployerExisting'
+  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
+  params: {
+    principalId: deployingUserPrincipalId
+    roleDefinitionId: cognitiveServicesUser.id
+    roleAssignmentName: guid(solutionName, 'deployer-coguser', existingAIServicesName, cognitiveServicesUser.id)
+    aiFoundryName: existingAIServicesName
+    principalType: deployingUserPrincipalType
+  }
+}
+
+// Deploying User → Azure AI User on existing AI Services (cross-scope)
+module userAzureAIUserExisting './cross-scope-role-assignment.bicep' = if (useExistingProject && !empty(deployingUserPrincipalId)) {
+  name: 'assignAzureAIUserToDeployerExisting'
+  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
+  params: {
+    principalId: deployingUserPrincipalId
+    roleDefinitionId: azureAIUser.id
+    roleAssignmentName: guid(solutionName, 'deployer-aiuser', existingAIServicesName, azureAIUser.id)
+    aiFoundryName: existingAIServicesName
+    principalType: deployingUserPrincipalType
+  }
+}
+
 // ╔══════════════════════════════════════════════════════════════╗
 // ║  OUTPUTS                                                    ║
 // ╚══════════════════════════════════════════════════════════════╝
