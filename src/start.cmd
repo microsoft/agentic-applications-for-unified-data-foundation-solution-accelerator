@@ -73,6 +73,13 @@ if exist "%ENV_FILE%" (
 :check_local_env
 echo Checking for local .env files...
 
+REM Check scripts folder (populated by post-deployment scripts)
+if exist "%ROOT_DIR%\scripts\.env" (
+    echo Using existing .env file from scripts\ for configuration.
+    set "ENV_FILE=%ROOT_DIR%\scripts\.env"
+    goto :setup_environment
+)
+
 REM Check python subfolder
 if exist "%API_PYTHON_ENV_FILE%" (
     echo Using existing .env file from src\api\python for configuration.
@@ -92,7 +99,9 @@ echo ERROR: No .env files found in any location.
 echo.
 echo Please choose one of the following options:
 echo   1. Run 'azd up' to deploy Azure resources and generate .env files
-echo   2. Manually create %API_PYTHON_ENV_FILE% with required environment variables
+echo   2. Run the build script to populate scripts\.env from an existing resource group:
+echo      python scripts\00_build_solution.py --resource-group ^<rg-name^>
+echo      Or manually create %API_PYTHON_ENV_FILE% with required environment variables
 echo   3. Copy an existing .env file to src\api\python\.env
 echo.
 exit /b 1
