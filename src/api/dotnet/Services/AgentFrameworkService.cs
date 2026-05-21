@@ -1,8 +1,9 @@
 using Azure.AI.Projects;
-using Azure.AI.Projects.OpenAI;
+using Azure.AI.Extensions.OpenAI;
 using CsApi.Auth;
 using CsApi.Repositories;
 using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Foundry;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.AI;
 using System.Data.Common;
@@ -11,27 +12,30 @@ namespace CsApi.Services
 {
     public interface IAgentFrameworkService
     {
-        AIAgent Agent { get; }
+        FoundryAgent Agent { get; }
         AIProjectClient ProjectClient { get; }
         string ChatAgentName { get; }
         AITool SqlTool { get; }
+        bool UseDataAgent { get; }
         Task<string> run_sql_query(string input);
     }
 
     public class AgentFrameworkService : IAgentFrameworkService
     {
-        private readonly AIAgent _agent;
+        private readonly FoundryAgent _agent;
         private readonly AIProjectClient _projectClient;
         private readonly IConfiguration _config;
         private readonly ILogger<AgentFrameworkService> _logger;
         private readonly ISqlConversationRepository _sqlRepo;
         private readonly string _chatAgentName;
         private readonly AITool _sqlTool;
+        private readonly bool _useDataAgent;
 
-        public AIAgent Agent => _agent;
+        public FoundryAgent Agent => _agent;
         public AIProjectClient ProjectClient => _projectClient;
         public string ChatAgentName => _chatAgentName;
         public AITool SqlTool => _sqlTool;
+        public bool UseDataAgent => _useDataAgent;
 
         public AgentFrameworkService(
             IConfiguration config, 
@@ -42,24 +46,41 @@ namespace CsApi.Services
             _logger = logger;
             _sqlRepo = sqlRepo;
 
-            // Create Agent Framework client similar to Python implementation
             var endpoint = config["AZURE_AI_AGENT_ENDPOINT"] 
                 ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is required");
 
             _chatAgentName = config["AGENT_NAME_CHAT"]
                 ?? throw new InvalidOperationException("AGENT_NAME_CHAT is required");
 
-            // Create function tools for SQL operations like Python SqlQueryTool
+            _useDataAgent = string.Equals(config["USE_DATA_AGENT"], "true", StringComparison.OrdinalIgnoreCase)
+                         || string.Equals(config["USE_DATA_AGENT"], "1", StringComparison.OrdinalIgnoreCase);
+
+            // Create function tool for SQL operations like Python SqlQueryTool
             _sqlTool = AIFunctionFactory.Create(run_sql_query);
 
             var credentialFactory = new AzureCredentialFactory(_config);
             var credential = credentialFactory.Create();
 
-            // Use Azure AI Projects client (Foundry v2 approach)
+            // Use Azure AI Projects client (Foundry approach)
             _projectClient = new AIProjectClient(new Uri(endpoint), credential);
 
-            // Get the existing Azure AI Foundry agent by name with latest version
-            _agent = _projectClient.GetAIAgent(name: _chatAgentName, tools: [_sqlTool]);
+            // Create FoundryAgent using AgentReference (by name) matching the Python FoundryAgent pattern
+            var agentReference = new AgentReference(_chatAgentName);
+
+            if (_useDataAgent)
+            {
+                // Data Agent mode: MCP handles SQL server-side, no local tools needed
+                _logger.LogInformation("Workshop mode: Using Fabric Data Agent (MCP) - skipping local SQL tool");
+                _agent = _projectClient.AsAIAgent(agentReference);
+            }
+            else
+            {
+                // Standard mode: local SQL tool provided, connection routed by AZURE_ENV_ONLY
+                var azureEnvOnly = string.Equals(config["AZURE_ENV_ONLY"], "true", StringComparison.OrdinalIgnoreCase);
+                _logger.LogInformation("Workshop mode: Using local SQL tool ({DatabaseType})",
+                    azureEnvOnly ? "Azure SQL Database" : "Fabric Lakehouse SQL");
+                _agent = _projectClient.AsAIAgent(agentReference, tools: [_sqlTool]);
+            }
         }
 
         /// <summary>

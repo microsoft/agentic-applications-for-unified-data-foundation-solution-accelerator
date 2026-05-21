@@ -12,6 +12,10 @@
   "FABRIC_SQL_CONNECTION_STRING": "",
   "FABRIC_SQL_DATABASE": "",
   "FABRIC_SQL_SERVER": "",
+  "AZURE_ENV_ONLY": "false",
+  "AZURE_SQLDB_SERVER": "",
+  "AZURE_SQLDB_DATABASE": "",
+  "USE_DATA_AGENT": "false",
   "APP_ENV": "dev",
   "AGENT_NAME_CHAT": "",
   "AGENT_NAME_TITLE": "",
@@ -30,5 +34,9 @@
   "REACT_APP_LAYOUT_CONFIG": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}",
   "SOLUTION_NAME": "",
   "USE_AI_PROJECT_CLIENT": "False",
-  "USE_CHAT_HISTORY_ENABLED": "False"
+  "USE_CHAT_HISTORY_ENABLED": "False",
+  "AZURE_COSMOSDB_ACCOUNT": "",
+  "AZURE_COSMOSDB_DATABASE": "",
+  "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "",
+  "AZURE_COSMOSDB_ENABLE_FEEDBACK": "false"
 }

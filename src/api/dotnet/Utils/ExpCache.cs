@@ -1,15 +1,15 @@
 using System.Collections.Concurrent;
 using Azure;
 using Microsoft.Extensions.Logging;
-using Microsoft.Agents.AI;
 using CsApi.Auth;
 using Azure.AI.Projects;
-using Azure.AI.Projects.OpenAI;
 
 namespace CsApi.Utils
 {
     /// <summary>
-    /// TTL-based cache with automatic cleanup functionality
+    /// TTL-based cache with automatic cleanup functionality.
+    /// Stores conversation IDs (strings) keyed by application conversation ID,
+    /// mirroring the Python ExpCache pattern.
     /// </summary>
     /// <typeparam name="TKey">Cache key type</typeparam>
     /// <typeparam name="TValue">Cache value type</typeparam>
@@ -44,11 +44,10 @@ namespace CsApi.Utils
                 }
                 else
                 {
-                    // Item expired, remove it and delete thread immediately
+                    // Item expired, remove it and delete conversation immediately
                     if (_cache.TryRemove(key, out var removedItem))
                     {
-                        // Delete thread immediately when expired
-                        Task.Run(() => DeleteThreadAsync(removedItem.Value));
+                        Task.Run(() => DeleteConversationAsync(removedItem.Value));
                     }
                 }
             }
@@ -64,7 +63,7 @@ namespace CsApi.Utils
             
             _cache.AddOrUpdate(key, item, (k, v) => item);
             
-            // If we exceed max size, remove oldest items immediately and delete their threads
+            // If we exceed max size, remove oldest items immediately and delete their conversations
             if (_cache.Count > _maxSize)
             {
                 var now = DateTime.UtcNow;
@@ -74,7 +73,7 @@ namespace CsApi.Utils
                 {
                     if (_cache.TryRemove(kvp.Key, out var removedItem))
                     {
-                        Task.Run(() => DeleteThreadAsync(removedItem.Value));
+                        Task.Run(() => DeleteConversationAsync(removedItem.Value));
                     }
                 }
                 
@@ -90,8 +89,7 @@ namespace CsApi.Utils
                     {
                         if (_cache.TryRemove(kvp.Key, out var removedItem))
                         {
-                            // Delete thread immediately when LRU evicted
-                            Task.Run(() => DeleteThreadAsync(removedItem.Value));
+                            Task.Run(() => DeleteConversationAsync(removedItem.Value));
                         }
                     }
                 }
@@ -102,8 +100,7 @@ namespace CsApi.Utils
         {
             if (_cache.TryRemove(key, out var removedItem))
             {
-                // Delete thread immediately when manually removed
-                Task.Run(() => DeleteThreadAsync(removedItem.Value));
+                Task.Run(() => DeleteConversationAsync(removedItem.Value));
                 return true;
             }
             return false;
@@ -126,58 +123,59 @@ namespace CsApi.Utils
             {
                 if (_cache.TryRemove(kvp.Key, out var removedItem))
                 {
-                    // Delete thread immediately like other cleanup operations
-                    await DeleteThreadAsync(removedItem.Value);
+                    await DeleteConversationAsync(removedItem.Value);
                 }
             }
         }
 
         /// <summary>
-        /// Delete thread from Azure AI Foundry when removed from cache
+        /// Delete conversation from Azure AI Foundry when removed from cache.
+        /// Mirrors Python ExpCache._delete_thread_async behavior.
         /// </summary>
-        private async Task DeleteThreadAsync(TValue value)
+        private async Task DeleteConversationAsync(TValue value)
         {
-            if (value is AgentThread agentThread && !string.IsNullOrEmpty(_azureAIEndpoint))
+            if (value is string conversationId && !string.IsNullOrEmpty(_azureAIEndpoint))
             {
                 try
                 {
-                    // Clean up using Agent Framework pattern: thread is ChatClientAgentThread
-                    if (agentThread is ChatClientAgentThread chatThread)
+                    // Response IDs (resp_xxx) don't need explicit deletion
+                    if (conversationId.StartsWith("resp_"))
                     {
-                        var endpoint = _configuration["AZURE_AI_AGENT_ENDPOINT"]
-                                ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is required");
-                        var credentialFactory = new AzureCredentialFactory(_configuration);
-                        var credential = credentialFactory.Create();
-                        AIProjectClient projectClient = new AIProjectClient(new Uri(endpoint), credential);
+                        _logger.LogInformation("ExpCache: Skipping deletion for response ID: {ConversationId}", conversationId);
+                        return;
+                    }
 
-                        await projectClient.GetProjectOpenAIClient()
-                            .GetProjectConversationsClient()
-                            .DeleteConversationAsync(chatThread.ConversationId);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("ExpCache: AgentThread is not ChatClientAgentThread, actual type: {ActualType}", agentThread.GetType().Name);
-                    }
+                    var endpoint = _configuration["AZURE_AI_AGENT_ENDPOINT"]
+                            ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is required");
+                    var credentialFactory = new AzureCredentialFactory(_configuration);
+                    var credential = credentialFactory.Create();
+                    AIProjectClient projectClient = new AIProjectClient(new Uri(endpoint), credential);
+
+                    await projectClient.GetProjectOpenAIClient()
+                        .GetProjectConversationsClient()
+                        .DeleteConversationAsync(conversationId);
+
+                    _logger.LogInformation("ExpCache: Conversation deleted successfully: {ConversationId}", conversationId);
                 }
                 catch (InvalidOperationException ex)
                 {
-                    _logger.LogWarning(ex, "ExpCache: Configuration error deleting thread");
+                    _logger.LogWarning(ex, "ExpCache: Configuration error deleting conversation");
                 }
                 catch (RequestFailedException ex)
                 {
-                    _logger.LogWarning(ex, "ExpCache: Azure API error deleting thread");
+                    _logger.LogWarning(ex, "ExpCache: Azure API error deleting conversation");
                 }
                 catch (UriFormatException ex)
                 {
-                    _logger.LogError(ex, "ExpCache: Invalid endpoint URI while deleting thread");
+                    _logger.LogError(ex, "ExpCache: Invalid endpoint URI while deleting conversation");
                 }
                 catch (ArgumentException ex)
                 {
-                    _logger.LogError(ex, "ExpCache: Invalid argument while deleting thread");
+                    _logger.LogError(ex, "ExpCache: Invalid argument while deleting conversation");
                 }
                 catch (Exception ex) when (ex is not InvalidOperationException && ex is not RequestFailedException && ex is not UriFormatException && ex is not ArgumentException)
                 {
-                    _logger.LogError(ex, "ExpCache: Unexpected error deleting thread");
+                    _logger.LogError(ex, "ExpCache: Unexpected error deleting conversation");
                 }
             }
         }
