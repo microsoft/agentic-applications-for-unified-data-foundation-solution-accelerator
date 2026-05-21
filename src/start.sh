@@ -304,8 +304,14 @@ fi
 #  Write frontend .env
 # ============================================================
 APP_ENV_FILE="$ROOT_DIR/src/App/.env"
+# In Codespaces, use the forwarded URL for port 8000; otherwise use localhost
+if [ -n "$CODESPACES" ]; then
+    API_BASE_URL="https://${CODESPACE_NAME}-8000.app.github.dev"
+else
+    API_BASE_URL="http://127.0.0.1:8000"
+fi
 cat > "$APP_ENV_FILE" <<EOF
-REACT_APP_API_BASE_URL=http://127.0.0.1:8000
+REACT_APP_API_BASE_URL=$API_BASE_URL
 REACT_APP_IS_WORKSHOP=$IS_WORKSHOP
 REACT_APP_CHAT_LANDING_TEXT=You can ask questions around sales, products and orders.
 EOF
@@ -480,14 +486,30 @@ echo "Backend started at http://127.0.0.1:8000"
 echo "Waiting for backend to initialize..."
 sleep 10
 
-echo ""
-echo "Both servers have been started."
-echo "Backend running at http://127.0.0.1:8000"
-echo "Frontend running at http://localhost:3000"
+# Make port 8000 public in Codespaces (backend is already up)
+if [ -n "${CODESPACE_NAME:-}" ]; then
+    echo "Setting port 8000 visibility to public..."
+    gh codespace ports visibility 8000:public -c "$CODESPACE_NAME" || true
+fi
 
+echo ""
 echo "Starting frontend server..."
 cd "$ROOT_DIR/src/App"
 npm start &
 FRONTEND_PID=$!
+
+if [ -n "${CODESPACE_NAME:-}" ]; then
+    (
+        echo ""
+        echo "Both servers have been started."
+        echo "Backend running at https://${CODESPACE_NAME}-8000.app.github.dev"
+        echo "Frontend running at https://${CODESPACE_NAME}-3000.app.github.dev"
+    ) &
+else
+    echo ""
+    echo "Both servers have been started."
+    echo "Backend running at http://127.0.0.1:8000"
+    echo "Frontend running at http://localhost:3000"
+fi
 
 wait $FRONTEND_PID
