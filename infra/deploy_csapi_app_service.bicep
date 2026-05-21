@@ -63,6 +63,7 @@ resource webApp 'Microsoft.Web/sites@2025-05-01' = {
     serverFarmId: plan.id
     siteConfig: {
       linuxFxVersion: 'DOTNETCORE|8.0'
+      endToEndEncryptionEnabled: true
       appSettings: [
         {
           name: 'ASPNETCORE_ENVIRONMENT'

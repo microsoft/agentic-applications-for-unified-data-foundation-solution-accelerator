@@ -37,6 +37,7 @@ resource appService 'Microsoft.Web/sites@2025-05-01' = {
       alwaysOn: true
       ftpsState: 'Disabled'
       linuxFxVersion: appImageName
+      endToEndEncryptionEnabled: true
     }
   }
   resource basicPublishingCredentialsPoliciesFtp 'basicPublishingCredentialsPolicies' = {

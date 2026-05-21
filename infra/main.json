@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "11199304878133671437"
+      "templateHash": "13706723246686898966"
     }
   },
   "parameters": {
@@ -684,7 +684,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "2549135792664853974"
+              "templateHash": "7328767993983191959"
             }
           },
           "parameters": {
@@ -1096,7 +1096,17 @@
                 "allowBlobPublicAccess": false,
                 "allowSharedKeyAccess": true,
                 "minimumTlsVersion": "TLS1_2",
-                "supportsHttpsTrafficOnly": true
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                  "requireInfrastructureEncryption": true,
+                  "keySource": "Microsoft.Storage",
+                  "services": {
+                    "blob": {
+                      "enabled": true,
+                      "keyType": "Account"
+                    }
+                  }
+                }
               }
             },
             {
@@ -2968,7 +2978,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "9281355067833032374"
+              "templateHash": "3772771751577157364"
             }
           },
           "parameters": {
@@ -3123,7 +3133,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.43.8.12551",
-                      "templateHash": "14104382466378662772"
+                      "templateHash": "2394547081637120603"
                     }
                   },
                   "parameters": {
@@ -3200,7 +3210,8 @@
                         "siteConfig": {
                           "alwaysOn": true,
                           "ftpsState": "Disabled",
-                          "linuxFxVersion": "[parameters('appImageName')]"
+                          "linuxFxVersion": "[parameters('appImageName')]",
+                          "endToEndEncryptionEnabled": true
                         }
                       }
                     },
@@ -3827,7 +3838,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "1695718054370591906"
+              "templateHash": "12328277943008614370"
             }
           },
           "parameters": {
@@ -3939,7 +3950,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.43.8.12551",
-                      "templateHash": "14104382466378662772"
+                      "templateHash": "2394547081637120603"
                     }
                   },
                   "parameters": {
@@ -4016,7 +4027,8 @@
                         "siteConfig": {
                           "alwaysOn": true,
                           "ftpsState": "Disabled",
-                          "linuxFxVersion": "[parameters('appImageName')]"
+                          "linuxFxVersion": "[parameters('appImageName')]",
+                          "endToEndEncryptionEnabled": true
                         }
                       }
                     },
@@ -4603,7 +4615,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "9801304925244287291"
+              "templateHash": "1768582315617068103"
             }
           },
           "parameters": {
@@ -4688,7 +4700,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.43.8.12551",
-                      "templateHash": "14104382466378662772"
+                      "templateHash": "2394547081637120603"
                     }
                   },
                   "parameters": {
@@ -4765,7 +4777,8 @@
                         "siteConfig": {
                           "alwaysOn": true,
                           "ftpsState": "Disabled",
-                          "linuxFxVersion": "[parameters('appImageName')]"
+                          "linuxFxVersion": "[parameters('appImageName')]",
+                          "endToEndEncryptionEnabled": true
                         }
                       }
                     },
