@@ -58,7 +58,7 @@ on:
         type: boolean
 
       BACKEND_RUNTIME_STACK:
-        description: 'Select runtime stack (Python/DotNet)'
+        description: 'Select Runtime (Python/DotNet)'
         type: 'choice'
         options:
           - 'python'
