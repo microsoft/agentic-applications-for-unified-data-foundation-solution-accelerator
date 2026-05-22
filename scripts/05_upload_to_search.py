@@ -114,7 +114,7 @@ print(f"Data Folder: {data_dir}")
 # ============================================================================
 
 def get_openai_client():
-    """Create Azure OpenAI client using AI endpoint."""
+    """Create Azure OpenAI client using AI endpoint with AAD bearer token auth."""
     if not AZURE_AI_ENDPOINT:
         raise ValueError("AZURE_AI_AGENT_ENDPOINT not set")
     
@@ -123,7 +123,7 @@ def get_openai_client():
     
     return AzureOpenAI(
         azure_endpoint=AZURE_AI_ENDPOINT,
-        api_key=token.token,
+        azure_ad_token=token.token,
         api_version="2024-10-21",
     )
 

@@ -505,10 +505,18 @@ def build_sql_tool(tables, use_fabric, use_data_agent, data_agent_id, data_agent
             f"fabric-dataagent-preview-{data_agent_id[:6]}"
         )
         # Build full ARM connection ID as required by the tool
-        subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
-        resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
-        ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
-        project_name = os.getenv("AZURE_AI_PROJECT_NAME")
+        existing_project_id = os.getenv("AZURE_EXISTING_AIPROJECT_RESOURCE_ID", "")
+        if existing_project_id:
+            parts = existing_project_id.strip("/").split("/")
+            subscription_id = parts[1]
+            resource_group = parts[3]
+            ai_service_name = parts[7]
+            project_name = parts[9] if len(parts) > 9 else parts[7]
+        else:
+            subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
+            resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
+            ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
+            project_name = os.getenv("AZURE_AI_PROJECT_NAME")
         fabric_connection_id = (
             f"/subscriptions/{subscription_id}"
             f"/resourceGroups/{resource_group}"
@@ -643,10 +651,19 @@ def create_mcp_connection(credential, connection_name, target_url, audience, aut
     """Create a RemoteTool project connection via the CognitiveServices REST API."""
     import requests
 
-    subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
-    resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
-    ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
-    project_name = os.getenv("AZURE_AI_PROJECT_NAME")
+    # For existing AI project, derive sub/RG from the resource ID
+    existing_project_id = os.getenv("AZURE_EXISTING_AIPROJECT_RESOURCE_ID", "")
+    if existing_project_id:
+        parts = existing_project_id.strip("/").split("/")
+        subscription_id = parts[1]
+        resource_group = parts[3]
+        ai_service_name = parts[7]
+        project_name = parts[9] if len(parts) > 9 else parts[7]
+    else:
+        subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
+        resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
+        ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
+        project_name = os.getenv("AZURE_AI_PROJECT_NAME")
 
     if not (subscription_id and resource_group and ai_service_name and project_name):
         print("[WARN] Cannot build project ARM path — need AZURE_SUBSCRIPTION_ID, "
@@ -697,10 +714,19 @@ def create_custom_keys_connection(credential, connection_name, custom_keys=None,
     """Create a CustomKeys project connection via the CognitiveServices REST API."""
     import requests
 
-    subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
-    resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
-    ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
-    project_name = os.getenv("AZURE_AI_PROJECT_NAME")
+    # For existing AI project, derive sub/RG from the resource ID
+    existing_project_id = os.getenv("AZURE_EXISTING_AIPROJECT_RESOURCE_ID", "")
+    if existing_project_id:
+        parts = existing_project_id.strip("/").split("/")
+        subscription_id = parts[1]
+        resource_group = parts[3]
+        ai_service_name = parts[7]
+        project_name = parts[9] if len(parts) > 9 else parts[7]
+    else:
+        subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
+        resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
+        ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
+        project_name = os.getenv("AZURE_AI_PROJECT_NAME")
 
     if not (subscription_id and resource_group and ai_service_name and project_name):
         print("[WARN] Cannot build project ARM path — need AZURE_SUBSCRIPTION_ID, "
