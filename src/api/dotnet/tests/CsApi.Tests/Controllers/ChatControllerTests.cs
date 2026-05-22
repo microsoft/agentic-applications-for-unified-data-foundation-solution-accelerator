@@ -1,3 +1,4 @@
+using CsApi.Auth;
 using CsApi.Controllers;
 using CsApi.Interfaces;
 using CsApi.Models;
@@ -46,7 +47,8 @@ public class ChatControllerTests
             _mockRepo.Object,
             _mockConfiguration.Object,
             NullLogger<ChatController>.Instance,
-            conversationCache);
+            conversationCache,
+            Mock.Of<IAzureCredentialFactory>());
 
         // Setup default HttpContext
         var httpContext = new DefaultHttpContext();

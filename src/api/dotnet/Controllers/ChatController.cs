@@ -25,6 +25,7 @@ public class ChatController : ControllerBase
     private readonly ISqlConversationRepository _sqlRepo;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ChatController> _logger;
+    private readonly IAzureCredentialFactory _credentialFactory;
 
     // Conversation ID cache: maps app-level conversation ID → Foundry server-side conversation ID
     private readonly ExpCache<string, string> _conversationCache;
@@ -37,13 +38,15 @@ public class ChatController : ControllerBase
         ISqlConversationRepository sqlRepo,
         IConfiguration configuration,
         ILogger<ChatController> logger,
-        ExpCache<string, string> conversationCache)
+        ExpCache<string, string> conversationCache,
+        IAzureCredentialFactory credentialFactory)
     { 
         _userContextAccessor = userContextAccessor; 
         _sqlRepo = sqlRepo;
         _configuration = configuration;
         _logger = logger;
         _conversationCache = conversationCache;
+        _credentialFactory = credentialFactory;
     }
 
     /// <summary>
@@ -377,6 +380,95 @@ public class ChatController : ControllerBase
             return new JsonResult(new { isChartDisplayDefault = val });
         }
         return BadRequest(new { error = "DISPLAY_CHART_DEFAULT flag not found in environment variables" });
+    }
+
+    /// <summary>
+    /// Fetch document content from Azure AI Search by citation URL.
+    /// </summary>
+    [HttpPost("fetch-azure-search-content")]
+    public async Task<IActionResult> FetchAzureSearchContent([FromBody] JsonElement body)
+    {
+        try
+        {
+            var citationUrl = body.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : null;
+            var fallbackLabel = body.TryGetProperty("source", out var srcProp) ? srcProp.GetString() : "";
+            if (string.IsNullOrEmpty(fallbackLabel) && body.TryGetProperty("title", out var titleProp))
+                fallbackLabel = titleProp.GetString() ?? "";
+
+            _logger.LogInformation("POST /fetch-azure-search-content called: url={Url}", citationUrl);
+
+            if (string.IsNullOrWhiteSpace(citationUrl))
+                return BadRequest(new { error = "URL is required" });
+
+            // SSRF protection: only allow requests to the configured search endpoint
+            var searchEndpoint = _configuration["AZURE_AI_SEARCH_ENDPOINT"] ?? "";
+            if (string.IsNullOrEmpty(searchEndpoint))
+                return StatusCode(500, new { error = "Search endpoint not configured" });
+
+            var allowedHost = new Uri(searchEndpoint).Host.ToLowerInvariant();
+            var parsedUrl = new Uri(citationUrl);
+            if (!string.Equals(parsedUrl.Host, allowedHost, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("Blocked fetch to non-allowed host: {Host} (allowed: {Allowed})", parsedUrl.Host, allowedHost);
+                return StatusCode(403, new { error = "URL host not allowed" });
+            }
+
+            // Parse the doc id from the URL: .../docs/{doc_id}?api-version=...
+            var pathParts = parsedUrl.AbsolutePath.TrimEnd('/').Split('/');
+            string? docId = null;
+            for (int i = 0; i < pathParts.Length; i++)
+            {
+                if (pathParts[i] == "docs" && i + 1 < pathParts.Length)
+                {
+                    docId = pathParts[i + 1];
+                    break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(docId))
+                return BadRequest(new { error = "Could not parse document ID from URL" });
+
+            // Reconstruct URL using OData key lookup
+            var idxDocs = parsedUrl.AbsolutePath.IndexOf("/docs/", StringComparison.Ordinal);
+            var basePath = parsedUrl.AbsolutePath[..idxDocs];
+            var queryParams = HttpUtility.ParseQueryString(parsedUrl.Query);
+            var apiVersion = queryParams["api-version"] ?? "2024-07-01";
+
+            var decodedDocId = HttpUtility.UrlDecode(docId);
+            var encodedKey = HttpUtility.UrlEncode(decodedDocId);
+            var lookupUrl = $"{parsedUrl.Scheme}://{parsedUrl.Host}{basePath}/docs('{encodedKey}')?api-version={apiVersion}";
+
+            // Get access token
+            var credential = _credentialFactory.Create();
+            var tokenResult = await credential.GetTokenAsync(
+                new Azure.Core.TokenRequestContext(new[] { "https://search.azure.com/.default" }), default);
+
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenResult.Token);
+            httpClient.Timeout = TimeSpan.FromSeconds(10);
+
+            var response = await httpClient.GetAsync(lookupUrl);
+            _logger.LogInformation("Azure Search lookup: status={Status}, url={LookupUrl}", (int)response.StatusCode, lookupUrl);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseBody = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(responseBody);
+                var content = doc.RootElement.TryGetProperty("content", out var contentProp) ? contentProp.GetString() ?? "" : "";
+                var source = doc.RootElement.TryGetProperty("source", out var sourceProp) ? sourceProp.GetString() ?? fallbackLabel : fallbackLabel;
+                return Ok(new { content, title = source });
+            }
+
+            var errorBody = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("Azure Search fetch failed: status={Status}, body={Body}", (int)response.StatusCode, errorBody[..Math.Min(500, errorBody.Length)]);
+            return Ok(new { error = $"HTTP {(int)response.StatusCode}" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in fetch-azure-search-content");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
     }
 
     /// <summary>MCP document info matching Python mcp_docs structure.</summary>
