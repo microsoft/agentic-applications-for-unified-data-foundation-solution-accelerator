@@ -299,8 +299,9 @@ for step in pipeline:
 # ============================================================================
 
 if not azure_only:
+    create_fabric_workspace = os.getenv("CREATE_FABRIC_WORKSPACE", "false").lower() == "true"
     fabric_workspace_id = args.fabric_workspace_id or os.getenv("FABRIC_WORKSPACE_ID", "").strip()
-    if not fabric_workspace_id:
+    if not fabric_workspace_id and not create_fabric_workspace:
         print("\n" + "="*60)
         print("Fabric Workspace Configuration")
         print("="*60)
@@ -310,14 +311,18 @@ if not azure_only:
         if not fabric_workspace_id:
             print("ERROR: Fabric Workspace ID is required in Fabric mode.")
             print("       Pass --fabric-workspace-id <id> or set FABRIC_WORKSPACE_ID in .env")
+            print("       Or set CREATE_FABRIC_WORKSPACE=true to auto-create a workspace.")
             print("       Or use AZURE_ENV_ONLY=true for Azure SQL mode.")
             sys.exit(1)
-    # Make it available to downstream scripts
-    os.environ["FABRIC_WORKSPACE_ID"] = fabric_workspace_id
-    # Persist to scripts/.env so subsequent runs don't need to re-enter it
-    from dotenv import set_key
-    env_path = os.path.join(script_dir, ".env")
-    set_key(env_path, "FABRIC_WORKSPACE_ID", fabric_workspace_id)
+    if fabric_workspace_id:
+        # Make it available to downstream scripts
+        os.environ["FABRIC_WORKSPACE_ID"] = fabric_workspace_id
+        # Persist to scripts/.env so subsequent runs don't need to re-enter it
+        from dotenv import set_key
+        env_path = os.path.join(script_dir, ".env")
+        set_key(env_path, "FABRIC_WORKSPACE_ID", fabric_workspace_id)
+    elif create_fabric_workspace:
+        print("  (Workspace will be auto-created by step 02)")
 
 # ============================================================================
 # Interactive Prompts for Data Generation
