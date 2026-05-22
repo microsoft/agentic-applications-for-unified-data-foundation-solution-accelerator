@@ -317,9 +317,9 @@ class TestStreamOpenAIText:
             assert "cannot answer" in results[0].lower()
 
     @pytest.mark.asyncio
-    async def test_workshop_passes_conversation_id_in_options(self):
-        """Verify workshop mode agent.run is called with options={'conversation_id': conv_id}."""
-        from chat import stream_openai_text_workshop
+    async def test_passes_conversation_id_in_options(self):
+        """Verify agent.run is called with options={'conversation_id': conv_id}."""
+        from chat import stream_openai_text
 
         mock_chunk = Mock()
         mock_chunk.text = "Hello"
@@ -359,7 +359,7 @@ class TestStreamOpenAIText:
             mock_cache.return_value = {}
 
             results = []
-            async for item in stream_openai_text_workshop("test_conv", "hello", "user1"):
+            async for item in stream_openai_text("test_conv", "hello", "user1"):
                 results.append(item)
 
             # Verify agent.run was called with options containing conversation_id
@@ -506,8 +506,7 @@ class TestAdditionalCoverage:
             yield ("assistant", "Hello")
             yield ("assistant", " World")
 
-        with patch('chat.stream_openai_text', side_effect=mock_stream), \
-             patch('chat.stream_openai_text_workshop', side_effect=mock_stream):
+        with patch('chat.stream_openai_text', side_effect=mock_stream):
             results = []
             generator = await stream_chat_request("123", "test")
             async for chunk in generator:
@@ -1009,7 +1008,7 @@ class TestStreamChatRequestDelta:
             yield ("assistant", "Hello world")
             yield ("tool", '[{"url":"u","source":"s","id":"i"}]')
 
-        with patch('chat.stream_openai_text_workshop', side_effect=mock_gen):
+        with patch('chat.stream_openai_text', side_effect=mock_gen):
             gen = await stream_chat_request("conv1", "test query")
             chunks = []
             async for chunk in gen:
