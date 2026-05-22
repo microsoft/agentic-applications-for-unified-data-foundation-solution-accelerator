@@ -30,8 +30,8 @@ public class ChatController : ControllerBase
     // Conversation ID cache: maps app-level conversation ID → Foundry server-side conversation ID
     private readonly ExpCache<string, string> _conversationCache;
 
-    // Citation marker regex matching Python _MARKER_RE: 【\d+:(\d+)†([^】]*)】
-    private static readonly Regex MarkerRegex = new(@"【\d+:(\d+)†([^】]*)】", RegexOptions.Compiled);
+    // Citation marker regex: handles both 【4:0†source】 and 【4:0】 formats
+    private static readonly Regex MarkerRegex = new(@"【\d+:(\d+)(?:†([^】]*))?】", RegexOptions.Compiled);
 
     public ChatController(
         IUserContextAccessor userContextAccessor,
