@@ -17,7 +17,7 @@ namespace CsApi.Services
         string ChatAgentName { get; }
         AITool SqlTool { get; }
         bool UseDataAgent { get; }
-        Task<string> run_sql_query(string input);
+        Task<string> execute_sql(string input);
     }
 
     public class AgentFrameworkService : IAgentFrameworkService
@@ -56,7 +56,7 @@ namespace CsApi.Services
                          || string.Equals(config["USE_DATA_AGENT"], "1", StringComparison.OrdinalIgnoreCase);
 
             // Create function tool for SQL operations like Python SqlQueryTool
-            _sqlTool = AIFunctionFactory.Create(run_sql_query);
+            _sqlTool = AIFunctionFactory.Create(execute_sql);
 
             var credentialFactory = new AzureCredentialFactory(_config);
             var credential = credentialFactory.Create();
@@ -87,7 +87,7 @@ namespace CsApi.Services
         /// Function tool for SQL database queries - directly executes SQL like Python SqlQueryTool
         /// </summary>
         [System.ComponentModel.Description("Execute parameterized SQL query and return results as list of dictionaries.")]
-        public async Task<string> run_sql_query(
+        public async Task<string> execute_sql(
             [System.ComponentModel.Description("Valid T-SQL query to execute against the SQL database in Fabric.")] string sql_query)
         {
             try
