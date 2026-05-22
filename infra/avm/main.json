@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "15237056970206382354"
+      "templateHash": "1876792980184887767"
     }
   },
   "parameters": {
@@ -69389,6 +69389,13 @@
         "description": "User access token forwarding flag."
       },
       "value": "[variables('useUserAccessTokenSetting')]"
+    },
+    "AZURE_FABRIC_CAPACITY_RESOURCE_ID": {
+      "type": "string",
+      "metadata": {
+        "description": "The resource ID of the Fabric capacity."
+      },
+      "value": "[if(parameters('createFabricWorkspace'), reference('fabricCapacity').outputs.resourceId.value, '')]"
     },
     "AZURE_FABRIC_CAPACITY_NAME": {
       "type": "string",

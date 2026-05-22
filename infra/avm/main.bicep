@@ -1078,6 +1078,9 @@ output AZURE_ENV_ONLY bool = azureEnvOnly
 @description('User access token forwarding flag.')
 output USE_USER_ACCESS_TOKEN string = useUserAccessTokenSetting
 
+@description('The resource ID of the Fabric capacity.')
+output AZURE_FABRIC_CAPACITY_RESOURCE_ID string = createFabricWorkspace ? fabricCapacity.outputs.resourceId : ''
+
 @description('The name of the Fabric capacity resource.')
 output AZURE_FABRIC_CAPACITY_NAME string = createFabricWorkspace ? fabricCapacityResourceName : ''
 

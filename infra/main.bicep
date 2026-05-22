@@ -417,6 +417,9 @@ output AZURE_ENV_ONLY bool = isAvm ? avmDeployment!.outputs.AZURE_ENV_ONLY : bic
 @description('User access token forwarding flag.')
 output USE_USER_ACCESS_TOKEN string = isAvm ? avmDeployment!.outputs.USE_USER_ACCESS_TOKEN : bicepDeployment!.outputs.USE_USER_ACCESS_TOKEN
 
+@description('The resource ID of the Fabric capacity.')
+output AZURE_FABRIC_CAPACITY_RESOURCE_ID string = isAvm ? avmDeployment!.outputs.AZURE_FABRIC_CAPACITY_RESOURCE_ID : bicepDeployment!.outputs.AZURE_FABRIC_CAPACITY_RESOURCE_ID
+
 @description('The name of the Fabric capacity resource.')
 output AZURE_FABRIC_CAPACITY_NAME string = isAvm ? avmDeployment!.outputs.AZURE_FABRIC_CAPACITY_NAME : bicepDeployment!.outputs.AZURE_FABRIC_CAPACITY_NAME
 
