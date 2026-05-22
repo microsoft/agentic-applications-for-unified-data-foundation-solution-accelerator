@@ -1,4 +1,3 @@
-using Azure.Identity;
 using CsApi.Interfaces;
 using CsApi.Models;
 using Microsoft.Azure.Cosmos;
@@ -18,7 +17,7 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
     private readonly ILogger<CosmosConversationRepository> _logger;
     private readonly bool _enableFeedback;
 
-    public CosmosConversationRepository(IConfiguration config, ILogger<CosmosConversationRepository> logger)
+    public CosmosConversationRepository(IConfiguration config, ILogger<CosmosConversationRepository> logger, CsApi.Auth.IAzureCredentialFactory credentialFactory)
     {
         _logger = logger;
         _enableFeedback = string.Equals(config["AZURE_COSMOSDB_ENABLE_FEEDBACK"], "true", StringComparison.OrdinalIgnoreCase);
@@ -31,7 +30,7 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
             ?? throw new InvalidOperationException("AZURE_COSMOSDB_CONVERSATIONS_CONTAINER is required");
 
         var endpoint = $"https://{account}.documents.azure.com:443/";
-        var credential = new DefaultAzureCredential();
+        var credential = credentialFactory.Create(config["AZURE_CLIENT_ID"]);
 
         _cosmosClient = new CosmosClient(endpoint, credential);
 

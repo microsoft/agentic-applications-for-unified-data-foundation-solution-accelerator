@@ -2,7 +2,6 @@ using System.Data;
 using System.Data.Common;
 using System.Data.Odbc;
 using Azure.Core;
-using Azure.Identity;
 using CsApi.Models;
 using Microsoft.Data.SqlClient;
 using System.Text.Json;
@@ -26,11 +25,13 @@ public class SqlConversationRepository : ISqlConversationRepository
 {
     private readonly IConfiguration _config;
     private readonly ILogger<SqlConversationRepository> _logger;
+    private readonly CsApi.Auth.IAzureCredentialFactory _credentialFactory;
 
-    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger)
+    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger, CsApi.Auth.IAzureCredentialFactory credentialFactory)
     { 
         _config = config; 
-        _logger = logger; 
+        _logger = logger;
+        _credentialFactory = credentialFactory;
     }
 
     private async Task<IDbConnection> CreateConnectionAsync()
@@ -84,7 +85,7 @@ public class SqlConversationRepository : ISqlConversationRepository
     }
 
     /// <summary>
-    /// Connect to Azure SQL Server using DefaultAzureCredential token auth.
+    /// Connect to Azure SQL Server using credential from factory (matches Python pattern).
     /// Mirrors Python get_azure_sql_connection().
     /// </summary>
     private async Task<IDbConnection> CreateAzureSqlConnectionAsync()
@@ -96,8 +97,8 @@ public class SqlConversationRepository : ISqlConversationRepository
 
         _logger.LogInformation("Connecting to Azure SQL Database: {Server}/{Database}", sqlServer, sqlDatabase);
 
-        var credential = new DefaultAzureCredential();
-        var token = await credential.GetTokenAsync(new TokenRequestContext(["https://database.windows.net/.default"]));
+        var credential = _credentialFactory.Create(_config["AZURE_CLIENT_ID"]);
+        var token = await credential.GetTokenAsync(new TokenRequestContext(["https://database.windows.net/.default"]), CancellationToken.None);
 
         var connectionString = $"Server={sqlServer};Database={sqlDatabase};Encrypt=True;TrustServerCertificate=False;";
         var conn = new SqlConnection(connectionString)
