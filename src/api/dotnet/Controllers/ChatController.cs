@@ -65,28 +65,17 @@ public class ChatController : ControllerBase
             await WriteErrorAsync("query is required", ct);
             return;
         }
+
+        if (string.IsNullOrWhiteSpace(request.ConversationId))
+        {
+            await WriteDeltaAsync("assistant", string.Empty, ct);
+            await WriteErrorAsync("Conversation ID is required", ct);
+            return;
+        }
         
         var user = _userContextAccessor.GetCurrentUser();
         var userId = user.UserPrincipalId;
-
-        // Use the conversation_id from the request (or generate one).
-        // When AZURE_ENV_ONLY=true, conversations are managed by Cosmos via /history routes.
-        // When false, they're managed by Fabric SQL.
-        var azureEnvOnly = string.Equals(_configuration["AZURE_ENV_ONLY"], "true", StringComparison.OrdinalIgnoreCase);
-        string convId;
-        if (azureEnvOnly)
-        {
-            // Cosmos manages conversations — just use the provided ID or generate a new one
-            convId = string.IsNullOrWhiteSpace(request.ConversationId)
-                ? Guid.NewGuid().ToString()
-                : request.ConversationId;
-        }
-        else
-        {
-            // Fabric SQL manages conversations
-            var (id, _) = await _sqlRepo.EnsureConversationAsync(userId ?? string.Empty, request.ConversationId, title: string.Empty, ct);
-            convId = id;
-        }
+        var convId = request.ConversationId;
 
         // Sanitize user input to prevent log forging attacks
         var sanitizedQuery = request.Query.Replace(Environment.NewLine, "").Replace("\r", "").Replace("\n", "");
