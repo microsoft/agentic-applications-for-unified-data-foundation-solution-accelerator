@@ -58,7 +58,7 @@ var applicationInsightsName = 'appi-${solutionName}'
 var location = solutionLocation
 var aiProjectName = 'proj-${solutionName}'
 
-var aiModelDeployments = concat([
+var aiModelDeployments = [
   {
     name: gptModelName
     model: gptModelName
@@ -69,7 +69,6 @@ var aiModelDeployments = concat([
     version: gptModelVersion
     raiPolicyName: 'Microsoft.Default'
   }
-], [
   {
     name: embeddingModel
     model: embeddingModel
@@ -80,7 +79,7 @@ var aiModelDeployments = concat([
     version: '1'
     raiPolicyName: 'Microsoft.Default'
   }
-])
+]
 
 // ========== AI Foundry Account ========== //
 

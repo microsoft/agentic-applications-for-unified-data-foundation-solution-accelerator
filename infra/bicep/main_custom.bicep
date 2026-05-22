@@ -158,6 +158,20 @@ var existingTags = resourceGroup().tags ?? {}
 var shouldDeployApp = deployApp
 
 // ========== Resource Group Tag ========== //
+resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
+  name: 'default'
+  properties: {
+    tags: union(
+      existingTags,
+      {
+        TemplateName: 'Unified Data Analysis Agents'
+        CreatedBy: createdBy
+        DeploymentName: deployment().name
+        Type: 'WAF'
+      }
+    )
+  }
+}
 
 // ========== Monitoring (Log Analytics + Application Insights) ========== //
 // ========== Log Analytics module ========== //
@@ -183,7 +197,7 @@ module app_insights './modules/monitoring/app-insights.bicep' = {
 }
 
 // ========== AI Foundry and related resources ========== //
-var aiModelDeployments = concat([
+var aiModelDeployments = [
   {
     name: gptModelName
     model: gptModelName
@@ -194,7 +208,6 @@ var aiModelDeployments = concat([
     version: gptModelVersion
     raiPolicyName: 'Microsoft.Default'
   }
-], [
   {
     name: embeddingModel
     model: embeddingModel
@@ -205,7 +218,7 @@ var aiModelDeployments = concat([
     version: '1'
     raiPolicyName: 'Microsoft.Default'
   }
-])
+]
 
 module aifoundry './modules/ai/ai-foundry.bicep' = if (empty(existingFoundryProjectResourceId)) {
   name: 'deploy_ai_foundry'
@@ -220,12 +233,12 @@ module aifoundry './modules/ai/ai-foundry.bicep' = if (empty(existingFoundryProj
     embeddingDeploymentCapacity: embeddingDeploymentCapacity
     applicationInsightsId: app_insights.outputs.applicationInsightsId
     applicationInsightsInstrumentationKey: app_insights.outputs.applicationInsightsInstrumentationKey
-    aiSearchTarget: ai_search!.outputs.aiSearchTarget
-    aiSearchId: ai_search!.outputs.aiSearchId
-    aiSearchConnectionName: ai_search!.outputs.aiSearchConnectionName
-    storageBlobEndpoint: storage_account!.outputs.storageBlobEndpoint
-    storageAccountId: storage_account!.outputs.storageAccountId
-    storageAccountName: storage_account!.outputs.storageAccountName
+    aiSearchTarget: ai_search.outputs.aiSearchTarget
+    aiSearchId: ai_search.outputs.aiSearchId
+    aiSearchConnectionName: ai_search.outputs.aiSearchConnectionName
+    storageBlobEndpoint: storage_account.outputs.storageBlobEndpoint
+    storageAccountId: storage_account.outputs.storageAccountId
+    storageAccountName: storage_account.outputs.storageAccountName
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -254,12 +267,12 @@ module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (
     aiModelDeployments: aiModelDeployments
     applicationInsightsId: app_insights.outputs.applicationInsightsId
     applicationInsightsInstrumentationKey: app_insights.outputs.applicationInsightsInstrumentationKey
-    aiSearchTarget: ai_search!.outputs.aiSearchTarget
-    aiSearchId: ai_search!.outputs.aiSearchId
-    aiSearchConnectionName: ai_search!.outputs.aiSearchConnectionName
-    storageBlobEndpoint: storage_account!.outputs.storageBlobEndpoint
-    storageAccountId: storage_account!.outputs.storageAccountId
-    storageAccountName: storage_account!.outputs.storageAccountName
+    aiSearchTarget: ai_search.outputs.aiSearchTarget
+    aiSearchId: ai_search.outputs.aiSearchId
+    aiSearchConnectionName: ai_search.outputs.aiSearchConnectionName
+    storageBlobEndpoint: storage_account.outputs.storageBlobEndpoint
+    storageAccountId: storage_account.outputs.storageAccountId
+    storageAccountName: storage_account.outputs.storageAccountName
   }
 }
 
@@ -367,9 +380,9 @@ module backend_custom './modules/compute/app-service-custom.bicep' = if (shouldD
       AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
       AZURE_SQLDB_USER_MID: ''
       API_UID: ''
-      AZURE_AI_SEARCH_ENDPOINT: ai_search!.outputs.aiSearchTarget
+      AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.aiSearchTarget
       AZURE_AI_SEARCH_INDEX: 'knowledge_index'
-      AZURE_AI_SEARCH_CONNECTION_NAME: ai_search!.outputs.aiSearchConnectionName
+      AZURE_AI_SEARCH_CONNECTION_NAME: ai_search.outputs.aiSearchConnectionName
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
@@ -415,9 +428,9 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
       AZURE_COSMOSDB_DATABASE: cosmosDBModule!.outputs.cosmosDatabaseName
       AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
       API_UID: ''
-      AZURE_AI_SEARCH_ENDPOINT: ai_search!.outputs.aiSearchTarget
+      AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.aiSearchTarget
       AZURE_AI_SEARCH_INDEX: 'call_transcripts_index'
-      AZURE_AI_SEARCH_CONNECTION_NAME: ai_search!.outputs.aiSearchConnectionName
+      AZURE_AI_SEARCH_CONNECTION_NAME: ai_search.outputs.aiSearchConnectionName
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
@@ -464,10 +477,10 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     shouldDeployApp: shouldDeployApp
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     aiFoundryName: aiFoundryName
-    aiSearchName: ai_search!.outputs.aiSearchName
-    storageAccountName: storage_account!.outputs.storageAccountName
+    aiSearchName: ai_search.outputs.aiSearchName
+    storageAccountName: storage_account.outputs.storageAccountName
     aiProjectPrincipalId: aiProjectPrincipalId
-    searchPrincipalId: ai_search!.outputs.searchPrincipalId
+    searchPrincipalId: ai_search.outputs.searchPrincipalId
     deployingUserPrincipalId: deployingUserPrincipalId
     deployingUserPrincipalType: deployingUserPrincipalType
     backendAppPrincipalId: shouldDeployApp && backendRuntimeStack == 'python' ? backend_custom!.outputs.identityPrincipalId : ''
@@ -540,19 +553,19 @@ output WEB_APP_URL string = shouldDeployApp ? frontend_custom!.outputs.appUrl : 
 output USE_CASE string = usecase
 
 @description('Azure AI Search service endpoint URL')
-output AZURE_AI_SEARCH_ENDPOINT string = ai_search!.outputs.aiSearchTarget
+output AZURE_AI_SEARCH_ENDPOINT string = ai_search.outputs.aiSearchTarget
 
 @description('Azure AI Search index name for document search')
 output AZURE_AI_SEARCH_INDEX string = 'knowledge_index'
 
 @description('Azure AI Search service resource name')
-output AZURE_AI_SEARCH_NAME string = ai_search!.outputs.aiSearchName
+output AZURE_AI_SEARCH_NAME string = ai_search.outputs.aiSearchName
 
 @description('Local path to documents folder for search indexing')
 output SEARCH_DATA_FOLDER string = 'data/default/documents'
 
 @description('AI Foundry connection name for Azure AI Search')
-output AZURE_AI_SEARCH_CONNECTION_NAME string = ai_search!.outputs.aiSearchConnectionName
+output AZURE_AI_SEARCH_CONNECTION_NAME string = ai_search.outputs.aiSearchConnectionName
 
 @description('AI Foundry connection ID for Azure AI Search')
 output AZURE_AI_SEARCH_CONNECTION_ID string = aiSearchConnectionId
