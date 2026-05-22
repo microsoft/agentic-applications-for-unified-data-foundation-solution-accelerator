@@ -256,7 +256,8 @@ public class ChatController : ControllerBase
     }
 
     /// <summary>
-    /// Extract MCP document info from AgentResponseUpdate raw representations.
+    /// Extract MCP document info from AgentResponseUpdate contents.
+    /// MCP tool results appear as content items with Outputs[].Text containing doc metadata.
     /// </summary>
     private static void ExtractMcpFromUpdate(AgentResponseUpdate? update, Dictionary<string, McpDocInfo> mcpDocs)
     {
@@ -264,41 +265,21 @@ public class ChatController : ControllerBase
 
         foreach (var content in update.Contents)
         {
-            // Check raw representation for MCP output text
-            var rawRepr = update.RawRepresentation;
-            if (rawRepr == null) continue;
-
-            // Try to extract output string from raw representation via reflection
-            var outputProp = rawRepr.GetType().GetProperty("Output");
-            if (outputProp != null)
+            // MCP results have an "Outputs" property containing items with "Text"
+            var outputsProp = content.GetType().GetProperty("Outputs");
+            if (outputsProp != null)
             {
-                var outputVal = outputProp.GetValue(rawRepr) as string;
-                if (!string.IsNullOrEmpty(outputVal))
+                if (outputsProp.GetValue(content) is System.Collections.IEnumerable outputs)
                 {
-                    ParseMcpDocs(outputVal, mcpDocs);
-                }
-            }
-
-            // Check for ResponseCompletedEvent-like structure with response.output
-            var responseProp = rawRepr.GetType().GetProperty("Response");
-            if (responseProp != null)
-            {
-                var responseVal = responseProp.GetValue(rawRepr);
-                if (responseVal != null)
-                {
-                    var outputItemsProp = responseVal.GetType().GetProperty("Output");
-                    if (outputItemsProp?.GetValue(responseVal) is System.Collections.IEnumerable outputItems)
+                    foreach (var output in outputs)
                     {
-                        foreach (var item in outputItems)
+                        var textProp = output.GetType().GetProperty("Text");
+                        if (textProp != null)
                         {
-                            var itemOutputProp = item.GetType().GetProperty("Output");
-                            if (itemOutputProp != null)
+                            var text = textProp.GetValue(output) as string;
+                            if (!string.IsNullOrEmpty(text))
                             {
-                                var itemOutput = itemOutputProp.GetValue(item) as string;
-                                if (!string.IsNullOrEmpty(itemOutput))
-                                {
-                                    ParseMcpDocs(itemOutput, mcpDocs);
-                                }
+                                ParseMcpDocs(text, mcpDocs);
                             }
                         }
                     }

@@ -146,6 +146,8 @@ for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
     )
     if "%%A"=="SQLDB_DATABASE" set "SQLDB_DATABASE=%%~B"
     if "%%A"=="USE_DATA_AGENT" set "USE_DATA_AGENT=%%~B"
+    if "%%A"=="AZURE_AI_SEARCH_ENDPOINT" set "AZURE_AI_SEARCH_ENDPOINT=%%~B"
+    if "%%A"=="AZURE_AI_SEARCH_INDEX" set "AZURE_AI_SEARCH_INDEX=%%~B"
 )
 
 REM Fallback: AZURE_ENV_GPT_MODEL_NAME falls back to AZURE_OPENAI_DEPLOYMENT_MODEL
@@ -303,6 +305,8 @@ if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" if exist "%API_DOTNET_DIR%" (
             "$json.'AZURE_COSMOSDB_DATABASE' = '!AZURE_COSMOSDB_DATABASE!';" ^
             "$json.'AZURE_COSMOSDB_CONVERSATIONS_CONTAINER' = '!AZURE_COSMOSDB_CONVERSATIONS_CONTAINER!';" ^
             "$json.'AZURE_COSMOSDB_ENABLE_FEEDBACK' = '!AZURE_COSMOSDB_ENABLE_FEEDBACK!';" ^
+            "$json.'AZURE_AI_SEARCH_ENDPOINT' = '!AZURE_AI_SEARCH_ENDPOINT!';" ^
+            "$json.'AZURE_AI_SEARCH_INDEX' = '!AZURE_AI_SEARCH_INDEX!';" ^
             "$json | ConvertTo-Json -Depth 10 | Set-Content '!API_DOTNET_DIR!\appsettings.json' -Encoding UTF8"
 
         echo Configured src\api\dotnet\appsettings.json with environment values
