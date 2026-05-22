@@ -153,20 +153,19 @@ async def get_db_connection():
     """
     Get a database connection based on deployment mode.
 
-    When IS_WORKSHOP is true, uses Azure SQL Server.
-    When IS_WORKSHOP is false or not set, uses Fabric SQL.
+    When AZURE_ENV_ONLY is true, uses Azure SQL Server.
+    When AZURE_ENV_ONLY is false, uses Fabric SQL.
 
     Returns:
         Connection: Database connection object, or None if connection fails.
     """
-    is_workshop = os.getenv("IS_WORKSHOP", "false").lower() == "true"
     is_azure_only = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
 
-    if is_workshop and is_azure_only:
-        logging.info("Workshop deployment mode: Using Azure SQL Server")
+    if is_azure_only:
+        logging.info("Using Azure SQL Server")
         return await get_azure_sql_connection()
     else:
-        logging.info("Standard deployment mode: Using Fabric SQL")
+        logging.info("Using Fabric SQL")
         return await get_fabric_db_connection()
 
 

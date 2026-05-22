@@ -370,7 +370,7 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
         # App Service
         "WEB_APP_URL", "API_APP_NAME",
         # Workshop
-        "IS_WORKSHOP", "USE_CASE", "BACKEND_RUNTIME_STACK",
+        "USE_CASE", "BACKEND_RUNTIME_STACK",
     ]
     
     lines = [
@@ -551,8 +551,7 @@ def generate_env_content(resource_group: str) -> str:
         "# --- App Service ---",
         f"WEB_APP_URL={web_app_url}",
         "",
-        "# --- Workshop Settings ---",
-        "IS_WORKSHOP=true",
+        "# --- Settings ---",
         "USE_CASE=Network operations with outage tracking and trouble ticket management",
     ]
     

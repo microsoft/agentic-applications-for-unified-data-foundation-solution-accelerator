@@ -139,7 +139,6 @@ if [ -n "$AZURE_SQLDB_SERVER" ]; then
 fi
 
 # Normalize booleans to lowercase
-IS_WORKSHOP=$(echo "${IS_WORKSHOP:-false}" | tr '[:upper:]' '[:lower:]')
 AZURE_ENV_ONLY=$(echo "${AZURE_ENV_ONLY:-false}" | tr '[:upper:]' '[:lower:]')
 
 # Default USE_CHAT_HISTORY_ENABLED to true if not set (for existing deployments)
@@ -152,7 +151,6 @@ BACKEND_RUNTIME_STACK="${BACKEND_RUNTIME_STACK:-python}"
 echo ""
 echo "Configuration:"
 echo "  BACKEND_RUNTIME_STACK=$BACKEND_RUNTIME_STACK"
-echo "  IS_WORKSHOP=$IS_WORKSHOP"
 echo "  AZURE_ENV_ONLY=$AZURE_ENV_ONLY"
 echo "  USE_CHAT_HISTORY_ENABLED=$USE_CHAT_HISTORY_ENABLED"
 echo ""
@@ -177,11 +175,9 @@ else
     echo "Loaded agent names from env: AGENT_NAME_CHAT=$AGENT_NAME_CHAT, AGENT_NAME_TITLE=$AGENT_NAME_TITLE"
 fi
 
-# Load Fabric SQL settings (needed unless workshop + azure-only mode)
-# Python code: get_db_connection() uses Azure SQL only when IS_WORKSHOP=true AND AZURE_ENV_ONLY=true
-# All other combinations use Fabric SQL
+# Load Fabric SQL settings (needed unless azure-only mode)
 USE_FABRIC_SQL="true"
-if [ "$IS_WORKSHOP" = "true" ] && [ "$AZURE_ENV_ONLY" = "true" ]; then
+if [ "$AZURE_ENV_ONLY" = "true" ]; then
     USE_FABRIC_SQL="false"
 fi
 
@@ -199,7 +195,7 @@ if [ "$USE_FABRIC_SQL" = "true" ]; then
         echo "Loaded Fabric SQL from env: SERVER=$FABRIC_SQL_SERVER, DATABASE=$FABRIC_SQL_DATABASE"
     fi
 else
-    echo "Using Azure SQL mode (IS_WORKSHOP=true, AZURE_ENV_ONLY=true). AZURE_SQLDB_SERVER=$AZURE_SQLDB_SERVER"
+    echo "Using Azure SQL mode (AZURE_ENV_ONLY=true). AZURE_SQLDB_SERVER=$AZURE_SQLDB_SERVER"
 fi
 
 # ============================================================
@@ -306,7 +302,6 @@ fi
 APP_ENV_FILE="$ROOT_DIR/src/App/.env"
 cat > "$APP_ENV_FILE" <<EOF
 REACT_APP_API_BASE_URL=http://127.0.0.1:8000
-REACT_APP_IS_WORKSHOP=$IS_WORKSHOP
 REACT_APP_CHAT_LANDING_TEXT=You can ask questions around sales, products and orders.
 EOF
 echo "Updated src/App/.env with frontend configuration"
