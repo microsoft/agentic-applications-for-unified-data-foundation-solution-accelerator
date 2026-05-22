@@ -206,13 +206,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     azd auth login --tenant-id <tenant-id>
     ```
 
-    > **Note**: This solution accelerator now supports two modes (standard and workshop). By default it will run in workshop mode. If you do not want to run the workshop please set IS_WORKSHOP run the below azd command to set the workshop to false. 
-
-      ```sh
-      azd env set IS_WORKSHOP false
-      ```
-    
-      In standard mode, by default the backend API is configured to Python.
+      By default the backend API is configured to Python.
       To use dotnet instead, run the below command.
 
       ```sh
@@ -298,7 +292,6 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     | `<api-app-name>` | `API_APP_NAME` | App Service name (e.g., `api-cs-<solutionname>`) |
     | `<resource-group>` | `AZURE_RESOURCE_GROUP` | Resource group name (e.g., `rg-<envname>`) |
     | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
-    | `<is-workshop>` | `IS_WORKSHOP` | `true` or `false` (defaults to `false`) |
 
 9. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
     ```Shell
