@@ -3,6 +3,7 @@ using CsApi.Interfaces;
 using CsApi.Models;
 using Microsoft.Azure.Cosmos;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace CsApi.Repositories;
 
@@ -32,13 +33,7 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
         var endpoint = $"https://{account}.documents.azure.com:443/";
         var credential = new DefaultAzureCredential();
 
-        _cosmosClient = new CosmosClient(endpoint, credential, new CosmosClientOptions
-        {
-            SerializerOptions = new CosmosSerializationOptions
-            {
-                PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
-            }
-        });
+        _cosmosClient = new CosmosClient(endpoint, credential);
 
         _container = _cosmosClient.GetContainer(database, container);
     }
@@ -62,7 +57,7 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
         var id = conversationId ?? Guid.NewGuid().ToString();
         var now = DateTime.UtcNow.ToString("o");
 
-        var doc = new Dictionary<string, object>
+        var doc = new JsonObject
         {
             ["id"] = id,
             ["type"] = "conversation",
@@ -75,8 +70,7 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
 
         try
         {
-            var response = await _container.UpsertItemAsync(doc, new PartitionKey(userId), cancellationToken: ct);
-            var result = response.Resource;
+            await UpsertJsonNodeAsync(doc, userId, ct);
             return new ConversationSummary
             {
                 ConversationId = id,
@@ -99,18 +93,9 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
             .WithParameter("@id", conversationId)
             .WithParameter("@userId", userId);
 
-        var iterator = _container.GetItemQueryIterator<JsonElement>(query, requestOptions: new QueryRequestOptions
+        await foreach (var item in QueryItemsAsync(query, ct))
         {
-            PartitionKey = new PartitionKey(userId)
-        });
-
-        while (iterator.HasMoreResults)
-        {
-            var batch = await iterator.ReadNextAsync(ct);
-            foreach (var item in batch)
-            {
-                return MapToConversationSummary(item);
-            }
+            return MapToConversationSummary(item);
         }
 
         return null;
@@ -126,40 +111,29 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
             .WithParameter("@userId", userId);
 
         var results = new List<ConversationSummary>();
-        var iterator = _container.GetItemQueryIterator<JsonElement>(query, requestOptions: new QueryRequestOptions
+        await foreach (var item in QueryItemsAsync(query, ct))
         {
-            PartitionKey = new PartitionKey(userId)
-        });
-
-        while (iterator.HasMoreResults)
-        {
-            var batch = await iterator.ReadNextAsync(ct);
-            foreach (var item in batch)
-            {
-                var summary = MapToConversationSummary(item);
-                if (summary != null) results.Add(summary);
-            }
+            var summary = MapToConversationSummary(item);
+            if (summary != null) results.Add(summary);
         }
 
         return results;
     }
 
-    public async Task<bool> UpsertConversationAsync(ConversationSummary conversation, CancellationToken ct)
+    public async Task<bool> UpsertConversationAsync(string userId, ConversationSummary conversation, CancellationToken ct)
     {
         try
         {
-            // Read existing doc, update fields, upsert
-            var response = await _container.ReadItemAsync<JsonElement>(
-                conversation.ConversationId,
-                new PartitionKey(conversation.ConversationId), // userId is partition, but we need it
-                cancellationToken: ct);
+            var rawDoc = await ReadItemAsJsonAsync(conversation.ConversationId, userId, ct);
+            if (rawDoc == null) return false;
 
-            var doc = JsonSerializer.Deserialize<Dictionary<string, object>>(response.Resource.GetRawText())!;
-            doc["title"] = conversation.Title;
-            doc["updatedAt"] = DateTime.UtcNow.ToString("o");
+            var node = JsonNode.Parse(rawDoc.Value.GetRawText());
+            if (node == null) return false;
 
-            var userId = response.Resource.GetProperty("userId").GetString()!;
-            await _container.UpsertItemAsync(doc, new PartitionKey(userId), cancellationToken: ct);
+            node["title"] = conversation.Title;
+            node["updatedAt"] = DateTime.UtcNow.ToString("o");
+
+            await UpsertJsonNodeAsync(node, userId, ct);
             return true;
         }
         catch (CosmosException ex)
@@ -174,7 +148,7 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
         var now = DateTime.UtcNow.ToString("o");
         var messageId = string.IsNullOrEmpty(message.Id) ? Guid.NewGuid().ToString() : message.Id;
 
-        var doc = new Dictionary<string, object>
+        var doc = new JsonObject
         {
             ["id"] = messageId,
             ["type"] = "message",
@@ -183,7 +157,7 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
             ["updatedAt"] = now,
             ["conversationId"] = conversationId,
             ["role"] = message.Role,
-            ["content"] = BuildContentPayload(message)
+            ["content"] = BuildContentPayloadNode(message)
         };
 
         if (_enableFeedback)
@@ -191,7 +165,7 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
             doc["feedback"] = message.Feedback ?? "";
         }
 
-        await _container.UpsertItemAsync(doc, new PartitionKey(userId), cancellationToken: ct);
+        await UpsertJsonNodeAsync(doc, userId, ct);
 
         // Update parent conversation's updatedAt
         var conversation = await GetConversationAsync(userId, conversationId, ct);
@@ -209,19 +183,10 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
             .WithParameter("@userId", userId);
 
         var results = new List<ChatMessage>();
-        var iterator = _container.GetItemQueryIterator<JsonElement>(query, requestOptions: new QueryRequestOptions
+        await foreach (var item in QueryItemsAsync(query, ct))
         {
-            PartitionKey = new PartitionKey(userId)
-        });
-
-        while (iterator.HasMoreResults)
-        {
-            var batch = await iterator.ReadNextAsync(ct);
-            foreach (var item in batch)
-            {
-                var msg = MapToChatMessage(item);
-                if (msg != null) results.Add(msg);
-            }
+            var msg = MapToChatMessage(item);
+            if (msg != null) results.Add(msg);
         }
 
         return results;
@@ -231,13 +196,15 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
     {
         try
         {
-            var response = await _container.ReadItemAsync<JsonElement>(
-                messageId, new PartitionKey(userId), cancellationToken: ct);
+            var rawDoc = await ReadItemAsJsonAsync(messageId, userId, ct);
+            if (rawDoc == null) return false;
 
-            var doc = JsonSerializer.Deserialize<Dictionary<string, object>>(response.Resource.GetRawText())!;
-            doc["feedback"] = feedback;
+            var node = JsonNode.Parse(rawDoc.Value.GetRawText());
+            if (node == null) return false;
 
-            await _container.UpsertItemAsync(doc, new PartitionKey(userId), cancellationToken: ct);
+            node["feedback"] = feedback;
+
+            await UpsertJsonNodeAsync(node, userId, ct);
             return true;
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -317,13 +284,16 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
     {
         try
         {
-            var response = await _container.ReadItemAsync<JsonElement>(
-                conversationId, new PartitionKey(userId), cancellationToken: ct);
+            var rawDoc = await ReadItemAsJsonAsync(conversationId, userId, ct);
+            if (rawDoc == null) return;
 
-            var doc = JsonSerializer.Deserialize<Dictionary<string, object>>(response.Resource.GetRawText())!;
-            doc["updatedAt"] = timestamp;
+            // Use JsonNode for safe in-place modification (avoids JsonElement serialization issues)
+            var node = JsonNode.Parse(rawDoc.Value.GetRawText());
+            if (node == null) return;
 
-            await _container.UpsertItemAsync(doc, new PartitionKey(userId), cancellationToken: ct);
+            node["updatedAt"] = timestamp;
+
+            await UpsertJsonNodeAsync(node, userId, ct);
         }
         catch (CosmosException ex)
         {
@@ -331,25 +301,25 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
         }
     }
 
-    private static object BuildContentPayload(ChatMessage message)
+    private static JsonNode BuildContentPayloadNode(ChatMessage message)
     {
-        // Store content as a dict with content + citations (matches Python format)
+        // Match Python: "content": input_message (the full message dict)
+        // Python stores {"role": "...", "content": "...", "citations": [...]} 
         var contentStr = message.GetContentAsString();
         var citations = message.GetCitationsAsJsonString();
 
-        if (!string.IsNullOrEmpty(citations))
+        var payload = new JsonObject
         {
-            return new Dictionary<string, string>
-            {
-                ["content"] = contentStr,
-                ["citations"] = citations
-            };
-        }
-
-        return new Dictionary<string, string>
-        {
+            ["role"] = message.Role,
             ["content"] = contentStr
         };
+
+        if (!string.IsNullOrEmpty(citations))
+        {
+            payload["citations"] = citations;
+        }
+
+        return payload;
     }
 
     private static ConversationSummary? MapToConversationSummary(JsonElement item)
@@ -426,6 +396,64 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
             return DateTime.TryParse(element.GetString(), out var dt) ? dt : DateTime.UtcNow;
         }
         return DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Stream-based query that bypasses the Cosmos SDK serializer.
+    /// Reads raw JSON from Cosmos and parses with System.Text.Json directly.
+    /// </summary>
+    private async IAsyncEnumerable<JsonElement> QueryItemsAsync(QueryDefinition query, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+    {
+        using var iterator = _container.GetItemQueryStreamIterator(query);
+        while (iterator.HasMoreResults)
+        {
+            using var response = await iterator.ReadNextAsync(ct);
+            response.EnsureSuccessStatusCode();
+
+            using var doc = await JsonDocument.ParseAsync(response.Content, cancellationToken: ct);
+            if (doc.RootElement.TryGetProperty("Documents", out var documents))
+            {
+                foreach (var item in documents.EnumerateArray())
+                {
+                    yield return item.Clone();
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Read a single item by id and partition key, returning parsed JsonElement.
+    /// </summary>
+    private async Task<JsonElement?> ReadItemAsJsonAsync(string id, string partitionKey, CancellationToken ct)
+    {
+        try
+        {
+            using var response = await _container.ReadItemStreamAsync(id, new PartitionKey(partitionKey), cancellationToken: ct);
+            if (!response.IsSuccessStatusCode) return null;
+
+            using var doc = await JsonDocument.ParseAsync(response.Content, cancellationToken: ct);
+            return doc.RootElement.Clone();
+        }
+        catch (CosmosException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Upsert a JsonNode document using stream API (bypasses SDK serializer).
+    /// </summary>
+    private async Task UpsertJsonNodeAsync(JsonNode node, string partitionKey, CancellationToken ct)
+    {
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream))
+        {
+            node.WriteTo(writer);
+        }
+        stream.Position = 0;
+
+        using var response = await _container.UpsertItemStreamAsync(stream, new PartitionKey(partitionKey), cancellationToken: ct);
+        response.EnsureSuccessStatusCode();
     }
 
     public ValueTask DisposeAsync()

@@ -304,7 +304,7 @@ public class HistoryController : ControllerBase
 
             conversation.Title = req.Title;
             conversation.UpdatedAt = DateTime.UtcNow;
-            var success = await _cosmosRepo.UpsertConversationAsync(conversation, ct);
+            var success = await _cosmosRepo.UpsertConversationAsync(userId, conversation, ct);
             if (!success)
                 return Problem(statusCode: 500, detail: "Failed to rename conversation");
 

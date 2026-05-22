@@ -323,7 +323,7 @@ public class HistoryControllerTests
     {
         _mockRepo.Setup(r => r.GetConversationAsync("test-user-123", "conv-123", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ConversationSummary { ConversationId = "conv-123", Title = "Old" });
-        _mockRepo.Setup(r => r.UpsertConversationAsync(It.IsAny<ConversationSummary>(), It.IsAny<CancellationToken>()))
+        _mockRepo.Setup(r => r.UpsertConversationAsync(It.IsAny<string>(), It.IsAny<ConversationSummary>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         var req = new HistoryController.RenameRequest
