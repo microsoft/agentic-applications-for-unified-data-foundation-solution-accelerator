@@ -55,7 +55,7 @@ namespace CsApi.Services
             _useDataAgent = string.Equals(config["USE_DATA_AGENT"], "true", StringComparison.OrdinalIgnoreCase)
                          || string.Equals(config["USE_DATA_AGENT"], "1", StringComparison.OrdinalIgnoreCase);
 
-            // Create function tool for SQL operations like Python SqlQueryTool
+            // Create function tool for SQL operations
             _sqlTool = AIFunctionFactory.Create(execute_sql);
 
             var credentialFactory = new AzureCredentialFactory(_config);
@@ -64,7 +64,7 @@ namespace CsApi.Services
             // Use Azure AI Projects client (Foundry approach)
             _projectClient = new AIProjectClient(new Uri(endpoint), credential);
 
-            // Create FoundryAgent using AgentReference (by name) matching the Python FoundryAgent pattern
+            // Create FoundryAgent using AgentReference (by name)
             var agentReference = new AgentReference(_chatAgentName);
 
             if (_useDataAgent)
@@ -84,7 +84,7 @@ namespace CsApi.Services
         }
 
         /// <summary>
-        /// Function tool for SQL database queries - directly executes SQL like Python SqlQueryTool
+        /// Function tool for SQL database queries.
         /// </summary>
         [System.ComponentModel.Description("Execute parameterized SQL query and return results as list of dictionaries.")]
         public async Task<string> execute_sql(
@@ -95,7 +95,7 @@ namespace CsApi.Services
                 // Clean up the SQL query similar to the original implementation
                 var cleanedQuery = sql_query.Replace("```sql", string.Empty).Replace("```", string.Empty).Trim();
                 
-                // Execute SQL query directly like Python SqlQueryTool
+                // Execute SQL query
                 var answerRaw = await _sqlRepo.ExecuteChatQuery(cleanedQuery, CancellationToken.None);
                 string answer = answerRaw?.Length > 20000 ? answerRaw.Substring(0, 20000) : answerRaw ?? string.Empty;
 

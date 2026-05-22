@@ -91,11 +91,11 @@ public class ChatController : ControllerBase
         _logger.LogInformation("Chat request received - query: {Query}, conversation_id: {ConversationId}", sanitizedQuery, sanitizedConvId);
 
         var agent = agentService.Agent;
-        string completeResponse = "";
+        var completeResponseBuilder = new StringBuilder();
 
         try
         {
-            // Retrieve or create server-side conversation (mirrors Python cache pattern)
+            // Retrieve or create server-side conversation
             string? serverConvId = null;
             if (_conversationCache.TryGet(convId, out var cachedConvId))
             {
@@ -104,29 +104,29 @@ public class ChatController : ControllerBase
 
             if (string.IsNullOrEmpty(serverConvId))
             {
-                // Create a new server-side conversation (mirrors Python: openai_client.conversations.create())
+                // Create a new server-side conversation
                 var convSession = await agent.CreateConversationSessionAsync(ct);
                 serverConvId = convSession.ConversationId ?? string.Empty;
                 _conversationCache.Set(convId, serverConvId);
             }
 
-            // Citation tracking (mirrors Python pattern)
+            // Citation tracking
             var mcpDocs = new Dictionary<string, McpDocInfo>();
             var markerBuf = new StringBuilder();
             int citationIdx = 0;
             var originalMarkers = new List<(string SecIdx, string MarkerSource)>();
 
-            // Stream response — pass conversation_id via options (mirrors Python: agent.run(query, stream=True, options={"conversation_id": conv_id}))
+            // Stream response with conversation_id
             var runOptions = new ChatClientAgentRunOptions(new ChatOptions { ConversationId = serverConvId });
             await foreach (var update in agent.RunStreamingAsync(request.Query, session: null, options: runOptions).WithCancellation(ct))
             {
-                // Extract MCP docs from raw representations (mirrors Python _extract_mcp_from_raw)
+                // Extract MCP docs from raw representations
                 ExtractMcpFromUpdate(update, mcpDocs);
 
                 var chunkText = update?.Text ?? string.Empty;
                 if (string.IsNullOrEmpty(chunkText)) continue;
 
-                completeResponse += chunkText;
+                completeResponseBuilder.Append(chunkText);
                 markerBuf.Append(chunkText);
 
                 // Process complete markers in buffer, keep trailing incomplete fragment
@@ -186,14 +186,14 @@ public class ChatController : ControllerBase
             _conversationCache.Set(convId, serverConvId);
 
             _logger.LogInformation("Streaming complete for conversation {ConversationId}: response_length={ResponseLength}, mcp_doc_count={McpDocCount}",
-                convId, completeResponse.Length, mcpDocs.Count);
+                convId, completeResponseBuilder.Length, mcpDocs.Count);
 
-            // Build and emit citations as a tool message (mirrors Python pattern)
+            // Build and emit citations as a tool message
             var citationList = BuildCitationList(originalMarkers, mcpDocs);
             await WriteDeltaAsync("tool", JsonSerializer.Serialize(citationList), ct);
 
             // Fallback response when no data is received
-            if (string.IsNullOrEmpty(completeResponse))
+            if (completeResponseBuilder.Length == 0)
             {
                 await WriteDeltaAsync("assistant", "I cannot answer this question with the current data. Please rephrase or add more details.", ct);
             }
@@ -243,7 +243,7 @@ public class ChatController : ControllerBase
     }
 
     /// <summary>
-    /// Move a corrupted conversation to a corrupt key in cache (mirrors Python error handling).
+    /// Move a corrupted conversation to a corrupt key in cache.
     /// </summary>
     private void HandleCorruptConversation(string convId)
     {
@@ -257,7 +257,6 @@ public class ChatController : ControllerBase
 
     /// <summary>
     /// Extract MCP document info from AgentResponseUpdate raw representations.
-    /// Mirrors Python _extract_mcp_from_raw + _parse_mcp_docs logic.
     /// </summary>
     private static void ExtractMcpFromUpdate(AgentResponseUpdate? update, Dictionary<string, McpDocInfo> mcpDocs)
     {
@@ -310,7 +309,6 @@ public class ChatController : ControllerBase
 
     /// <summary>
     /// Parse JSON document blocks from MCP output text keyed by section index.
-    /// Mirrors Python _parse_mcp_docs.
     /// </summary>
     private static void ParseMcpDocs(string mcpText, Dictionary<string, McpDocInfo> mcpDocs)
     {
@@ -342,7 +340,6 @@ public class ChatController : ControllerBase
 
     /// <summary>
     /// Build citation list from original markers and MCP docs.
-    /// Mirrors Python citation building logic.
     /// </summary>
     private List<object> BuildCitationList(List<(string SecIdx, string MarkerSource)> originalMarkers, Dictionary<string, McpDocInfo> mcpDocs)
     {

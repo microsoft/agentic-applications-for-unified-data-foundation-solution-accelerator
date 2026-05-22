@@ -10,7 +10,7 @@ using Xunit;
 namespace CsApi.Tests.Controllers;
 
 /// <summary>
-/// Tests for HistoryController (Cosmos-only, mirrors Python history.py).
+/// Tests for HistoryController (Cosmos-only).
 /// </summary>
 public class HistoryControllerTests
 {

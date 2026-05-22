@@ -65,16 +65,8 @@ builder.Services.AddScoped<ITitleGenerationService, TitleGenerationService>();
 builder.Services.AddSingleton<IAgentFrameworkService, AgentFrameworkService>();
 builder.Services.AddSingleton<IAzureCredentialFactory, AzureCredentialFactory>();
 
-// Register Cosmos DB repository when AZURE_ENV_ONLY=true (uses Cosmos for history)
-var azureEnvOnly = string.Equals(builder.Configuration["AZURE_ENV_ONLY"], "true", StringComparison.OrdinalIgnoreCase);
-var hasCosmosAccount = !string.IsNullOrWhiteSpace(builder.Configuration["AZURE_COSMOSDB_ACCOUNT"]);
-var hasCosmosDatabase = !string.IsNullOrWhiteSpace(builder.Configuration["AZURE_COSMOSDB_DATABASE"]);
-var hasCosmosContainer = !string.IsNullOrWhiteSpace(builder.Configuration["AZURE_COSMOSDB_CONVERSATIONS_CONTAINER"]);
 
-if (azureEnvOnly && hasCosmosAccount && hasCosmosDatabase && hasCosmosContainer)
-{
-    builder.Services.AddSingleton<IConversationRepository, CosmosConversationRepository>();
-}
+builder.Services.AddSingleton<IConversationRepository, CosmosConversationRepository>();
 
 builder.Services.AddSingleton(sp =>
 {

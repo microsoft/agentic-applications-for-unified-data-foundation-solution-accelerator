@@ -7,7 +7,6 @@ namespace CsApi.Controllers;
 
 /// <summary>
 /// History controller at /history — Cosmos DB only.
-/// Mirrors Python's history.py router mounted at /history prefix.
 /// All routes use CosmosConversationClient (no SQL fallback).
 /// </summary>
 [ApiController]
@@ -83,13 +82,13 @@ public class HistoryController : ControllerBase
 
             var messages = await _cosmosRepo.GetMessagesAsync(userId, id, ct);
 
-            // Format messages like Python's get_conversation_messages
+            // Format messages for response
             var formattedMessages = messages.Select(m => new
             {
                 id = m.Id,
                 role = m.Role,
                 content = m.GetContentAsString(),
-                createdAt = DateTime.UtcNow.ToString("o"),
+                createdAt = m.CreatedAt.ToString("o"),
                 feedback = m.Feedback,
                 citations = m.GetCitationsAsJsonString()
             }).ToList();
@@ -108,6 +107,9 @@ public class HistoryController : ControllerBase
     [HttpPost("generate")]
     public async Task<IActionResult> Generate([FromBody] GenerateRequest req, CancellationToken ct = default)
     {
+        if (req == null)
+            return Problem(statusCode: 400, detail: "Request body is required");
+
         try
         {
             var userId = GetUserId();

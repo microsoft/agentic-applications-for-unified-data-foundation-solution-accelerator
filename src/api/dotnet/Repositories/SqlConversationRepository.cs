@@ -70,7 +70,7 @@ public class SqlConversationRepository : ISqlConversationRepository
 
     /// <summary>
     /// Create connection for chat agent SQL queries, routed by AZURE_ENV_ONLY flag.
-    /// Mirrors Python: AZURE_ENV_ONLY → Azure SQL, else → Fabric SQL.
+    /// AZURE_ENV_ONLY=true → Azure SQL, else → Fabric SQL.
     /// </summary>
     private async Task<IDbConnection> CreateChatConnectionAsync()
     {
@@ -85,8 +85,7 @@ public class SqlConversationRepository : ISqlConversationRepository
     }
 
     /// <summary>
-    /// Connect to Azure SQL Server using credential from factory (matches Python pattern).
-    /// Mirrors Python get_azure_sql_connection().
+    /// Connect to Azure SQL Server using credential from factory.
     /// </summary>
     private async Task<IDbConnection> CreateAzureSqlConnectionAsync()
     {
@@ -111,7 +110,6 @@ public class SqlConversationRepository : ISqlConversationRepository
 
     /// <summary>
     /// Connect to Fabric Lakehouse SQL via ODBC.
-    /// Mirrors Python get_fabric_db_connection().
     /// </summary>
     private async Task<IDbConnection> CreateFabricSqlConnectionAsync()
     {
@@ -559,13 +557,13 @@ public class SqlConversationRepository : ISqlConversationRepository
                     var colName = reader.GetName(i);
                     var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
                 
-                    // Handle data type conversions to match Python SqlQueryTool behavior
+                    // Handle data type conversions for consistent serialization
                     if (value != null)
                     {
-                        // Convert DateTime, DateOnly, and TimeOnly to ISO format string like Python
+                        // Convert DateTime, DateOnly, and TimeOnly to ISO format string
                         if (value is DateTime dateTime)
                         {
-                            row[colName] = dateTime.ToString("O"); // ISO 8601 format (matches Python .isoformat())
+                            row[colName] = dateTime.ToString("O"); // ISO 8601 format
                         }
                         else if (value is DateOnly dateOnly)
                         {
@@ -575,7 +573,7 @@ public class SqlConversationRepository : ISqlConversationRepository
                         {
                             row[colName] = timeOnly.ToString("HH:mm:ss"); // ISO time format
                         }
-                        // Convert Decimal to double like Python converts to float
+                        // Convert Decimal to double for numeric precision
                         else if (value is decimal decimalValue)
                         {
                             row[colName] = (double)decimalValue;

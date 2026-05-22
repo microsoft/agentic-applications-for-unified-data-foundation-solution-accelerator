@@ -130,7 +130,6 @@ namespace CsApi.Utils
 
         /// <summary>
         /// Delete conversation from Azure AI Foundry when removed from cache.
-        /// Mirrors Python ExpCache._delete_thread_async behavior.
         /// </summary>
         private async Task DeleteConversationAsync(TValue value)
         {

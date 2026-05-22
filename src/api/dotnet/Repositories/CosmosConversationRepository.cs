@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 namespace CsApi.Repositories;
 
 /// <summary>
-/// Cosmos DB conversation repository mirroring Python's CosmosConversationClient.
+/// Cosmos DB conversation repository for history storage.
 /// Uses partition key = userId.
 /// </summary>
 public class CosmosConversationRepository : IConversationRepository, IAsyncDisposable
@@ -302,8 +302,7 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
 
     private static JsonNode BuildContentPayloadNode(ChatMessage message)
     {
-        // Match Python: "content": input_message (the full message dict)
-        // Python stores {"role": "...", "content": "...", "citations": [...]} 
+        // Store content as structured payload: {"role": "...", "content": "...", "citations": [...]}
         var contentStr = message.GetContentAsString();
         var citations = message.GetCitationsAsJsonString();
 
@@ -315,7 +314,14 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
 
         if (!string.IsNullOrEmpty(citations))
         {
-            payload["citations"] = citations;
+            try
+            {
+                payload["citations"] = JsonNode.Parse(citations);
+            }
+            catch (JsonException)
+            {
+                payload["citations"] = citations;
+            }
         }
 
         return payload;
@@ -378,6 +384,11 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
             if (item.TryGetProperty("feedback", out var fb))
             {
                 msg.Feedback = fb.GetString() ?? "";
+            }
+
+            if (item.TryGetProperty("createdAt", out var createdAtProp))
+            {
+                msg.CreatedAt = ParseDateTime(createdAtProp);
             }
 
             return msg;
