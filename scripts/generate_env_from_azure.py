@@ -369,7 +369,7 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
         "API_UID", "API_PID", "MID_DISPLAY_NAME",
         # App Service
         "WEB_APP_URL", "API_APP_NAME",
-        # Workshop
+        # Deployment
         "USE_CASE", "BACKEND_RUNTIME_STACK",
     ]
     

@@ -164,9 +164,9 @@ def _extract_mcp_from_raw(raw_repr, mcp_docs: dict):
                 _parse_mcp_docs(item_output, mcp_docs)
 
 
-async def stream_openai_text_workshop(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None):
+async def stream_openai_text(conversation_id: str, query: str, user_id: str = "", user_assertion: str = None):
     """
-    Async generator yielding ``(role, content)`` tuples (workshop mode).
+    Async generator yielding ``(role, content)`` tuples.
 
     Uses FoundryAgent with agent_framework to handle function calls (SQL)
     and search tools automatically.  Fabric SQL is used when AZURE_ENV_ONLY
@@ -200,10 +200,10 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
                 from history_sql import SqlQueryTool, get_azure_sql_connection, get_fabric_db_connection
 
                 if AZURE_ENV_ONLY:
-                    logger.info("Workshop mode: Using Azure SQL Database")
+                    logger.info("Using Azure SQL Database")
                     db_connection = await get_azure_sql_connection()
                 else:
-                    logger.info("Workshop mode: Using Fabric Lakehouse SQL")
+                    logger.info("Using Fabric Lakehouse SQL")
                     db_connection = await get_fabric_db_connection()
 
                 if not db_connection:
@@ -211,7 +211,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
 
                 custom_tool = SqlQueryTool(pyodbc_conn=db_connection) if db_connection else None
             else:
-                logger.info("Workshop mode: Using Fabric Data Agent (MCP) - skipping local SQL tool")
+                logger.info("Using Fabric Data Agent (MCP) - skipping local SQL tool")
 
             # Create agent with tools
             agent_name = os.getenv("AGENT_NAME_CHAT")
@@ -328,7 +328,7 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
 
     except Exception as e:
         complete_response = str(e)
-        logger.exception("Error in stream_openai_text_workshop: %s", e)
+        logger.exception("Error in stream_openai_text: %s", e)
         cache = get_thread_cache()
         conv_id = cache.pop(conversation_id, None)
         if conv_id is not None:
@@ -356,7 +356,7 @@ async def stream_chat_request(conversation_id, query, user_id: str = "", user_as
     async def generate():
         try:
             assistant_content = ""
-            async for role, content in stream_openai_text_workshop(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
+            async for role, content in stream_openai_text(conversation_id, query, user_id=user_id, user_assertion=user_assertion):
                 if not content:
                     continue
                 if role == "assistant":
