@@ -2,7 +2,9 @@ using Azure;
 using CsApi.Interfaces;
 using CsApi.Auth;
 using Azure.AI.Projects;
+using Azure.AI.Extensions.OpenAI;
 using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Foundry;
 
 namespace CsApi.Services;
 
@@ -120,7 +122,8 @@ public class TitleGenerationService : ITitleGenerationService
             var credential = credentialFactory.Create();
            
             var projectClient = new AIProjectClient(new Uri(_endpoint), credential);
-            AIAgent titleAgent = projectClient.GetAIAgent(titleAgentName);
+            var agentReference = new AgentReference(titleAgentName);
+            FoundryAgent titleAgent = projectClient.AsAIAgent(agentReference);
 
             var userMessages = messages.Where(m => m.Role == "user").ToList();
             if (userMessages.Count == 0)

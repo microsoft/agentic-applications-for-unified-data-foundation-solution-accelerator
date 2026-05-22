@@ -1,7 +1,9 @@
 using System.Data;
 using System.Data.Common;
 using System.Data.Odbc;
+using Azure.Core;
 using CsApi.Models;
+using Microsoft.Data.SqlClient;
 using System.Text.Json;
 
 namespace CsApi.Repositories;
@@ -23,11 +25,13 @@ public class SqlConversationRepository : ISqlConversationRepository
 {
     private readonly IConfiguration _config;
     private readonly ILogger<SqlConversationRepository> _logger;
+    private readonly CsApi.Auth.IAzureCredentialFactory _credentialFactory;
 
-    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger)
+    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger, CsApi.Auth.IAzureCredentialFactory credentialFactory)
     { 
         _config = config; 
-        _logger = logger; 
+        _logger = logger;
+        _credentialFactory = credentialFactory;
     }
 
     private async Task<IDbConnection> CreateConnectionAsync()
@@ -59,6 +63,55 @@ public class SqlConversationRepository : ISqlConversationRepository
     }
 
     private async Task<IDbConnection> CreateConnectionCoreAsync()
+    {
+        // History/conversation storage always uses Fabric SQL
+        return await CreateFabricSqlConnectionAsync();
+    }
+
+    /// <summary>
+    /// Create connection for chat agent SQL queries, routed by AZURE_ENV_ONLY flag.
+    /// AZURE_ENV_ONLY=true → Azure SQL, else → Fabric SQL.
+    /// </summary>
+    private async Task<IDbConnection> CreateChatConnectionAsync()
+    {
+        var azureEnvOnly = string.Equals(_config["AZURE_ENV_ONLY"], "true", StringComparison.OrdinalIgnoreCase);
+
+        if (azureEnvOnly)
+        {
+            return await CreateAzureSqlConnectionAsync();
+        }
+
+        return await CreateFabricSqlConnectionAsync();
+    }
+
+    /// <summary>
+    /// Connect to Azure SQL Server using credential from factory.
+    /// </summary>
+    private async Task<IDbConnection> CreateAzureSqlConnectionAsync()
+    {
+        var sqlServer = _config["AZURE_SQLDB_SERVER"] ?? _config["SQLDB_SERVER"]
+            ?? throw new InvalidOperationException("AZURE_SQLDB_SERVER or SQLDB_SERVER is required when AZURE_ENV_ONLY=true");
+        var sqlDatabase = _config["AZURE_SQLDB_DATABASE"] ?? _config["SQLDB_DATABASE"]
+            ?? throw new InvalidOperationException("AZURE_SQLDB_DATABASE or SQLDB_DATABASE is required when AZURE_ENV_ONLY=true");
+
+        _logger.LogInformation("Connecting to Azure SQL Database: {Server}/{Database}", sqlServer, sqlDatabase);
+
+        var credential = _credentialFactory.Create(_config["AZURE_CLIENT_ID"]);
+        var token = await credential.GetTokenAsync(new TokenRequestContext(["https://database.windows.net/.default"]), CancellationToken.None);
+
+        var connectionString = $"Server={sqlServer};Database={sqlDatabase};Encrypt=True;TrustServerCertificate=False;";
+        var conn = new SqlConnection(connectionString)
+        {
+            AccessToken = token.Token
+        };
+        await conn.OpenAsync();
+        return conn;
+    }
+
+    /// <summary>
+    /// Connect to Fabric Lakehouse SQL via ODBC.
+    /// </summary>
+    private async Task<IDbConnection> CreateFabricSqlConnectionAsync()
     {
         var appEnv = (_config["APP_ENV"] ?? "prod").ToLower();
 
@@ -490,8 +543,9 @@ public class SqlConversationRepository : ISqlConversationRepository
     {
         _logger.LogInformation("Chat Agent - Executing SQL query: {Query}", query);
         var results = new List<Dictionary<string, object?>>();
-        using var conn = await CreateConnectionAsync();
-        using var cmd = new OdbcCommand(query, (OdbcConnection)conn);
+        using var conn = await CreateChatConnectionAsync();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = query;
         try
         {
             using var reader = cmd.ExecuteReader();
@@ -503,13 +557,13 @@ public class SqlConversationRepository : ISqlConversationRepository
                     var colName = reader.GetName(i);
                     var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
                 
-                    // Handle data type conversions to match Python SqlQueryTool behavior
+                    // Handle data type conversions for consistent serialization
                     if (value != null)
                     {
-                        // Convert DateTime, DateOnly, and TimeOnly to ISO format string like Python
+                        // Convert DateTime, DateOnly, and TimeOnly to ISO format string
                         if (value is DateTime dateTime)
                         {
-                            row[colName] = dateTime.ToString("O"); // ISO 8601 format (matches Python .isoformat())
+                            row[colName] = dateTime.ToString("O"); // ISO 8601 format
                         }
                         else if (value is DateOnly dateOnly)
                         {
@@ -519,7 +573,7 @@ public class SqlConversationRepository : ISqlConversationRepository
                         {
                             row[colName] = timeOnly.ToString("HH:mm:ss"); // ISO time format
                         }
-                        // Convert Decimal to double like Python converts to float
+                        // Convert Decimal to double for numeric precision
                         else if (value is decimal decimalValue)
                         {
                             row[colName] = (double)decimalValue;
@@ -552,12 +606,12 @@ public class SqlConversationRepository : ISqlConversationRepository
             // Preserve cancellation semantics for callers
             throw;
         }
-        catch (OdbcException ex)
+        catch (DbException ex)
         {
             _logger.LogError(ex, "SQL error executing chat query");
             throw;
         }
-        catch (Exception ex) when (ex is not OperationCanceledException && ex is not OdbcException)
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not DbException)
         {
             _logger.LogError(ex, "Chat Agent - Error executing SQL query: {Query}", query);
             throw;
