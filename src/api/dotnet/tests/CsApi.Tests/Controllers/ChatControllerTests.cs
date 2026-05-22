@@ -48,7 +48,8 @@ public class ChatControllerTests
             _mockConfiguration.Object,
             NullLogger<ChatController>.Instance,
             conversationCache,
-            Mock.Of<IAzureCredentialFactory>());
+            Mock.Of<IAzureCredentialFactory>(),
+            Mock.Of<IHttpClientFactory>());
 
         // Setup default HttpContext
         var httpContext = new DefaultHttpContext();

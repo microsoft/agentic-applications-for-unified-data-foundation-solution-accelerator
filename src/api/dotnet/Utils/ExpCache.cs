@@ -144,11 +144,9 @@ namespace CsApi.Utils
                         return;
                     }
 
-                    var endpoint = _configuration["AZURE_AI_AGENT_ENDPOINT"]
-                            ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is required");
                     var credentialFactory = new AzureCredentialFactory(_configuration);
                     var credential = credentialFactory.Create();
-                    AIProjectClient projectClient = new AIProjectClient(new Uri(endpoint), credential);
+                    AIProjectClient projectClient = new AIProjectClient(new Uri(_azureAIEndpoint), credential);
 
                     await projectClient.GetProjectOpenAIClient()
                         .GetProjectConversationsClient()

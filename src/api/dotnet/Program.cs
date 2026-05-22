@@ -64,6 +64,7 @@ builder.Services.AddScoped<ISqlConversationRepository, SqlConversationRepository
 builder.Services.AddScoped<ITitleGenerationService, TitleGenerationService>();
 builder.Services.AddSingleton<IAgentFrameworkService, AgentFrameworkService>();
 builder.Services.AddSingleton<IAzureCredentialFactory, AzureCredentialFactory>();
+builder.Services.AddHttpClient();
 
 
 builder.Services.AddSingleton<IConversationRepository, CosmosConversationRepository>();

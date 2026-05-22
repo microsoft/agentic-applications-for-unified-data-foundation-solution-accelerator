@@ -26,6 +26,7 @@ public class ChatController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly ILogger<ChatController> _logger;
     private readonly IAzureCredentialFactory _credentialFactory;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     // Conversation ID cache: maps app-level conversation ID → Foundry server-side conversation ID
     private readonly ExpCache<string, string> _conversationCache;
@@ -39,7 +40,8 @@ public class ChatController : ControllerBase
         IConfiguration configuration,
         ILogger<ChatController> logger,
         ExpCache<string, string> conversationCache,
-        IAzureCredentialFactory credentialFactory)
+        IAzureCredentialFactory credentialFactory,
+        IHttpClientFactory httpClientFactory)
     { 
         _userContextAccessor = userContextAccessor; 
         _sqlRepo = sqlRepo;
@@ -47,6 +49,7 @@ public class ChatController : ControllerBase
         _logger = logger;
         _conversationCache = conversationCache;
         _credentialFactory = credentialFactory;
+        _httpClientFactory = httpClientFactory;
     }
 
     /// <summary>
@@ -98,7 +101,13 @@ public class ChatController : ControllerBase
             {
                 // Create a new server-side conversation
                 var convSession = await agent.CreateConversationSessionAsync(ct);
-                serverConvId = convSession.ConversationId ?? string.Empty;
+                serverConvId = convSession.ConversationId;
+                if (string.IsNullOrEmpty(serverConvId))
+                {
+                    _logger.LogError("Failed to create server-side conversation for {ConversationId}", convId);
+                    await WriteErrorAsync("Failed to create conversation session", ct);
+                    return;
+                }
                 _conversationCache.Set(convId, serverConvId);
             }
 
@@ -375,7 +384,7 @@ public class ChatController : ControllerBase
     /// Fetch document content from Azure AI Search by citation URL.
     /// </summary>
     [HttpPost("fetch-azure-search-content")]
-    public async Task<IActionResult> FetchAzureSearchContent([FromBody] JsonElement body)
+    public async Task<IActionResult> FetchAzureSearchContent([FromBody] JsonElement body, CancellationToken ct)
     {
         try
         {
@@ -389,18 +398,27 @@ public class ChatController : ControllerBase
             if (string.IsNullOrWhiteSpace(citationUrl))
                 return BadRequest(new { error = "URL is required" });
 
+            if (!Uri.TryCreate(citationUrl, UriKind.Absolute, out var parsedUrl) ||
+                (parsedUrl.Scheme != "https" && parsedUrl.Scheme != "http"))
+            {
+                return BadRequest(new { error = "Invalid URL format" });
+            }
+
             // SSRF protection: only allow requests to the configured search endpoint
             var searchEndpoint = _configuration["AZURE_AI_SEARCH_ENDPOINT"] ?? "";
             if (string.IsNullOrEmpty(searchEndpoint))
                 return StatusCode(500, new { error = "Search endpoint not configured" });
 
             var allowedHost = new Uri(searchEndpoint).Host.ToLowerInvariant();
-            var parsedUrl = new Uri(citationUrl);
             if (!string.Equals(parsedUrl.Host, allowedHost, StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("Blocked fetch to non-allowed host: {Host} (allowed: {Allowed})", parsedUrl.Host, allowedHost);
                 return StatusCode(403, new { error = "URL host not allowed" });
             }
+
+            // Enforce HTTPS for SSRF hardening
+            if (parsedUrl.Scheme != "https")
+                return BadRequest(new { error = "Only HTTPS URLs are allowed" });
 
             // Parse the doc id from the URL: .../docs/{doc_id}?api-version=...
             var pathParts = parsedUrl.AbsolutePath.TrimEnd('/').Split('/');
@@ -430,26 +448,26 @@ public class ChatController : ControllerBase
             // Get access token
             var credential = _credentialFactory.Create();
             var tokenResult = await credential.GetTokenAsync(
-                new Azure.Core.TokenRequestContext(new[] { "https://search.azure.com/.default" }), default);
+                new Azure.Core.TokenRequestContext(new[] { "https://search.azure.com/.default" }), ct);
 
-            using var httpClient = new HttpClient();
+            using var httpClient = _httpClientFactory.CreateClient();
             httpClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenResult.Token);
             httpClient.Timeout = TimeSpan.FromSeconds(10);
 
-            var response = await httpClient.GetAsync(lookupUrl);
+            var response = await httpClient.GetAsync(lookupUrl, ct);
             _logger.LogInformation("Azure Search lookup: status={Status}, url={LookupUrl}", (int)response.StatusCode, lookupUrl);
 
             if (response.IsSuccessStatusCode)
             {
-                var responseBody = await response.Content.ReadAsStringAsync();
+                var responseBody = await response.Content.ReadAsStringAsync(ct);
                 using var doc = JsonDocument.Parse(responseBody);
                 var content = doc.RootElement.TryGetProperty("content", out var contentProp) ? contentProp.GetString() ?? "" : "";
                 var source = doc.RootElement.TryGetProperty("source", out var sourceProp) ? sourceProp.GetString() ?? fallbackLabel : fallbackLabel;
                 return Ok(new { content, title = source });
             }
 
-            var errorBody = await response.Content.ReadAsStringAsync();
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
             _logger.LogWarning("Azure Search fetch failed: status={Status}, body={Body}", (int)response.StatusCode, errorBody[..Math.Min(500, errorBody.Length)]);
             return Ok(new { error = $"HTTP {(int)response.StatusCode}" });
         }

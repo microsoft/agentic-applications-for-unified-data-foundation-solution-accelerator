@@ -116,6 +116,11 @@ public class HistoryController : ControllerBase
             var conversationId = req.ConversationId;
             var messages = req.Messages ?? new List<ChatMessage>();
 
+            // Validate user message exists first
+            var userMsg = messages.LastOrDefault(m => m.Role == "user");
+            if (userMsg == null)
+                return Problem(statusCode: 400, detail: "No user message found");
+
             if (string.IsNullOrWhiteSpace(conversationId))
             {
                 // Create new conversation with generated title
@@ -125,11 +130,13 @@ public class HistoryController : ControllerBase
                     return Problem(statusCode: 500, detail: "CosmosDB is not configured or unavailable");
                 conversationId = conversation.ConversationId;
             }
-
-            // Store user message (last user message)
-            var userMsg = messages.LastOrDefault(m => m.Role == "user");
-            if (userMsg == null)
-                return Problem(statusCode: 400, detail: "No user message found");
+            else
+            {
+                // Verify conversation exists
+                var existing = await _cosmosRepo.GetConversationAsync(userId, conversationId, ct);
+                if (existing == null)
+                    return Problem(statusCode: 404, detail: "Conversation not found");
+            }
 
             await _cosmosRepo.CreateMessageAsync(userId, conversationId, userMsg, ct);
 
@@ -168,10 +175,10 @@ public class HistoryController : ControllerBase
 
             // Store user message (last user message)
             var lastUser = messages.LastOrDefault(m => m.Role == "user");
-            if (lastUser != null)
-            {
-                await _cosmosRepo.CreateMessageAsync(userId, conversationId, lastUser, ct);
-            }
+            if (lastUser == null)
+                return Problem(statusCode: 400, detail: "No user message found");
+
+            await _cosmosRepo.CreateMessageAsync(userId, conversationId, lastUser, ct);
 
             // Store tool message if present before assistant (matches Python)
             if (messages.Count > 1 && messages[^1].Role is "assistant" or "error")
@@ -188,14 +195,14 @@ public class HistoryController : ControllerBase
                 await _cosmosRepo.CreateMessageAsync(userId, conversationId, messages[^1], ct);
             }
 
-            // Return conversation info using in-memory object (matches Python — no re-fetch needed)
+            // Return conversation info with current timestamp (writes update the Cosmos timestamp)
             return Ok(new
             {
                 success = true,
                 data = new
                 {
                     title = conversation.Title,
-                    date = conversation.UpdatedAt.ToString("o"),
+                    date = DateTime.UtcNow.ToString("o"),
                     conversation_id = conversationId
                 }
             });
