@@ -18,9 +18,6 @@ resource aiSearch 'Microsoft.Search/searchServices@2025-05-01' = {
   sku: {
     name: 'standard'
   }
-  identity: {
-    type: 'SystemAssigned'
-  }
   properties: {
     replicaCount: 1
     partitionCount: 1
@@ -34,6 +31,14 @@ resource aiSearch 'Microsoft.Search/searchServices@2025-05-01' = {
     }
     disableLocalAuth: true
     semanticSearch: 'free'
+  }
+}
+
+module aiSearchIdentity 'ai-search-identity.bicep' = {
+  name: 'aiSearchIdentityDeployment'
+  params: {
+    searchServiceName: aiSearch.name
+    searchServiceLocation: searchServiceLocation
   }
 }
 
@@ -55,4 +60,4 @@ output aiSearchService string = aiSearch.name
 output aiSearchConnectionName string = aiSearchConnectionName
 
 @description('The principal ID of the AI Search system-assigned managed identity.')
-output searchPrincipalId string = aiSearch.identity.principalId
+output searchPrincipalId string = aiSearchIdentity.outputs.searchPrincipalId

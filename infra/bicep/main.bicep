@@ -203,8 +203,24 @@ var fabricCapacityDefaultAdmins = contains(deployerInfo, 'userPrincipalName')
   : [deployerInfo.objectId]
 var fabricTotalAdminMembers = union(fabricCapacityDefaultAdmins, fabricAdminMembers)
 
+// ========== Resource Group Tag ========== //
+resource resourceGroupTags 'Microsoft.Resources/tags@2023-07-01' = {
+  name: 'default'
+  properties: {
+   tags: union(
+      existingTags,
+      {
+        TemplateName: 'Unified Data Analysis Agents'
+        CreatedBy: createdBy
+        DeploymentName: deployment().name
+        Type: 'Non-WAF'
+      }
+    )
+  }
+}
+
 // ========== Fabric Capacity ========== //
-module fabricCapacity './modules/data/fabric-capacity.bicep' = if (shouldCreateFabricCapacity) {
+module fabricCapacity './modules/fabric/fabric-capacity.bicep' = if (shouldCreateFabricCapacity) {
   name: take('module.fabric-capacity.${solutionName}', 64)
   params: {
     name: fabricCapacityResourceName
@@ -242,7 +258,7 @@ module app_insights './modules/monitoring/app-insights.bicep' = {
 }
 
 // ==========AI Foundry and related resources ========== //
-var aiModelDeployments = concat([
+var aiModelDeployments = [
   {
     name: gptModelName
     model: gptModelName
@@ -253,7 +269,6 @@ var aiModelDeployments = concat([
     version: gptModelVersion
     raiPolicyName: 'Microsoft.Default'
   }
-], [
   {
     name: embeddingModel
     model: embeddingModel
@@ -264,30 +279,107 @@ var aiModelDeployments = concat([
     version: '1'
     raiPolicyName: 'Microsoft.Default'
   }
-])
+]
 
-module aifoundry './modules/ai/ai-foundry.bicep' = if (empty(existingFoundryProjectResourceId)) {
-  name: take('module.ai-foundry.${solutionName}', 64)
+// Deploy new AI Services account + AI Foundry project (no connections, no deployments)
+module ai_foundry_project './modules/ai/ai-foundry-project.bicep' = if (empty(existingFoundryProjectResourceId)) {
+  name: take('module.ai-foundry-project.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
-    solutionLocation: azureAiServiceLocation
-    deploymentType: deploymentType
-    gptModelName: gptModelName
-    gptModelVersion: gptModelVersion
-    gptDeploymentCapacity: gptDeploymentCapacity
-    embeddingModel: embeddingModel
-    embeddingDeploymentCapacity: embeddingDeploymentCapacity
-    applicationInsightsId: app_insights.outputs.applicationInsightsId
-    applicationInsightsInstrumentationKey: app_insights.outputs.applicationInsightsInstrumentationKey
-    aiSearchTarget: ai_search!.outputs.aiSearchTarget
-    aiSearchId: ai_search!.outputs.aiSearchId
-    aiSearchConnectionName: ai_search!.outputs.aiSearchConnectionName
-    storageBlobEndpoint: storage_account!.outputs.storageBlobEndpoint
-    storageAccountId: storage_account!.outputs.storageAccountId
-    storageAccountName: storage_account!.outputs.storageAccountName
+    location: azureAiServiceLocation
   }
   scope: resourceGroup(resourceGroup().name)
 }
+
+// ========== Unified AI Foundry resource name vars ========== //
+var useExisting = !empty(existingFoundryProjectResourceId)
+var aiFoundryResourceName = useExisting ? split(existingFoundryProjectResourceId, '/')[8] : ai_foundry_project!.outputs.name
+var aiProjectResourceName = useExisting ? split(existingFoundryProjectResourceId, '/')[10] : ai_foundry_project!.outputs.projectName
+var aiServiceSubscription = useExisting ? split(existingFoundryProjectResourceId, '/')[2] : subscription().subscriptionId
+var aiServiceResourceGroup = useExisting ? split(existingFoundryProjectResourceId, '/')[4] : resourceGroup().name
+
+// Reference existing AI Foundry project (identity only)
+module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (useExisting) {
+  name: take('module.existing-project-setup.${solutionName}', 64)
+  scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
+  params: {
+    aiFoundryName: aiFoundryResourceName
+    aiProjectName: aiProjectResourceName
+  }
+}
+
+// AI Search connection (single call for both existing and new paths)
+module foundry_search_connection './modules/ai/ai-foundry-connection.bicep' = {
+  name: take('module.foundry-search-conn.${solutionName}', 64)
+  scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
+  params: {
+    solutionName: solutionSuffix
+    aiServicesAccountName: aiFoundryResourceName
+    projectName: aiProjectResourceName
+    category: 'CognitiveSearch'
+    target: ai_search!.outputs.aiSearchTarget
+    authType: 'AAD'
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: ai_search!.outputs.aiSearchId
+    }
+  }
+}
+
+// Storage Blob connection (single call for both existing and new paths)
+module foundry_storage_connection './modules/ai/ai-foundry-connection.bicep' = {
+  name: take('module.foundry-storage-conn.${solutionName}', 64)
+  scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
+  params: {
+    solutionName: solutionSuffix
+    aiServicesAccountName: aiFoundryResourceName
+    projectName: aiProjectResourceName
+    category: 'AzureBlob'
+    target: storage_account!.outputs.storageBlobEndpoint
+    authType: 'AAD'
+    metadata: {
+      ResourceId: storage_account!.outputs.storageAccountId
+      AccountName: storage_account!.outputs.storageAccountName
+      ContainerName: 'default'
+    }
+  }
+}
+
+// Application Insights connection (single call for both existing and new paths)
+module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = {
+  name: take('module.foundry-appi-conn.${solutionName}', 64)
+  scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
+  params: {
+    solutionName: solutionSuffix
+    aiServicesAccountName: aiFoundryResourceName
+    projectName: aiProjectResourceName
+    category: 'AppInsights'
+    target: app_insights.outputs.applicationInsightsId
+    authType: 'ApiKey'
+    isDefault: true
+    credentialsKey: app_insights.outputs.applicationInsightsInstrumentationKey
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: app_insights.outputs.applicationInsightsId
+    }
+  }
+}
+
+// Model deployments (single loop for both existing and new paths)
+@batchSize(1)
+module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for (deployment, i) in aiModelDeployments: {
+  name: take('module.model-deployment-${i}.${solutionName}', 64)
+  scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
+  params: {
+    aiServicesAccountName: aiFoundryResourceName
+    deploymentName: deployment.name
+    modelName: deployment.model
+    modelVersion: deployment.version
+    raiPolicyName: deployment.raiPolicyName
+    skuName: deployment.sku.name
+    skuCapacity: deployment.sku.capacity
+  }
+}]
 
 module ai_search './modules/ai/ai-search.bicep' = {
   name: take('module.ai-search.${solutionName}', 64)
@@ -298,39 +390,14 @@ module ai_search './modules/ai/ai-search.bicep' = {
   scope: resourceGroup(resourceGroup().name)
 }
 
-// ========== Existing Project Setup (models + connections) ========== //
-var existingAIServicesName = !empty(existingFoundryProjectResourceId) ? split(existingFoundryProjectResourceId, '/')[8] : ''
-var existingAIProjectName = !empty(existingFoundryProjectResourceId) ? split(existingFoundryProjectResourceId, '/')[10] : ''
-var existingAIServiceSubscription = !empty(existingFoundryProjectResourceId) ? split(existingFoundryProjectResourceId, '/')[2] : subscription().subscriptionId
-var existingAIServiceResourceGroup = !empty(existingFoundryProjectResourceId) ? split(existingFoundryProjectResourceId, '/')[4] : resourceGroup().name
-
-module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (!empty(existingFoundryProjectResourceId)) {
-  name: take('module.existing-project-setup.${solutionName}', 64)
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
-  params: {
-    aiFoundryName: existingAIServicesName
-    aiProjectName: existingAIProjectName
-    aiModelDeployments: aiModelDeployments
-    applicationInsightsId: app_insights.outputs.applicationInsightsId
-    applicationInsightsInstrumentationKey: app_insights.outputs.applicationInsightsInstrumentationKey
-    aiSearchTarget: ai_search!.outputs.aiSearchTarget
-    aiSearchId: ai_search!.outputs.aiSearchId
-    aiSearchConnectionName: ai_search!.outputs.aiSearchConnectionName
-    storageBlobEndpoint: storage_account!.outputs.storageBlobEndpoint
-    storageAccountId: storage_account!.outputs.storageAccountId
-    storageAccountName: storage_account!.outputs.storageAccountName
-  }
-}
-
 // ========== AI outputs (ternary: existing vs new) ========== //
-var useExisting = !empty(existingFoundryProjectResourceId)
-var aiFoundryEndpoint = useExisting ? existing_project_setup!.outputs.aiFoundryEndpoint : aifoundry!.outputs.aiFoundryEndpoint
-var projectEndpoint = useExisting ? existing_project_setup!.outputs.projectEndpoint : aifoundry!.outputs.projectEndpoint
-var aiFoundryName = useExisting ? existing_project_setup!.outputs.aiFoundryNameOutput : aifoundry!.outputs.aiFoundryName
-var aiProjectName = useExisting ? existing_project_setup!.outputs.aiProjectNameOutput : aifoundry!.outputs.aiProjectName
-var aiFoundryResourceId = useExisting ? existing_project_setup!.outputs.aiFoundryResourceId : aifoundry!.outputs.aiFoundryResourceId
-var aiProjectPrincipalId = useExisting ? existing_project_setup!.outputs.aiProjectPrincipalId : aifoundry!.outputs.aiProjectPrincipalId
-var aiSearchConnectionId = useExisting ? existing_project_setup!.outputs.aiSearchConnectionId : aifoundry!.outputs.aiSearchConnectionId
+var aiFoundryEndpoint = useExisting ? existing_project_setup!.outputs.aiFoundryEndpoint : ai_foundry_project!.outputs.endpoint
+var projectEndpoint = useExisting ? existing_project_setup!.outputs.projectEndpoint : ai_foundry_project!.outputs.projectEndpoint
+var aiFoundryName = useExisting ? existing_project_setup!.outputs.aiServicesAccountName : ai_foundry_project!.outputs.name
+var aiProjectName = useExisting ? existing_project_setup!.outputs.aiProjectNameOutput : ai_foundry_project!.outputs.projectName
+var aiFoundryResourceId = useExisting ? existing_project_setup!.outputs.aiFoundryResourceId : ai_foundry_project!.outputs.resourceId
+var aiProjectPrincipalId = useExisting ? existing_project_setup!.outputs.aiProjectPrincipalId : ai_foundry_project!.outputs.projectIdentityPrincipalId
+var aiSearchConnectionId = foundry_search_connection.outputs.connectionId
 
 // ========== Storage Account module ========== //
 module storage_account './modules/data/storage-account.bicep' = {
@@ -415,9 +482,9 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
       AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
       AZURE_SQLDB_USER_MID: ''
       API_UID: ''
-      AZURE_AI_SEARCH_ENDPOINT: ai_search!.outputs.aiSearchTarget
+      AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.aiSearchTarget
       AZURE_AI_SEARCH_INDEX: 'knowledge_index'
-      AZURE_AI_SEARCH_CONNECTION_NAME: ai_search!.outputs.aiSearchConnectionName
+      AZURE_AI_SEARCH_CONNECTION_NAME: ai_search.outputs.aiSearchConnectionName
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
@@ -467,9 +534,9 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
       AZURE_COSMOSDB_DATABASE: cosmosDBModule!.outputs.cosmosDatabaseName
       AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
       API_UID: ''
-      AZURE_AI_SEARCH_ENDPOINT: ai_search!.outputs.aiSearchTarget
+      AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.aiSearchTarget
       AZURE_AI_SEARCH_INDEX: 'call_transcripts_index'
-      AZURE_AI_SEARCH_CONNECTION_NAME: ai_search!.outputs.aiSearchConnectionName
+      AZURE_AI_SEARCH_CONNECTION_NAME: ai_search.outputs.aiSearchConnectionName
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
@@ -517,10 +584,10 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     shouldDeployApp: shouldDeployApp
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     aiFoundryName: aiFoundryName
-    aiSearchName: ai_search!.outputs.aiSearchName
-    storageAccountName: storage_account!.outputs.storageAccountName
+    aiSearchName: ai_search.outputs.aiSearchName
+    storageAccountName: storage_account.outputs.storageAccountName
     aiProjectPrincipalId: aiProjectPrincipalId
-    searchPrincipalId: ai_search!.outputs.searchPrincipalId
+    searchPrincipalId: ai_search.outputs.searchPrincipalId
     deployingUserPrincipalId: deployingUserPrincipalId
     deployingUserPrincipalType: deployingUserPrincipalType
     backendAppPrincipalId: shouldDeployApp && backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : ''
@@ -593,19 +660,19 @@ output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : 
 output USE_CASE string = usecase
 
 @description('Azure AI Search service endpoint URL')
-output AZURE_AI_SEARCH_ENDPOINT string = ai_search!.outputs.aiSearchTarget
+output AZURE_AI_SEARCH_ENDPOINT string = ai_search.outputs.aiSearchTarget
 
 @description('Azure AI Search index name for document search')
 output AZURE_AI_SEARCH_INDEX string = 'knowledge_index'
 
 @description('Azure AI Search service resource name')
-output AZURE_AI_SEARCH_NAME string = ai_search!.outputs.aiSearchName
+output AZURE_AI_SEARCH_NAME string = ai_search.outputs.aiSearchName
 
 @description('Local path to documents folder for search indexing')
 output SEARCH_DATA_FOLDER string = 'data/default/documents'
 
 @description('AI Foundry connection name for Azure AI Search')
-output AZURE_AI_SEARCH_CONNECTION_NAME string = ai_search!.outputs.aiSearchConnectionName
+output AZURE_AI_SEARCH_CONNECTION_NAME string = ai_search.outputs.aiSearchConnectionName
 
 @description('AI Foundry connection ID for Azure AI Search')
 output AZURE_AI_SEARCH_CONNECTION_ID string = aiSearchConnectionId
