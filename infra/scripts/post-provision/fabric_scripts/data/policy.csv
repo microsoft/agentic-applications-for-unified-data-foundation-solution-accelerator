@@ -1,0 +1,1316 @@
+PolicyId,CustomerId,PolicyType,Premium,PaymentType,StartDate,Duration,PaymentAmount,AdditionalNotes
+PID-001,CID-001,Home,405,Quarterly,2020-02-26,12,101.25,The customer has paid on time for the past year without any issues.
+PID-002,CID-001,Auto,385,Monthly,2022-12-31,12,32.08,The customer has a recurring issue with billing that they are addressing.
+PID-003,CID-001,Auto,280,Annually,2020-11-29,12,280.0,The customer had some late payments last year but is now current.
+PID-004,CID-001,Home,123,Quarterly,2022-01-31,12,30.75,The customer received a notice for a late payment but has since paid.
+PID-005,CID-002,Boat,737,Quarterly,2023-06-24,12,184.25,The customer has paid on time for the past year without any issues.
+PID-006,CID-002,Boat,553,Monthly,2024-09-16,12,46.08,The customer has missed a payment this month and still has an outstanding balance.
+PID-007,CID-002,Auto,523,Monthly,2023-02-24,12,43.58,The customer has missed a payment this month and still has an outstanding balance.
+PID-008,CID-002,Auto,612,Quarterly,2023-07-12,12,153.0,The customer had some late payments last year but is now current.
+PID-009,CID-003,Auto,742,Quarterly,2021-03-10,12,185.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-010,CID-003,Auto,602,Quarterly,2023-03-05,12,150.5,The customer has paid on time for the past year without any issues.
+PID-011,CID-004,Boat,414,Quarterly,2022-11-05,12,103.5,The customer received a notice for a late payment but has since paid.
+PID-012,CID-005,Travel,590,Monthly,2020-06-10,12,49.17,The customer has paid on time for the past year without any issues.
+PID-013,CID-005,Boat,343,Monthly,2022-06-04,12,28.58,The customer has paid on time for the past year without any issues.
+PID-014,CID-005,Auto,368,Monthly,2024-09-09,12,30.67,The customer has a recurring issue with billing that they are addressing.
+PID-015,CID-005,Travel,749,Annually,2020-11-07,12,749.0,The customer had some late payments last year but is now current.
+PID-016,CID-006,Auto,433,Annually,2024-09-05,12,433.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-017,CID-007,Travel,345,Annually,2024-05-12,12,345.0,The customer has never missed a payment and always pays on time.
+PID-018,CID-007,Travel,908,Quarterly,2021-10-07,12,227.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-019,CID-007,Travel,161,Monthly,2022-06-04,12,13.42,The customer has missed a payment this month and still has an outstanding balance.
+PID-020,CID-008,Travel,931,Monthly,2023-02-07,12,77.58,The customer has never missed a payment and always pays on time.
+PID-021,CID-008,Boat,344,Quarterly,2021-04-27,12,86.0,The customer had some late payments last year but is now current.
+PID-022,CID-009,Travel,706,Quarterly,2021-07-11,12,176.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-023,CID-010,Boat,848,Quarterly,2024-10-07,12,212.0,The customer has a recurring issue with billing that they are addressing.
+PID-024,CID-011,Travel,970,Quarterly,2024-12-31,12,242.5,The customer has never missed a payment and always pays on time.
+PID-025,CID-011,Boat,493,Annually,2023-10-08,12,493.0,The customer has never missed a payment and always pays on time.
+PID-026,CID-011,Travel,887,Annually,2021-04-17,12,887.0,The customer has never missed a payment and always pays on time.
+PID-027,CID-011,Boat,936,Annually,2022-04-13,12,936.0,The customer received a notice for a late payment but has since paid.
+PID-028,CID-012,Travel,151,Annually,2024-05-18,12,151.0,The customer had some late payments last year but is now current.
+PID-029,CID-012,Home,419,Annually,2025-09-13,12,419.0,The customer has never missed a payment and always pays on time.
+PID-030,CID-012,Home,725,Quarterly,2020-07-28,12,181.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-031,CID-013,Boat,245,Quarterly,2025-11-12,12,61.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-032,CID-013,Boat,256,Annually,2023-08-03,12,256.0,The customer had some late payments last year but is now current.
+PID-033,CID-013,Boat,719,Quarterly,2025-07-05,12,179.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-034,CID-014,Home,172,Monthly,2024-01-15,12,14.33,The customer has a recurring issue with billing that they are addressing.
+PID-035,CID-015,Auto,101,Monthly,2024-01-10,12,8.42,The customer has a recurring issue with billing that they are addressing.
+PID-036,CID-015,Boat,480,Monthly,2024-07-08,12,40.0,The customer had some late payments last year but is now current.
+PID-037,CID-016,Home,520,Monthly,2021-06-19,12,43.33,The customer received a notice for a late payment but has since paid.
+PID-038,CID-016,Boat,945,Monthly,2022-11-06,12,78.75,The customer has a recurring issue with billing that they are addressing.
+PID-039,CID-016,Travel,837,Annually,2020-11-21,12,837.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-040,CID-016,Boat,592,Quarterly,2022-07-16,12,148.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-041,CID-017,Boat,334,Monthly,2022-12-28,12,27.83,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-042,CID-017,Home,450,Monthly,2020-07-15,12,37.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-043,CID-018,Travel,343,Monthly,2024-04-28,12,28.58,The customer has missed a payment this month and still has an outstanding balance.
+PID-044,CID-018,Home,715,Monthly,2022-08-27,12,59.58,The customer has missed a payment this month and still has an outstanding balance.
+PID-045,CID-018,Auto,700,Annually,2023-01-11,12,700.0,The customer has a recurring issue with billing that they are addressing.
+PID-046,CID-018,Boat,115,Monthly,2025-11-09,12,9.58,The customer had some late payments last year but is now current.
+PID-047,CID-019,Home,852,Annually,2025-05-17,12,852.0,The customer has never missed a payment and always pays on time.
+PID-048,CID-019,Boat,777,Monthly,2020-11-17,12,64.75,The customer received a notice for a late payment but has since paid.
+PID-049,CID-019,Home,337,Annually,2024-10-22,12,337.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-050,CID-020,Auto,975,Monthly,2024-02-16,12,81.25,The customer has paid on time for the past year without any issues.
+PID-051,CID-020,Auto,128,Quarterly,2024-01-19,12,32.0,The customer has a recurring issue with billing that they are addressing.
+PID-052,CID-020,Travel,637,Annually,2020-10-21,12,637.0,The customer received a notice for a late payment but has since paid.
+PID-053,CID-020,Travel,170,Quarterly,2021-06-12,12,42.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-054,CID-021,Auto,476,Annually,2020-06-01,12,476.0,The customer has paid on time for the past year without any issues.
+PID-055,CID-022,Home,446,Annually,2024-08-21,12,446.0,The customer received a notice for a late payment but has since paid.
+PID-056,CID-022,Boat,328,Monthly,2020-08-17,12,27.33,The customer had some late payments last year but is now current.
+PID-057,CID-023,Boat,247,Quarterly,2024-09-14,12,61.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-058,CID-023,Auto,568,Quarterly,2021-11-13,12,142.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-059,CID-023,Auto,265,Annually,2020-05-17,12,265.0,The customer has paid on time for the past year without any issues.
+PID-060,CID-024,Auto,387,Monthly,2022-08-05,12,32.25,The customer received a notice for a late payment but has since paid.
+PID-061,CID-024,Auto,284,Monthly,2022-11-14,12,23.67,The customer has a recurring issue with billing that they are addressing.
+PID-062,CID-024,Auto,923,Quarterly,2020-03-01,12,230.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-063,CID-025,Travel,743,Monthly,2021-12-20,12,61.92,The customer has never missed a payment and always pays on time.
+PID-064,CID-025,Home,770,Quarterly,2020-09-23,12,192.5,The customer has paid on time for the past year without any issues.
+PID-065,CID-025,Boat,295,Monthly,2024-01-31,12,24.58,The customer has paid on time for the past year without any issues.
+PID-066,CID-025,Auto,496,Quarterly,2020-03-21,12,124.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-067,CID-026,Auto,436,Monthly,2020-06-09,12,36.33,The customer has never missed a payment and always pays on time.
+PID-068,CID-027,Boat,270,Annually,2021-03-09,12,270.0,The customer received a notice for a late payment but has since paid.
+PID-069,CID-028,Travel,307,Monthly,2022-05-24,12,25.58,The customer had some late payments last year but is now current.
+PID-070,CID-028,Home,938,Annually,2024-04-15,12,938.0,The customer received a notice for a late payment but has since paid.
+PID-071,CID-028,Travel,613,Annually,2025-03-23,12,613.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-072,CID-029,Travel,362,Monthly,2025-08-17,12,30.17,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-073,CID-029,Home,510,Quarterly,2022-10-03,12,127.5,The customer received a notice for a late payment but has since paid.
+PID-074,CID-029,Auto,587,Monthly,2023-06-23,12,48.92,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-075,CID-030,Travel,523,Monthly,2021-10-05,12,43.58,The customer received a notice for a late payment but has since paid.
+PID-076,CID-030,Boat,169,Annually,2021-08-19,12,169.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-077,CID-030,Home,922,Quarterly,2024-08-01,12,230.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-078,CID-030,Auto,313,Monthly,2021-04-05,12,26.08,The customer has a recurring issue with billing that they are addressing.
+PID-079,CID-031,Auto,968,Monthly,2025-11-12,12,80.67,The customer received a notice for a late payment but has since paid.
+PID-080,CID-031,Travel,751,Annually,2023-11-10,12,751.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-081,CID-031,Auto,368,Monthly,2024-12-23,12,30.67,The customer had some late payments last year but is now current.
+PID-082,CID-031,Boat,105,Monthly,2024-04-11,12,8.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-083,CID-032,Boat,869,Annually,2021-01-20,12,869.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-084,CID-032,Auto,448,Quarterly,2022-08-29,12,112.0,The customer has a recurring issue with billing that they are addressing.
+PID-085,CID-033,Home,364,Monthly,2023-05-04,12,30.33,The customer had some late payments last year but is now current.
+PID-086,CID-033,Travel,667,Monthly,2024-03-05,12,55.58,The customer has missed a payment this month and still has an outstanding balance.
+PID-087,CID-034,Travel,823,Quarterly,2023-10-23,12,205.75,The customer received a notice for a late payment but has since paid.
+PID-088,CID-034,Boat,184,Monthly,2025-11-12,12,15.33,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-089,CID-034,Auto,670,Quarterly,2021-02-17,12,167.5,The customer had some late payments last year but is now current.
+PID-090,CID-034,Boat,386,Monthly,2025-02-16,12,32.17,The customer has a recurring issue with billing that they are addressing.
+PID-091,CID-035,Travel,213,Annually,2025-07-10,12,213.0,The customer has never missed a payment and always pays on time.
+PID-092,CID-035,Auto,947,Annually,2024-02-07,12,947.0,The customer has a recurring issue with billing that they are addressing.
+PID-093,CID-036,Auto,138,Annually,2020-05-13,12,138.0,The customer had some late payments last year but is now current.
+PID-094,CID-036,Travel,538,Quarterly,2023-01-29,12,134.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-095,CID-036,Travel,724,Quarterly,2023-11-06,12,181.0,The customer has never missed a payment and always pays on time.
+PID-096,CID-036,Travel,816,Annually,2024-02-11,12,816.0,The customer had some late payments last year but is now current.
+PID-097,CID-037,Travel,665,Monthly,2025-04-17,12,55.42,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-098,CID-037,Boat,402,Monthly,2025-04-09,12,33.5,The customer had some late payments last year but is now current.
+PID-099,CID-037,Boat,579,Annually,2020-10-07,12,579.0,The customer had some late payments last year but is now current.
+PID-100,CID-038,Travel,240,Monthly,2020-01-12,12,20.0,The customer received a notice for a late payment but has since paid.
+PID-101,CID-038,Auto,352,Annually,2025-04-25,12,352.0,The customer has a recurring issue with billing that they are addressing.
+PID-102,CID-039,Home,209,Monthly,2024-11-07,12,17.42,The customer received a notice for a late payment but has since paid.
+PID-103,CID-039,Auto,789,Monthly,2020-11-24,12,65.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-104,CID-039,Auto,424,Annually,2023-09-28,12,424.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-105,CID-039,Auto,976,Annually,2023-03-01,12,976.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-106,CID-040,Travel,719,Monthly,2024-07-18,12,59.92,The customer received a notice for a late payment but has since paid.
+PID-107,CID-041,Travel,357,Quarterly,2023-09-26,12,89.25,The customer has paid on time for the past year without any issues.
+PID-108,CID-042,Travel,480,Quarterly,2022-04-15,12,120.0,The customer has a recurring issue with billing that they are addressing.
+PID-109,CID-042,Boat,798,Annually,2024-12-03,12,798.0,The customer received a notice for a late payment but has since paid.
+PID-110,CID-042,Travel,295,Quarterly,2020-02-20,12,73.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-111,CID-043,Travel,772,Monthly,2024-01-04,12,64.33,The customer received a notice for a late payment but has since paid.
+PID-112,CID-043,Auto,468,Annually,2021-05-28,12,468.0,The customer has paid on time for the past year without any issues.
+PID-113,CID-044,Home,270,Quarterly,2021-09-24,12,67.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-114,CID-044,Boat,120,Annually,2023-03-14,12,120.0,The customer received a notice for a late payment but has since paid.
+PID-115,CID-044,Boat,813,Monthly,2020-07-03,12,67.75,The customer has a recurring issue with billing that they are addressing.
+PID-116,CID-045,Home,153,Monthly,2022-08-01,12,12.75,The customer received a notice for a late payment but has since paid.
+PID-117,CID-045,Boat,557,Annually,2022-07-15,12,557.0,The customer has never missed a payment and always pays on time.
+PID-118,CID-045,Boat,866,Monthly,2024-11-19,12,72.17,The customer has a recurring issue with billing that they are addressing.
+PID-119,CID-045,Boat,974,Quarterly,2021-07-26,12,243.5,The customer has paid on time for the past year without any issues.
+PID-120,CID-046,Auto,992,Annually,2021-06-03,12,992.0,The customer has paid on time for the past year without any issues.
+PID-121,CID-046,Home,649,Quarterly,2024-12-07,12,162.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-122,CID-047,Auto,660,Monthly,2023-08-01,12,55.0,The customer received a notice for a late payment but has since paid.
+PID-123,CID-047,Home,945,Quarterly,2020-05-06,12,236.25,The customer has paid on time for the past year without any issues.
+PID-124,CID-047,Auto,377,Annually,2021-08-18,12,377.0,The customer had some late payments last year but is now current.
+PID-125,CID-047,Auto,680,Monthly,2025-01-24,12,56.67,The customer has missed a payment this month and still has an outstanding balance.
+PID-126,CID-048,Boat,905,Annually,2020-12-05,12,905.0,The customer had some late payments last year but is now current.
+PID-127,CID-048,Home,505,Monthly,2020-02-20,12,42.08,The customer has a recurring issue with billing that they are addressing.
+PID-128,CID-049,Home,520,Annually,2022-01-13,12,520.0,The customer has a recurring issue with billing that they are addressing.
+PID-129,CID-049,Auto,622,Monthly,2020-04-14,12,51.83,The customer has never missed a payment and always pays on time.
+PID-130,CID-050,Home,931,Monthly,2020-12-13,12,77.58,The customer has a recurring issue with billing that they are addressing.
+PID-131,CID-050,Boat,859,Quarterly,2021-02-13,12,214.75,The customer received a notice for a late payment but has since paid.
+PID-132,CID-050,Home,206,Quarterly,2021-09-04,12,51.5,The customer has a recurring issue with billing that they are addressing.
+PID-133,CID-051,Home,457,Quarterly,2022-07-04,12,114.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-134,CID-051,Travel,882,Monthly,2021-11-08,12,73.5,The customer received a notice for a late payment but has since paid.
+PID-135,CID-051,Travel,277,Monthly,2025-10-05,12,23.08,The customer has a recurring issue with billing that they are addressing.
+PID-136,CID-052,Boat,657,Monthly,2020-12-20,12,54.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-137,CID-052,Home,633,Quarterly,2023-07-09,12,158.25,The customer received a notice for a late payment but has since paid.
+PID-138,CID-053,Travel,449,Quarterly,2023-07-12,12,112.25,The customer had some late payments last year but is now current.
+PID-139,CID-053,Auto,960,Monthly,2025-09-23,12,80.0,The customer has a recurring issue with billing that they are addressing.
+PID-140,CID-053,Boat,381,Quarterly,2021-02-14,12,95.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-141,CID-054,Home,446,Monthly,2021-11-02,12,37.17,The customer has missed a payment this month and still has an outstanding balance.
+PID-142,CID-054,Auto,115,Monthly,2020-11-20,12,9.58,The customer has a recurring issue with billing that they are addressing.
+PID-143,CID-055,Travel,107,Monthly,2020-05-31,12,8.92,The customer has paid on time for the past year without any issues.
+PID-144,CID-055,Travel,992,Quarterly,2023-12-12,12,248.0,The customer had some late payments last year but is now current.
+PID-145,CID-055,Travel,359,Annually,2025-11-12,12,359.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-146,CID-055,Auto,943,Annually,2022-09-12,12,943.0,The customer had some late payments last year but is now current.
+PID-147,CID-056,Boat,828,Monthly,2020-05-30,12,69.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-148,CID-056,Auto,662,Monthly,2025-04-26,12,55.17,The customer received a notice for a late payment but has since paid.
+PID-149,CID-056,Home,875,Annually,2022-05-10,12,875.0,The customer has a recurring issue with billing that they are addressing.
+PID-150,CID-057,Boat,815,Quarterly,2024-11-14,12,203.75,The customer has never missed a payment and always pays on time.
+PID-151,CID-058,Auto,363,Annually,2021-05-04,12,363.0,The customer received a notice for a late payment but has since paid.
+PID-152,CID-058,Home,232,Annually,2021-10-24,12,232.0,The customer has a recurring issue with billing that they are addressing.
+PID-153,CID-059,Boat,638,Annually,2024-04-17,12,638.0,The customer has paid on time for the past year without any issues.
+PID-154,CID-059,Home,138,Annually,2022-02-16,12,138.0,The customer received a notice for a late payment but has since paid.
+PID-155,CID-059,Boat,773,Quarterly,2020-01-26,12,193.25,The customer had some late payments last year but is now current.
+PID-156,CID-060,Boat,460,Monthly,2020-10-20,12,38.33,The customer had some late payments last year but is now current.
+PID-157,CID-061,Auto,937,Annually,2025-11-05,12,937.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-158,CID-061,Boat,679,Monthly,2021-09-18,12,56.58,The customer has never missed a payment and always pays on time.
+PID-159,CID-061,Boat,236,Quarterly,2022-12-16,12,59.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-160,CID-061,Home,960,Annually,2023-11-22,12,960.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-161,CID-062,Travel,155,Annually,2023-02-13,12,155.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-162,CID-062,Travel,798,Quarterly,2021-10-17,12,199.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-163,CID-062,Travel,246,Quarterly,2024-04-02,12,61.5,The customer has never missed a payment and always pays on time.
+PID-164,CID-063,Travel,389,Annually,2025-08-08,12,389.0,The customer has never missed a payment and always pays on time.
+PID-165,CID-063,Travel,199,Monthly,2020-08-24,12,16.58,The customer had some late payments last year but is now current.
+PID-166,CID-064,Travel,755,Monthly,2020-06-25,12,62.92,The customer has paid on time for the past year without any issues.
+PID-167,CID-065,Auto,982,Quarterly,2025-09-01,12,245.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-168,CID-065,Home,786,Annually,2024-05-03,12,786.0,The customer has never missed a payment and always pays on time.
+PID-169,CID-066,Boat,627,Monthly,2023-07-02,12,52.25,The customer had some late payments last year but is now current.
+PID-170,CID-066,Boat,957,Annually,2022-03-03,12,957.0,The customer received a notice for a late payment but has since paid.
+PID-171,CID-067,Boat,315,Monthly,2024-08-16,12,26.25,The customer had some late payments last year but is now current.
+PID-172,CID-067,Auto,571,Quarterly,2024-07-21,12,142.75,The customer has paid on time for the past year without any issues.
+PID-173,CID-067,Home,856,Annually,2020-10-15,12,856.0,The customer has paid on time for the past year without any issues.
+PID-174,CID-068,Auto,453,Annually,2021-11-20,12,453.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-175,CID-068,Travel,302,Monthly,2021-05-10,12,25.17,The customer had some late payments last year but is now current.
+PID-176,CID-068,Home,363,Quarterly,2022-10-17,12,90.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-177,CID-069,Auto,835,Monthly,2025-03-01,12,69.58,The customer received a notice for a late payment but has since paid.
+PID-178,CID-070,Auto,510,Annually,2022-05-04,12,510.0,The customer has never missed a payment and always pays on time.
+PID-179,CID-070,Boat,788,Annually,2023-10-29,12,788.0,The customer has never missed a payment and always pays on time.
+PID-180,CID-070,Travel,905,Monthly,2021-05-08,12,75.42,The customer has a recurring issue with billing that they are addressing.
+PID-181,CID-071,Travel,405,Quarterly,2021-09-09,12,101.25,The customer has a recurring issue with billing that they are addressing.
+PID-182,CID-071,Auto,121,Quarterly,2020-06-04,12,30.25,The customer has never missed a payment and always pays on time.
+PID-183,CID-071,Auto,598,Quarterly,2025-11-12,12,149.5,The customer received a notice for a late payment but has since paid.
+PID-184,CID-071,Auto,837,Quarterly,2022-12-20,12,209.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-185,CID-072,Home,723,Monthly,2020-04-25,12,60.25,The customer received a notice for a late payment but has since paid.
+PID-186,CID-072,Auto,215,Quarterly,2023-06-08,12,53.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-187,CID-072,Boat,831,Annually,2021-10-15,12,831.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-188,CID-072,Boat,144,Monthly,2024-05-15,12,12.0,The customer received a notice for a late payment but has since paid.
+PID-189,CID-073,Home,746,Monthly,2023-12-24,12,62.17,The customer has a recurring issue with billing that they are addressing.
+PID-190,CID-074,Auto,605,Monthly,2023-02-01,12,50.42,The customer received a notice for a late payment but has since paid.
+PID-191,CID-075,Boat,615,Monthly,2025-10-13,12,51.25,The customer has never missed a payment and always pays on time.
+PID-192,CID-075,Auto,130,Monthly,2023-03-20,12,10.83,The customer has a recurring issue with billing that they are addressing.
+PID-193,CID-075,Boat,311,Annually,2025-01-29,12,311.0,The customer has paid on time for the past year without any issues.
+PID-194,CID-075,Boat,868,Quarterly,2024-08-06,12,217.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-195,CID-076,Travel,466,Monthly,2020-07-04,12,38.83,The customer has missed a payment this month and still has an outstanding balance.
+PID-196,CID-076,Home,209,Annually,2022-05-07,12,209.0,The customer has never missed a payment and always pays on time.
+PID-197,CID-077,Travel,297,Annually,2020-10-14,12,297.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-198,CID-077,Home,496,Annually,2021-09-20,12,496.0,The customer has never missed a payment and always pays on time.
+PID-199,CID-077,Home,940,Monthly,2022-09-12,12,78.33,The customer has paid on time for the past year without any issues.
+PID-200,CID-077,Travel,413,Monthly,2022-10-23,12,34.42,The customer had some late payments last year but is now current.
+PID-201,CID-078,Auto,389,Annually,2020-02-09,12,389.0,The customer had some late payments last year but is now current.
+PID-202,CID-078,Travel,104,Quarterly,2022-02-24,12,26.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-203,CID-078,Boat,277,Monthly,2021-08-27,12,23.08,The customer has paid on time for the past year without any issues.
+PID-204,CID-079,Boat,917,Quarterly,2023-02-07,12,229.25,The customer has paid on time for the past year without any issues.
+PID-205,CID-079,Travel,572,Annually,2022-08-16,12,572.0,The customer has paid on time for the past year without any issues.
+PID-206,CID-079,Travel,659,Annually,2025-09-13,12,659.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-207,CID-080,Travel,212,Quarterly,2023-04-23,12,53.0,The customer has a recurring issue with billing that they are addressing.
+PID-208,CID-081,Boat,130,Quarterly,2020-03-20,12,32.5,The customer had some late payments last year but is now current.
+PID-209,CID-081,Home,714,Monthly,2024-03-23,12,59.5,The customer has never missed a payment and always pays on time.
+PID-210,CID-081,Auto,680,Quarterly,2024-02-05,12,170.0,The customer has paid on time for the past year without any issues.
+PID-211,CID-081,Boat,599,Monthly,2025-01-22,12,49.92,The customer received a notice for a late payment but has since paid.
+PID-212,CID-082,Home,677,Annually,2021-06-22,12,677.0,The customer has never missed a payment and always pays on time.
+PID-213,CID-082,Travel,186,Quarterly,2023-04-02,12,46.5,The customer received a notice for a late payment but has since paid.
+PID-214,CID-083,Travel,579,Annually,2025-03-27,12,579.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-215,CID-083,Auto,573,Monthly,2021-12-15,12,47.75,The customer has a recurring issue with billing that they are addressing.
+PID-216,CID-084,Travel,180,Quarterly,2022-01-05,12,45.0,The customer has a recurring issue with billing that they are addressing.
+PID-217,CID-084,Auto,436,Quarterly,2022-10-09,12,109.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-218,CID-084,Auto,958,Monthly,2021-07-02,12,79.83,The customer had some late payments last year but is now current.
+PID-219,CID-084,Boat,933,Monthly,2023-11-02,12,77.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-220,CID-085,Travel,970,Annually,2023-03-27,12,970.0,The customer had some late payments last year but is now current.
+PID-221,CID-085,Auto,496,Quarterly,2023-11-30,12,124.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-222,CID-086,Home,422,Monthly,2024-01-03,12,35.17,The customer has a recurring issue with billing that they are addressing.
+PID-223,CID-086,Auto,607,Monthly,2020-06-05,12,50.58,The customer has missed a payment this month and still has an outstanding balance.
+PID-224,CID-087,Home,668,Monthly,2024-08-31,12,55.67,The customer has paid on time for the past year without any issues.
+PID-225,CID-088,Travel,449,Monthly,2023-03-25,12,37.42,The customer has paid on time for the past year without any issues.
+PID-226,CID-089,Home,451,Monthly,2023-04-24,12,37.58,The customer has paid on time for the past year without any issues.
+PID-227,CID-089,Auto,613,Monthly,2020-05-05,12,51.08,The customer has paid on time for the past year without any issues.
+PID-228,CID-089,Boat,497,Monthly,2023-01-22,12,41.42,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-229,CID-089,Travel,615,Monthly,2020-07-30,12,51.25,The customer has never missed a payment and always pays on time.
+PID-230,CID-090,Travel,910,Quarterly,2021-04-10,12,227.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-231,CID-090,Auto,546,Quarterly,2024-01-09,12,136.5,The customer has never missed a payment and always pays on time.
+PID-232,CID-090,Auto,734,Monthly,2022-11-23,12,61.17,The customer has a recurring issue with billing that they are addressing.
+PID-233,CID-091,Home,555,Quarterly,2024-10-15,12,138.75,The customer has a recurring issue with billing that they are addressing.
+PID-234,CID-092,Home,307,Annually,2021-02-16,12,307.0,The customer has a recurring issue with billing that they are addressing.
+PID-235,CID-092,Boat,511,Annually,2024-10-14,12,511.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-236,CID-092,Boat,980,Annually,2021-06-15,12,980.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-237,CID-093,Boat,340,Annually,2023-01-24,12,340.0,The customer received a notice for a late payment but has since paid.
+PID-238,CID-094,Auto,976,Quarterly,2021-02-10,12,244.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-239,CID-094,Boat,787,Annually,2020-07-19,12,787.0,The customer had some late payments last year but is now current.
+PID-240,CID-094,Travel,575,Annually,2025-02-09,12,575.0,The customer received a notice for a late payment but has since paid.
+PID-241,CID-094,Auto,544,Annually,2022-08-03,12,544.0,The customer had some late payments last year but is now current.
+PID-242,CID-095,Home,707,Quarterly,2023-05-30,12,176.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-243,CID-095,Auto,656,Annually,2021-07-17,12,656.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-244,CID-096,Home,603,Annually,2020-03-17,12,603.0,The customer has never missed a payment and always pays on time.
+PID-245,CID-097,Auto,426,Quarterly,2020-08-09,12,106.5,The customer received a notice for a late payment but has since paid.
+PID-246,CID-098,Travel,599,Monthly,2025-10-14,12,49.92,The customer has a recurring issue with billing that they are addressing.
+PID-247,CID-099,Boat,985,Monthly,2024-02-22,12,82.08,The customer has paid on time for the past year without any issues.
+PID-248,CID-100,Auto,887,Annually,2021-08-26,12,887.0,The customer has a recurring issue with billing that they are addressing.
+PID-249,CID-100,Travel,832,Quarterly,2022-12-17,12,208.0,The customer has paid on time for the past year without any issues.
+PID-250,CID-101,Home,719,Monthly,2020-02-08,12,59.92,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-251,CID-101,Boat,239,Monthly,2021-09-18,12,19.92,The customer has never missed a payment and always pays on time.
+PID-252,CID-102,Home,110,Monthly,2022-01-28,12,9.17,The customer has missed a payment this month and still has an outstanding balance.
+PID-253,CID-103,Auto,481,Quarterly,2023-02-06,12,120.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-254,CID-104,Auto,579,Annually,2020-05-01,12,579.0,The customer had some late payments last year but is now current.
+PID-255,CID-104,Travel,602,Quarterly,2022-07-13,12,150.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-256,CID-104,Boat,597,Annually,2025-02-02,12,597.0,The customer has never missed a payment and always pays on time.
+PID-257,CID-105,Home,605,Annually,2022-03-21,12,605.0,The customer has a recurring issue with billing that they are addressing.
+PID-258,CID-105,Boat,869,Quarterly,2024-05-11,12,217.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-259,CID-105,Auto,671,Annually,2022-10-11,12,671.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-260,CID-106,Home,170,Monthly,2020-02-26,12,14.17,The customer has a recurring issue with billing that they are addressing.
+PID-261,CID-106,Travel,103,Monthly,2025-07-28,12,8.58,The customer has never missed a payment and always pays on time.
+PID-262,CID-106,Travel,721,Annually,2021-11-15,12,721.0,The customer has paid on time for the past year without any issues.
+PID-263,CID-107,Travel,504,Annually,2023-01-31,12,504.0,The customer had some late payments last year but is now current.
+PID-264,CID-107,Auto,785,Annually,2021-06-30,12,785.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-265,CID-107,Boat,859,Monthly,2022-11-15,12,71.58,The customer has paid on time for the past year without any issues.
+PID-266,CID-107,Auto,506,Annually,2020-05-27,12,506.0,The customer had some late payments last year but is now current.
+PID-267,CID-108,Travel,473,Annually,2021-08-20,12,473.0,The customer has never missed a payment and always pays on time.
+PID-268,CID-109,Auto,466,Monthly,2022-11-26,12,38.83,The customer has missed a payment this month and still has an outstanding balance.
+PID-269,CID-110,Auto,384,Annually,2023-03-14,12,384.0,The customer received a notice for a late payment but has since paid.
+PID-270,CID-110,Home,654,Annually,2023-11-23,12,654.0,The customer received a notice for a late payment but has since paid.
+PID-271,CID-110,Travel,340,Monthly,2024-10-01,12,28.33,The customer has paid on time for the past year without any issues.
+PID-272,CID-110,Boat,331,Quarterly,2020-07-29,12,82.75,The customer has a recurring issue with billing that they are addressing.
+PID-273,CID-111,Travel,613,Monthly,2024-04-28,12,51.08,The customer has never missed a payment and always pays on time.
+PID-274,CID-112,Home,521,Annually,2022-06-14,12,521.0,The customer has never missed a payment and always pays on time.
+PID-275,CID-112,Boat,165,Quarterly,2021-01-14,12,41.25,The customer received a notice for a late payment but has since paid.
+PID-276,CID-112,Home,569,Quarterly,2021-02-25,12,142.25,The customer received a notice for a late payment but has since paid.
+PID-277,CID-112,Boat,274,Annually,2020-08-14,12,274.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-278,CID-113,Boat,175,Quarterly,2024-09-15,12,43.75,The customer has never missed a payment and always pays on time.
+PID-279,CID-113,Home,158,Quarterly,2023-11-05,12,39.5,The customer has a recurring issue with billing that they are addressing.
+PID-280,CID-113,Boat,503,Annually,2022-03-21,12,503.0,The customer had some late payments last year but is now current.
+PID-281,CID-114,Travel,565,Annually,2023-12-05,12,565.0,The customer had some late payments last year but is now current.
+PID-282,CID-115,Boat,380,Quarterly,2024-07-25,12,95.0,The customer has never missed a payment and always pays on time.
+PID-283,CID-115,Travel,954,Quarterly,2025-01-15,12,238.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-284,CID-115,Auto,684,Annually,2021-05-24,12,684.0,The customer received a notice for a late payment but has since paid.
+PID-285,CID-115,Travel,824,Annually,2024-05-15,12,824.0,The customer has never missed a payment and always pays on time.
+PID-286,CID-116,Boat,623,Annually,2023-11-19,12,623.0,The customer has paid on time for the past year without any issues.
+PID-287,CID-116,Auto,574,Quarterly,2022-01-15,12,143.5,The customer received a notice for a late payment but has since paid.
+PID-288,CID-117,Auto,872,Monthly,2024-05-02,12,72.67,The customer has never missed a payment and always pays on time.
+PID-289,CID-117,Auto,555,Monthly,2021-09-22,12,46.25,The customer has a recurring issue with billing that they are addressing.
+PID-290,CID-117,Boat,950,Quarterly,2020-09-23,12,237.5,The customer had some late payments last year but is now current.
+PID-291,CID-118,Boat,285,Monthly,2022-04-01,12,23.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-292,CID-118,Boat,843,Quarterly,2025-10-21,12,210.75,The customer has paid on time for the past year without any issues.
+PID-293,CID-118,Auto,298,Monthly,2022-01-04,12,24.83,The customer received a notice for a late payment but has since paid.
+PID-294,CID-118,Home,956,Annually,2023-06-28,12,956.0,The customer has a recurring issue with billing that they are addressing.
+PID-295,CID-119,Home,257,Quarterly,2023-06-01,12,64.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-296,CID-119,Home,514,Quarterly,2022-04-30,12,128.5,The customer had some late payments last year but is now current.
+PID-297,CID-119,Boat,949,Monthly,2021-09-28,12,79.08,The customer has never missed a payment and always pays on time.
+PID-298,CID-119,Travel,587,Quarterly,2021-09-25,12,146.75,The customer had some late payments last year but is now current.
+PID-299,CID-120,Boat,163,Monthly,2024-02-15,12,13.58,The customer has a recurring issue with billing that they are addressing.
+PID-300,CID-120,Auto,634,Annually,2023-08-27,12,634.0,The customer has paid on time for the past year without any issues.
+PID-301,CID-121,Home,964,Monthly,2025-01-07,12,80.33,The customer has missed a payment this month and still has an outstanding balance.
+PID-302,CID-121,Travel,284,Annually,2023-03-27,12,284.0,The customer had some late payments last year but is now current.
+PID-303,CID-121,Boat,823,Quarterly,2020-06-26,12,205.75,The customer has never missed a payment and always pays on time.
+PID-304,CID-121,Home,237,Annually,2024-12-12,12,237.0,The customer has paid on time for the past year without any issues.
+PID-305,CID-122,Boat,766,Annually,2025-11-03,12,766.0,The customer had some late payments last year but is now current.
+PID-306,CID-122,Auto,670,Monthly,2021-06-18,12,55.83,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-307,CID-123,Boat,974,Monthly,2025-02-06,12,81.17,The customer has a recurring issue with billing that they are addressing.
+PID-308,CID-123,Auto,234,Monthly,2020-01-09,12,19.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-309,CID-124,Home,258,Annually,2023-12-08,12,258.0,The customer had some late payments last year but is now current.
+PID-310,CID-124,Auto,723,Quarterly,2022-12-11,12,180.75,The customer has paid on time for the past year without any issues.
+PID-311,CID-124,Travel,380,Annually,2021-12-24,12,380.0,The customer has never missed a payment and always pays on time.
+PID-312,CID-125,Boat,408,Annually,2024-12-18,12,408.0,The customer has never missed a payment and always pays on time.
+PID-313,CID-125,Boat,951,Monthly,2022-01-15,12,79.25,The customer had some late payments last year but is now current.
+PID-314,CID-125,Boat,759,Quarterly,2024-12-22,12,189.75,The customer had some late payments last year but is now current.
+PID-315,CID-126,Boat,562,Annually,2020-10-25,12,562.0,The customer has never missed a payment and always pays on time.
+PID-316,CID-127,Boat,505,Monthly,2020-03-12,12,42.08,The customer has paid on time for the past year without any issues.
+PID-317,CID-127,Boat,816,Monthly,2020-01-06,12,68.0,The customer has a recurring issue with billing that they are addressing.
+PID-318,CID-128,Home,738,Annually,2020-06-03,12,738.0,The customer has a recurring issue with billing that they are addressing.
+PID-319,CID-128,Boat,505,Annually,2023-12-17,12,505.0,The customer has a recurring issue with billing that they are addressing.
+PID-320,CID-128,Boat,484,Annually,2021-09-04,12,484.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-321,CID-129,Boat,611,Annually,2023-01-19,12,611.0,The customer has never missed a payment and always pays on time.
+PID-322,CID-129,Home,591,Quarterly,2025-09-21,12,147.75,The customer has never missed a payment and always pays on time.
+PID-323,CID-129,Travel,425,Annually,2020-01-18,12,425.0,The customer has never missed a payment and always pays on time.
+PID-324,CID-130,Auto,846,Quarterly,2021-07-02,12,211.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-325,CID-130,Boat,290,Quarterly,2025-11-07,12,72.5,The customer has a recurring issue with billing that they are addressing.
+PID-326,CID-131,Boat,921,Annually,2025-01-28,12,921.0,The customer has never missed a payment and always pays on time.
+PID-327,CID-131,Travel,148,Monthly,2020-07-05,12,12.33,The customer has missed a payment this month and still has an outstanding balance.
+PID-328,CID-131,Auto,248,Monthly,2020-10-06,12,20.67,The customer received a notice for a late payment but has since paid.
+PID-329,CID-131,Boat,126,Monthly,2021-10-26,12,10.5,The customer received a notice for a late payment but has since paid.
+PID-330,CID-132,Home,214,Annually,2022-04-30,12,214.0,The customer has paid on time for the past year without any issues.
+PID-331,CID-132,Auto,211,Annually,2020-06-21,12,211.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-332,CID-132,Boat,565,Quarterly,2021-05-13,12,141.25,The customer has never missed a payment and always pays on time.
+PID-333,CID-132,Boat,983,Annually,2024-09-17,12,983.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-334,CID-133,Home,946,Monthly,2024-02-16,12,78.83,The customer has a recurring issue with billing that they are addressing.
+PID-335,CID-133,Travel,455,Monthly,2025-01-08,12,37.92,The customer has missed a payment this month and still has an outstanding balance.
+PID-336,CID-134,Travel,431,Monthly,2024-08-01,12,35.92,The customer has paid on time for the past year without any issues.
+PID-337,CID-134,Auto,450,Annually,2025-05-23,12,450.0,The customer has a recurring issue with billing that they are addressing.
+PID-338,CID-134,Boat,449,Quarterly,2020-03-23,12,112.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-339,CID-134,Boat,222,Monthly,2022-03-24,12,18.5,The customer had some late payments last year but is now current.
+PID-340,CID-135,Auto,378,Monthly,2025-01-27,12,31.5,The customer had some late payments last year but is now current.
+PID-341,CID-135,Auto,310,Annually,2021-06-03,12,310.0,The customer has never missed a payment and always pays on time.
+PID-342,CID-135,Auto,787,Monthly,2025-03-14,12,65.58,The customer has a recurring issue with billing that they are addressing.
+PID-343,CID-136,Home,595,Annually,2022-06-17,12,595.0,The customer had some late payments last year but is now current.
+PID-344,CID-136,Boat,842,Annually,2023-06-27,12,842.0,The customer has never missed a payment and always pays on time.
+PID-345,CID-136,Boat,801,Annually,2025-05-15,12,801.0,The customer received a notice for a late payment but has since paid.
+PID-346,CID-137,Home,701,Annually,2024-08-26,12,701.0,The customer has paid on time for the past year without any issues.
+PID-347,CID-137,Travel,452,Annually,2024-10-13,12,452.0,The customer received a notice for a late payment but has since paid.
+PID-348,CID-138,Boat,760,Quarterly,2025-09-06,12,190.0,The customer has paid on time for the past year without any issues.
+PID-349,CID-138,Travel,699,Monthly,2020-07-06,12,58.25,The customer has never missed a payment and always pays on time.
+PID-350,CID-138,Travel,552,Quarterly,2020-03-28,12,138.0,The customer has a recurring issue with billing that they are addressing.
+PID-351,CID-139,Travel,608,Annually,2020-03-28,12,608.0,The customer has never missed a payment and always pays on time.
+PID-352,CID-139,Home,119,Annually,2025-08-03,12,119.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-353,CID-139,Travel,760,Annually,2020-07-08,12,760.0,The customer received a notice for a late payment but has since paid.
+PID-354,CID-140,Home,761,Annually,2023-10-03,12,761.0,The customer has never missed a payment and always pays on time.
+PID-355,CID-140,Home,750,Quarterly,2020-11-10,12,187.5,The customer has a recurring issue with billing that they are addressing.
+PID-356,CID-140,Boat,383,Quarterly,2025-06-20,12,95.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-357,CID-141,Auto,259,Monthly,2023-04-20,12,21.58,The customer has a recurring issue with billing that they are addressing.
+PID-358,CID-141,Travel,169,Quarterly,2023-12-11,12,42.25,The customer has paid on time for the past year without any issues.
+PID-359,CID-142,Home,878,Annually,2020-12-15,12,878.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-360,CID-143,Travel,426,Monthly,2025-04-07,12,35.5,The customer received a notice for a late payment but has since paid.
+PID-361,CID-143,Travel,969,Quarterly,2024-02-25,12,242.25,The customer has a recurring issue with billing that they are addressing.
+PID-362,CID-143,Boat,744,Monthly,2022-10-21,12,62.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-363,CID-144,Home,973,Annually,2025-08-15,12,973.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-364,CID-144,Boat,159,Monthly,2020-09-29,12,13.25,The customer has a recurring issue with billing that they are addressing.
+PID-365,CID-145,Home,985,Quarterly,2021-07-26,12,246.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-366,CID-145,Travel,827,Annually,2022-03-23,12,827.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-367,CID-145,Boat,820,Annually,2021-10-27,12,820.0,The customer has never missed a payment and always pays on time.
+PID-368,CID-145,Home,163,Quarterly,2024-08-24,12,40.75,The customer had some late payments last year but is now current.
+PID-369,CID-146,Travel,142,Monthly,2025-05-01,12,11.83,The customer has a recurring issue with billing that they are addressing.
+PID-370,CID-146,Travel,837,Quarterly,2021-10-10,12,209.25,The customer received a notice for a late payment but has since paid.
+PID-371,CID-147,Travel,347,Quarterly,2022-09-22,12,86.75,The customer has a recurring issue with billing that they are addressing.
+PID-372,CID-147,Auto,772,Quarterly,2024-03-30,12,193.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-373,CID-148,Boat,137,Annually,2023-08-03,12,137.0,The customer has a recurring issue with billing that they are addressing.
+PID-374,CID-148,Travel,280,Quarterly,2025-03-11,12,70.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-375,CID-148,Home,668,Quarterly,2021-11-16,12,167.0,The customer had some late payments last year but is now current.
+PID-376,CID-148,Auto,520,Annually,2022-04-04,12,520.0,The customer has a recurring issue with billing that they are addressing.
+PID-377,CID-149,Travel,829,Monthly,2022-09-04,12,69.08,The customer has never missed a payment and always pays on time.
+PID-378,CID-150,Boat,274,Quarterly,2021-01-27,12,68.5,The customer received a notice for a late payment but has since paid.
+PID-379,CID-150,Travel,699,Quarterly,2024-05-07,12,174.75,The customer has paid on time for the past year without any issues.
+PID-380,CID-151,Travel,333,Monthly,2022-03-28,12,27.75,The customer received a notice for a late payment but has since paid.
+PID-381,CID-152,Boat,981,Quarterly,2025-10-11,12,245.25,The customer received a notice for a late payment but has since paid.
+PID-382,CID-153,Auto,474,Annually,2023-11-26,12,474.0,The customer had some late payments last year but is now current.
+PID-383,CID-153,Travel,421,Monthly,2022-06-14,12,35.08,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-384,CID-154,Home,371,Annually,2021-11-18,12,371.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-385,CID-155,Travel,330,Annually,2021-03-15,12,330.0,The customer has paid on time for the past year without any issues.
+PID-386,CID-156,Home,373,Annually,2021-05-09,12,373.0,The customer has a recurring issue with billing that they are addressing.
+PID-387,CID-157,Home,157,Monthly,2022-07-25,12,13.08,The customer has paid on time for the past year without any issues.
+PID-388,CID-158,Travel,468,Monthly,2020-07-12,12,39.0,The customer has paid on time for the past year without any issues.
+PID-389,CID-159,Boat,646,Monthly,2025-11-11,12,53.83,The customer has paid on time for the past year without any issues.
+PID-390,CID-159,Auto,457,Quarterly,2025-08-13,12,114.25,The customer has never missed a payment and always pays on time.
+PID-391,CID-159,Travel,940,Monthly,2024-05-21,12,78.33,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-392,CID-159,Travel,311,Annually,2020-08-07,12,311.0,The customer has never missed a payment and always pays on time.
+PID-393,CID-160,Auto,979,Annually,2023-01-25,12,979.0,The customer has a recurring issue with billing that they are addressing.
+PID-394,CID-160,Home,251,Quarterly,2022-04-09,12,62.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-395,CID-161,Auto,216,Quarterly,2024-05-26,12,54.0,The customer had some late payments last year but is now current.
+PID-396,CID-161,Auto,966,Quarterly,2022-11-04,12,241.5,The customer received a notice for a late payment but has since paid.
+PID-397,CID-161,Boat,659,Monthly,2025-02-12,12,54.92,The customer has never missed a payment and always pays on time.
+PID-398,CID-162,Travel,312,Annually,2023-06-02,12,312.0,The customer has paid on time for the past year without any issues.
+PID-399,CID-162,Auto,200,Annually,2025-03-05,12,200.0,The customer has paid on time for the past year without any issues.
+PID-400,CID-163,Boat,717,Monthly,2021-04-03,12,59.75,The customer received a notice for a late payment but has since paid.
+PID-401,CID-163,Home,211,Annually,2024-12-26,12,211.0,The customer received a notice for a late payment but has since paid.
+PID-402,CID-163,Boat,786,Monthly,2021-06-21,12,65.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-403,CID-163,Travel,560,Monthly,2020-03-01,12,46.67,The customer has a recurring issue with billing that they are addressing.
+PID-404,CID-164,Travel,930,Annually,2022-09-16,12,930.0,The customer has a recurring issue with billing that they are addressing.
+PID-405,CID-164,Auto,695,Monthly,2020-12-02,12,57.92,The customer received a notice for a late payment but has since paid.
+PID-406,CID-165,Home,593,Monthly,2020-05-23,12,49.42,The customer has missed a payment this month and still has an outstanding balance.
+PID-407,CID-165,Travel,446,Annually,2025-03-20,12,446.0,The customer has a recurring issue with billing that they are addressing.
+PID-408,CID-166,Home,698,Annually,2020-03-31,12,698.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-409,CID-166,Travel,305,Quarterly,2023-03-18,12,76.25,The customer received a notice for a late payment but has since paid.
+PID-410,CID-166,Home,760,Annually,2025-04-04,12,760.0,The customer received a notice for a late payment but has since paid.
+PID-411,CID-166,Boat,292,Annually,2021-06-03,12,292.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-412,CID-167,Auto,499,Quarterly,2022-12-10,12,124.75,The customer has a recurring issue with billing that they are addressing.
+PID-413,CID-167,Auto,827,Monthly,2020-08-27,12,68.92,The customer had some late payments last year but is now current.
+PID-414,CID-168,Boat,640,Monthly,2025-04-19,12,53.33,The customer has never missed a payment and always pays on time.
+PID-415,CID-168,Auto,983,Annually,2020-04-19,12,983.0,The customer received a notice for a late payment but has since paid.
+PID-416,CID-169,Travel,667,Quarterly,2025-08-25,12,166.75,The customer has paid on time for the past year without any issues.
+PID-417,CID-170,Auto,417,Annually,2021-02-09,12,417.0,The customer had some late payments last year but is now current.
+PID-418,CID-170,Boat,404,Annually,2023-07-23,12,404.0,The customer had some late payments last year but is now current.
+PID-419,CID-171,Boat,289,Annually,2021-05-22,12,289.0,The customer had some late payments last year but is now current.
+PID-420,CID-171,Boat,311,Quarterly,2020-01-26,12,77.75,The customer had some late payments last year but is now current.
+PID-421,CID-172,Travel,557,Quarterly,2025-04-09,12,139.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-422,CID-172,Home,936,Monthly,2024-01-15,12,78.0,The customer has never missed a payment and always pays on time.
+PID-423,CID-173,Auto,151,Monthly,2023-04-13,12,12.58,The customer has paid on time for the past year without any issues.
+PID-424,CID-173,Travel,437,Quarterly,2022-07-15,12,109.25,The customer received a notice for a late payment but has since paid.
+PID-425,CID-173,Auto,804,Annually,2025-10-16,12,804.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-426,CID-174,Travel,806,Monthly,2024-08-29,12,67.17,The customer received a notice for a late payment but has since paid.
+PID-427,CID-174,Home,223,Quarterly,2021-04-03,12,55.75,The customer has paid on time for the past year without any issues.
+PID-428,CID-174,Travel,782,Monthly,2023-02-05,12,65.17,The customer has a recurring issue with billing that they are addressing.
+PID-429,CID-175,Home,867,Monthly,2021-04-05,12,72.25,The customer has never missed a payment and always pays on time.
+PID-430,CID-175,Home,461,Quarterly,2022-06-25,12,115.25,The customer has a recurring issue with billing that they are addressing.
+PID-431,CID-176,Home,311,Quarterly,2022-05-01,12,77.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-432,CID-177,Home,901,Quarterly,2020-07-10,12,225.25,The customer has never missed a payment and always pays on time.
+PID-433,CID-177,Boat,152,Monthly,2022-11-06,12,12.67,The customer had some late payments last year but is now current.
+PID-434,CID-178,Travel,262,Quarterly,2023-09-15,12,65.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-435,CID-178,Boat,244,Monthly,2024-04-29,12,20.33,The customer has paid on time for the past year without any issues.
+PID-436,CID-179,Travel,570,Monthly,2021-09-05,12,47.5,The customer has paid on time for the past year without any issues.
+PID-437,CID-179,Travel,115,Monthly,2020-10-17,12,9.58,The customer has a recurring issue with billing that they are addressing.
+PID-438,CID-179,Auto,342,Monthly,2023-09-12,12,28.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-439,CID-180,Boat,666,Quarterly,2020-12-07,12,166.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-440,CID-180,Home,936,Quarterly,2023-11-02,12,234.0,The customer received a notice for a late payment but has since paid.
+PID-441,CID-180,Home,475,Monthly,2021-09-27,12,39.58,The customer has a recurring issue with billing that they are addressing.
+PID-442,CID-181,Travel,741,Annually,2022-03-06,12,741.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-443,CID-181,Auto,620,Monthly,2020-08-05,12,51.67,The customer has never missed a payment and always pays on time.
+PID-444,CID-181,Travel,624,Monthly,2021-06-04,12,52.0,The customer has paid on time for the past year without any issues.
+PID-445,CID-181,Home,834,Annually,2023-09-15,12,834.0,The customer has paid on time for the past year without any issues.
+PID-446,CID-182,Boat,144,Quarterly,2024-03-02,12,36.0,The customer received a notice for a late payment but has since paid.
+PID-447,CID-182,Auto,143,Quarterly,2024-01-27,12,35.75,The customer has a recurring issue with billing that they are addressing.
+PID-448,CID-182,Travel,502,Monthly,2025-11-12,12,41.83,The customer received a notice for a late payment but has since paid.
+PID-449,CID-182,Boat,727,Quarterly,2023-12-12,12,181.75,The customer has paid on time for the past year without any issues.
+PID-450,CID-183,Home,228,Monthly,2025-10-17,12,19.0,The customer has a recurring issue with billing that they are addressing.
+PID-451,CID-183,Boat,816,Monthly,2025-11-07,12,68.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-452,CID-183,Auto,431,Annually,2024-09-19,12,431.0,The customer has a recurring issue with billing that they are addressing.
+PID-453,CID-183,Auto,785,Quarterly,2023-10-23,12,196.25,The customer received a notice for a late payment but has since paid.
+PID-454,CID-184,Travel,875,Monthly,2023-08-05,12,72.92,The customer has paid on time for the past year without any issues.
+PID-455,CID-184,Boat,352,Quarterly,2022-04-08,12,88.0,The customer has a recurring issue with billing that they are addressing.
+PID-456,CID-184,Auto,715,Monthly,2022-06-30,12,59.58,The customer has a recurring issue with billing that they are addressing.
+PID-457,CID-185,Home,271,Annually,2024-01-04,12,271.0,The customer has a recurring issue with billing that they are addressing.
+PID-458,CID-185,Travel,756,Annually,2023-11-13,12,756.0,The customer has never missed a payment and always pays on time.
+PID-459,CID-186,Boat,190,Annually,2020-03-07,12,190.0,The customer has a recurring issue with billing that they are addressing.
+PID-460,CID-187,Auto,424,Annually,2022-10-03,12,424.0,The customer has never missed a payment and always pays on time.
+PID-461,CID-187,Travel,561,Annually,2022-05-24,12,561.0,The customer has paid on time for the past year without any issues.
+PID-462,CID-188,Auto,259,Annually,2024-01-24,12,259.0,The customer has never missed a payment and always pays on time.
+PID-463,CID-188,Travel,910,Quarterly,2024-06-08,12,227.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-464,CID-188,Travel,283,Monthly,2022-01-06,12,23.58,The customer has missed a payment this month and still has an outstanding balance.
+PID-465,CID-189,Boat,311,Monthly,2023-09-09,12,25.92,The customer has never missed a payment and always pays on time.
+PID-466,CID-190,Boat,797,Monthly,2021-12-06,12,66.42,The customer has never missed a payment and always pays on time.
+PID-467,CID-190,Travel,743,Monthly,2024-09-19,12,61.92,The customer has paid on time for the past year without any issues.
+PID-468,CID-191,Travel,969,Monthly,2024-10-06,12,80.75,The customer had some late payments last year but is now current.
+PID-469,CID-191,Travel,949,Monthly,2020-03-29,12,79.08,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-470,CID-191,Travel,914,Monthly,2025-03-29,12,76.17,The customer has never missed a payment and always pays on time.
+PID-471,CID-191,Home,926,Monthly,2025-05-08,12,77.17,The customer has missed a payment this month and still has an outstanding balance.
+PID-472,CID-192,Boat,337,Monthly,2023-02-19,12,28.08,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-473,CID-192,Boat,142,Quarterly,2025-07-06,12,35.5,The customer received a notice for a late payment but has since paid.
+PID-474,CID-192,Home,232,Monthly,2024-07-11,12,19.33,The customer has missed a payment this month and still has an outstanding balance.
+PID-475,CID-192,Home,560,Monthly,2020-09-11,12,46.67,The customer had some late payments last year but is now current.
+PID-476,CID-193,Home,704,Quarterly,2024-09-24,12,176.0,The customer received a notice for a late payment but has since paid.
+PID-477,CID-193,Home,763,Monthly,2020-09-05,12,63.58,The customer has missed a payment this month and still has an outstanding balance.
+PID-478,CID-194,Travel,169,Annually,2023-06-26,12,169.0,The customer has a recurring issue with billing that they are addressing.
+PID-479,CID-195,Auto,846,Quarterly,2024-08-20,12,211.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-480,CID-195,Travel,193,Monthly,2021-09-10,12,16.08,The customer has paid on time for the past year without any issues.
+PID-481,CID-195,Home,797,Annually,2022-09-28,12,797.0,The customer has paid on time for the past year without any issues.
+PID-482,CID-195,Boat,803,Annually,2021-05-04,12,803.0,The customer has paid on time for the past year without any issues.
+PID-483,CID-196,Travel,221,Annually,2025-10-06,12,221.0,The customer received a notice for a late payment but has since paid.
+PID-484,CID-197,Auto,367,Quarterly,2025-10-14,12,91.75,The customer had some late payments last year but is now current.
+PID-485,CID-197,Home,971,Annually,2023-11-03,12,971.0,The customer has never missed a payment and always pays on time.
+PID-486,CID-198,Boat,631,Quarterly,2022-08-28,12,157.75,The customer has never missed a payment and always pays on time.
+PID-487,CID-198,Travel,346,Quarterly,2023-02-17,12,86.5,The customer has paid on time for the past year without any issues.
+PID-488,CID-198,Travel,244,Monthly,2022-08-26,12,20.33,The customer has a recurring issue with billing that they are addressing.
+PID-489,CID-198,Auto,148,Monthly,2020-02-24,12,12.33,The customer had some late payments last year but is now current.
+PID-490,CID-199,Travel,239,Annually,2023-03-26,12,239.0,The customer received a notice for a late payment but has since paid.
+PID-491,CID-199,Boat,333,Monthly,2023-01-10,12,27.75,The customer has a recurring issue with billing that they are addressing.
+PID-492,CID-199,Auto,644,Monthly,2021-07-05,12,53.67,The customer has missed a payment this month and still has an outstanding balance.
+PID-493,CID-200,Travel,753,Monthly,2024-06-18,12,62.75,The customer received a notice for a late payment but has since paid.
+PID-494,CID-200,Travel,399,Monthly,2020-11-21,12,33.25,The customer had some late payments last year but is now current.
+PID-495,CID-200,Home,398,Quarterly,2024-04-18,12,99.5,The customer has paid on time for the past year without any issues.
+PID-496,CID-201,Travel,810,Monthly,2025-07-13,12,67.5,The customer received a notice for a late payment but has since paid.
+PID-497,CID-202,Home,679,Monthly,2023-11-24,12,56.58,The customer has never missed a payment and always pays on time.
+PID-498,CID-202,Home,462,Annually,2025-09-13,12,462.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-499,CID-202,Auto,435,Quarterly,2024-09-14,12,108.75,The customer had some late payments last year but is now current.
+PID-500,CID-203,Travel,179,Monthly,2025-05-07,12,14.92,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-501,CID-203,Travel,223,Quarterly,2025-03-08,12,55.75,The customer had some late payments last year but is now current.
+PID-502,CID-204,Boat,619,Annually,2020-09-02,12,619.0,The customer had some late payments last year but is now current.
+PID-503,CID-204,Home,568,Annually,2022-01-26,12,568.0,The customer received a notice for a late payment but has since paid.
+PID-504,CID-204,Travel,622,Monthly,2024-07-09,12,51.83,The customer received a notice for a late payment but has since paid.
+PID-505,CID-204,Home,435,Monthly,2024-11-29,12,36.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-506,CID-205,Auto,155,Annually,2022-12-18,12,155.0,The customer has paid on time for the past year without any issues.
+PID-507,CID-205,Auto,685,Monthly,2025-06-02,12,57.08,The customer received a notice for a late payment but has since paid.
+PID-508,CID-205,Home,344,Monthly,2024-09-27,12,28.67,The customer has missed a payment this month and still has an outstanding balance.
+PID-509,CID-206,Travel,543,Monthly,2025-03-08,12,45.25,The customer has paid on time for the past year without any issues.
+PID-510,CID-207,Auto,236,Quarterly,2021-06-02,12,59.0,The customer has a recurring issue with billing that they are addressing.
+PID-511,CID-208,Travel,451,Quarterly,2022-05-12,12,112.75,The customer received a notice for a late payment but has since paid.
+PID-512,CID-208,Home,860,Annually,2021-12-21,12,860.0,The customer has never missed a payment and always pays on time.
+PID-513,CID-208,Travel,105,Monthly,2025-04-03,12,8.75,The customer received a notice for a late payment but has since paid.
+PID-514,CID-209,Auto,831,Monthly,2025-03-08,12,69.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-515,CID-209,Home,146,Annually,2023-12-02,12,146.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-516,CID-209,Auto,247,Annually,2021-10-25,12,247.0,The customer has a recurring issue with billing that they are addressing.
+PID-517,CID-209,Travel,865,Monthly,2024-08-16,12,72.08,The customer had some late payments last year but is now current.
+PID-518,CID-210,Travel,730,Quarterly,2020-04-23,12,182.5,The customer has a recurring issue with billing that they are addressing.
+PID-519,CID-210,Travel,340,Monthly,2021-10-10,12,28.33,The customer has paid on time for the past year without any issues.
+PID-520,CID-210,Boat,166,Annually,2024-02-29,12,166.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-521,CID-211,Boat,469,Annually,2020-01-15,12,469.0,The customer has never missed a payment and always pays on time.
+PID-522,CID-211,Home,853,Annually,2024-09-15,12,853.0,The customer had some late payments last year but is now current.
+PID-523,CID-212,Boat,756,Quarterly,2021-10-31,12,189.0,The customer received a notice for a late payment but has since paid.
+PID-524,CID-212,Auto,931,Monthly,2021-01-22,12,77.58,The customer has a recurring issue with billing that they are addressing.
+PID-525,CID-212,Auto,619,Annually,2020-05-29,12,619.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-526,CID-213,Boat,234,Quarterly,2024-02-08,12,58.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-527,CID-213,Home,705,Quarterly,2021-01-27,12,176.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-528,CID-213,Home,321,Quarterly,2023-12-25,12,80.25,The customer has a recurring issue with billing that they are addressing.
+PID-529,CID-213,Boat,458,Monthly,2023-03-17,12,38.17,The customer has paid on time for the past year without any issues.
+PID-530,CID-214,Travel,316,Monthly,2024-09-08,12,26.33,The customer has never missed a payment and always pays on time.
+PID-531,CID-214,Travel,521,Quarterly,2025-03-29,12,130.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-532,CID-215,Travel,661,Monthly,2022-11-01,12,55.08,The customer has a recurring issue with billing that they are addressing.
+PID-533,CID-215,Home,368,Quarterly,2021-05-14,12,92.0,The customer has paid on time for the past year without any issues.
+PID-534,CID-215,Boat,535,Quarterly,2025-06-25,12,133.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-535,CID-216,Boat,368,Monthly,2025-08-12,12,30.67,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-536,CID-216,Home,279,Quarterly,2022-05-27,12,69.75,The customer received a notice for a late payment but has since paid.
+PID-537,CID-216,Travel,937,Annually,2022-07-10,12,937.0,The customer has a recurring issue with billing that they are addressing.
+PID-538,CID-217,Auto,603,Monthly,2025-08-13,12,50.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-539,CID-218,Boat,145,Monthly,2021-09-02,12,12.08,The customer had some late payments last year but is now current.
+PID-540,CID-218,Boat,649,Annually,2020-11-09,12,649.0,The customer has never missed a payment and always pays on time.
+PID-541,CID-218,Home,461,Monthly,2024-08-09,12,38.42,The customer received a notice for a late payment but has since paid.
+PID-542,CID-219,Boat,452,Quarterly,2020-12-24,12,113.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-543,CID-219,Home,211,Quarterly,2023-06-07,12,52.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-544,CID-220,Home,986,Quarterly,2025-06-23,12,246.5,The customer has a recurring issue with billing that they are addressing.
+PID-545,CID-221,Home,976,Annually,2021-08-01,12,976.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-546,CID-221,Home,635,Annually,2023-10-19,12,635.0,The customer had some late payments last year but is now current.
+PID-547,CID-221,Home,722,Monthly,2022-09-16,12,60.17,The customer received a notice for a late payment but has since paid.
+PID-548,CID-221,Auto,688,Monthly,2025-05-31,12,57.33,The customer had some late payments last year but is now current.
+PID-549,CID-222,Boat,605,Monthly,2020-12-18,12,50.42,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-550,CID-222,Boat,518,Annually,2024-11-23,12,518.0,The customer received a notice for a late payment but has since paid.
+PID-551,CID-223,Boat,902,Monthly,2021-03-19,12,75.17,The customer received a notice for a late payment but has since paid.
+PID-552,CID-223,Travel,739,Quarterly,2022-07-18,12,184.75,The customer has a recurring issue with billing that they are addressing.
+PID-553,CID-223,Auto,824,Quarterly,2022-04-19,12,206.0,The customer has paid on time for the past year without any issues.
+PID-554,CID-224,Boat,912,Quarterly,2020-07-27,12,228.0,The customer had some late payments last year but is now current.
+PID-555,CID-224,Boat,971,Monthly,2023-10-12,12,80.92,The customer had some late payments last year but is now current.
+PID-556,CID-224,Travel,725,Monthly,2025-06-04,12,60.42,The customer has paid on time for the past year without any issues.
+PID-557,CID-224,Home,181,Monthly,2022-04-21,12,15.08,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-558,CID-225,Boat,534,Quarterly,2022-11-11,12,133.5,The customer received a notice for a late payment but has since paid.
+PID-559,CID-226,Auto,520,Monthly,2021-03-29,12,43.33,The customer has missed a payment this month and still has an outstanding balance.
+PID-560,CID-226,Boat,853,Monthly,2022-07-03,12,71.08,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-561,CID-226,Home,462,Annually,2023-04-28,12,462.0,The customer had some late payments last year but is now current.
+PID-562,CID-226,Travel,233,Quarterly,2020-01-04,12,58.25,The customer has paid on time for the past year without any issues.
+PID-563,CID-227,Travel,256,Annually,2022-12-12,12,256.0,The customer had some late payments last year but is now current.
+PID-564,CID-228,Home,692,Monthly,2021-11-19,12,57.67,The customer has never missed a payment and always pays on time.
+PID-565,CID-229,Home,967,Quarterly,2022-08-30,12,241.75,The customer has a recurring issue with billing that they are addressing.
+PID-566,CID-230,Boat,229,Annually,2022-03-16,12,229.0,The customer received a notice for a late payment but has since paid.
+PID-567,CID-230,Auto,684,Annually,2020-05-15,12,684.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-568,CID-231,Travel,714,Quarterly,2022-03-04,12,178.5,The customer had some late payments last year but is now current.
+PID-569,CID-231,Home,971,Quarterly,2025-04-08,12,242.75,The customer has paid on time for the past year without any issues.
+PID-570,CID-231,Auto,840,Annually,2020-12-24,12,840.0,The customer had some late payments last year but is now current.
+PID-571,CID-232,Travel,318,Annually,2022-03-17,12,318.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-572,CID-232,Travel,113,Monthly,2020-02-22,12,9.42,The customer has missed a payment this month and still has an outstanding balance.
+PID-573,CID-233,Boat,681,Monthly,2022-07-31,12,56.75,The customer had some late payments last year but is now current.
+PID-574,CID-233,Boat,974,Quarterly,2023-07-15,12,243.5,The customer received a notice for a late payment but has since paid.
+PID-575,CID-233,Auto,435,Quarterly,2025-07-29,12,108.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-576,CID-233,Home,453,Quarterly,2025-06-10,12,113.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-577,CID-234,Auto,500,Monthly,2025-03-19,12,41.67,The customer has a recurring issue with billing that they are addressing.
+PID-578,CID-234,Boat,684,Monthly,2022-03-01,12,57.0,The customer received a notice for a late payment but has since paid.
+PID-579,CID-235,Travel,261,Annually,2022-09-16,12,261.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-580,CID-235,Home,775,Monthly,2025-07-25,12,64.58,The customer has paid on time for the past year without any issues.
+PID-581,CID-235,Home,192,Quarterly,2020-06-24,12,48.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-582,CID-235,Boat,495,Quarterly,2024-06-13,12,123.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-583,CID-236,Home,734,Annually,2021-01-10,12,734.0,The customer has a recurring issue with billing that they are addressing.
+PID-584,CID-236,Travel,356,Monthly,2025-11-12,12,29.67,The customer received a notice for a late payment but has since paid.
+PID-585,CID-236,Travel,967,Monthly,2025-06-17,12,80.58,The customer received a notice for a late payment but has since paid.
+PID-586,CID-236,Boat,262,Quarterly,2024-05-12,12,65.5,The customer has a recurring issue with billing that they are addressing.
+PID-587,CID-237,Auto,815,Monthly,2023-12-06,12,67.92,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-588,CID-238,Travel,670,Quarterly,2021-02-25,12,167.5,The customer had some late payments last year but is now current.
+PID-589,CID-239,Auto,664,Quarterly,2021-04-24,12,166.0,The customer received a notice for a late payment but has since paid.
+PID-590,CID-239,Travel,294,Annually,2020-12-19,12,294.0,The customer has never missed a payment and always pays on time.
+PID-591,CID-239,Travel,743,Annually,2021-11-12,12,743.0,The customer has a recurring issue with billing that they are addressing.
+PID-592,CID-240,Travel,278,Monthly,2025-11-12,12,23.17,The customer has missed a payment this month and still has an outstanding balance.
+PID-593,CID-240,Boat,482,Annually,2024-08-07,12,482.0,The customer received a notice for a late payment but has since paid.
+PID-594,CID-240,Boat,706,Quarterly,2024-08-24,12,176.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-595,CID-240,Home,500,Annually,2021-03-29,12,500.0,The customer has paid on time for the past year without any issues.
+PID-596,CID-241,Travel,939,Quarterly,2020-10-21,12,234.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-597,CID-241,Auto,485,Annually,2024-09-06,12,485.0,The customer has paid on time for the past year without any issues.
+PID-598,CID-241,Home,926,Annually,2023-12-17,12,926.0,The customer has paid on time for the past year without any issues.
+PID-599,CID-241,Auto,672,Quarterly,2023-12-11,12,168.0,The customer received a notice for a late payment but has since paid.
+PID-600,CID-242,Travel,260,Monthly,2021-09-23,12,21.67,The customer received a notice for a late payment but has since paid.
+PID-601,CID-242,Auto,280,Quarterly,2022-08-31,12,70.0,The customer received a notice for a late payment but has since paid.
+PID-602,CID-242,Home,336,Quarterly,2023-03-21,12,84.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-603,CID-243,Auto,956,Monthly,2023-01-09,12,79.67,The customer has missed a payment this month and still has an outstanding balance.
+PID-604,CID-243,Travel,888,Monthly,2021-01-03,12,74.0,The customer received a notice for a late payment but has since paid.
+PID-605,CID-243,Auto,398,Quarterly,2023-12-15,12,99.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-606,CID-243,Boat,308,Monthly,2022-05-24,12,25.67,The customer has a recurring issue with billing that they are addressing.
+PID-607,CID-244,Home,129,Quarterly,2020-08-19,12,32.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-608,CID-244,Boat,193,Monthly,2024-11-10,12,16.08,The customer had some late payments last year but is now current.
+PID-609,CID-244,Travel,441,Monthly,2024-06-26,12,36.75,The customer had some late payments last year but is now current.
+PID-610,CID-245,Boat,218,Quarterly,2020-09-02,12,54.5,The customer had some late payments last year but is now current.
+PID-611,CID-246,Home,663,Monthly,2021-11-24,12,55.25,The customer has paid on time for the past year without any issues.
+PID-612,CID-246,Boat,875,Quarterly,2024-01-09,12,218.75,The customer has paid on time for the past year without any issues.
+PID-613,CID-246,Auto,395,Annually,2024-03-31,12,395.0,The customer had some late payments last year but is now current.
+PID-614,CID-246,Home,142,Quarterly,2025-05-28,12,35.5,The customer has a recurring issue with billing that they are addressing.
+PID-615,CID-247,Auto,705,Monthly,2023-09-18,12,58.75,The customer has never missed a payment and always pays on time.
+PID-616,CID-248,Boat,644,Monthly,2021-09-06,12,53.67,The customer received a notice for a late payment but has since paid.
+PID-617,CID-248,Auto,600,Quarterly,2020-09-02,12,150.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-618,CID-248,Home,947,Monthly,2024-10-27,12,78.92,The customer has a recurring issue with billing that they are addressing.
+PID-619,CID-248,Travel,109,Annually,2025-11-01,12,109.0,The customer has paid on time for the past year without any issues.
+PID-620,CID-249,Boat,375,Annually,2025-02-23,12,375.0,The customer has never missed a payment and always pays on time.
+PID-621,CID-249,Travel,889,Annually,2025-01-08,12,889.0,The customer has paid on time for the past year without any issues.
+PID-622,CID-249,Travel,443,Quarterly,2021-09-09,12,110.75,The customer has paid on time for the past year without any issues.
+PID-623,CID-249,Boat,972,Monthly,2020-03-05,12,81.0,The customer received a notice for a late payment but has since paid.
+PID-624,CID-250,Travel,264,Monthly,2025-05-09,12,22.0,The customer received a notice for a late payment but has since paid.
+PID-625,CID-250,Boat,633,Monthly,2023-12-31,12,52.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-626,CID-251,Boat,783,Annually,2024-01-25,12,783.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-627,CID-252,Auto,598,Monthly,2022-12-12,12,49.83,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-628,CID-252,Travel,527,Annually,2022-09-18,12,527.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-629,CID-252,Home,265,Quarterly,2020-02-29,12,66.25,The customer had some late payments last year but is now current.
+PID-630,CID-253,Auto,834,Monthly,2021-10-24,12,69.5,The customer has paid on time for the past year without any issues.
+PID-631,CID-253,Travel,816,Quarterly,2023-07-07,12,204.0,The customer has never missed a payment and always pays on time.
+PID-632,CID-254,Boat,426,Quarterly,2021-05-10,12,106.5,The customer received a notice for a late payment but has since paid.
+PID-633,CID-254,Home,824,Monthly,2025-05-06,12,68.67,The customer has missed a payment this month and still has an outstanding balance.
+PID-634,CID-254,Boat,555,Monthly,2024-03-26,12,46.25,The customer received a notice for a late payment but has since paid.
+PID-635,CID-254,Auto,740,Annually,2023-08-18,12,740.0,The customer received a notice for a late payment but has since paid.
+PID-636,CID-255,Home,385,Monthly,2024-11-13,12,32.08,The customer has paid on time for the past year without any issues.
+PID-637,CID-255,Travel,901,Quarterly,2020-06-15,12,225.25,The customer has a recurring issue with billing that they are addressing.
+PID-638,CID-256,Home,126,Monthly,2025-06-13,12,10.5,The customer has never missed a payment and always pays on time.
+PID-639,CID-257,Home,537,Annually,2020-12-17,12,537.0,The customer has paid on time for the past year without any issues.
+PID-640,CID-257,Auto,237,Quarterly,2021-01-19,12,59.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-641,CID-258,Auto,362,Quarterly,2024-03-12,12,90.5,The customer received a notice for a late payment but has since paid.
+PID-642,CID-258,Auto,234,Quarterly,2020-05-25,12,58.5,The customer has a recurring issue with billing that they are addressing.
+PID-643,CID-258,Auto,376,Quarterly,2021-10-28,12,94.0,The customer received a notice for a late payment but has since paid.
+PID-644,CID-259,Boat,358,Annually,2023-09-23,12,358.0,The customer received a notice for a late payment but has since paid.
+PID-645,CID-259,Home,807,Monthly,2024-05-19,12,67.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-646,CID-259,Auto,408,Quarterly,2023-05-24,12,102.0,The customer had some late payments last year but is now current.
+PID-647,CID-260,Home,561,Quarterly,2024-07-21,12,140.25,The customer had some late payments last year but is now current.
+PID-648,CID-261,Travel,745,Annually,2025-06-07,12,745.0,The customer had some late payments last year but is now current.
+PID-649,CID-262,Travel,110,Annually,2020-11-30,12,110.0,The customer has never missed a payment and always pays on time.
+PID-650,CID-263,Auto,329,Monthly,2022-05-02,12,27.42,The customer has paid on time for the past year without any issues.
+PID-651,CID-263,Boat,560,Monthly,2025-04-26,12,46.67,The customer had some late payments last year but is now current.
+PID-652,CID-264,Auto,922,Monthly,2025-08-19,12,76.83,The customer has paid on time for the past year without any issues.
+PID-653,CID-264,Boat,633,Annually,2024-01-29,12,633.0,The customer has paid on time for the past year without any issues.
+PID-654,CID-264,Home,909,Annually,2023-04-28,12,909.0,The customer had some late payments last year but is now current.
+PID-655,CID-265,Travel,766,Annually,2024-01-10,12,766.0,The customer has paid on time for the past year without any issues.
+PID-656,CID-265,Home,431,Annually,2025-09-30,12,431.0,The customer has paid on time for the past year without any issues.
+PID-657,CID-266,Home,765,Annually,2020-05-09,12,765.0,The customer received a notice for a late payment but has since paid.
+PID-658,CID-266,Auto,791,Quarterly,2024-07-01,12,197.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-659,CID-266,Boat,139,Annually,2021-12-29,12,139.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-660,CID-267,Boat,447,Monthly,2020-11-12,12,37.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-661,CID-267,Boat,386,Quarterly,2024-10-03,12,96.5,The customer received a notice for a late payment but has since paid.
+PID-662,CID-268,Boat,221,Annually,2024-06-15,12,221.0,The customer has a recurring issue with billing that they are addressing.
+PID-663,CID-268,Boat,897,Quarterly,2024-04-07,12,224.25,The customer had some late payments last year but is now current.
+PID-664,CID-269,Auto,507,Monthly,2020-09-21,12,42.25,The customer has never missed a payment and always pays on time.
+PID-665,CID-269,Travel,623,Quarterly,2021-08-25,12,155.75,The customer received a notice for a late payment but has since paid.
+PID-666,CID-269,Travel,760,Quarterly,2020-11-07,12,190.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-667,CID-269,Auto,517,Monthly,2025-11-12,12,43.08,The customer has a recurring issue with billing that they are addressing.
+PID-668,CID-270,Home,359,Monthly,2023-12-11,12,29.92,The customer has missed a payment this month and still has an outstanding balance.
+PID-669,CID-270,Auto,970,Monthly,2020-09-07,12,80.83,The customer received a notice for a late payment but has since paid.
+PID-670,CID-270,Home,350,Annually,2022-04-18,12,350.0,The customer has never missed a payment and always pays on time.
+PID-671,CID-270,Auto,875,Annually,2022-06-14,12,875.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-672,CID-271,Boat,953,Annually,2022-02-18,12,953.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-673,CID-271,Travel,834,Monthly,2024-03-24,12,69.5,The customer received a notice for a late payment but has since paid.
+PID-674,CID-271,Auto,224,Monthly,2021-02-23,12,18.67,The customer has missed a payment this month and still has an outstanding balance.
+PID-675,CID-271,Auto,630,Quarterly,2023-11-27,12,157.5,The customer has a recurring issue with billing that they are addressing.
+PID-676,CID-272,Home,234,Annually,2020-07-11,12,234.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-677,CID-272,Boat,787,Annually,2021-05-06,12,787.0,The customer has a recurring issue with billing that they are addressing.
+PID-678,CID-272,Travel,878,Monthly,2021-12-13,12,73.17,The customer has never missed a payment and always pays on time.
+PID-679,CID-273,Auto,124,Annually,2022-07-02,12,124.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-680,CID-273,Home,798,Annually,2020-10-21,12,798.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-681,CID-273,Boat,710,Monthly,2020-09-13,12,59.17,The customer has never missed a payment and always pays on time.
+PID-682,CID-273,Boat,405,Annually,2020-03-01,12,405.0,The customer has paid on time for the past year without any issues.
+PID-683,CID-274,Boat,527,Quarterly,2023-09-08,12,131.75,The customer has a recurring issue with billing that they are addressing.
+PID-684,CID-274,Boat,617,Annually,2022-04-09,12,617.0,The customer received a notice for a late payment but has since paid.
+PID-685,CID-274,Home,677,Annually,2020-09-03,12,677.0,The customer has paid on time for the past year without any issues.
+PID-686,CID-274,Travel,638,Annually,2021-01-13,12,638.0,The customer has paid on time for the past year without any issues.
+PID-687,CID-275,Travel,685,Annually,2022-05-01,12,685.0,The customer received a notice for a late payment but has since paid.
+PID-688,CID-276,Boat,404,Quarterly,2023-02-24,12,101.0,The customer has never missed a payment and always pays on time.
+PID-689,CID-277,Home,254,Quarterly,2023-04-16,12,63.5,The customer has a recurring issue with billing that they are addressing.
+PID-690,CID-277,Home,390,Annually,2023-03-30,12,390.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-691,CID-277,Auto,535,Monthly,2021-08-13,12,44.58,The customer received a notice for a late payment but has since paid.
+PID-692,CID-278,Travel,687,Quarterly,2020-03-25,12,171.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-693,CID-278,Auto,825,Quarterly,2025-01-11,12,206.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-694,CID-278,Boat,346,Monthly,2020-12-02,12,28.83,The customer had some late payments last year but is now current.
+PID-695,CID-278,Travel,379,Monthly,2023-07-01,12,31.58,The customer has never missed a payment and always pays on time.
+PID-696,CID-279,Travel,544,Annually,2020-04-11,12,544.0,The customer received a notice for a late payment but has since paid.
+PID-697,CID-279,Auto,679,Quarterly,2024-11-06,12,169.75,The customer has paid on time for the past year without any issues.
+PID-698,CID-279,Boat,602,Annually,2022-05-18,12,602.0,The customer has a recurring issue with billing that they are addressing.
+PID-699,CID-279,Boat,277,Monthly,2023-10-29,12,23.08,The customer has missed a payment this month and still has an outstanding balance.
+PID-700,CID-280,Home,568,Quarterly,2020-02-05,12,142.0,The customer has paid on time for the past year without any issues.
+PID-701,CID-280,Boat,865,Annually,2020-04-14,12,865.0,The customer has paid on time for the past year without any issues.
+PID-702,CID-280,Boat,750,Quarterly,2025-11-12,12,187.5,The customer received a notice for a late payment but has since paid.
+PID-703,CID-281,Boat,331,Annually,2022-06-29,12,331.0,The customer has a recurring issue with billing that they are addressing.
+PID-704,CID-281,Home,907,Annually,2023-08-16,12,907.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-705,CID-282,Boat,438,Quarterly,2023-03-18,12,109.5,The customer has a recurring issue with billing that they are addressing.
+PID-706,CID-282,Auto,627,Annually,2022-08-23,12,627.0,The customer had some late payments last year but is now current.
+PID-707,CID-283,Travel,649,Quarterly,2020-10-06,12,162.25,The customer has paid on time for the past year without any issues.
+PID-708,CID-284,Boat,994,Annually,2023-03-03,12,994.0,The customer received a notice for a late payment but has since paid.
+PID-709,CID-284,Travel,502,Quarterly,2025-10-27,12,125.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-710,CID-284,Travel,312,Annually,2023-06-29,12,312.0,The customer has never missed a payment and always pays on time.
+PID-711,CID-285,Boat,400,Quarterly,2022-03-23,12,100.0,The customer received a notice for a late payment but has since paid.
+PID-712,CID-286,Boat,162,Quarterly,2022-08-03,12,40.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-713,CID-286,Boat,891,Monthly,2025-06-09,12,74.25,The customer has a recurring issue with billing that they are addressing.
+PID-714,CID-286,Travel,922,Monthly,2023-12-25,12,76.83,The customer received a notice for a late payment but has since paid.
+PID-715,CID-287,Auto,427,Monthly,2024-06-01,12,35.58,The customer has a recurring issue with billing that they are addressing.
+PID-716,CID-287,Auto,492,Quarterly,2023-07-27,12,123.0,The customer received a notice for a late payment but has since paid.
+PID-717,CID-287,Travel,849,Monthly,2025-11-12,12,70.75,The customer has a recurring issue with billing that they are addressing.
+PID-718,CID-287,Home,716,Quarterly,2022-01-20,12,179.0,The customer has a recurring issue with billing that they are addressing.
+PID-719,CID-288,Home,278,Annually,2023-11-10,12,278.0,The customer has never missed a payment and always pays on time.
+PID-720,CID-288,Boat,705,Monthly,2021-03-09,12,58.75,The customer has paid on time for the past year without any issues.
+PID-721,CID-288,Boat,549,Monthly,2025-10-14,12,45.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-722,CID-289,Travel,922,Monthly,2021-08-29,12,76.83,The customer has a recurring issue with billing that they are addressing.
+PID-723,CID-289,Travel,324,Quarterly,2023-10-31,12,81.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-724,CID-289,Boat,971,Monthly,2021-06-20,12,80.92,The customer had some late payments last year but is now current.
+PID-725,CID-290,Boat,142,Annually,2025-07-30,12,142.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-726,CID-290,Home,174,Annually,2025-11-12,12,174.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-727,CID-290,Home,398,Annually,2020-10-10,12,398.0,The customer has a recurring issue with billing that they are addressing.
+PID-728,CID-290,Travel,608,Annually,2022-08-17,12,608.0,The customer has never missed a payment and always pays on time.
+PID-729,CID-291,Boat,661,Quarterly,2023-06-19,12,165.25,The customer has a recurring issue with billing that they are addressing.
+PID-730,CID-291,Boat,866,Annually,2025-05-16,12,866.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-731,CID-291,Travel,372,Monthly,2025-11-12,12,31.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-732,CID-292,Home,546,Quarterly,2025-09-09,12,136.5,The customer has a recurring issue with billing that they are addressing.
+PID-733,CID-292,Auto,430,Quarterly,2024-04-24,12,107.5,The customer received a notice for a late payment but has since paid.
+PID-734,CID-293,Boat,432,Quarterly,2024-11-28,12,108.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-735,CID-293,Travel,309,Quarterly,2021-10-28,12,77.25,The customer has paid on time for the past year without any issues.
+PID-736,CID-294,Travel,755,Annually,2020-01-31,12,755.0,The customer has paid on time for the past year without any issues.
+PID-737,CID-294,Auto,686,Quarterly,2025-11-12,12,171.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-738,CID-294,Auto,462,Monthly,2023-11-17,12,38.5,The customer has a recurring issue with billing that they are addressing.
+PID-739,CID-294,Home,991,Annually,2023-04-04,12,991.0,The customer has a recurring issue with billing that they are addressing.
+PID-740,CID-295,Boat,849,Annually,2023-07-26,12,849.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-741,CID-295,Home,569,Annually,2024-10-23,12,569.0,The customer received a notice for a late payment but has since paid.
+PID-742,CID-295,Auto,143,Monthly,2024-06-05,12,11.92,The customer received a notice for a late payment but has since paid.
+PID-743,CID-295,Home,846,Monthly,2021-12-25,12,70.5,The customer has a recurring issue with billing that they are addressing.
+PID-744,CID-296,Boat,599,Quarterly,2024-01-13,12,149.75,The customer received a notice for a late payment but has since paid.
+PID-745,CID-297,Home,845,Monthly,2020-01-26,12,70.42,The customer has paid on time for the past year without any issues.
+PID-746,CID-297,Auto,803,Annually,2024-01-11,12,803.0,The customer has a recurring issue with billing that they are addressing.
+PID-747,CID-297,Travel,309,Annually,2021-04-23,12,309.0,The customer had some late payments last year but is now current.
+PID-748,CID-297,Auto,222,Annually,2021-02-12,12,222.0,The customer received a notice for a late payment but has since paid.
+PID-749,CID-298,Auto,437,Annually,2020-02-19,12,437.0,The customer had some late payments last year but is now current.
+PID-750,CID-299,Travel,802,Quarterly,2025-02-07,12,200.5,The customer has a recurring issue with billing that they are addressing.
+PID-751,CID-299,Travel,915,Quarterly,2021-08-18,12,228.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-752,CID-299,Boat,498,Monthly,2022-04-13,12,41.5,The customer has paid on time for the past year without any issues.
+PID-753,CID-299,Home,878,Annually,2024-05-29,12,878.0,The customer has never missed a payment and always pays on time.
+PID-754,CID-300,Home,430,Monthly,2021-08-04,12,35.83,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-755,CID-300,Home,964,Quarterly,2023-10-06,12,241.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-756,CID-301,Home,755,Annually,2024-04-18,12,755.0,The customer received a notice for a late payment but has since paid.
+PID-757,CID-301,Travel,987,Quarterly,2021-07-25,12,246.75,The customer has a recurring issue with billing that they are addressing.
+PID-758,CID-301,Home,677,Monthly,2023-05-12,12,56.42,The customer has missed a payment this month and still has an outstanding balance.
+PID-759,CID-302,Home,884,Quarterly,2024-09-16,12,221.0,The customer had some late payments last year but is now current.
+PID-760,CID-302,Travel,969,Annually,2021-01-07,12,969.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-761,CID-303,Home,255,Annually,2024-07-12,12,255.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-762,CID-304,Travel,121,Monthly,2022-01-28,12,10.08,The customer has paid on time for the past year without any issues.
+PID-763,CID-304,Auto,863,Monthly,2024-10-02,12,71.92,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-764,CID-305,Home,369,Quarterly,2022-12-20,12,92.25,The customer had some late payments last year but is now current.
+PID-765,CID-305,Boat,143,Monthly,2025-01-29,12,11.92,The customer has a recurring issue with billing that they are addressing.
+PID-766,CID-305,Home,221,Quarterly,2025-02-21,12,55.25,The customer has paid on time for the past year without any issues.
+PID-767,CID-305,Travel,565,Monthly,2024-09-18,12,47.08,The customer has paid on time for the past year without any issues.
+PID-768,CID-306,Travel,906,Monthly,2022-03-05,12,75.5,The customer has a recurring issue with billing that they are addressing.
+PID-769,CID-307,Travel,844,Monthly,2020-12-18,12,70.33,The customer has never missed a payment and always pays on time.
+PID-770,CID-307,Home,391,Annually,2020-05-30,12,391.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-771,CID-307,Boat,851,Quarterly,2022-03-29,12,212.75,The customer has a recurring issue with billing that they are addressing.
+PID-772,CID-308,Travel,286,Quarterly,2023-07-22,12,71.5,The customer received a notice for a late payment but has since paid.
+PID-773,CID-308,Travel,848,Monthly,2024-01-27,12,70.67,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-774,CID-308,Home,712,Quarterly,2020-12-11,12,178.0,The customer has a recurring issue with billing that they are addressing.
+PID-775,CID-309,Boat,272,Annually,2024-09-27,12,272.0,The customer has never missed a payment and always pays on time.
+PID-776,CID-310,Boat,252,Monthly,2022-03-28,12,21.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-777,CID-310,Auto,302,Monthly,2020-02-08,12,25.17,The customer had some late payments last year but is now current.
+PID-778,CID-310,Travel,607,Monthly,2022-03-05,12,50.58,The customer has a recurring issue with billing that they are addressing.
+PID-779,CID-311,Auto,629,Quarterly,2023-08-12,12,157.25,The customer had some late payments last year but is now current.
+PID-780,CID-312,Home,923,Annually,2020-12-29,12,923.0,The customer has never missed a payment and always pays on time.
+PID-781,CID-313,Travel,599,Quarterly,2024-01-08,12,149.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-782,CID-313,Home,724,Annually,2025-10-31,12,724.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-783,CID-313,Home,927,Monthly,2025-02-16,12,77.25,The customer has paid on time for the past year without any issues.
+PID-784,CID-314,Travel,411,Quarterly,2022-06-24,12,102.75,The customer had some late payments last year but is now current.
+PID-785,CID-314,Travel,219,Monthly,2023-09-25,12,18.25,The customer has never missed a payment and always pays on time.
+PID-786,CID-315,Boat,896,Annually,2025-02-22,12,896.0,The customer received a notice for a late payment but has since paid.
+PID-787,CID-315,Home,218,Annually,2020-07-08,12,218.0,The customer has a recurring issue with billing that they are addressing.
+PID-788,CID-315,Travel,887,Quarterly,2023-11-20,12,221.75,The customer has never missed a payment and always pays on time.
+PID-789,CID-316,Home,891,Annually,2024-07-08,12,891.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-790,CID-316,Auto,328,Monthly,2022-07-11,12,27.33,The customer had some late payments last year but is now current.
+PID-791,CID-316,Travel,577,Quarterly,2024-04-23,12,144.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-792,CID-317,Home,492,Quarterly,2024-11-02,12,123.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-793,CID-318,Boat,955,Quarterly,2022-04-20,12,238.75,The customer had some late payments last year but is now current.
+PID-794,CID-318,Auto,245,Monthly,2024-01-29,12,20.42,The customer has paid on time for the past year without any issues.
+PID-795,CID-318,Boat,727,Monthly,2020-04-27,12,60.58,The customer received a notice for a late payment but has since paid.
+PID-796,CID-319,Travel,138,Quarterly,2025-06-10,12,34.5,The customer had some late payments last year but is now current.
+PID-797,CID-319,Boat,772,Quarterly,2020-04-07,12,193.0,The customer has a recurring issue with billing that they are addressing.
+PID-798,CID-319,Travel,950,Annually,2024-07-01,12,950.0,The customer had some late payments last year but is now current.
+PID-799,CID-319,Boat,714,Annually,2022-06-28,12,714.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-800,CID-320,Auto,815,Quarterly,2023-02-01,12,203.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-801,CID-320,Home,700,Annually,2025-06-26,12,700.0,The customer received a notice for a late payment but has since paid.
+PID-802,CID-320,Travel,484,Quarterly,2020-09-25,12,121.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-803,CID-321,Auto,180,Quarterly,2021-02-05,12,45.0,The customer has never missed a payment and always pays on time.
+PID-804,CID-321,Travel,252,Monthly,2020-07-18,12,21.0,The customer has paid on time for the past year without any issues.
+PID-805,CID-322,Home,621,Quarterly,2022-10-31,12,155.25,The customer had some late payments last year but is now current.
+PID-806,CID-322,Boat,877,Quarterly,2023-09-29,12,219.25,The customer has never missed a payment and always pays on time.
+PID-807,CID-322,Auto,874,Quarterly,2025-06-19,12,218.5,The customer received a notice for a late payment but has since paid.
+PID-808,CID-323,Auto,952,Monthly,2022-11-21,12,79.33,The customer has never missed a payment and always pays on time.
+PID-809,CID-323,Auto,421,Monthly,2023-05-29,12,35.08,The customer has paid on time for the past year without any issues.
+PID-810,CID-323,Travel,843,Monthly,2020-01-16,12,70.25,The customer received a notice for a late payment but has since paid.
+PID-811,CID-323,Home,553,Monthly,2021-01-09,12,46.08,The customer has missed a payment this month and still has an outstanding balance.
+PID-812,CID-324,Auto,563,Monthly,2020-11-02,12,46.92,The customer has paid on time for the past year without any issues.
+PID-813,CID-325,Auto,939,Annually,2023-07-08,12,939.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-814,CID-325,Travel,836,Annually,2023-01-19,12,836.0,The customer has paid on time for the past year without any issues.
+PID-815,CID-326,Travel,363,Quarterly,2022-03-09,12,90.75,The customer has paid on time for the past year without any issues.
+PID-816,CID-326,Home,868,Quarterly,2024-10-03,12,217.0,The customer has never missed a payment and always pays on time.
+PID-817,CID-326,Home,987,Quarterly,2022-02-20,12,246.75,The customer has a recurring issue with billing that they are addressing.
+PID-818,CID-326,Auto,728,Quarterly,2022-01-14,12,182.0,The customer has a recurring issue with billing that they are addressing.
+PID-819,CID-327,Boat,488,Monthly,2021-10-28,12,40.67,The customer has a recurring issue with billing that they are addressing.
+PID-820,CID-327,Travel,565,Annually,2025-10-17,12,565.0,The customer has paid on time for the past year without any issues.
+PID-821,CID-328,Boat,979,Quarterly,2025-04-08,12,244.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-822,CID-328,Boat,510,Quarterly,2022-06-16,12,127.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-823,CID-328,Home,677,Monthly,2023-04-15,12,56.42,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-824,CID-329,Travel,974,Annually,2021-11-12,12,974.0,The customer has paid on time for the past year without any issues.
+PID-825,CID-330,Boat,526,Monthly,2021-10-22,12,43.83,The customer received a notice for a late payment but has since paid.
+PID-826,CID-330,Home,440,Annually,2022-01-23,12,440.0,The customer has a recurring issue with billing that they are addressing.
+PID-827,CID-331,Boat,414,Quarterly,2021-03-14,12,103.5,The customer received a notice for a late payment but has since paid.
+PID-828,CID-331,Auto,159,Annually,2020-09-11,12,159.0,The customer has never missed a payment and always pays on time.
+PID-829,CID-332,Auto,262,Quarterly,2023-12-02,12,65.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-830,CID-332,Boat,431,Monthly,2021-04-29,12,35.92,The customer has a recurring issue with billing that they are addressing.
+PID-831,CID-332,Home,420,Monthly,2025-10-06,12,35.0,The customer has never missed a payment and always pays on time.
+PID-832,CID-332,Home,964,Annually,2023-03-13,12,964.0,The customer had some late payments last year but is now current.
+PID-833,CID-333,Travel,426,Quarterly,2021-08-01,12,106.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-834,CID-333,Home,106,Monthly,2023-04-07,12,8.83,The customer had some late payments last year but is now current.
+PID-835,CID-334,Auto,447,Monthly,2022-05-23,12,37.25,The customer had some late payments last year but is now current.
+PID-836,CID-334,Travel,955,Quarterly,2020-11-12,12,238.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-837,CID-334,Boat,650,Annually,2023-07-26,12,650.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-838,CID-335,Home,538,Annually,2021-08-07,12,538.0,The customer has paid on time for the past year without any issues.
+PID-839,CID-335,Travel,848,Monthly,2021-03-23,12,70.67,The customer had some late payments last year but is now current.
+PID-840,CID-335,Auto,221,Quarterly,2025-04-25,12,55.25,The customer has paid on time for the past year without any issues.
+PID-841,CID-336,Auto,498,Quarterly,2021-05-18,12,124.5,The customer has paid on time for the past year without any issues.
+PID-842,CID-336,Auto,484,Monthly,2022-09-05,12,40.33,The customer had some late payments last year but is now current.
+PID-843,CID-336,Auto,186,Quarterly,2023-08-16,12,46.5,The customer has paid on time for the past year without any issues.
+PID-844,CID-336,Home,870,Quarterly,2024-12-20,12,217.5,The customer received a notice for a late payment but has since paid.
+PID-845,CID-337,Home,664,Annually,2022-11-05,12,664.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-846,CID-337,Home,146,Monthly,2023-03-07,12,12.17,The customer has missed a payment this month and still has an outstanding balance.
+PID-847,CID-338,Home,876,Quarterly,2023-07-01,12,219.0,The customer had some late payments last year but is now current.
+PID-848,CID-339,Travel,525,Annually,2025-05-18,12,525.0,The customer has never missed a payment and always pays on time.
+PID-849,CID-339,Boat,452,Annually,2021-03-04,12,452.0,The customer has a recurring issue with billing that they are addressing.
+PID-850,CID-339,Home,540,Monthly,2023-06-05,12,45.0,The customer has never missed a payment and always pays on time.
+PID-851,CID-340,Home,634,Annually,2022-11-18,12,634.0,The customer has paid on time for the past year without any issues.
+PID-852,CID-340,Home,301,Monthly,2022-12-19,12,25.08,The customer has never missed a payment and always pays on time.
+PID-853,CID-340,Boat,128,Annually,2020-09-07,12,128.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-854,CID-341,Boat,665,Quarterly,2025-08-26,12,166.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-855,CID-341,Boat,816,Quarterly,2020-11-12,12,204.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-856,CID-341,Boat,347,Monthly,2023-11-12,12,28.92,The customer had some late payments last year but is now current.
+PID-857,CID-342,Boat,696,Annually,2022-06-21,12,696.0,The customer has never missed a payment and always pays on time.
+PID-858,CID-342,Home,653,Monthly,2020-07-03,12,54.42,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-859,CID-342,Home,839,Monthly,2021-09-30,12,69.92,The customer has never missed a payment and always pays on time.
+PID-860,CID-343,Travel,531,Monthly,2025-01-02,12,44.25,The customer has paid on time for the past year without any issues.
+PID-861,CID-344,Auto,909,Annually,2021-04-12,12,909.0,The customer has paid on time for the past year without any issues.
+PID-862,CID-345,Home,810,Monthly,2024-03-24,12,67.5,The customer has never missed a payment and always pays on time.
+PID-863,CID-345,Boat,215,Monthly,2023-02-27,12,17.92,The customer received a notice for a late payment but has since paid.
+PID-864,CID-346,Travel,444,Quarterly,2021-10-15,12,111.0,The customer received a notice for a late payment but has since paid.
+PID-865,CID-346,Travel,514,Monthly,2022-02-09,12,42.83,The customer received a notice for a late payment but has since paid.
+PID-866,CID-346,Auto,900,Quarterly,2021-12-07,12,225.0,The customer has paid on time for the past year without any issues.
+PID-867,CID-347,Travel,695,Quarterly,2025-10-28,12,173.75,The customer has paid on time for the past year without any issues.
+PID-868,CID-347,Travel,766,Quarterly,2024-03-21,12,191.5,The customer received a notice for a late payment but has since paid.
+PID-869,CID-347,Home,958,Annually,2021-07-08,12,958.0,The customer has never missed a payment and always pays on time.
+PID-870,CID-347,Auto,384,Quarterly,2022-05-12,12,96.0,The customer has never missed a payment and always pays on time.
+PID-871,CID-348,Home,702,Quarterly,2021-07-08,12,175.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-872,CID-349,Home,609,Annually,2021-03-15,12,609.0,The customer has never missed a payment and always pays on time.
+PID-873,CID-349,Auto,185,Annually,2020-07-26,12,185.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-874,CID-350,Travel,498,Quarterly,2021-02-27,12,124.5,The customer has a recurring issue with billing that they are addressing.
+PID-875,CID-350,Boat,917,Monthly,2022-07-24,12,76.42,The customer had some late payments last year but is now current.
+PID-876,CID-351,Boat,419,Monthly,2021-02-06,12,34.92,The customer has a recurring issue with billing that they are addressing.
+PID-877,CID-352,Home,704,Quarterly,2022-09-19,12,176.0,The customer received a notice for a late payment but has since paid.
+PID-878,CID-352,Boat,729,Monthly,2025-08-29,12,60.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-879,CID-352,Boat,284,Quarterly,2024-03-19,12,71.0,The customer has never missed a payment and always pays on time.
+PID-880,CID-353,Home,677,Quarterly,2020-05-15,12,169.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-881,CID-353,Auto,717,Monthly,2023-09-28,12,59.75,The customer has never missed a payment and always pays on time.
+PID-882,CID-353,Travel,243,Monthly,2020-07-12,12,20.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-883,CID-353,Boat,484,Quarterly,2022-10-18,12,121.0,The customer has paid on time for the past year without any issues.
+PID-884,CID-354,Boat,794,Monthly,2021-10-30,12,66.17,The customer received a notice for a late payment but has since paid.
+PID-885,CID-354,Travel,717,Monthly,2025-03-15,12,59.75,The customer has a recurring issue with billing that they are addressing.
+PID-886,CID-354,Auto,415,Monthly,2020-12-06,12,34.58,The customer has paid on time for the past year without any issues.
+PID-887,CID-354,Boat,285,Quarterly,2021-11-17,12,71.25,The customer has a recurring issue with billing that they are addressing.
+PID-888,CID-355,Auto,112,Quarterly,2022-11-09,12,28.0,The customer has a recurring issue with billing that they are addressing.
+PID-889,CID-355,Boat,310,Quarterly,2020-01-03,12,77.5,The customer received a notice for a late payment but has since paid.
+PID-890,CID-356,Boat,637,Monthly,2020-06-09,12,53.08,The customer had some late payments last year but is now current.
+PID-891,CID-356,Home,481,Quarterly,2020-01-17,12,120.25,The customer has a recurring issue with billing that they are addressing.
+PID-892,CID-356,Travel,813,Monthly,2020-12-20,12,67.75,The customer has paid on time for the past year without any issues.
+PID-893,CID-356,Home,484,Monthly,2024-10-07,12,40.33,The customer has missed a payment this month and still has an outstanding balance.
+PID-894,CID-357,Auto,504,Monthly,2020-07-01,12,42.0,The customer had some late payments last year but is now current.
+PID-895,CID-357,Boat,621,Monthly,2022-09-07,12,51.75,The customer has paid on time for the past year without any issues.
+PID-896,CID-357,Boat,978,Annually,2023-09-22,12,978.0,The customer has a recurring issue with billing that they are addressing.
+PID-897,CID-357,Home,695,Annually,2023-03-01,12,695.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-898,CID-358,Home,326,Quarterly,2023-12-25,12,81.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-899,CID-358,Travel,335,Monthly,2022-01-19,12,27.92,The customer received a notice for a late payment but has since paid.
+PID-900,CID-359,Auto,149,Monthly,2024-09-14,12,12.42,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-901,CID-360,Home,190,Quarterly,2022-09-30,12,47.5,The customer has never missed a payment and always pays on time.
+PID-902,CID-360,Home,434,Annually,2024-11-29,12,434.0,The customer has paid on time for the past year without any issues.
+PID-903,CID-360,Boat,934,Quarterly,2020-04-13,12,233.5,The customer has paid on time for the past year without any issues.
+PID-904,CID-361,Home,177,Monthly,2021-11-05,12,14.75,The customer has paid on time for the past year without any issues.
+PID-905,CID-361,Travel,677,Annually,2022-02-26,12,677.0,The customer had some late payments last year but is now current.
+PID-906,CID-361,Home,740,Monthly,2025-09-27,12,61.67,The customer had some late payments last year but is now current.
+PID-907,CID-361,Home,422,Annually,2024-06-23,12,422.0,The customer has paid on time for the past year without any issues.
+PID-908,CID-362,Travel,542,Monthly,2023-08-24,12,45.17,The customer has a recurring issue with billing that they are addressing.
+PID-909,CID-362,Home,894,Monthly,2025-03-04,12,74.5,The customer has never missed a payment and always pays on time.
+PID-910,CID-363,Boat,281,Annually,2025-03-21,12,281.0,The customer had some late payments last year but is now current.
+PID-911,CID-363,Travel,119,Monthly,2022-03-31,12,9.92,The customer has missed a payment this month and still has an outstanding balance.
+PID-912,CID-363,Boat,594,Annually,2022-03-16,12,594.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-913,CID-363,Travel,246,Annually,2025-03-25,12,246.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-914,CID-364,Travel,172,Monthly,2023-03-05,12,14.33,The customer had some late payments last year but is now current.
+PID-915,CID-364,Travel,746,Monthly,2021-11-15,12,62.17,The customer received a notice for a late payment but has since paid.
+PID-916,CID-365,Boat,978,Annually,2020-05-22,12,978.0,The customer has paid on time for the past year without any issues.
+PID-917,CID-365,Auto,380,Monthly,2020-04-03,12,31.67,The customer has paid on time for the past year without any issues.
+PID-918,CID-366,Boat,386,Monthly,2021-09-03,12,32.17,The customer has never missed a payment and always pays on time.
+PID-919,CID-366,Home,927,Quarterly,2020-07-09,12,231.75,The customer has never missed a payment and always pays on time.
+PID-920,CID-366,Boat,396,Annually,2023-05-26,12,396.0,The customer has never missed a payment and always pays on time.
+PID-921,CID-367,Home,726,Monthly,2025-08-08,12,60.5,The customer had some late payments last year but is now current.
+PID-922,CID-367,Home,723,Annually,2021-12-31,12,723.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-923,CID-367,Travel,759,Quarterly,2023-03-17,12,189.75,The customer had some late payments last year but is now current.
+PID-924,CID-368,Auto,775,Quarterly,2020-05-24,12,193.75,The customer has paid on time for the past year without any issues.
+PID-925,CID-368,Boat,150,Quarterly,2023-12-22,12,37.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-926,CID-369,Boat,487,Quarterly,2022-11-09,12,121.75,The customer has a recurring issue with billing that they are addressing.
+PID-927,CID-369,Home,414,Annually,2025-07-03,12,414.0,The customer has paid on time for the past year without any issues.
+PID-928,CID-369,Travel,430,Quarterly,2024-09-15,12,107.5,The customer has a recurring issue with billing that they are addressing.
+PID-929,CID-369,Home,327,Annually,2021-08-10,12,327.0,The customer has paid on time for the past year without any issues.
+PID-930,CID-370,Travel,418,Monthly,2023-06-18,12,34.83,The customer had some late payments last year but is now current.
+PID-931,CID-370,Boat,549,Monthly,2020-05-27,12,45.75,The customer had some late payments last year but is now current.
+PID-932,CID-370,Travel,548,Annually,2023-05-03,12,548.0,The customer had some late payments last year but is now current.
+PID-933,CID-370,Home,265,Quarterly,2020-11-28,12,66.25,The customer has never missed a payment and always pays on time.
+PID-934,CID-371,Auto,963,Monthly,2020-12-19,12,80.25,The customer received a notice for a late payment but has since paid.
+PID-935,CID-372,Home,722,Quarterly,2020-08-12,12,180.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-936,CID-372,Travel,407,Quarterly,2022-09-22,12,101.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-937,CID-372,Boat,811,Quarterly,2023-11-08,12,202.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-938,CID-372,Auto,918,Quarterly,2025-03-24,12,229.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-939,CID-373,Auto,362,Annually,2021-04-30,12,362.0,The customer received a notice for a late payment but has since paid.
+PID-940,CID-373,Travel,472,Annually,2023-12-03,12,472.0,The customer had some late payments last year but is now current.
+PID-941,CID-373,Home,706,Monthly,2021-02-11,12,58.83,The customer had some late payments last year but is now current.
+PID-942,CID-374,Auto,944,Annually,2020-12-14,12,944.0,The customer has never missed a payment and always pays on time.
+PID-943,CID-374,Auto,145,Monthly,2025-10-26,12,12.08,The customer received a notice for a late payment but has since paid.
+PID-944,CID-374,Boat,616,Annually,2022-06-03,12,616.0,The customer has paid on time for the past year without any issues.
+PID-945,CID-375,Travel,849,Monthly,2023-03-16,12,70.75,The customer has never missed a payment and always pays on time.
+PID-946,CID-375,Home,889,Quarterly,2024-01-10,12,222.25,The customer received a notice for a late payment but has since paid.
+PID-947,CID-375,Auto,616,Annually,2025-06-06,12,616.0,The customer has a recurring issue with billing that they are addressing.
+PID-948,CID-376,Travel,243,Quarterly,2023-10-11,12,60.75,The customer received a notice for a late payment but has since paid.
+PID-949,CID-376,Travel,938,Quarterly,2022-06-12,12,234.5,The customer has paid on time for the past year without any issues.
+PID-950,CID-377,Home,336,Monthly,2021-04-13,12,28.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-951,CID-377,Travel,535,Quarterly,2020-08-20,12,133.75,The customer has a recurring issue with billing that they are addressing.
+PID-952,CID-377,Travel,945,Annually,2022-04-26,12,945.0,The customer had some late payments last year but is now current.
+PID-953,CID-377,Auto,436,Quarterly,2022-09-27,12,109.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-954,CID-378,Auto,754,Monthly,2025-09-06,12,62.83,The customer received a notice for a late payment but has since paid.
+PID-955,CID-378,Home,334,Annually,2023-12-27,12,334.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-956,CID-379,Home,298,Monthly,2021-04-27,12,24.83,The customer has missed a payment this month and still has an outstanding balance.
+PID-957,CID-379,Auto,413,Annually,2022-07-17,12,413.0,The customer has never missed a payment and always pays on time.
+PID-958,CID-379,Travel,513,Quarterly,2023-02-16,12,128.25,The customer has a recurring issue with billing that they are addressing.
+PID-959,CID-380,Home,918,Quarterly,2023-08-29,12,229.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-960,CID-380,Travel,816,Quarterly,2021-02-17,12,204.0,The customer has paid on time for the past year without any issues.
+PID-961,CID-380,Home,577,Monthly,2025-08-13,12,48.08,The customer has a recurring issue with billing that they are addressing.
+PID-962,CID-380,Travel,642,Annually,2025-05-30,12,642.0,The customer received a notice for a late payment but has since paid.
+PID-963,CID-381,Travel,925,Monthly,2025-06-30,12,77.08,The customer had some late payments last year but is now current.
+PID-964,CID-381,Travel,278,Annually,2020-09-18,12,278.0,The customer has a recurring issue with billing that they are addressing.
+PID-965,CID-381,Home,747,Monthly,2021-08-15,12,62.25,The customer has paid on time for the past year without any issues.
+PID-966,CID-381,Auto,704,Annually,2020-02-14,12,704.0,The customer has never missed a payment and always pays on time.
+PID-967,CID-382,Home,936,Monthly,2022-04-02,12,78.0,The customer has paid on time for the past year without any issues.
+PID-968,CID-383,Travel,856,Annually,2020-05-02,12,856.0,The customer has a recurring issue with billing that they are addressing.
+PID-969,CID-383,Travel,187,Monthly,2025-07-20,12,15.58,The customer has never missed a payment and always pays on time.
+PID-970,CID-383,Boat,994,Quarterly,2022-03-29,12,248.5,The customer has a recurring issue with billing that they are addressing.
+PID-971,CID-383,Home,436,Monthly,2023-09-30,12,36.33,The customer has a recurring issue with billing that they are addressing.
+PID-972,CID-384,Boat,840,Monthly,2022-10-28,12,70.0,The customer had some late payments last year but is now current.
+PID-973,CID-385,Boat,881,Quarterly,2022-01-18,12,220.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-974,CID-385,Auto,380,Monthly,2023-12-08,12,31.67,The customer has missed a payment this month and still has an outstanding balance.
+PID-975,CID-385,Home,896,Monthly,2024-09-24,12,74.67,The customer has paid on time for the past year without any issues.
+PID-976,CID-386,Travel,844,Monthly,2021-07-10,12,70.33,The customer has never missed a payment and always pays on time.
+PID-977,CID-386,Boat,684,Quarterly,2024-02-05,12,171.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-978,CID-386,Auto,799,Quarterly,2023-10-18,12,199.75,The customer has paid on time for the past year without any issues.
+PID-979,CID-387,Boat,243,Annually,2023-09-24,12,243.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-980,CID-388,Boat,672,Quarterly,2022-07-25,12,168.0,The customer had some late payments last year but is now current.
+PID-981,CID-388,Home,362,Quarterly,2021-10-12,12,90.5,The customer has a recurring issue with billing that they are addressing.
+PID-982,CID-388,Home,419,Monthly,2023-05-08,12,34.92,The customer has paid on time for the past year without any issues.
+PID-983,CID-389,Home,794,Monthly,2024-10-21,12,66.17,The customer has never missed a payment and always pays on time.
+PID-984,CID-389,Boat,126,Annually,2024-10-01,12,126.0,The customer had some late payments last year but is now current.
+PID-985,CID-390,Home,371,Monthly,2021-03-07,12,30.92,The customer had some late payments last year but is now current.
+PID-986,CID-391,Boat,709,Monthly,2025-11-12,12,59.08,The customer had some late payments last year but is now current.
+PID-987,CID-391,Home,314,Monthly,2024-04-17,12,26.17,The customer has paid on time for the past year without any issues.
+PID-988,CID-391,Home,522,Quarterly,2020-04-04,12,130.5,The customer has a recurring issue with billing that they are addressing.
+PID-989,CID-392,Boat,854,Quarterly,2025-09-04,12,213.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-990,CID-392,Home,356,Annually,2021-04-11,12,356.0,The customer has a recurring issue with billing that they are addressing.
+PID-991,CID-392,Boat,815,Quarterly,2024-03-14,12,203.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-992,CID-393,Travel,518,Annually,2025-02-13,12,518.0,The customer has a recurring issue with billing that they are addressing.
+PID-993,CID-394,Boat,761,Monthly,2022-02-20,12,63.42,The customer has paid on time for the past year without any issues.
+PID-994,CID-395,Boat,769,Annually,2022-06-16,12,769.0,The customer had some late payments last year but is now current.
+PID-995,CID-395,Home,253,Quarterly,2021-11-09,12,63.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-996,CID-395,Travel,646,Annually,2020-05-13,12,646.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-997,CID-395,Travel,258,Quarterly,2023-05-08,12,64.5,The customer has never missed a payment and always pays on time.
+PID-998,CID-396,Boat,592,Monthly,2025-01-11,12,49.33,The customer has missed a payment this month and still has an outstanding balance.
+PID-999,CID-396,Auto,548,Annually,2020-03-04,12,548.0,The customer received a notice for a late payment but has since paid.
+PID-1000,CID-396,Boat,133,Quarterly,2022-01-21,12,33.25,The customer has paid on time for the past year without any issues.
+PID-1001,CID-397,Auto,618,Monthly,2023-04-18,12,51.5,The customer had some late payments last year but is now current.
+PID-1002,CID-397,Auto,978,Monthly,2024-12-05,12,81.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-1003,CID-397,Home,498,Quarterly,2020-12-03,12,124.5,The customer had some late payments last year but is now current.
+PID-1004,CID-398,Home,966,Monthly,2023-01-16,12,80.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1005,CID-398,Boat,279,Monthly,2024-11-02,12,23.25,The customer had some late payments last year but is now current.
+PID-1006,CID-398,Boat,904,Monthly,2025-03-29,12,75.33,The customer received a notice for a late payment but has since paid.
+PID-1007,CID-399,Home,986,Annually,2021-02-18,12,986.0,The customer had some late payments last year but is now current.
+PID-1008,CID-399,Travel,985,Monthly,2021-03-19,12,82.08,The customer had some late payments last year but is now current.
+PID-1009,CID-400,Travel,534,Annually,2024-11-10,12,534.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1010,CID-400,Home,504,Annually,2024-11-24,12,504.0,The customer has never missed a payment and always pays on time.
+PID-1011,CID-401,Boat,990,Monthly,2025-04-20,12,82.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1012,CID-401,Travel,408,Quarterly,2020-10-11,12,102.0,The customer has paid on time for the past year without any issues.
+PID-1013,CID-401,Travel,184,Monthly,2023-02-13,12,15.33,The customer has missed a payment this month and still has an outstanding balance.
+PID-1014,CID-402,Auto,730,Monthly,2022-05-23,12,60.83,The customer has paid on time for the past year without any issues.
+PID-1015,CID-402,Travel,500,Monthly,2025-03-18,12,41.67,The customer has missed a payment this month and still has an outstanding balance.
+PID-1016,CID-402,Home,880,Annually,2021-11-17,12,880.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1017,CID-402,Boat,114,Annually,2021-09-22,12,114.0,The customer has a recurring issue with billing that they are addressing.
+PID-1018,CID-403,Home,752,Annually,2025-01-29,12,752.0,The customer has never missed a payment and always pays on time.
+PID-1019,CID-404,Auto,796,Annually,2022-12-02,12,796.0,The customer has paid on time for the past year without any issues.
+PID-1020,CID-404,Home,906,Monthly,2020-06-21,12,75.5,The customer has never missed a payment and always pays on time.
+PID-1021,CID-404,Home,186,Annually,2025-05-23,12,186.0,The customer has paid on time for the past year without any issues.
+PID-1022,CID-404,Home,360,Monthly,2024-06-16,12,30.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1023,CID-405,Auto,393,Monthly,2023-06-17,12,32.75,The customer received a notice for a late payment but has since paid.
+PID-1024,CID-405,Auto,156,Quarterly,2024-11-26,12,39.0,The customer received a notice for a late payment but has since paid.
+PID-1025,CID-405,Home,941,Annually,2021-08-12,12,941.0,The customer received a notice for a late payment but has since paid.
+PID-1026,CID-406,Home,516,Monthly,2021-08-22,12,43.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1027,CID-406,Auto,687,Annually,2022-04-01,12,687.0,The customer has a recurring issue with billing that they are addressing.
+PID-1028,CID-407,Boat,250,Annually,2022-12-02,12,250.0,The customer had some late payments last year but is now current.
+PID-1029,CID-407,Travel,403,Monthly,2022-05-12,12,33.58,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1030,CID-408,Auto,106,Monthly,2023-08-07,12,8.83,The customer received a notice for a late payment but has since paid.
+PID-1031,CID-408,Travel,707,Monthly,2023-09-12,12,58.92,The customer had some late payments last year but is now current.
+PID-1032,CID-409,Travel,796,Annually,2025-11-12,12,796.0,The customer received a notice for a late payment but has since paid.
+PID-1033,CID-410,Travel,826,Monthly,2022-11-28,12,68.83,The customer has paid on time for the past year without any issues.
+PID-1034,CID-410,Boat,753,Quarterly,2025-11-12,12,188.25,The customer has never missed a payment and always pays on time.
+PID-1035,CID-411,Boat,296,Monthly,2022-08-16,12,24.67,The customer had some late payments last year but is now current.
+PID-1036,CID-411,Auto,197,Quarterly,2024-09-01,12,49.25,The customer has never missed a payment and always pays on time.
+PID-1037,CID-411,Home,713,Monthly,2023-11-28,12,59.42,The customer has never missed a payment and always pays on time.
+PID-1038,CID-412,Travel,583,Monthly,2025-08-31,12,48.58,The customer had some late payments last year but is now current.
+PID-1039,CID-412,Travel,816,Annually,2024-01-23,12,816.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1040,CID-412,Boat,613,Quarterly,2021-12-04,12,153.25,The customer received a notice for a late payment but has since paid.
+PID-1041,CID-412,Home,590,Monthly,2020-08-03,12,49.17,The customer has never missed a payment and always pays on time.
+PID-1042,CID-413,Auto,505,Monthly,2021-05-09,12,42.08,The customer received a notice for a late payment but has since paid.
+PID-1043,CID-413,Boat,731,Quarterly,2021-09-30,12,182.75,The customer has never missed a payment and always pays on time.
+PID-1044,CID-414,Auto,766,Annually,2022-01-21,12,766.0,The customer received a notice for a late payment but has since paid.
+PID-1045,CID-414,Home,895,Quarterly,2024-11-24,12,223.75,The customer has never missed a payment and always pays on time.
+PID-1046,CID-414,Auto,400,Monthly,2022-07-08,12,33.33,The customer has paid on time for the past year without any issues.
+PID-1047,CID-414,Home,400,Annually,2024-11-04,12,400.0,The customer has never missed a payment and always pays on time.
+PID-1048,CID-415,Home,475,Monthly,2021-02-20,12,39.58,The customer received a notice for a late payment but has since paid.
+PID-1049,CID-415,Travel,206,Annually,2020-12-27,12,206.0,The customer has never missed a payment and always pays on time.
+PID-1050,CID-415,Home,545,Annually,2023-11-25,12,545.0,The customer had some late payments last year but is now current.
+PID-1051,CID-415,Auto,859,Annually,2025-09-27,12,859.0,The customer has never missed a payment and always pays on time.
+PID-1052,CID-416,Home,822,Annually,2023-10-26,12,822.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1053,CID-417,Auto,830,Quarterly,2025-02-22,12,207.5,The customer has never missed a payment and always pays on time.
+PID-1054,CID-417,Auto,766,Quarterly,2020-09-10,12,191.5,The customer has a recurring issue with billing that they are addressing.
+PID-1055,CID-417,Auto,169,Annually,2025-10-25,12,169.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1056,CID-417,Home,623,Monthly,2025-07-10,12,51.92,The customer has paid on time for the past year without any issues.
+PID-1057,CID-418,Home,212,Annually,2024-06-19,12,212.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1058,CID-418,Boat,157,Annually,2021-07-11,12,157.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1059,CID-419,Boat,758,Monthly,2022-07-25,12,63.17,The customer has never missed a payment and always pays on time.
+PID-1060,CID-419,Boat,720,Quarterly,2023-05-04,12,180.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1061,CID-419,Boat,455,Quarterly,2025-03-23,12,113.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-1062,CID-419,Travel,424,Monthly,2021-04-17,12,35.33,The customer has never missed a payment and always pays on time.
+PID-1063,CID-420,Home,598,Annually,2024-04-04,12,598.0,The customer has paid on time for the past year without any issues.
+PID-1064,CID-420,Home,245,Annually,2025-11-12,12,245.0,The customer has never missed a payment and always pays on time.
+PID-1065,CID-421,Travel,226,Monthly,2022-07-04,12,18.83,The customer has missed a payment this month and still has an outstanding balance.
+PID-1066,CID-421,Travel,661,Quarterly,2023-02-25,12,165.25,The customer has paid on time for the past year without any issues.
+PID-1067,CID-421,Travel,341,Annually,2023-06-15,12,341.0,The customer received a notice for a late payment but has since paid.
+PID-1068,CID-421,Auto,137,Annually,2023-08-15,12,137.0,The customer had some late payments last year but is now current.
+PID-1069,CID-422,Travel,772,Monthly,2021-09-19,12,64.33,The customer has never missed a payment and always pays on time.
+PID-1070,CID-422,Boat,869,Annually,2021-01-04,12,869.0,The customer has a recurring issue with billing that they are addressing.
+PID-1071,CID-422,Home,295,Annually,2021-08-18,12,295.0,The customer received a notice for a late payment but has since paid.
+PID-1072,CID-422,Auto,753,Quarterly,2025-08-19,12,188.25,The customer has never missed a payment and always pays on time.
+PID-1073,CID-423,Boat,371,Monthly,2020-10-31,12,30.92,The customer has paid on time for the past year without any issues.
+PID-1074,CID-424,Boat,209,Monthly,2023-07-25,12,17.42,The customer has missed a payment this month and still has an outstanding balance.
+PID-1075,CID-425,Home,221,Annually,2023-01-29,12,221.0,The customer has paid on time for the past year without any issues.
+PID-1076,CID-425,Home,175,Quarterly,2024-04-25,12,43.75,The customer has paid on time for the past year without any issues.
+PID-1077,CID-425,Home,937,Quarterly,2020-08-30,12,234.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-1078,CID-425,Boat,320,Annually,2025-09-25,12,320.0,The customer has paid on time for the past year without any issues.
+PID-1079,CID-426,Boat,985,Quarterly,2020-09-22,12,246.25,The customer has a recurring issue with billing that they are addressing.
+PID-1080,CID-426,Boat,840,Quarterly,2022-06-10,12,210.0,The customer received a notice for a late payment but has since paid.
+PID-1081,CID-427,Boat,464,Monthly,2020-06-02,12,38.67,The customer had some late payments last year but is now current.
+PID-1082,CID-427,Travel,662,Monthly,2025-04-23,12,55.17,The customer received a notice for a late payment but has since paid.
+PID-1083,CID-428,Home,319,Quarterly,2023-05-24,12,79.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1084,CID-428,Auto,826,Annually,2020-01-17,12,826.0,The customer has never missed a payment and always pays on time.
+PID-1085,CID-428,Auto,802,Annually,2025-09-06,12,802.0,The customer has paid on time for the past year without any issues.
+PID-1086,CID-428,Auto,249,Annually,2025-08-30,12,249.0,The customer has paid on time for the past year without any issues.
+PID-1087,CID-429,Home,366,Annually,2025-11-12,12,366.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1088,CID-429,Boat,866,Annually,2024-12-06,12,866.0,The customer had some late payments last year but is now current.
+PID-1089,CID-429,Auto,929,Monthly,2022-03-13,12,77.42,The customer has paid on time for the past year without any issues.
+PID-1090,CID-430,Auto,977,Annually,2020-03-04,12,977.0,The customer has never missed a payment and always pays on time.
+PID-1091,CID-431,Home,963,Monthly,2025-06-06,12,80.25,The customer had some late payments last year but is now current.
+PID-1092,CID-431,Boat,821,Quarterly,2020-10-24,12,205.25,The customer has a recurring issue with billing that they are addressing.
+PID-1093,CID-431,Travel,252,Annually,2023-05-22,12,252.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1094,CID-431,Travel,571,Quarterly,2020-06-28,12,142.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-1095,CID-432,Home,572,Annually,2020-03-27,12,572.0,The customer received a notice for a late payment but has since paid.
+PID-1096,CID-432,Boat,106,Annually,2021-05-03,12,106.0,The customer had some late payments last year but is now current.
+PID-1097,CID-432,Travel,147,Annually,2020-07-30,12,147.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1098,CID-432,Home,441,Monthly,2024-10-11,12,36.75,The customer had some late payments last year but is now current.
+PID-1099,CID-433,Boat,819,Annually,2025-10-27,12,819.0,The customer has a recurring issue with billing that they are addressing.
+PID-1100,CID-433,Boat,821,Annually,2022-07-04,12,821.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1101,CID-434,Boat,212,Annually,2021-08-21,12,212.0,The customer received a notice for a late payment but has since paid.
+PID-1102,CID-434,Home,577,Annually,2023-05-30,12,577.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1103,CID-434,Boat,142,Quarterly,2022-05-22,12,35.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1104,CID-434,Home,351,Annually,2021-03-06,12,351.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1105,CID-435,Boat,295,Monthly,2021-06-17,12,24.58,The customer has missed a payment this month and still has an outstanding balance.
+PID-1106,CID-435,Travel,861,Annually,2025-09-28,12,861.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1107,CID-435,Auto,719,Monthly,2022-01-15,12,59.92,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1108,CID-436,Home,588,Monthly,2025-11-12,12,49.0,The customer has a recurring issue with billing that they are addressing.
+PID-1109,CID-437,Home,622,Annually,2022-03-22,12,622.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1110,CID-438,Boat,450,Quarterly,2024-02-29,12,112.5,The customer has never missed a payment and always pays on time.
+PID-1111,CID-438,Home,767,Quarterly,2023-05-12,12,191.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-1112,CID-438,Travel,611,Annually,2024-08-04,12,611.0,The customer has paid on time for the past year without any issues.
+PID-1113,CID-439,Boat,972,Quarterly,2023-11-19,12,243.0,The customer has never missed a payment and always pays on time.
+PID-1114,CID-439,Boat,194,Quarterly,2020-04-27,12,48.5,The customer had some late payments last year but is now current.
+PID-1115,CID-439,Auto,352,Quarterly,2024-08-19,12,88.0,The customer received a notice for a late payment but has since paid.
+PID-1116,CID-440,Boat,919,Monthly,2025-09-04,12,76.58,The customer has missed a payment this month and still has an outstanding balance.
+PID-1117,CID-440,Travel,848,Monthly,2022-08-06,12,70.67,The customer has a recurring issue with billing that they are addressing.
+PID-1118,CID-440,Home,187,Monthly,2023-11-18,12,15.58,The customer had some late payments last year but is now current.
+PID-1119,CID-440,Boat,742,Annually,2021-07-29,12,742.0,The customer received a notice for a late payment but has since paid.
+PID-1120,CID-441,Travel,881,Annually,2021-02-22,12,881.0,The customer has a recurring issue with billing that they are addressing.
+PID-1121,CID-441,Auto,115,Quarterly,2022-06-11,12,28.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1122,CID-441,Auto,564,Monthly,2021-05-25,12,47.0,The customer had some late payments last year but is now current.
+PID-1123,CID-441,Travel,254,Quarterly,2020-06-11,12,63.5,The customer has never missed a payment and always pays on time.
+PID-1124,CID-442,Home,822,Quarterly,2020-12-29,12,205.5,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1125,CID-442,Home,751,Annually,2020-01-17,12,751.0,The customer has paid on time for the past year without any issues.
+PID-1126,CID-442,Boat,672,Quarterly,2025-01-06,12,168.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1127,CID-442,Boat,472,Annually,2021-08-28,12,472.0,The customer had some late payments last year but is now current.
+PID-1128,CID-443,Home,872,Annually,2021-07-13,12,872.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1129,CID-444,Auto,623,Monthly,2020-05-01,12,51.92,The customer had some late payments last year but is now current.
+PID-1130,CID-445,Travel,231,Monthly,2024-10-14,12,19.25,The customer has never missed a payment and always pays on time.
+PID-1131,CID-445,Home,896,Annually,2023-04-08,12,896.0,The customer has a recurring issue with billing that they are addressing.
+PID-1132,CID-445,Travel,831,Quarterly,2024-11-25,12,207.75,The customer has a recurring issue with billing that they are addressing.
+PID-1133,CID-445,Auto,785,Monthly,2022-03-20,12,65.42,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1134,CID-446,Travel,162,Annually,2023-06-07,12,162.0,The customer has never missed a payment and always pays on time.
+PID-1135,CID-446,Auto,693,Monthly,2020-10-10,12,57.75,The customer has paid on time for the past year without any issues.
+PID-1136,CID-446,Travel,652,Monthly,2025-04-15,12,54.33,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1137,CID-447,Auto,256,Monthly,2021-12-02,12,21.33,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1138,CID-447,Boat,925,Monthly,2020-09-22,12,77.08,The customer has missed a payment this month and still has an outstanding balance.
+PID-1139,CID-448,Auto,507,Annually,2023-09-22,12,507.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1140,CID-449,Travel,999,Quarterly,2022-01-08,12,249.75,The customer has a recurring issue with billing that they are addressing.
+PID-1141,CID-449,Travel,981,Monthly,2020-01-22,12,81.75,The customer has never missed a payment and always pays on time.
+PID-1142,CID-449,Home,975,Quarterly,2024-04-01,12,243.75,The customer received a notice for a late payment but has since paid.
+PID-1143,CID-450,Boat,704,Quarterly,2025-05-25,12,176.0,The customer has never missed a payment and always pays on time.
+PID-1144,CID-450,Boat,688,Monthly,2023-02-28,12,57.33,The customer has missed a payment this month and still has an outstanding balance.
+PID-1145,CID-451,Home,915,Monthly,2025-09-18,12,76.25,The customer has paid on time for the past year without any issues.
+PID-1146,CID-451,Home,568,Quarterly,2023-07-29,12,142.0,The customer had some late payments last year but is now current.
+PID-1147,CID-451,Travel,791,Annually,2021-01-23,12,791.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1148,CID-451,Boat,130,Monthly,2020-03-26,12,10.83,The customer has missed a payment this month and still has an outstanding balance.
+PID-1149,CID-452,Boat,357,Quarterly,2023-06-24,12,89.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-1150,CID-452,Travel,372,Quarterly,2020-02-06,12,93.0,The customer has never missed a payment and always pays on time.
+PID-1151,CID-452,Travel,838,Monthly,2023-05-22,12,69.83,The customer has never missed a payment and always pays on time.
+PID-1152,CID-452,Home,603,Annually,2025-03-31,12,603.0,The customer has paid on time for the past year without any issues.
+PID-1153,CID-453,Home,277,Annually,2020-09-20,12,277.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1154,CID-453,Boat,101,Quarterly,2021-11-18,12,25.25,The customer had some late payments last year but is now current.
+PID-1155,CID-453,Home,755,Annually,2025-10-20,12,755.0,The customer received a notice for a late payment but has since paid.
+PID-1156,CID-453,Travel,171,Monthly,2024-04-29,12,14.25,The customer has never missed a payment and always pays on time.
+PID-1157,CID-454,Boat,323,Quarterly,2020-04-20,12,80.75,The customer had some late payments last year but is now current.
+PID-1158,CID-454,Home,147,Monthly,2025-09-13,12,12.25,The customer has paid on time for the past year without any issues.
+PID-1159,CID-454,Auto,348,Monthly,2024-05-17,12,29.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1160,CID-454,Travel,698,Monthly,2023-09-15,12,58.17,The customer had some late payments last year but is now current.
+PID-1161,CID-455,Boat,417,Monthly,2021-12-08,12,34.75,The customer has never missed a payment and always pays on time.
+PID-1162,CID-455,Travel,602,Annually,2025-01-24,12,602.0,The customer has a recurring issue with billing that they are addressing.
+PID-1163,CID-455,Boat,880,Quarterly,2025-04-09,12,220.0,The customer has paid on time for the past year without any issues.
+PID-1164,CID-456,Boat,409,Annually,2020-03-17,12,409.0,The customer had some late payments last year but is now current.
+PID-1165,CID-456,Travel,467,Annually,2020-08-27,12,467.0,The customer had some late payments last year but is now current.
+PID-1166,CID-456,Travel,424,Annually,2023-02-03,12,424.0,The customer has paid on time for the past year without any issues.
+PID-1167,CID-457,Boat,886,Annually,2023-09-07,12,886.0,The customer had some late payments last year but is now current.
+PID-1168,CID-457,Boat,607,Annually,2021-06-23,12,607.0,The customer has never missed a payment and always pays on time.
+PID-1169,CID-457,Boat,414,Annually,2025-06-07,12,414.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1170,CID-457,Boat,485,Annually,2022-10-19,12,485.0,The customer received a notice for a late payment but has since paid.
+PID-1171,CID-458,Home,184,Annually,2023-01-09,12,184.0,The customer has paid on time for the past year without any issues.
+PID-1172,CID-459,Home,470,Quarterly,2021-10-21,12,117.5,The customer has paid on time for the past year without any issues.
+PID-1173,CID-459,Auto,548,Monthly,2024-08-09,12,45.67,The customer has a recurring issue with billing that they are addressing.
+PID-1174,CID-459,Boat,692,Annually,2024-11-24,12,692.0,The customer received a notice for a late payment but has since paid.
+PID-1175,CID-459,Boat,837,Monthly,2023-12-01,12,69.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1176,CID-460,Home,519,Annually,2021-12-07,12,519.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1177,CID-460,Boat,687,Annually,2024-04-12,12,687.0,The customer has paid on time for the past year without any issues.
+PID-1178,CID-460,Travel,809,Quarterly,2025-07-13,12,202.25,The customer received a notice for a late payment but has since paid.
+PID-1179,CID-461,Auto,642,Monthly,2021-08-16,12,53.5,The customer had some late payments last year but is now current.
+PID-1180,CID-461,Home,900,Monthly,2024-11-12,12,75.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1181,CID-461,Home,514,Quarterly,2023-06-07,12,128.5,The customer has never missed a payment and always pays on time.
+PID-1182,CID-462,Auto,502,Quarterly,2025-11-12,12,125.5,The customer has paid on time for the past year without any issues.
+PID-1183,CID-462,Travel,879,Quarterly,2024-02-23,12,219.75,The customer received a notice for a late payment but has since paid.
+PID-1184,CID-462,Home,848,Annually,2023-01-22,12,848.0,The customer has paid on time for the past year without any issues.
+PID-1185,CID-463,Travel,221,Quarterly,2022-05-04,12,55.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1186,CID-463,Home,604,Annually,2021-04-13,12,604.0,The customer received a notice for a late payment but has since paid.
+PID-1187,CID-463,Boat,117,Annually,2023-09-01,12,117.0,The customer has never missed a payment and always pays on time.
+PID-1188,CID-463,Home,732,Quarterly,2020-06-18,12,183.0,The customer had some late payments last year but is now current.
+PID-1189,CID-464,Home,444,Annually,2023-06-12,12,444.0,The customer has a recurring issue with billing that they are addressing.
+PID-1190,CID-464,Auto,254,Monthly,2024-03-25,12,21.17,The customer had some late payments last year but is now current.
+PID-1191,CID-464,Auto,216,Quarterly,2024-06-13,12,54.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1192,CID-465,Auto,686,Annually,2023-12-09,12,686.0,The customer has a recurring issue with billing that they are addressing.
+PID-1193,CID-465,Home,960,Quarterly,2022-05-29,12,240.0,The customer received a notice for a late payment but has since paid.
+PID-1194,CID-465,Home,237,Quarterly,2021-01-25,12,59.25,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1195,CID-466,Boat,541,Annually,2022-07-17,12,541.0,The customer received a notice for a late payment but has since paid.
+PID-1196,CID-466,Boat,231,Quarterly,2022-04-23,12,57.75,The customer received a notice for a late payment but has since paid.
+PID-1197,CID-466,Travel,784,Annually,2025-07-03,12,784.0,The customer has a recurring issue with billing that they are addressing.
+PID-1198,CID-467,Boat,220,Annually,2024-04-04,12,220.0,The customer received a notice for a late payment but has since paid.
+PID-1199,CID-467,Home,914,Annually,2022-02-17,12,914.0,The customer has paid on time for the past year without any issues.
+PID-1200,CID-467,Home,275,Quarterly,2023-05-27,12,68.75,The customer had some late payments last year but is now current.
+PID-1201,CID-467,Auto,321,Monthly,2020-10-28,12,26.75,The customer received a notice for a late payment but has since paid.
+PID-1202,CID-468,Home,290,Annually,2021-10-20,12,290.0,The customer has paid on time for the past year without any issues.
+PID-1203,CID-469,Auto,295,Annually,2021-10-01,12,295.0,The customer received a notice for a late payment but has since paid.
+PID-1204,CID-469,Auto,430,Monthly,2024-06-22,12,35.83,The customer had some late payments last year but is now current.
+PID-1205,CID-469,Home,178,Quarterly,2025-01-20,12,44.5,The customer has a recurring issue with billing that they are addressing.
+PID-1206,CID-470,Travel,607,Annually,2020-07-12,12,607.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1207,CID-470,Travel,897,Quarterly,2022-03-04,12,224.25,The customer had some late payments last year but is now current.
+PID-1208,CID-471,Home,952,Monthly,2024-05-16,12,79.33,The customer received a notice for a late payment but has since paid.
+PID-1209,CID-471,Travel,402,Quarterly,2021-09-03,12,100.5,The customer has a recurring issue with billing that they are addressing.
+PID-1210,CID-471,Home,571,Monthly,2021-04-08,12,47.58,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1211,CID-472,Boat,808,Annually,2024-03-04,12,808.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1212,CID-473,Auto,204,Annually,2022-04-28,12,204.0,The customer has never missed a payment and always pays on time.
+PID-1213,CID-473,Travel,445,Quarterly,2023-02-02,12,111.25,The customer has a recurring issue with billing that they are addressing.
+PID-1214,CID-474,Auto,310,Annually,2025-09-19,12,310.0,The customer has paid on time for the past year without any issues.
+PID-1215,CID-474,Boat,461,Monthly,2024-02-03,12,38.42,The customer has missed a payment this month and still has an outstanding balance.
+PID-1216,CID-474,Boat,817,Monthly,2023-07-06,12,68.08,The customer had some late payments last year but is now current.
+PID-1217,CID-475,Auto,723,Annually,2024-12-01,12,723.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1218,CID-475,Travel,227,Quarterly,2025-10-27,12,56.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-1219,CID-476,Boat,471,Monthly,2020-12-25,12,39.25,The customer received a notice for a late payment but has since paid.
+PID-1220,CID-476,Auto,947,Monthly,2021-03-03,12,78.92,The customer has a recurring issue with billing that they are addressing.
+PID-1221,CID-476,Auto,162,Annually,2024-07-08,12,162.0,The customer received a notice for a late payment but has since paid.
+PID-1222,CID-476,Auto,626,Quarterly,2020-12-27,12,156.5,The customer had some late payments last year but is now current.
+PID-1223,CID-477,Home,222,Annually,2025-10-09,12,222.0,The customer received a notice for a late payment but has since paid.
+PID-1224,CID-477,Home,601,Quarterly,2023-01-19,12,150.25,The customer has never missed a payment and always pays on time.
+PID-1225,CID-477,Home,999,Quarterly,2025-06-21,12,249.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-1226,CID-477,Travel,794,Quarterly,2021-09-03,12,198.5,The customer has paid on time for the past year without any issues.
+PID-1227,CID-478,Boat,461,Monthly,2021-03-07,12,38.42,The customer has paid on time for the past year without any issues.
+PID-1228,CID-478,Home,167,Monthly,2022-04-02,12,13.92,The customer has a recurring issue with billing that they are addressing.
+PID-1229,CID-478,Auto,701,Quarterly,2025-07-14,12,175.25,The customer has never missed a payment and always pays on time.
+PID-1230,CID-478,Home,605,Annually,2020-06-17,12,605.0,The customer has paid on time for the past year without any issues.
+PID-1231,CID-479,Home,960,Quarterly,2020-01-18,12,240.0,The customer has a recurring issue with billing that they are addressing.
+PID-1232,CID-479,Boat,365,Quarterly,2025-01-25,12,91.25,The customer has paid on time for the past year without any issues.
+PID-1233,CID-480,Home,642,Annually,2020-01-03,12,642.0,The customer had some late payments last year but is now current.
+PID-1234,CID-481,Home,390,Annually,2023-03-19,12,390.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1235,CID-481,Travel,221,Annually,2020-01-22,12,221.0,The customer had some late payments last year but is now current.
+PID-1236,CID-481,Home,883,Monthly,2023-03-03,12,73.58,The customer has never missed a payment and always pays on time.
+PID-1237,CID-482,Auto,568,Annually,2025-10-15,12,568.0,The customer received a notice for a late payment but has since paid.
+PID-1238,CID-482,Travel,703,Quarterly,2025-02-22,12,175.75,The customer has paid on time for the past year without any issues.
+PID-1239,CID-483,Home,324,Quarterly,2024-06-30,12,81.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1240,CID-484,Auto,969,Annually,2023-02-15,12,969.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1241,CID-484,Home,502,Quarterly,2024-12-15,12,125.5,The customer has a recurring issue with billing that they are addressing.
+PID-1242,CID-484,Boat,565,Annually,2021-02-20,12,565.0,The customer has a recurring issue with billing that they are addressing.
+PID-1243,CID-485,Boat,180,Monthly,2025-04-29,12,15.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1244,CID-485,Boat,164,Quarterly,2022-06-12,12,41.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1245,CID-486,Travel,770,Quarterly,2021-11-28,12,192.5,The customer received a notice for a late payment but has since paid.
+PID-1246,CID-486,Auto,862,Quarterly,2022-06-26,12,215.5,The customer has paid on time for the past year without any issues.
+PID-1247,CID-486,Auto,415,Monthly,2021-04-24,12,34.58,The customer received a notice for a late payment but has since paid.
+PID-1248,CID-486,Boat,427,Annually,2025-07-05,12,427.0,The customer received a notice for a late payment but has since paid.
+PID-1249,CID-487,Home,655,Quarterly,2022-12-31,12,163.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-1250,CID-487,Home,454,Monthly,2022-09-15,12,37.83,The customer has missed a payment this month and still has an outstanding balance.
+PID-1251,CID-487,Boat,415,Quarterly,2022-09-09,12,103.75,The customer has paid on time for the past year without any issues.
+PID-1252,CID-488,Boat,852,Quarterly,2025-06-28,12,213.0,The customer received a notice for a late payment but has since paid.
+PID-1253,CID-489,Home,839,Quarterly,2023-10-20,12,209.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1254,CID-489,Boat,222,Annually,2021-06-08,12,222.0,The customer had some late payments last year but is now current.
+PID-1255,CID-489,Auto,807,Monthly,2024-09-10,12,67.25,The customer has a recurring issue with billing that they are addressing.
+PID-1256,CID-490,Auto,603,Quarterly,2022-03-12,12,150.75,The customer has a recurring issue with billing that they are addressing.
+PID-1257,CID-490,Boat,498,Quarterly,2024-06-15,12,124.5,The customer had some late payments last year but is now current.
+PID-1258,CID-490,Boat,104,Annually,2021-09-14,12,104.0,The customer has paid on time for the past year without any issues.
+PID-1259,CID-490,Travel,602,Annually,2022-01-31,12,602.0,The customer has never missed a payment and always pays on time.
+PID-1260,CID-491,Boat,569,Annually,2023-08-08,12,569.0,The customer has a recurring issue with billing that they are addressing.
+PID-1261,CID-492,Travel,567,Annually,2025-05-21,12,567.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1262,CID-492,Auto,567,Quarterly,2020-07-16,12,141.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1263,CID-493,Home,447,Monthly,2023-06-27,12,37.25,The customer has paid on time for the past year without any issues.
+PID-1264,CID-493,Home,610,Monthly,2020-06-29,12,50.83,The customer had some late payments last year but is now current.
+PID-1265,CID-493,Home,103,Monthly,2020-09-19,12,8.58,The customer received a notice for a late payment but has since paid.
+PID-1266,CID-494,Boat,677,Annually,2024-10-31,12,677.0,The customer has never missed a payment and always pays on time.
+PID-1267,CID-494,Boat,686,Annually,2022-11-24,12,686.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1268,CID-494,Boat,518,Quarterly,2020-06-13,12,129.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-1269,CID-495,Travel,858,Annually,2022-03-16,12,858.0,The customer received a notice for a late payment but has since paid.
+PID-1270,CID-495,Home,339,Monthly,2023-05-29,12,28.25,The customer has never missed a payment and always pays on time.
+PID-1271,CID-496,Auto,533,Quarterly,2021-08-11,12,133.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-1272,CID-496,Boat,578,Annually,2022-05-03,12,578.0,The customer has never missed a payment and always pays on time.
+PID-1273,CID-496,Boat,716,Quarterly,2020-02-28,12,179.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1274,CID-497,Boat,721,Annually,2020-03-06,12,721.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1275,CID-497,Auto,709,Annually,2021-01-23,12,709.0,The customer had some late payments last year but is now current.
+PID-1276,CID-497,Travel,493,Annually,2023-05-07,12,493.0,The customer received a notice for a late payment but has since paid.
+PID-1277,CID-497,Boat,904,Monthly,2024-03-22,12,75.33,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1278,CID-498,Boat,701,Quarterly,2022-04-03,12,175.25,The customer has a recurring issue with billing that they are addressing.
+PID-1279,CID-498,Home,858,Annually,2020-10-14,12,858.0,The customer received a notice for a late payment but has since paid.
+PID-1280,CID-498,Boat,556,Annually,2021-04-18,12,556.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1281,CID-498,Boat,543,Quarterly,2021-04-16,12,135.75,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1282,CID-499,Travel,241,Annually,2023-12-05,12,241.0,The customer received a notice for a late payment but has since paid.
+PID-1283,CID-500,Boat,587,Annually,2022-10-03,12,587.0,The customer received a notice for a late payment but has since paid.
+PID-1284,CID-500,Boat,710,Quarterly,2023-10-11,12,177.5,The customer has paid on time for the past year without any issues.
+PID-1285,CID-500,Boat,582,Monthly,2023-05-01,12,48.5,The customer has missed a payment this month and still has an outstanding balance.
+PID-1286,CID-501,Boat,522,Annually,2024-03-26,12,522.0,The customer has paid on time for the past year without any issues.
+PID-1287,CID-501,Boat,496,Quarterly,2025-08-24,12,124.0,The customer had some late payments last year but is now current.
+PID-1288,CID-502,Home,485,Monthly,2024-05-13,12,40.42,The customer has never missed a payment and always pays on time.
+PID-1289,CID-503,Auto,753,Annually,2023-04-08,12,753.0,The customer received a notice for a late payment but has since paid.
+PID-1290,CID-504,Home,917,Annually,2022-08-25,12,917.0,The customer has a recurring issue with billing that they are addressing.
+PID-1291,CID-504,Auto,498,Quarterly,2025-01-16,12,124.5,The customer received a notice for a late payment but has since paid.
+PID-1292,CID-505,Travel,527,Quarterly,2020-11-07,12,131.75,The customer has missed a payment this month and still has an outstanding balance.
+PID-1293,CID-505,Auto,932,Monthly,2021-10-23,12,77.67,The customer had some late payments last year but is now current.
+PID-1294,CID-505,Auto,432,Quarterly,2025-06-21,12,108.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1295,CID-505,Home,448,Annually,2021-11-24,12,448.0,The customer has a recurring issue with billing that they are addressing.
+PID-1296,CID-506,Boat,225,Quarterly,2024-09-15,12,56.25,The customer has missed a payment this month and still has an outstanding balance.
+PID-1297,CID-506,Home,808,Annually,2024-09-21,12,808.0,The customer has never missed a payment and always pays on time.
+PID-1298,CID-506,Boat,500,Annually,2025-07-08,12,500.0,The customer has never missed a payment and always pays on time.
+PID-1299,CID-507,Home,926,Annually,2021-11-26,12,926.0,The customer has never missed a payment and always pays on time.
+PID-1300,CID-507,Boat,336,Monthly,2020-02-17,12,28.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1301,CID-508,Boat,970,Annually,2024-04-26,12,970.0,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
+PID-1302,CID-508,Home,255,Quarterly,2024-03-30,12,63.75,The customer had some late payments last year but is now current.
+PID-1303,CID-509,Home,284,Annually,2020-01-19,12,284.0,The customer has paid on time for the past year without any issues.
+PID-1304,CID-509,Auto,475,Monthly,2023-01-25,12,39.58,The customer received a notice for a late payment but has since paid.
+PID-1305,CID-509,Boat,755,Quarterly,2020-01-17,12,188.75,The customer has a recurring issue with billing that they are addressing.
+PID-1306,CID-509,Travel,945,Quarterly,2020-02-17,12,236.25,The customer has never missed a payment and always pays on time.
+PID-1307,CID-510,Auto,969,Annually,2022-11-02,12,969.0,The customer has missed a payment this month and still has an outstanding balance.
+PID-1308,CID-510,Travel,559,Monthly,2022-04-11,12,46.58,The customer has missed a payment this month and still has an outstanding balance.
+PID-1309,CID-510,Boat,242,Monthly,2025-04-04,12,20.17,The customer has never missed a payment and always pays on time.
+PID-1310,CID-511,Auto,165,Quarterly,2021-04-04,12,41.25,The customer received a notice for a late payment but has since paid.
+PID-1311,CID-511,Home,617,Monthly,2021-12-30,12,51.42,The customer has a recurring issue with billing that they are addressing.
+PID-1312,CID-512,Travel,591,Quarterly,2023-05-02,12,147.75,The customer received a notice for a late payment but has since paid.
+PID-1313,CID-512,Auto,497,Monthly,2022-10-05,12,41.42,The customer had some late payments last year but is now current.
+PID-1314,CID-512,Home,702,Annually,2025-01-18,12,702.0,The customer received a notice for a late payment but has since paid.
+PID-1315,CID-513,Boat,718,Monthly,2025-02-09,12,59.83,"Due to unforeseen circumstances, the customer missed a payment but has set up automatic payments now."
