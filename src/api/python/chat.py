@@ -17,7 +17,6 @@ from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
 # Azure SDK
-from azure.core.exceptions import HttpResponseError
 from azure.monitor.events.extension import track_event
 from azure.ai.projects.aio import AIProjectClient
 
