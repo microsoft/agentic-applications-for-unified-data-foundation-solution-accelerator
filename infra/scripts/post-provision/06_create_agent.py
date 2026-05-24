@@ -1011,5 +1011,5 @@ Title Agent:
   Tools: None (text generation only)
 
 Next step:
-  python scripts/07_test_agent.py
+  python infra/scripts/post-provision/07_test_agent.py
 """)

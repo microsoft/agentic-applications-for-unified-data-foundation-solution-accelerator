@@ -41,12 +41,12 @@ After placing your data, run the build pipeline with `--custom-data`:
 
 **Option A (Fabric + Foundry):**
 ```bash
-python scripts/00_build_solution.py --custom-data data/customdata --fabric-workspace-id <your-workspace-id>
+python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata --fabric-workspace-id <your-workspace-id>
 ```
 
 **Option B (Azure-only):**
 ```bash
-python scripts/00_build_solution.py --custom-data data/customdata --from 03
+python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata --from 03
 ```
 
 You will be prompted for:
@@ -74,6 +74,6 @@ re-running the pipeline. It describes:
 
 - Look at `data/default/` for a working example of the expected structure
 - If auto-detected keys or relationships are wrong, edit `config/ontology_config.json`
-  and re-run from step 03: `python scripts/00_build_solution.py --from 03`
+  and re-run from step 03: `python infra/scripts/post-provision/00_build_solution.py --from 03`
 - Delete `config/ontology_config.json` to force regeneration on the next run
 - Keep table and column names lowercase with underscores for best SQL compatibility

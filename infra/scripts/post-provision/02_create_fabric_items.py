@@ -309,7 +309,7 @@ if CREATE_FABRIC_WORKSPACE:
                 print(f"ERROR: Failed to create workspace: {create_resp.status_code} {create_resp.text}")
                 sys.exit(1)
 
-        # Persist workspace ID to scripts/.env for future runs and refresh in-process env
+        # Persist workspace ID to .env for future runs and refresh in-process env
         env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
         os.environ["FABRIC_WORKSPACE_ID"] = WORKSPACE_ID
         with open(env_file, "r") as f:
@@ -317,13 +317,13 @@ if CREATE_FABRIC_WORKSPACE:
         if "FABRIC_WORKSPACE_ID" not in env_content:
             with open(env_file, "a") as f:
                 f.write(f"\nFABRIC_WORKSPACE_ID={WORKSPACE_ID}\n")
-            print(f"  [OK] Saved FABRIC_WORKSPACE_ID to scripts/.env")
+            print(f"  [OK] Saved FABRIC_WORKSPACE_ID to infra/scripts/post-provision/.env")
         else:
             import re
             updated = re.sub(r'^FABRIC_WORKSPACE_ID=.*$', f'FABRIC_WORKSPACE_ID={WORKSPACE_ID}', env_content, flags=re.MULTILINE)
             with open(env_file, "w") as f:
                 f.write(updated)
-            print(f"  [OK] Updated FABRIC_WORKSPACE_ID in scripts/.env")
+            print(f"  [OK] Updated FABRIC_WORKSPACE_ID in infra/scripts/post-provision/.env")
 
     # Step B: Check if capacity is already assigned, assign if not
     ws_resp = make_request("GET", f"{FABRIC_API}/workspaces/{WORKSPACE_ID}")
@@ -1348,5 +1348,5 @@ Lakehouse: {lakehouse_name}
 IDs saved to: {ids_path}
 
 Next step - Generate schema prompt:
-  python scripts/03_generate_agent_prompt.py
+  python infra/scripts/post-provision/03_generate_agent_prompt.py
 """)

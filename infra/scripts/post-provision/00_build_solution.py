@@ -4,13 +4,13 @@ Master script that runs all steps to build the complete solution.
 
 Usage:
     # Run all steps from the beginning (uses either Fabric Lakehouse or Azure SQL + AI Search)
-    python scripts/00_build_solution.py
+    python infra/scripts/post-provision/00_build_solution.py
     
     # Start from a specific step
-    python scripts/00_build_solution.py --from 05
+    python infra/scripts/post-provision/00_build_solution.py --from 05
 
     # Bring your own data (skips AI data generation)
-    python scripts/00_build_solution.py --custom-data data/customdata
+    python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata
 
 Steps (Fabric SQL mode):
     01  - Generate sample data
@@ -72,12 +72,12 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog="""
 Examples:
-  python scripts/00_build_solution.py                # Full Fabric mode or SQL mode
-  python scripts/00_build_solution.py --from 05      # Start from step 05
-  python scripts/00_build_solution.py --only 06      # Run only specific steps
-  python scripts/00_build_solution.py -g rg-myproject-dev  # Pre-provisioned infra
-  python scripts/00_build_solution.py --fabric-workspace-id <id>  # Pass Fabric workspace ID
-  python scripts/00_build_solution.py --custom-data data/customdata  # Use your own data
+  python infra/scripts/post-provision/00_build_solution.py                # Full Fabric mode or SQL mode
+  python infra/scripts/post-provision/00_build_solution.py --from 05      # Start from step 05
+  python infra/scripts/post-provision/00_build_solution.py --only 06      # Run only specific steps
+  python infra/scripts/post-provision/00_build_solution.py -g rg-myproject-dev  # Pre-provisioned infra
+  python infra/scripts/post-provision/00_build_solution.py --fabric-workspace-id <id>  # Pass Fabric workspace ID
+  python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata  # Use your own data
 """
 )
 parser.add_argument("--industry", type=str, 
@@ -140,7 +140,7 @@ if args.resource_group:
         reload_env()
         load_all_env()
     else:
-        print("Failed. Edit scripts/.env manually or retry with: python scripts/generate_env_from_azure.py -g <rg>")
+        print("Failed. Edit infra/scripts/post-provision/.env manually or retry with: python infra/scripts/post-provision/generate_env_from_azure.py -g <rg>")
         sys.exit(1)
 
 # Get azure_only from environment variable (set AZURE_ENV_ONLY=true to use Azure SQL mode)
@@ -231,8 +231,8 @@ if args.custom_data:
             print("ERROR: Failed to generate config from CSV files.")
             sys.exit(1)
 
-    # Set DATA_FOLDER in environment and persist to scripts/.env
-    project_root = os.path.abspath(os.path.join(script_dir, ".."))
+    # Set DATA_FOLDER in environment and persist to .env
+    project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
     relative_data_dir = os.path.relpath(custom_data_dir, project_root)
     os.environ["DATA_FOLDER"] = relative_data_dir
 
@@ -317,7 +317,7 @@ if not azure_only:
     if fabric_workspace_id:
         # Make it available to downstream scripts
         os.environ["FABRIC_WORKSPACE_ID"] = fabric_workspace_id
-        # Persist to scripts/.env so subsequent runs don't need to re-enter it
+        # Persist to .env so subsequent runs don't need to re-enter it
         from dotenv import set_key
         env_path = os.path.join(script_dir, ".env")
         set_key(env_path, "FABRIC_WORKSPACE_ID", fabric_workspace_id)
@@ -486,7 +486,7 @@ web_app_url = os.getenv("WEB_APP_URL", "")
 if args.quiet:
     print(f"\n✓ Done! {successful}/{len(pipeline)} steps completed in {total_elapsed:.1f}s")
     if failed == 0:
-        print(f"  Next: python scripts/07_test_agent.py")
+        print(f"  Next: python infra/scripts/post-provision/07_test_agent.py")
     else:
         print(f"  Some steps failed. Check output above.")
         sys.exit(1)
@@ -501,7 +501,7 @@ else:
     if failed == 0:
         print(f"""
 Next step - Test the agent:
-  python scripts/07_test_agent.py
+  python infra/scripts/post-provision/07_test_agent.py
 
 Sample questions to try:
   - "How many outages occurred last month?"

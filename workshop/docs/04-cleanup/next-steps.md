@@ -16,14 +16,14 @@ You now have everything you need to accelerate customer engagements.
 
 ```bash
 # Before each customer meeting, generate their scenario:
-python scripts/00_build_solution.py --clean \
+python infra/scripts/post-provision/00_build_solution.py --clean \
   --industry "Customer's Industry" \
   --usecase "Brief description of their use case"
 ```
 
 **Example for an insurance customer:**
 ```bash
-python scripts/00_build_solution.py --clean \
+python infra/scripts/post-provision/00_build_solution.py --clean \
   --industry "Insurance" \
   --usecase "Property and casualty insurance with claims processing, policy management, and fraud detection"
 ```

@@ -243,82 +243,61 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
    
    If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
-5. Once the deployment has completed successfully, copy the 2 bash commands from the terminal (ex. 
-`bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh` and
-`bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
+5. Setup Python environment:
 
-> **Note**: If you are running this deployment in GitHub Codespaces or VS Code Dev Container or Visual Studio Code (WEB) skip to step 7. 
-
-6. Create and activate a virtual environment 
-  
     ```shell
     python -m venv .venv
     ```
 
     ```shell
-    source .venv/Scripts/activate
+    .venv\Scripts\activate   # or: source .venv/bin/activate
     ```
 
-7. Login to Azure
+    ```shell
+    pip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt
+    ```
+
+6. Login to Azure:
+
     ```shell
     az login
     ```
 
-    Alternatively, login to Azure using a device code (recommended when using VS Code Web):
+    > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
+
+7. Build the solution:
+
+    **Fabric mode** (default — requires a Fabric workspace ID):
 
     ```shell
-    az login --use-device-code
+    python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
     ```
 
-> **Note**: you will need to open a Git Bash terminal to complete steps 8 and 9.  
-8. Run the bash script from the output of the azd deployment. The script will look like the following:
-    
-    ```Shell
-    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
-    ```
-    If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
-    ```Shell
-    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <ai-project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group> <usecase> [<is-workshop>]
+    > You can find your workspace ID in the Fabric URL: `https://app.fabric.microsoft.com/groups/<workspace-id>/...`
+
+    **Azure-only mode** (if you set `AZURE_ENV_ONLY=true`):
+
+    ```shell
+    python infra/scripts/post-provision/00_build_solution.py --from 03
     ```
 
-    **Step 8 Parameter Reference:**
+    > **Note:** Press **Enter** to start or **Ctrl+C** to cancel the process.
 
-    | Parameter | azd env Variable | Format / Example |
-    |---|---|---|
-    | `<ai-project-endpoint>` | `AZURE_AI_PROJECT_ENDPOINT` | URL starting with `https://` (e.g., `https://<ai-service>.services.ai.azure.com/api/projects/<project>`) |
-    | `<solution-name>` | `SOLUTION_NAME` | Alphanumeric string (e.g., `da5fi6dninkrjn`) |
-    | `<gpt-model-name>` | `AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME` | Model name (e.g., `gpt-4o-mini`, `gpt-4o`, `gpt-4`) |
-    | `<ai-foundry-resource-id>` | `AI_FOUNDRY_RESOURCE_ID` | Full resource ID starting with `/subscriptions/...` |
-    | `<api-app-name>` | `API_APP_NAME` | App Service name (e.g., `api-cs-<solutionname>`) |
-    | `<resource-group>` | `AZURE_RESOURCE_GROUP` | Resource group name (e.g., `rg-<envname>`) |
-    | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
+8. Test the agent:
 
-9. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
-    ```Shell
-    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>
+    ```shell
+    python infra/scripts/post-provision/07_test_agent.py
     ```
 
-    If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
-    ```Shell
-    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup> <usecase>
-    ```
+    **Sample questions to try:**
 
-    **Step 9 Parameter Reference:**
+    - "How many tickets are high priority?"
+    - "What is the average score from inspections?"
+    - "What constitutes a failed inspection?"
 
-    | Parameter | azd env Variable | Format / Example |
-    |---|---|---|
-    | `<fabric-workspaceId>` | *(user-provided)* | GUID (e.g., `5bxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxx246`) |
-    | `<solutionname>` | `SOLUTION_NAME` | Alphanumeric string (e.g., `da5fi6dninkrjn`) |
-    | `<ai-foundry-name>` | `AI_SERVICE_NAME` | AI Foundry account name (e.g., `aisa-<solutionname>`) |
-    | `<backend-api-mid-principal>` | `API_PID` | Managed identity Principal (Object) ID — GUID |
-    | `<backend-api-mid-client>` | `API_UID` | Managed identity Client ID — GUID |
-    | `<api-app-name>` | `API_APP_NAME` | App Service name (e.g., `api-cs-<solutionname>`) |
-    | `<resourcegroup>` | `RESOURCE_GROUP_NAME` | Resource group name (e.g., `rg-<envname>`) |
-    | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
+9. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
-10. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
-
-11. If you are done trying out the application, you can delete the resources by running `azd down`.
+10. If you are done trying out the application, you can delete the resources by running `azd down`.
 
 
 ## Post Deployment Steps
@@ -330,22 +309,6 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 2. **Deleting Resources After a Failed Deployment**  
 
      - Follow steps in [Delete Resource Group](./DeleteResourceGroup.md) if your deployment fails and/or you need to clean up the resources.
-
-3. **Cleaning Up Fabric Resources**
-
-     If you are done trying out the accelerator and want to clean up the Fabric resources (lakehouse, SQL database, and role assignments), run the following script:
-
-     ```shell
-     bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId>
-     ```
-
-     If you don't have azd env then you need to pass parameters along with the command:
-     
-     ```shell
-     bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-principal-id>
-     ```
-
-     **Note**: This script will remove the lakehouse, SQL database, and service principal role assignments from the Fabric workspace. To completely remove all Azure resources, use `azd down`.
 
 ## Sample Questions 
 

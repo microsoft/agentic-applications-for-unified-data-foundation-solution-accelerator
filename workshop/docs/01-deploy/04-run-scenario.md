@@ -7,14 +7,14 @@ One command builds the solution including data processing and agent creation:
 Fabric Workspace Mode
 
 ```bash
-python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
+python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
 ```
 
 > **Note:** If you omit `--fabric-workspace-id`, the script will prompt you for it interactively. Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
 Azure Only Mode (if you ran `azd env set AZURE_ENV_ONLY true` before deploying)
 ```bash
-python scripts/00_build_solution.py --from 03
+python infra/scripts/post-provision/00_build_solution.py --from 03
 ```
 
 > **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
@@ -37,7 +37,7 @@ This uses the `data/default` folder and runs all setup steps:
 > [06] Create Foundry Agent... OK (10.1s)
 
 > ✓ Done! 4/4 steps completed
-> Next: python scripts/07_test_agent.py
+> Next: python infra/scripts/post-provision/07_test_agent.py
 ```
 
 <!-- ## Create the Ontology
@@ -59,7 +59,7 @@ This sets up entity types (Tickets, Inspections), data bindings from your Lakeho
 ## Test the Agent
 
 ```bash
-python scripts/07_test_agent.py
+python infra/scripts/post-provision/07_test_agent.py
 ```
 
 ### Sample Conversation
