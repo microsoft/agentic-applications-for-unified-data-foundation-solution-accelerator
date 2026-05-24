@@ -18,7 +18,6 @@ from opentelemetry.trace import Status, StatusCode
 
 # Azure SDK
 from azure.core.exceptions import HttpResponseError
-from azure.monitor.events.extension import track_event
 from azure.ai.projects.aio import AIProjectClient
 
 # Agent Framework
@@ -27,6 +26,9 @@ from agent_framework_foundry import FoundryAgent
 # Azure Auth
 from auth.auth_utils import get_authenticated_user_details
 from auth.azure_credential_utils import get_azure_credential_async
+
+# Token usage telemetry helpers (modular, reusable)
+from token_usage import track_event_if_configured, UsageAccumulator
 
 load_dotenv()
 
@@ -108,15 +110,6 @@ class ExpCache(TTLCache):
                 await credential.close()
 
 
-def track_event_if_configured(event_name: str, event_data: dict):
-    """Track event to Application Insights if configured."""
-    instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
-    if instrumentation_key:
-        track_event(event_name, event_data)
-    else:
-        logging.warning("Skipping track_event for %s as Application Insights is not configured", event_name)
-
-
 # Global thread cache
 thread_cache = None
 
@@ -141,6 +134,8 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
     complete_response = ""
     credential = None
     db_connection = None
+    # Accumulator for LLM token usage across all iterations of this request
+    usage = UsageAccumulator()
 
     try:
         if not query:
@@ -183,6 +178,9 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                 input=query,
                 extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
             )
+
+            # Accumulate token usage from initial response
+            usage.add_from_response(response)
 
             # Process response - handle function calls iteratively
             max_iterations = 10
@@ -258,6 +256,9 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                     extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
                 )
 
+                # Accumulate token usage from follow-up response
+                usage.add_from_response(response)
+
             if iteration >= max_iterations:
                 logger.warning("Max iterations reached for conversation %s", conversation_id)
                 yield "\n\n(Response processing reached maximum iterations)"
@@ -269,6 +270,14 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                 "user_id": user_id,
                 "response_length": str(len(complete_response)),
             })
+
+            # Emit LLM token usage telemetry
+            usage.emit(
+                agent_name=os.getenv("AGENT_NAME_CHAT", "") or "",
+                model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or "",
+                user_id=user_id,
+                conversation_id=conversation_id,
+            )
 
     except HttpResponseError as e:
         complete_response = str(e)
@@ -348,6 +357,8 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
     complete_response = ""
     credential = None
     db_connection = None
+    # Accumulator for LLM token usage across all streaming updates
+    usage = UsageAccumulator()
 
     try:
         if not query:
@@ -420,6 +431,9 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
                     if raw_repr:
                         _extract_mcp_from_raw(raw_repr, mcp_docs)
 
+                # Accumulate token usage from this streaming update
+                usage.add_from_update(chunk)
+
                 chunk_text = str(chunk.text) if chunk.text else ""
                 if not chunk_text:
                     continue
@@ -472,6 +486,14 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
                 "response_length": str(len(complete_response)),
                 "citation_count": str(len(mcp_docs)),
             })
+
+            # Emit LLM token usage telemetry
+            usage.emit(
+                agent_name=os.getenv("AGENT_NAME_CHAT", "") or "",
+                model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or "",
+                user_id=user_id,
+                conversation_id=conversation_id,
+            )
 
             # Yield citations as a tool message — deduplicated by source
             citation_list = []
