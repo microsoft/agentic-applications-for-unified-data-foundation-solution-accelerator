@@ -194,7 +194,7 @@
                 "StateId": "String",
                 "ZipCode": "Float",
                 "CountryId": "String",
-                "SubdivisionName": "Float",
+                "SubdivisionName": "String",
                 "Region": "String",
                 "Latitude": "Float",
                 "Longitude": "Float",
@@ -226,7 +226,7 @@
                 "LineTotal": "Float",
                 "DiscountAmount": "Float",
                 "TaxAmount": "Float",
-                "GoldLoadTimestamp": "Float"
+                "GoldLoadTimestamp": "DateTime"
             },
             "key": "OrderId",
             "source_table": "orderline"
@@ -242,7 +242,7 @@
                 "OrderId": "String",
                 "PaymentMethod": "String",
                 "TransactionId": "String",
-                "GoldLoadTimestamp": "Float"
+                "GoldLoadTimestamp": "DateTime"
             },
             "key": "OrderId",
             "source_table": "orderpayment"
@@ -278,7 +278,7 @@
                 "PaymentMethod": "String",
                 "IsoCurrencyCode": "String",
                 "CreatedBy": "String",
-                "GoldLoadTimestamp": "Float"
+                "GoldLoadTimestamp": "DateTime"
             },
             "key": "OrderId",
             "source_table": "orders"
@@ -300,7 +300,7 @@
                 "PaymentId": "String",
                 "PaymentNumber": "String",
                 "InvoiceId": "String",
-                "OrderId": "Float",
+                "OrderId": "String",
                 "PaymentDate": "Date",
                 "PaymentAmount": "Float",
                 "PaymentStatus": "String",
@@ -353,7 +353,7 @@
                 "ProductStatus": "String",
                 "CreatedDate": "Date",
                 "SellStartDate": "Date",
-                "SellEndDate": "Float",
+                "SellEndDate": "Date",
                 "IsoCurrencyCode": "String",
                 "UpdatedDate": "Date",
                 "CreatedBy": "String",

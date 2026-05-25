@@ -84,8 +84,8 @@ if _args.cleanup:
         if kb_name in existing_kbs:
             index_client.delete_knowledge_base(kb_name)
             print(f"  [OK] Deleted knowledge base '{kb_name}'")
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"  [WARN] Could not check/delete knowledge base '{kb_name}': {e}")
 
     # Check and delete knowledge source if it exists
     try:
@@ -93,8 +93,8 @@ if _args.cleanup:
         if ks_name in existing_kss:
             index_client.delete_knowledge_source(ks_name)
             print(f"  [OK] Deleted knowledge source '{ks_name}'")
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"  [WARN] Could not check/delete knowledge source '{ks_name}': {e}")
 
     # Check and delete search index if it exists
     try:
@@ -102,8 +102,8 @@ if _args.cleanup:
         if INDEX_NAME in existing_indexes:
             index_client.delete_index(INDEX_NAME)
             print(f"  [OK] Deleted search index '{INDEX_NAME}'")
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"  [WARN] Could not check/delete search index '{INDEX_NAME}': {e}")
 
     print("\n[OK] Search cleanup complete")
     sys.exit(0)
