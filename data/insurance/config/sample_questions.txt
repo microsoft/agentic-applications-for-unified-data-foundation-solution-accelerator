@@ -1,6 +1,6 @@
 === SQL QUESTIONS (Structured Data) ===
 1. List the top 5 customers by total claim amount in the last month  
 2. How many claims of each ClaimType were made in the last 6 months?
-3. Which customers have more than one policy and have filed claims this year?   
+3. List the top 10 customers by premium payments over the lifetime of their policies.   
 4. Show the count of communications by CommunicationType for customers with active policies. 
 5. List the top 10 policies with the highest premium and their associated customer names.
