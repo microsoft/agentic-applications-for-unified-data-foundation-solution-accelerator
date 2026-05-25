@@ -78,26 +78,32 @@ if _args.cleanup:
     kb_name = f"{SOLUTION_NAME}-kb"
     ks_name = f"{SOLUTION_NAME}-ks"
 
-    # Delete knowledge base
+    # Check and delete knowledge base if it exists
     try:
-        index_client.delete_knowledge_base(kb_name)
-        print(f"  [OK] Deleted knowledge base '{kb_name}'")
+        existing_kbs = [kb.name for kb in index_client.list_knowledge_bases()]
+        if kb_name in existing_kbs:
+            index_client.delete_knowledge_base(kb_name)
+            print(f"  [OK] Deleted knowledge base '{kb_name}'")
     except Exception:
-        print(f"  [--] Knowledge base '{kb_name}' not found or already deleted")
+        pass
 
-    # Delete knowledge source
+    # Check and delete knowledge source if it exists
     try:
-        index_client.delete_knowledge_source(ks_name)
-        print(f"  [OK] Deleted knowledge source '{ks_name}'")
+        existing_kss = [ks.name for ks in index_client.list_knowledge_sources()]
+        if ks_name in existing_kss:
+            index_client.delete_knowledge_source(ks_name)
+            print(f"  [OK] Deleted knowledge source '{ks_name}'")
     except Exception:
-        print(f"  [--] Knowledge source '{ks_name}' not found or already deleted")
+        pass
 
-    # Delete search index
+    # Check and delete search index if it exists
     try:
-        index_client.delete_index(INDEX_NAME)
-        print(f"  [OK] Deleted search index '{INDEX_NAME}'")
+        existing_indexes = [idx.name for idx in index_client.list_indexes()]
+        if INDEX_NAME in existing_indexes:
+            index_client.delete_index(INDEX_NAME)
+            print(f"  [OK] Deleted search index '{INDEX_NAME}'")
     except Exception:
-        print(f"  [--] Search index '{INDEX_NAME}' not found or already deleted")
+        pass
 
     print("\n[OK] Search cleanup complete")
     sys.exit(0)
