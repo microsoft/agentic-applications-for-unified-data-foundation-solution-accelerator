@@ -386,7 +386,21 @@ if scenario_pack_dir or custom_data_dir:
     )
     if not has_pdfs and "05" in pipeline:
         pipeline = [s for s in pipeline if s != "05"]
-        print("  (Skipping step 05 — no PDF documents found in data folder)")
+        print("  (Skipping step 05 — no PDF documents found in data folder. Cleaning up search resources...)")
+
+        # Clean up existing search index, knowledge base, and knowledge source
+        cleanup_script = os.path.join(script_dir, "05_upload_to_search.py")
+        if os.path.exists(cleanup_script):
+            result = subprocess.run(
+                [sys.executable, cleanup_script, "--cleanup"],
+                cwd=script_dir,
+                capture_output=True, text=True
+            )
+            if result.stdout:
+                for line in result.stdout.strip().split("\n"):
+                    print(f"  {line}")
+            if result.returncode != 0 and result.stderr:
+                print(f"  [WARN] Search cleanup: {result.stderr.strip()[:200]}")
 
 # Apply --from filter
 if args.from_step:

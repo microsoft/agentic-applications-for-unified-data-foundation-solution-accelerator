@@ -4,6 +4,7 @@ Uploads PDF files from the data folder to Azure AI Search with page-aware chunki
 
 Usage:
     python 05_upload_to_search.py
+    python 05_upload_to_search.py --cleanup   # Delete existing index, KB, and KS
 
 Prerequisites:
     - Run 01_generate_data.py (creates PDF files in data folder)
@@ -22,6 +23,7 @@ import os
 import sys
 import json
 import re
+import argparse
 from pathlib import Path
 
 # Load environment from azd + project .env
@@ -29,9 +31,83 @@ from load_env import load_all_env, get_data_folder
 load_all_env()
 
 from azure.identity import DefaultAzureCredential
+from azure.search.documents.indexes import SearchIndexClient
+
+# ============================================================================
+# Configuration
+# ============================================================================
+
+# Azure services - from azd environment
+AZURE_AI_ENDPOINT = os.getenv("AZURE_AI_ENDPOINT") or os.getenv("AZURE_AI_AGENT_ENDPOINT", "").split("/api/projects")[0]
+AZURE_AI_SEARCH_ENDPOINT = os.getenv("AZURE_AI_SEARCH_ENDPOINT")
+EMBEDDING_MODEL = os.getenv("AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME") or os.getenv("AZURE_OPENAI_EMBEDDING_MODEL") or os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+
+# Project settings - from .env
+SOLUTION_NAME = os.getenv("SOLUTION_NAME") or os.getenv("SOLUTION_PREFIX") or os.getenv("AZURE_ENV_NAME", "demo")
+
+# Use AZURE_AI_SEARCH_INDEX from azd env, fallback to generated name
+INDEX_NAME = os.getenv("AZURE_AI_SEARCH_INDEX") or f"{SOLUTION_NAME}-documents"
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+
+if not AZURE_AI_SEARCH_ENDPOINT:
+    print("ERROR: AZURE_AI_SEARCH_ENDPOINT not set in .env")
+    sys.exit(1)
+
+# ============================================================================
+# CLI Arguments
+# ============================================================================
+
+_parser = argparse.ArgumentParser(description="Upload PDFs to Azure AI Search")
+_parser.add_argument("--cleanup", action="store_true",
+                     help="Delete existing search index, knowledge base, and knowledge source, then exit")
+_args = _parser.parse_args()
+
+# ============================================================================
+# Cleanup Mode — delete existing search resources and exit
+# ============================================================================
+
+if _args.cleanup:
+    print(f"\n{'='*60}")
+    print("Cleanup: Deleting Search Index, Knowledge Base & Knowledge Source")
+    print(f"{'='*60}")
+
+    credential = DefaultAzureCredential()
+    index_client = SearchIndexClient(AZURE_AI_SEARCH_ENDPOINT, credential)
+
+    kb_name = f"{SOLUTION_NAME}-kb"
+    ks_name = f"{SOLUTION_NAME}-ks"
+
+    # Delete knowledge base
+    try:
+        index_client.delete_knowledge_base(kb_name)
+        print(f"  [OK] Deleted knowledge base '{kb_name}'")
+    except Exception:
+        print(f"  [--] Knowledge base '{kb_name}' not found or already deleted")
+
+    # Delete knowledge source
+    try:
+        index_client.delete_knowledge_source(ks_name)
+        print(f"  [OK] Deleted knowledge source '{ks_name}'")
+    except Exception:
+        print(f"  [--] Knowledge source '{ks_name}' not found or already deleted")
+
+    # Delete search index
+    try:
+        index_client.delete_index(INDEX_NAME)
+        print(f"  [OK] Deleted search index '{INDEX_NAME}'")
+    except Exception:
+        print(f"  [--] Search index '{INDEX_NAME}' not found or already deleted")
+
+    print("\n[OK] Search cleanup complete")
+    sys.exit(0)
+
+# ============================================================================
+# Full Upload Mode — remaining imports
+# ============================================================================
+
 from openai import AzureOpenAI
 from azure.search.documents import SearchClient
-from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
     SearchIndex,
     SearchField,
@@ -56,27 +132,6 @@ from azure.search.documents.indexes.models import (
     SearchIndexFieldReference,
 )
 from pypdf import PdfReader
-
-# ============================================================================
-# Configuration
-# ============================================================================
-
-# Azure services - from azd environment
-AZURE_AI_ENDPOINT = os.getenv("AZURE_AI_ENDPOINT") or os.getenv("AZURE_AI_AGENT_ENDPOINT", "").split("/api/projects")[0]
-AZURE_AI_SEARCH_ENDPOINT = os.getenv("AZURE_AI_SEARCH_ENDPOINT")
-EMBEDDING_MODEL = os.getenv("AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME") or os.getenv("AZURE_OPENAI_EMBEDDING_MODEL") or os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
-
-# Project settings - from .env
-SOLUTION_NAME = os.getenv("SOLUTION_NAME") or os.getenv("SOLUTION_PREFIX") or os.getenv("AZURE_ENV_NAME", "demo")
-
-# Use AZURE_AI_SEARCH_INDEX from azd env, fallback to generated name
-INDEX_NAME = os.getenv("AZURE_AI_SEARCH_INDEX") or f"{SOLUTION_NAME}-documents"
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 200
-
-if not AZURE_AI_SEARCH_ENDPOINT:
-    print("ERROR: AZURE_AI_SEARCH_ENDPOINT not set in .env")
-    sys.exit(1)
 
 # Get data folder with proper path resolution
 try:
