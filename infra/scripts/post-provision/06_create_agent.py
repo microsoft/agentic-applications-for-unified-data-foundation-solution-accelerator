@@ -249,9 +249,12 @@ if os.path.exists(search_ids_path):
 
 # Determine if document search is available
 # Search is enabled only if there are actual PDF documents in the data folder's documents/ directory
+# Fallback: if documents/ doesn't exist, check data_dir directly (legacy layout)
 docs_dir = os.path.join(data_dir, "documents")
+if not os.path.isdir(docs_dir):
+    docs_dir = data_dir
 _has_pdfs = (os.path.isdir(docs_dir)
-             and any(f.endswith(".pdf") for f in os.listdir(docs_dir)))
+             and any(f.lower().endswith(".pdf") for f in os.listdir(docs_dir)))
 HAS_DOCUMENT_SEARCH = _has_pdfs
 
 if args.index_name:
