@@ -53,16 +53,3 @@ CategoryID,ParentCategoryId,CategoryName,CategoryDescription,BrandName,BrandLogo
 55,Parent_1,Camping Tables,Camping Tables From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
 56,Parent_1,Camping Stoves,Camping Stoves From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
 57,Parent_1,Sleeping Bags,Sleeping Bags From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
-[OrderId] NVARCHAR(100
-100
-100
-100
-100
-100
-10,2
-10,2
-10,2
-100
-100
-100
-6
