@@ -294,7 +294,7 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
       AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
       AZURE_AI_SEARCH_ENDPOINT: aifoundry.outputs.aiSearchTarget
-      AZURE_AI_SEARCH_INDEX: 'call_transcripts_index'
+      AZURE_AI_SEARCH_INDEX: 'knowledge_index'
       AZURE_AI_SEARCH_CONNECTION_NAME: aifoundry.outputs.aiSearchConnectionName
 
       USE_AI_PROJECT_CLIENT: 'True'
@@ -303,6 +303,10 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
       APP_ENV: 'Prod'
+      AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
+      USE_DATA_AGENT: 'False'
+      AZURE_SQLDB_DATABASE: azureEnvOnly ? sqlDBModule!.outputs.sqlDbName : ''
+      AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
 
       FABRIC_SQL_DATABASE: ''
       FABRIC_SQL_SERVER: ''
