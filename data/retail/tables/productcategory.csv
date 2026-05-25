@@ -1,0 +1,68 @@
+CategoryID,ParentCategoryId,CategoryName,CategoryDescription,BrandName,BrandLogoUrl,IsActive,GoldLoadTimestamp
+201,Parent_2,Coffee Makers,Coffee Makers for home and business kitchens.,Contoso Kitchen,url comming in future,True,2025-08-26 22:35:57.214345
+202,Parent_2,Cutlery,Cutlery for home and business kitchens.,Contoso Kitchen,url comming in future,True,2025-08-26 22:35:57.214345
+203,Parent_2,Cups & Mugs,Cups & Mugs for home and business kitchens.,Contoso Kitchen,url comming in future,True,2025-08-26 22:35:57.214345
+204,Parent_2,Serving Dishes,Serving Dishes for home and business kitchens.,Contoso Kitchen,url comming in future,True,2025-08-26 22:35:57.214345
+205,Parent_2,Ice Cream Dishes,Ice Cream Dishes for home and business kitchens.,Contoso Kitchen,url comming in future,True,2025-08-26 22:35:57.214345
+206,Parent_2,Mixing Bowls,Mixing Bowls for home and business kitchens.,Contoso Kitchen,url comming in future,True,2025-08-26 22:35:57.214345
+207,Parent_2,Bakeware,Bakeware for home and business kitchens.,Contoso Kitchen,url comming in future,True,2025-08-26 22:35:57.214345
+208,Parent_2,Storage Containers,Storage Containers for home and business kitchens.,Contoso Kitchen,url comming in future,True,2025-08-26 22:35:57.214345
+209,Parent_2,Cooking Utensils,Cooking Utensils for home and business kitchens.,Contoso Kitchen,url comming in future,True,2025-08-26 22:35:57.214345
+210,Parent_2,Measuring Tools,Measuring Tools for home and business kitchens.,Contoso Kitchen,url comming in future,True,2025-08-26 22:35:57.214345
+18,Parent_1,Road Frames,Road Frames From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+35,Parent_1,Helmets,Helmets From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+27,Parent_1,Socks,Socks From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+23,Parent_1,Caps,Caps From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+25,Parent_1,Jerseys,Jerseys From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+16,Parent_1,Mountain Frames,Mountain Frames From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+6,Parent_1,Road Bikes,Road Bikes From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+5,Parent_1,Mountain Bikes,Mountain Bikes From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+14,Parent_1,Forks,Forks From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+15,Parent_1,Headsets,Headsets From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+8,Parent_1,Handlebars,Handlebars From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+21,Parent_1,Wheels,Wheels From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+26,Parent_1,Shorts,Shorts From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+39,Parent_1,Panniers,Panniers From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+38,Parent_1,Locks,Locks From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+40,Parent_1,Pumps,Pumps From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+37,Parent_1,Lights,Lights From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+28,Parent_1,Tights,Tights From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+22,Parent_1,Bib-Shorts,Bib-Shorts From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+24,Parent_1,Gloves,Gloves From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+29,Parent_1,Vests,Vests From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+32,Parent_1,Bottles and Cages,Bottles and Cages From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+41,Parent_1,Tires and Tubes,Tires and Tubes From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+30,Parent_1,Bike Racks,Bike Racks From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+33,Parent_1,Cleaners,Cleaners From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+34,Parent_1,Fenders,Fenders From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+31,Parent_1,Bike Stands,Bike Stands From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+36,Parent_1,Hydration Packs,Hydration Packs From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+20,Parent_1,Touring Frames,Touring Frames From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+13,Parent_1,Derailleurs,Derailleurs From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+10,Parent_1,Brakes,Brakes From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+19,Parent_1,Saddles,Saddles From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+17,Parent_1,Pedals,Pedals From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+12,Parent_1,Cranksets,Cranksets From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+11,Parent_1,Chains,Chains From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+7,Parent_1,Touring Bikes,Touring Bikes From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+9,Parent_1,Bottom Brackets,Bottom Brackets From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+51,Parent_1,Tents,Tents From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+52,Parent_1,Backpacks,Backpacks From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+53,Parent_1,Hiking Clothing,Hiking Clothing From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+54,Parent_1,Hiking Footwear,Hiking Footwear From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+55,Parent_1,Camping Tables,Camping Tables From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+56,Parent_1,Camping Stoves,Camping Stoves From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+57,Parent_1,Sleeping Bags,Sleeping Bags From Contoso,Contoso Gears,url comming in future,True,2025-08-26 22:35:57.214345
+[OrderId] NVARCHAR(100
+100
+100
+100
+100
+100
+10,2
+10,2
+10,2
+100
+100
+100
+6

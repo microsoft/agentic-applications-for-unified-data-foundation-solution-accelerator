@@ -1,0 +1,7 @@
+{
+    "name": "Retail Inventory and Sales",
+    "industry": "Retail",
+    "usecase": "Inventory and sales operations",
+    "description": "Pre-built dataset with customers, orders, products, invoices, and payments for a retail business.",
+    "version": "1.0"
+}

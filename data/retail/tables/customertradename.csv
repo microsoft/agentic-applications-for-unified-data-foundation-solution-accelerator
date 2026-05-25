@@ -1,0 +1,165 @@
+CustomerId,CustomerTypeId,TradeNameId,TradeName,PeriodStartDate,PeriodEndDate,CustomerTradeNameNote,UpdatedBy,GoldLoadTimestamp
+CID-002,Government,TN-001,Ganymede Municipal Office,2018-08-17,2020-05-24,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-003,Business,TN-002,Contoso Group,2019-04-03,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-008,Business,TN-003,Contoso Enterprises,2021-10-17,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-010,Business,TN-004,Contoso Solutions,2021-04-24,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-012,Government,TN-005,Planet Mars Authority,2018-07-11,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-013,Business,TN-006,Contoso Corp,2021-02-23,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-026,Business,TN-007,Fabrikam Solutions,2019-03-28,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-034,Government,TN-008,Neptune State Agency,2018-01-14,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-035,Government,TN-009,Saturn Municipal Services,2021-11-30,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-036,Business,TN-010,Fabrikam Inc,2018-11-15,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-044,Government,TN-011,Mercury City Government,2018-07-29,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-051,Government,TN-012,Jupiter Department of Commerce,2020-01-06,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-052,Business,TN-013,Fabrikam Inc,2018-03-30,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-053,Government,TN-014,Europa Space Authority,2018-09-13,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-054,Business,TN-015,Fabrikam Manufacturing,2018-06-11,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-056,Government,TN-016,Ganymede Municipal Office,2021-06-20,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-063,Business,TN-017,Fabrikam Technologies,2021-03-28,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-068,Business,TN-018,Contoso Solutions,2018-04-04,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-070,Government,TN-019,Neptune State Agency,2018-06-13,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-071,Business,TN-020,Contoso Enterprises,2020-02-18,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-074,Business,TN-021,Fabrikam Technologies,2018-11-30,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-075,Business,TN-022,Contoso Services,2021-10-04,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-076,Business,TN-023,Contoso Solutions,2021-06-01,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-077,Business,TN-024,Contoso Group,2018-12-01,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-081,Business,TN-025,Fabrikam Inc,2021-08-03,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-087,Business,TN-026,Contoso Group,2021-11-03,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-089,Business,TN-027,Contoso Industries,2019-04-15,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-092,Business,TN-028,Fabrikam Group,2020-04-01,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-093,Business,TN-029,Contoso Services,2021-03-07,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-095,Business,TN-030,Fabrikam Group,2019-03-12,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-105,Government,TN-031,Uranus Federal Bureau,2021-08-09,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-108,Business,TN-032,Fabrikam Inc,2018-10-13,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-113,Government,TN-033,Europa Space Authority,2021-01-08,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-114,Business,TN-034,Fabrikam Solutions,2021-04-10,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-116,Business,TN-035,Contoso Group,2018-10-11,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-117,Business,TN-036,Contoso Solutions,2018-04-07,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-119,Business,TN-037,Contoso Manufacturing,2021-07-09,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-121,Business,TN-038,Fabrikam Solutions,2021-05-06,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-122,Business,TN-039,Fabrikam Manufacturing,2021-05-05,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-127,Business,TN-040,Fabrikam Inc,2021-02-07,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-128,Business,TN-041,Contoso Corp,2021-10-25,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-135,Government,TN-042,Ganymede Municipal Office,2021-01-04,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-138,Business,TN-043,Fabrikam Group,2018-08-17,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-140,Government,TN-044,Saturn Municipal Services,2020-07-18,2022-04-13,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-141,Government,TN-045,Europa Space Authority,2019-01-01,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-151,Government,TN-046,Jupiter Department of Commerce,2021-07-04,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-155,Government,TN-047,Ganymede Municipal Office,2020-11-05,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-158,Business,TN-048,Contoso Manufacturing,2020-02-05,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-160,Business,TN-049,Contoso Corp,2021-05-11,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-166,Business,TN-050,Contoso Corp,2018-08-18,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-179,Government,TN-051,Neptune State Agency,2019-05-06,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-183,Government,TN-052,Titan Regional Services,2018-06-11,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-184,Business,TN-053,Fabrikam Industries,2018-05-22,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-187,Business,TN-054,Contoso Manufacturing,2018-09-20,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-192,Business,TN-055,Contoso Technology,2019-06-27,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-193,Government,TN-056,Titan Regional Services,2020-05-16,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-197,Business,TN-057,Contoso Services,2021-12-31,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-198,Business,TN-058,Fabrikam Technologies,2020-06-16,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-199,Business,TN-059,Fabrikam Services,2018-09-05,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-200,Business,TN-060,Contoso Solutions,2019-11-24,2022-06-13,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-204,Business,TN-061,Contoso Group,2021-04-20,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-215,Business,TN-062,Contoso Solutions,2021-12-20,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-218,Business,TN-063,Contoso Group,2018-05-19,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-220,Business,TN-064,Fabrikam Group,2018-05-26,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-227,Government,TN-065,Neptune State Agency,2021-10-02,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-229,Business,TN-066,Contoso Manufacturing,2021-03-15,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-231,Business,TN-067,Contoso Group,2020-08-26,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-236,Business,TN-068,Contoso Services,2018-07-13,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-241,Government,TN-069,Uranus Federal Bureau,2019-12-27,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-242,Government,TN-070,Pluto District Office,2018-04-21,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-243,Government,TN-071,Ganymede Municipal Office,2018-07-21,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-246,Government,TN-072,Callisto State Department,2019-11-26,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-248,Government,TN-073,Jupiter Department of Commerce,2019-05-25,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-249,Government,TN-074,Europa Space Authority,2020-07-07,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-250,Business,TN-075,Contoso Technology,2019-07-25,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-253,Business,TN-076,Contoso Solutions,2020-06-26,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-257,Government,TN-077,Europa Space Authority,2018-07-20,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-262,Government,TN-078,Europa Space Authority,2018-01-31,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-265,Business,TN-079,Contoso Group,2018-12-07,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-266,Business,TN-080,Fabrikam Industries,2019-03-14,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-268,Business,TN-081,Contoso Industries,2018-12-04,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-271,Business,TN-082,Fabrikam Manufacturing,2019-06-28,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-272,Business,TN-083,Fabrikam Services,2019-08-08,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-273,Business,TN-084,Fabrikam Industries,2018-11-14,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-274,Government,TN-085,Venus Regional Office,2018-04-30,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-277,Business,TN-086,Contoso Industries,2019-10-05,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-279,Business,TN-087,Fabrikam Industries,2020-10-26,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-280,Business,TN-088,Contoso Technology,2018-04-27,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-281,Business,TN-089,Contoso Solutions,2019-01-16,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-293,Business,TN-090,Contoso Solutions,2021-10-14,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-297,Business,TN-091,Fabrikam Manufacturing,2018-09-03,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-305,Business,TN-092,Contoso Group,2021-03-31,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-306,Government,TN-093,Titan Regional Services,2018-06-17,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-309,Business,TN-094,Fabrikam Group,2019-06-19,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-314,Government,TN-095,Callisto State Department,2019-10-06,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-315,Business,TN-096,Fabrikam Manufacturing,2018-09-26,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-322,Business,TN-097,Fabrikam Systems,2020-07-25,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-325,Government,TN-098,Jupiter Department of Commerce,2018-01-20,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-326,Business,TN-099,Contoso Enterprises,2018-05-31,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-332,Business,TN-100,Fabrikam Inc,2018-09-29,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-337,Business,TN-101,Contoso Solutions,2019-05-16,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-338,Business,TN-102,Contoso Technology,2020-06-16,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-352,Business,TN-103,Fabrikam Systems,2021-06-06,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-359,Government,TN-104,Ganymede Municipal Office,2020-12-19,2023-07-09,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-365,Government,TN-105,Neptune State Agency,2021-09-20,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-367,Government,TN-106,Saturn Municipal Services,2019-06-26,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-368,Government,TN-107,Jupiter Department of Commerce,2021-02-07,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-377,Business,TN-108,Fabrikam Systems,2021-05-23,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-379,Business,TN-109,Fabrikam Group,2019-02-21,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-384,Business,TN-110,Fabrikam Inc,2020-11-01,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-385,Business,TN-111,Contoso Industries,2018-07-09,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-386,Business,TN-112,Fabrikam Inc,2018-04-01,2019-08-12,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-389,Business,TN-113,Fabrikam Inc,2018-11-27,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-390,Business,TN-114,Fabrikam Solutions,2021-02-22,2022-05-10,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-391,Government,TN-115,Callisto State Department,2018-11-02,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-394,Business,TN-116,Fabrikam Technologies,2021-04-07,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-396,Government,TN-117,Uranus Federal Bureau,2018-09-19,2020-09-26,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-397,Business,TN-118,Contoso Industries,2020-01-03,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-399,Business,TN-119,Contoso Group,2021-09-27,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-400,Business,TN-120,Fabrikam Solutions,2021-06-25,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-402,Government,TN-121,Venus Regional Office,2018-11-29,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-404,Business,TN-122,Contoso Technology,2020-04-24,2022-03-30,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-406,Business,TN-123,Fabrikam Solutions,2021-10-03,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-409,Government,TN-124,Venus Regional Office,2019-07-01,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-412,Government,TN-125,Callisto State Department,2018-08-10,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-413,Government,TN-126,Planet Mars Authority,2020-08-21,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-420,Business,TN-127,Fabrikam Services,2019-12-18,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-421,Business,TN-128,Contoso Group,2019-04-02,2020-10-15,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-422,Business,TN-129,Fabrikam Manufacturing,2019-11-04,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-428,Business,TN-130,Contoso Solutions,2019-07-26,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-432,Business,TN-131,Fabrikam Manufacturing,2021-10-23,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-436,Business,TN-132,Fabrikam Group,2018-02-26,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-438,Business,TN-133,Fabrikam Inc,2019-01-01,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-439,Business,TN-134,Fabrikam Inc,2018-03-20,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-442,Government,TN-135,Uranus Federal Bureau,2019-12-09,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-445,Business,TN-136,Fabrikam Group,2020-06-12,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-446,Government,TN-137,Europa Space Authority,2018-08-25,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-447,Government,TN-138,Titan Regional Services,2019-01-25,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-448,Business,TN-139,Fabrikam Solutions,2018-01-04,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-451,Business,TN-140,Contoso Services,2020-01-16,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-454,Government,TN-141,Ganymede Municipal Office,2019-11-08,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-463,Business,TN-142,Contoso Enterprises,2019-09-08,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-465,Government,TN-143,Ganymede Municipal Office,2020-04-16,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-468,Business,TN-144,Fabrikam Systems,2021-02-09,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-470,Government,TN-145,Uranus Federal Bureau,2021-09-23,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-472,Government,TN-146,Ganymede Municipal Office,2018-12-23,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-474,Business,TN-147,Fabrikam Systems,2020-04-11,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-476,Government,TN-148,Planet Mars Authority,2019-09-15,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-479,Government,TN-149,Uranus Federal Bureau,2021-04-02,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-486,Government,TN-150,Mercury City Government,2020-08-10,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-489,Government,TN-151,Ganymede Municipal Office,2019-03-14,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-490,Business,TN-152,Contoso Technology,2021-09-11,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-499,Government,TN-153,Europa Space Authority,2021-09-21,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-500,Government,TN-154,Mercury City Government,2018-07-11,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-504,Business,TN-155,Contoso Group,2021-10-09,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-507,Government,TN-156,Venus Regional Office,2018-10-29,2020-07-05,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-508,Business,TN-157,Fabrikam Industries,2021-06-05,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-509,Government,TN-158,Jupiter Department of Commerce,2020-07-21,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-510,Business,TN-159,Contoso Services,2021-11-27,None,Generated business trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+CID-513,Government,TN-160,Uranus Federal Bureau,2019-05-15,None,Generated government trade name for compliance testing,Source_Data_Loader,2025-08-26 22:26:12.707009
+[CustomerRelationshipTypeId] NVARCHAR(100
+100
+MAX
+6

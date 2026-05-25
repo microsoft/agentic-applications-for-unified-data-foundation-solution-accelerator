@@ -78,8 +78,15 @@ Examples:
   python infra/scripts/post-provision/00_build_solution.py -g rg-myproject-dev  # Pre-provisioned infra
   python infra/scripts/post-provision/00_build_solution.py --fabric-workspace-id <id>  # Pass Fabric workspace ID
   python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata  # Use your own data
+  python infra/scripts/post-provision/00_build_solution.py --scenario-pack insurance  # Use pre-built scenario pack
+  python infra/scripts/post-provision/00_build_solution.py --list-packs   # Show available scenario packs
 """
 )
+parser.add_argument("--scenario-pack", type=str,
+                    help="Use a pre-built scenario pack (e.g., insurance, retail). "
+                         "Use --list-packs to see available packs.")
+parser.add_argument("--list-packs", action="store_true",
+                    help="List available scenario packs and exit")
 parser.add_argument("--industry", type=str, 
                     help="Industry for data generation (overrides .env)")
 parser.add_argument("--usecase", type=str, 
@@ -116,6 +123,106 @@ args.quiet = not args.verbose
 # Load environment from azd + project .env
 from load_env import load_all_env
 load_all_env()
+
+# ============================================================================
+# Scenario Pack Discovery & Handling
+# ============================================================================
+
+project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
+data_root = os.path.join(project_root, "data")
+
+
+def discover_packs():
+    """Scan data/ for subdirectories containing pack.json (valid scenario packs)."""
+    import json
+    packs = {}
+    if not os.path.isdir(data_root):
+        return packs
+    for entry in sorted(os.listdir(data_root)):
+        pack_dir = os.path.join(data_root, entry)
+        pack_json = os.path.join(pack_dir, "pack.json")
+        if os.path.isdir(pack_dir) and os.path.isfile(pack_json):
+            # Validate required structure
+            config_path = os.path.join(pack_dir, "config", "ontology_config.json")
+            tables_dir = os.path.join(pack_dir, "tables")
+            if os.path.isfile(config_path) and os.path.isdir(tables_dir):
+                csv_files = [f for f in os.listdir(tables_dir) if f.endswith(".csv")]
+                if csv_files:
+                    with open(pack_json, "r") as f:
+                        pack_meta = json.load(f)
+                    pack_meta["_path"] = pack_dir
+                    pack_meta["_tables"] = csv_files
+                    packs[entry] = pack_meta
+    return packs
+
+
+if args.list_packs:
+    packs = discover_packs()
+    if not packs:
+        print("No scenario packs found in data/ folder.")
+        print("A valid pack requires: pack.json, config/ontology_config.json, tables/*.csv")
+    else:
+        print(f"\nAvailable Scenario Packs ({len(packs)}):")
+        print("-" * 70)
+        print(f"  {'Name':<15} {'Industry':<15} {'Use Case':<25} {'Tables'}")
+        print("-" * 70)
+        for pack_name, meta in packs.items():
+            industry = meta.get("industry", "N/A")
+            usecase = meta.get("usecase", "N/A")
+            table_count = len(meta.get("_tables", []))
+            print(f"  {pack_name:<15} {industry:<15} {usecase:<25} {table_count} tables")
+        print("-" * 70)
+        print(f"\nUsage: python {os.path.basename(__file__)} --scenario-pack <name>")
+    sys.exit(0)
+
+# Validate mutual exclusivity
+if args.scenario_pack and args.custom_data:
+    print("ERROR: --scenario-pack and --custom-data cannot be used together.")
+    sys.exit(1)
+
+# Handle --scenario-pack
+scenario_pack_dir = None
+if args.scenario_pack:
+    packs = discover_packs()
+    pack_name = args.scenario_pack.lower()
+    
+    if pack_name not in packs:
+        print(f"ERROR: Scenario pack '{args.scenario_pack}' not found.")
+        if packs:
+            print(f"Available packs: {', '.join(packs.keys())}")
+        else:
+            print("No scenario packs found in data/ folder.")
+        print("Use --list-packs to see available packs with details.")
+        sys.exit(1)
+    
+    pack_meta = packs[pack_name]
+    scenario_pack_dir = pack_meta["_path"]
+    
+    # Set DATA_FOLDER and INDUSTRY/USECASE from pack metadata
+    relative_data_dir = os.path.relpath(scenario_pack_dir, project_root)
+    os.environ["DATA_FOLDER"] = relative_data_dir
+    os.environ["INDUSTRY"] = pack_meta.get("industry", "")
+    os.environ["USECASE"] = pack_meta.get("usecase", "")
+    
+    # Persist to .env
+    from dotenv import set_key
+    env_path = os.path.join(script_dir, ".env")
+    set_key(env_path, "DATA_FOLDER", relative_data_dir)
+    set_key(env_path, "INDUSTRY", pack_meta.get("industry", ""))
+    set_key(env_path, "USECASE", pack_meta.get("usecase", ""))
+    
+    # Check for documents
+    docs_dir = os.path.join(scenario_pack_dir, "documents")
+    has_documents = os.path.isdir(docs_dir) and any(
+        f.endswith(".pdf") for f in os.listdir(docs_dir)
+    )
+    
+    print(f"\n[OK] Scenario Pack: {pack_meta.get('name', pack_name)}")
+    print(f"     Industry: {pack_meta.get('industry', 'N/A')}")
+    print(f"     Use Case: {pack_meta.get('usecase', 'N/A')}")
+    print(f"     Tables: {', '.join(pack_meta.get('_tables', []))}")
+    print(f"     Documents: {'Yes' if has_documents else 'None (step 05 will be skipped)'}")
+    print(f"     DATA_FOLDER set to: {relative_data_dir}")
 
 # ============================================================================
 # Generate .env from Azure if resource group provided
@@ -232,7 +339,6 @@ if args.custom_data:
             sys.exit(1)
 
     # Set DATA_FOLDER in environment and persist to .env
-    project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
     relative_data_dir = os.path.relpath(custom_data_dir, project_root)
     os.environ["DATA_FOLDER"] = relative_data_dir
 
@@ -262,10 +368,25 @@ elif azure_only:
 else:
     pipeline = FABRIC_PIPELINE.copy()
 
-# Skip data generation step when using custom data
+# Skip data generation step when using custom data or scenario pack
 if custom_data_dir and "01" in pipeline:
     pipeline = [s for s in pipeline if s != "01"]
     print("  (Skipping step 01 — using custom data instead of AI generation)")
+
+if scenario_pack_dir and "01" in pipeline:
+    pipeline = [s for s in pipeline if s != "01"]
+    print("  (Skipping step 01 — using scenario pack data)")
+
+# Skip document upload step if no documents available
+if scenario_pack_dir or custom_data_dir:
+    active_data_dir = scenario_pack_dir or custom_data_dir
+    docs_path = os.path.join(active_data_dir, "documents")
+    has_pdfs = os.path.isdir(docs_path) and any(
+        f.endswith(".pdf") for f in os.listdir(docs_path)
+    )
+    if not has_pdfs and "05" in pipeline:
+        pipeline = [s for s in pipeline if s != "05"]
+        print("  (Skipping step 05 — no PDF documents found in data folder)")
 
 # Apply --from filter
 if args.from_step:
