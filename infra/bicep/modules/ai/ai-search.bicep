@@ -1,3 +1,12 @@
+// ============================================================================
+// Module: AI Search
+// Description: Deploys Azure AI Search with a two-step pattern:
+//   Step 1: Plain Bicep resource for fast initial creation (name, location, SKU)
+//   Step 2: Separate deployment to enable managed identity & full configuration
+// This reduces deployment time by making the resource available immediately
+// while identity enablement proceeds separately.
+// ============================================================================
+
 targetScope = 'resourceGroup'
 
 @minLength(3)
@@ -10,13 +19,28 @@ param searchServiceLocation string = resourceGroup().location
 var aiSearchName = 'srch-${solutionName}'
 var aiSearchConnectionName = 'search-connection-${solutionName}'
 
-// ========== AI Search Service ========== //
-
+// ============================================================================
+// Step 1: Initial resource creation (fast — no identity)
+// ============================================================================
 resource aiSearch 'Microsoft.Search/searchServices@2025-05-01' = {
   name: aiSearchName
   location: searchServiceLocation
   sku: {
     name: 'standard'
+  }
+}
+
+// ============================================================================
+// Step 2: Update — enables identity & full configuration
+// ============================================================================
+resource aiSearchUpdate 'Microsoft.Search/searchServices@2025-05-01' = {
+  name: aiSearchName
+  location: searchServiceLocation
+  sku: {
+    name: 'standard'
+  }
+  identity: {
+    type: 'SystemAssigned'
   }
   properties: {
     replicaCount: 1
@@ -32,17 +56,14 @@ resource aiSearch 'Microsoft.Search/searchServices@2025-05-01' = {
     disableLocalAuth: true
     semanticSearch: 'free'
   }
+  dependsOn: [
+    aiSearch
+  ]
 }
 
-module aiSearchIdentity 'ai-search-identity.bicep' = {
-  name: 'aiSearchIdentityDeployment'
-  params: {
-    searchServiceName: aiSearch.name
-    searchServiceLocation: searchServiceLocation
-  }
-}
-
-// ========== Outputs ========== //
+// ============================================================================
+// Outputs
+// ============================================================================
 
 @description('The name of the AI Search service.')
 output aiSearchName string = aiSearchName
@@ -60,4 +81,4 @@ output aiSearchService string = aiSearch.name
 output aiSearchConnectionName string = aiSearchConnectionName
 
 @description('The principal ID of the AI Search system-assigned managed identity.')
-output searchPrincipalId string = aiSearchIdentity.outputs.searchPrincipalId
+output searchPrincipalId string = aiSearchUpdate.identity.principalId

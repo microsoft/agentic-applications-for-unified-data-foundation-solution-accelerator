@@ -581,7 +581,6 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
   name: take('module.role-assignments.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
-    shouldDeployApp: shouldDeployApp
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     aiFoundryName: aiFoundryName
     aiSearchName: ai_search.outputs.aiSearchName

@@ -12,9 +12,6 @@ targetScope = 'resourceGroup'
 @description('The name of the solution, used as a base for naming all resources.')
 param solutionName string
 
-@description('Whether to deploy the application components (API, Frontend).')
-param shouldDeployApp bool = false
-
 @description('The resource ID of an existing Azure AI Foundry project. If provided, the existing project will be used instead of creating a new one.')
 param existingFoundryProjectResourceId string = ''
 
@@ -155,7 +152,7 @@ resource assignOpenAIRoleToAISearch 'Microsoft.Authorization/roleAssignments@202
 // --- Backend App Service → AI Services (cross-scope, handles both new + existing) ---
 
 // Backend App Service → Azure AI User on AI Services (cross-scope)
-module assignAiUserToBackend './cross-scope-role-assignment.bicep' = if (shouldDeployApp && !empty(activeBackendPrincipalId)) {
+module assignAiUserToBackend './cross-scope-role-assignment.bicep' = if (!empty(activeBackendPrincipalId)) {
   name: 'assignAiUserRoleToBackend'
   scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
   params: {
@@ -318,7 +315,7 @@ resource searchStorageBlobDataReader 'Microsoft.Authorization/roleAssignments@20
 // ╚══════════════════════════════════════════════════════════════╝
 
 // Backend App Service → Cosmos DB Built-in Data Contributor
-resource backendCosmosContributor 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-10-15' = if (shouldDeployApp && !empty(activeBackendPrincipalId) && !empty(cosmosAccountName)) {
+resource backendCosmosContributor 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-10-15' = if (!empty(activeBackendPrincipalId) && !empty(cosmosAccountName)) {
   parent: cosmos
   name: guid(cosmosContributorRoleDef.id, cosmos.id, activeBackendPrincipalId)
   properties: {

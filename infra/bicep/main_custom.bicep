@@ -220,25 +220,11 @@ var aiModelDeployments = [
   }
 ]
 
-module aifoundry './modules/ai/ai-foundry.bicep' = if (empty(existingFoundryProjectResourceId)) {
+module aifoundry './modules/ai/ai-foundry-project.bicep' = if (empty(existingFoundryProjectResourceId)) {
   name: 'deploy_ai_foundry'
   params: {
     solutionName: solutionSuffix
-    solutionLocation: azureAiServiceLocation
-    deploymentType: deploymentType
-    gptModelName: gptModelName
-    gptModelVersion: gptModelVersion
-    gptDeploymentCapacity: gptDeploymentCapacity
-    embeddingModel: embeddingModel
-    embeddingDeploymentCapacity: embeddingDeploymentCapacity
-    applicationInsightsId: app_insights.outputs.applicationInsightsId
-    applicationInsightsInstrumentationKey: app_insights.outputs.applicationInsightsInstrumentationKey
-    aiSearchTarget: ai_search.outputs.aiSearchTarget
-    aiSearchId: ai_search.outputs.aiSearchId
-    aiSearchConnectionName: ai_search.outputs.aiSearchConnectionName
-    storageBlobEndpoint: storage_account.outputs.storageBlobEndpoint
-    storageAccountId: storage_account.outputs.storageAccountId
-    storageAccountName: storage_account.outputs.storageAccountName
+    location: azureAiServiceLocation
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -252,39 +238,104 @@ module ai_search './modules/ai/ai-search.bicep' = {
   scope: resourceGroup(resourceGroup().name)
 }
 
-// ========== Existing Project Setup (models + connections) ========== //
-var existingAIServicesName = !empty(existingFoundryProjectResourceId) ? split(existingFoundryProjectResourceId, '/')[8] : ''
-var existingAIProjectName = !empty(existingFoundryProjectResourceId) ? split(existingFoundryProjectResourceId, '/')[10] : ''
-var existingAIServiceSubscription = !empty(existingFoundryProjectResourceId) ? split(existingFoundryProjectResourceId, '/')[2] : subscription().subscriptionId
-var existingAIServiceResourceGroup = !empty(existingFoundryProjectResourceId) ? split(existingFoundryProjectResourceId, '/')[4] : resourceGroup().name
+// ========== Unified AI Foundry resource name vars ========== //
+var useExisting = !empty(existingFoundryProjectResourceId)
+var aiFoundryResourceName = useExisting ? split(existingFoundryProjectResourceId, '/')[8] : aifoundry!.outputs.name
+var aiProjectResourceName = useExisting ? split(existingFoundryProjectResourceId, '/')[10] : aifoundry!.outputs.projectName
+var aiServiceSubscription = useExisting ? split(existingFoundryProjectResourceId, '/')[2] : subscription().subscriptionId
+var aiServiceResourceGroup = useExisting ? split(existingFoundryProjectResourceId, '/')[4] : resourceGroup().name
 
-module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (!empty(existingFoundryProjectResourceId)) {
+// Reference existing AI Foundry project (identity only)
+module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (useExisting) {
   name: 'setup_existing_project'
-  scope: resourceGroup(existingAIServiceSubscription, existingAIServiceResourceGroup)
+  scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
   params: {
-    aiFoundryName: existingAIServicesName
-    aiProjectName: existingAIProjectName
-    aiModelDeployments: aiModelDeployments
-    applicationInsightsId: app_insights.outputs.applicationInsightsId
-    applicationInsightsInstrumentationKey: app_insights.outputs.applicationInsightsInstrumentationKey
-    aiSearchTarget: ai_search.outputs.aiSearchTarget
-    aiSearchId: ai_search.outputs.aiSearchId
-    aiSearchConnectionName: ai_search.outputs.aiSearchConnectionName
-    storageBlobEndpoint: storage_account.outputs.storageBlobEndpoint
-    storageAccountId: storage_account.outputs.storageAccountId
-    storageAccountName: storage_account.outputs.storageAccountName
+    aiFoundryName: aiFoundryResourceName
+    aiProjectName: aiProjectResourceName
   }
 }
 
+// AI Search connection (single call for both existing and new paths)
+module foundry_search_connection './modules/ai/ai-foundry-connection.bicep' = {
+  name: 'module.foundry-search-conn'
+  scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
+  params: {
+    solutionName: solutionSuffix
+    aiServicesAccountName: aiFoundryResourceName
+    projectName: aiProjectResourceName
+    category: 'CognitiveSearch'
+    target: ai_search.outputs.aiSearchTarget
+    authType: 'AAD'
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: ai_search.outputs.aiSearchId
+    }
+  }
+}
+
+// Storage Blob connection (single call for both existing and new paths)
+module foundry_storage_connection './modules/ai/ai-foundry-connection.bicep' = {
+  name: 'module.foundry-storage-conn'
+  scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
+  params: {
+    solutionName: solutionSuffix
+    aiServicesAccountName: aiFoundryResourceName
+    projectName: aiProjectResourceName
+    category: 'AzureBlob'
+    target: storage_account.outputs.storageBlobEndpoint
+    authType: 'AAD'
+    metadata: {
+      ResourceId: storage_account.outputs.storageAccountId
+      AccountName: storage_account.outputs.storageAccountName
+      ContainerName: 'default'
+    }
+  }
+}
+
+// Application Insights connection (single call for both existing and new paths)
+module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = {
+  name: 'module.foundry-appi-conn'
+  scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
+  params: {
+    solutionName: solutionSuffix
+    aiServicesAccountName: aiFoundryResourceName
+    projectName: aiProjectResourceName
+    category: 'AppInsights'
+    target: app_insights.outputs.applicationInsightsId
+    authType: 'ApiKey'
+    isDefault: true
+    credentialsKey: app_insights.outputs.applicationInsightsInstrumentationKey
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: app_insights.outputs.applicationInsightsId
+    }
+  }
+}
+
+// Model deployments (single loop for both existing and new paths)
+@batchSize(1)
+module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for (deployment, i) in aiModelDeployments: {
+  name: take('module.model-deployment-${i}.${solutionName}', 64)
+  scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
+  params: {
+    aiServicesAccountName: aiFoundryResourceName
+    deploymentName: deployment.name
+    modelName: deployment.model
+    modelVersion: deployment.version
+    raiPolicyName: deployment.raiPolicyName
+    skuName: deployment.sku.name
+    skuCapacity: deployment.sku.capacity
+  }
+}]
+
 // ========== AI outputs (ternary: existing vs new) ========== //
-var useExisting = !empty(existingFoundryProjectResourceId)
-var aiFoundryEndpoint = useExisting ? existing_project_setup!.outputs.aiFoundryEndpoint : aifoundry!.outputs.aiFoundryEndpoint
+var aiFoundryEndpoint = useExisting ? existing_project_setup!.outputs.aiFoundryEndpoint : aifoundry!.outputs.endpoint
 var projectEndpoint = useExisting ? existing_project_setup!.outputs.projectEndpoint : aifoundry!.outputs.projectEndpoint
-var aiFoundryName = useExisting ? existing_project_setup!.outputs.aiFoundryNameOutput : aifoundry!.outputs.aiFoundryName
-var aiProjectName = useExisting ? existing_project_setup!.outputs.aiProjectNameOutput : aifoundry!.outputs.aiProjectName
-var aiFoundryResourceId = useExisting ? existing_project_setup!.outputs.aiFoundryResourceId : aifoundry!.outputs.aiFoundryResourceId
-var aiProjectPrincipalId = useExisting ? existing_project_setup!.outputs.aiProjectPrincipalId : aifoundry!.outputs.aiProjectPrincipalId
-var aiSearchConnectionId = useExisting ? existing_project_setup!.outputs.aiSearchConnectionId : aifoundry!.outputs.aiSearchConnectionId
+var aiFoundryName = useExisting ? existing_project_setup!.outputs.aiServicesAccountName : aifoundry!.outputs.name
+var aiProjectName = useExisting ? existing_project_setup!.outputs.aiProjectNameOutput : aifoundry!.outputs.projectName
+var aiFoundryResourceId = useExisting ? existing_project_setup!.outputs.aiFoundryResourceId : aifoundry!.outputs.resourceId
+var aiProjectPrincipalId = useExisting ? existing_project_setup!.outputs.aiProjectPrincipalId : aifoundry!.outputs.projectIdentityPrincipalId
+var aiSearchConnectionId = foundry_search_connection.outputs.connectionId
 
 // ========== Storage Account module ========== //
 module storage_account './modules/data/storage-account.bicep' = {
@@ -474,7 +525,6 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
   name: 'deploy_role_assignments'
   params: {
     solutionName: solutionSuffix
-    shouldDeployApp: shouldDeployApp
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     aiFoundryName: aiFoundryName
     aiSearchName: ai_search.outputs.aiSearchName

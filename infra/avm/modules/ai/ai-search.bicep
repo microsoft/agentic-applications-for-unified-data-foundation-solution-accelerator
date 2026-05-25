@@ -1,6 +1,10 @@
 // ============================================================================
 // Module: AI Search
-// Description: AVM wrapper for Azure AI Search with WAF alignment
+// Description: Deploys Azure AI Search with a two-step pattern:
+//   Step 1: Plain Bicep resource for fast initial creation (name, location, SKU)
+//   Step 2: AVM module update to enable managed identity & full configuration
+// This reduces deployment time by making the resource available immediately
+// while identity enablement proceeds separately.
 // AVM Module: avm/res/search/search-service:0.9.1
 // WAF: https://learn.microsoft.com/azure/well-architected/service-guides/azure-cognitive-search
 // ============================================================================
@@ -59,10 +63,21 @@ param privateEndpoints array = []
 param roleAssignments array = []
 
 // ============================================================================
-// AVM Module Deployment
+// Step 1: Initial resource creation (plain Bicep — fast)
 // ============================================================================
-module searchService 'br/public:avm/res/search/search-service:0.9.1' = {
-  name: take('avm.res.search.search-service.${searchServiceName}', 64)
+resource searchService 'Microsoft.Search/searchServices@2024-06-01-preview' = {
+  name: searchServiceName
+  location: location
+  sku: {
+    name: skuName
+  }
+}
+
+// ============================================================================
+// Step 2: AVM update — enables identity & full configuration
+// ============================================================================
+module searchServiceUpdate 'br/public:avm/res/search/search-service:0.9.1' = {
+  name: take('avm.res.search.update.${searchServiceName}', 64)
   params: {
     name: searchServiceName
     location: location
@@ -82,19 +97,22 @@ module searchService 'br/public:avm/res/search/search-service:0.9.1' = {
     privateEndpoints: privateEndpoints
     roleAssignments: !empty(roleAssignments) ? roleAssignments : []
   }
+  dependsOn: [
+    searchService
+  ]
 }
 
 // ============================================================================
 // Outputs
 // ============================================================================
 @description('Resource ID of the AI Search service.')
-output resourceId string = searchService.outputs.resourceId
+output resourceId string = searchService.id
 
 @description('Name of the AI Search service.')
-output name string = searchService.outputs.name
+output name string = searchService.name
 
 @description('Endpoint URL of the AI Search service.')
 output endpoint string = 'https://${searchServiceName}.search.windows.net'
 
 @description('System-assigned identity principal ID.')
-output identityPrincipalId string = searchService.outputs.?systemAssignedMIPrincipalId ?? ''
+output identityPrincipalId string = searchServiceUpdate.outputs.?systemAssignedMIPrincipalId ?? ''
