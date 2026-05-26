@@ -248,12 +248,14 @@ if os.path.exists(search_ids_path):
         search_ids_data = json.load(f)
 
 # Determine if document search is available
-# Search is available if: search_ids.json exists with an index, OR AZURE_AI_SEARCH_INDEX is set, OR --index-name is passed
-HAS_DOCUMENT_SEARCH = bool(
-    args.index_name
-    or os.getenv("AZURE_AI_SEARCH_INDEX")
-    or search_ids_data.get("index_name")
-)
+# Search is enabled only if there are actual PDF documents in the data folder's documents/ directory
+# Fallback: if documents/ doesn't exist, check data_dir directly (legacy layout)
+docs_dir = os.path.join(data_dir, "documents")
+if not os.path.isdir(docs_dir):
+    docs_dir = data_dir
+_has_pdfs = (os.path.isdir(docs_dir)
+             and any(f.lower().endswith(".pdf") for f in os.listdir(docs_dir)))
+HAS_DOCUMENT_SEARCH = _has_pdfs
 
 if args.index_name:
     INDEX_NAME = args.index_name

@@ -1,25 +1,6 @@
 === SQL QUESTIONS (Structured Data) ===
-1. How many active customers do we have?
-2. What is the total premium amount across all policies?
-3. How many claims were filed in the last year?
-4. Which customers have the most policies?
-5. What is the breakdown of claims by type (Home vs Auto)?
-6. Which customers have filed claims exceeding their policy premium?
-7. What is the average policy duration by payment type?
-8. How many communications were sent per communication type?
-9. Which customers have overdue or lapsed policies?
-10. What is the average number of claims per customer?
-
-=== DOCUMENT QUESTIONS (AI Search) ===
-1. What is the claims processing procedure for home damage?
-2. What documentation is required to file an auto insurance claim?
-3. What are the SLA requirements for claim resolution?
-4. What is the escalation process for disputed claims?
-5. What are the customer communication guidelines for claim updates?
-
-=== COMBINED INSIGHT QUESTIONS ===
-1. Are there customers with multiple claims that may require policy review according to our guidelines?
-2. Which claims exceed the processing time limits defined in our claims policy?
-3. Do any customers have communication gaps that violate our contact frequency requirements?
-4. What is the claim-to-premium ratio for customers flagged in our risk assessment guidelines?
-5. Are there any policy types with claim rates that exceed thresholds defined in our underwriting standards?
+1. List the top 5 customers by total claim amount in the last month  
+2. How many claims of each ClaimType were made in the last 6 months?
+3. List the top 10 customers by premium payments over the lifetime of their policies.   
+4. Show the count of communications by CommunicationType for customers with active policies. 
+5. List the top 10 policies with the highest premium and their associated customer names.

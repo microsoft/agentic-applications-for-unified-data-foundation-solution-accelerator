@@ -512,13 +512,3 @@ f76c740a-1e30-42f7-a9a4-f27ee6c61789,ACC-Fabric-1508,CID-509,Receivable,Active,2
 76ad0a55-aa18-4763-ac27-dd86ee98adb8,ACC-Fabric-1510,CID-511,Receivable,Overdue,2023-04-30,Sample script,2025-08-28 12:04:22.059782
 b7c5ff5d-bceb-4722-9ebd-e7e9045f66e5,ACC-Fabric-1511,CID-512,Receivable,Overdue,2023-01-12,Sample script,2025-08-28 12:04:22.059782
 5a0f1ede-7a70-4c89-b715-e998f78548f1,ACC-Fabric-1512,CID-513,Receivable,Active,2022-06-05,Sample script,2025-08-28 12:04:22.059782
-[InvoiceId] NVARCHAR(100
-100
-100
-100
-10,2
-10,2
-10,2
-100
-100
-6

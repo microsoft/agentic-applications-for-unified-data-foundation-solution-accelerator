@@ -3,15 +3,56 @@
     "name": "Inventory and Sales",
     "description": "Retail operations including customers, orders, products, invoices, and payments.",
     "tables": {
+        "account": {
+            "columns": [
+                "AccountId",
+                "AccountNumber",
+                "CustomerId",
+                "AccountType",
+                "AccountStatus",
+                "CreatedDate",
+                "CreatedBy",
+                "GoldLoadTimestamp"
+            ],
+            "types": {
+                "AccountId": "String",
+                "AccountNumber": "String",
+                "CustomerId": "String",
+                "AccountType": "String",
+                "AccountStatus": "String",
+                "CreatedDate": "Date",
+                "CreatedBy": "String",
+                "GoldLoadTimestamp": "DateTime"
+            },
+            "key": "AccountId",
+            "source_table": "account"
+        },
         "customer": {
-            "columns": ["CustomerId", "CustomerTypeId", "CustomerRelationshipTypeId", "DateOfBirth", "CustomerEstablishedDate", "IsActive", "FirstName", "LastName", "Gender", "PrimaryPhone", "SecondaryPhone", "PrimaryEmail", "SecondaryEmail", "CreatedBy", "UpdatedBy", "GoldLoadTimestamp"],
+            "columns": [
+                "CustomerId",
+                "CustomerTypeId",
+                "CustomerRelationshipTypeId",
+                "DateOfBirth",
+                "CustomerEstablishedDate",
+                "IsActive",
+                "FirstName",
+                "LastName",
+                "Gender",
+                "PrimaryPhone",
+                "SecondaryPhone",
+                "PrimaryEmail",
+                "SecondaryEmail",
+                "CreatedBy",
+                "UpdatedBy",
+                "GoldLoadTimestamp"
+            ],
             "types": {
                 "CustomerId": "String",
                 "CustomerTypeId": "String",
                 "CustomerRelationshipTypeId": "String",
                 "DateOfBirth": "Date",
                 "CustomerEstablishedDate": "Date",
-                "IsActive": "String",
+                "IsActive": "Boolean",
                 "FirstName": "String",
                 "LastName": "String",
                 "Gender": "String",
@@ -27,7 +68,15 @@
             "source_table": "customer"
         },
         "customeraccount": {
-            "columns": ["CustomerAccountId", "ParentAccountId", "CustomerAccountName", "CustomerId", "IsoCurrencyCode", "UpdatedBy", "GoldLoadTimestamp"],
+            "columns": [
+                "CustomerAccountId",
+                "ParentAccountId",
+                "CustomerAccountName",
+                "CustomerId",
+                "IsoCurrencyCode",
+                "UpdatedBy",
+                "GoldLoadTimestamp"
+            ],
             "types": {
                 "CustomerAccountId": "String",
                 "ParentAccountId": "String",
@@ -40,24 +89,13 @@
             "key": "CustomerAccountId",
             "source_table": "customeraccount"
         },
-        "customertradename": {
-            "columns": ["CustomerId", "CustomerTypeId", "TradeNameId", "TradeName", "PeriodStartDate", "PeriodEndDate", "CustomerTradeNameNote", "UpdatedBy", "GoldLoadTimestamp"],
-            "types": {
-                "CustomerId": "String",
-                "CustomerTypeId": "String",
-                "TradeNameId": "String",
-                "TradeName": "String",
-                "PeriodStartDate": "String",
-                "PeriodEndDate": "String",
-                "CustomerTradeNameNote": "String",
-                "UpdatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
-            },
-            "key": "TradeNameId",
-            "source_table": "customertradename"
-        },
         "customerrelationshiptype": {
-            "columns": ["CustomerRelationshipTypeId", "CustomerRelationshipTypeName", "CustomerRelationshipTypeDescription", "GoldLoadTimestamp"],
+            "columns": [
+                "CustomerRelationshipTypeId",
+                "CustomerRelationshipTypeName",
+                "CustomerRelationshipTypeDescription",
+                "GoldLoadTimestamp"
+            ],
             "types": {
                 "CustomerRelationshipTypeId": "String",
                 "CustomerRelationshipTypeName": "String",
@@ -67,18 +105,94 @@
             "key": "CustomerRelationshipTypeId",
             "source_table": "customerrelationshiptype"
         },
+        "customertradename": {
+            "columns": [
+                "CustomerId",
+                "CustomerTypeId",
+                "TradeNameId",
+                "TradeName",
+                "PeriodStartDate",
+                "PeriodEndDate",
+                "CustomerTradeNameNote",
+                "UpdatedBy",
+                "GoldLoadTimestamp"
+            ],
+            "types": {
+                "CustomerId": "String",
+                "CustomerTypeId": "String",
+                "TradeNameId": "String",
+                "TradeName": "String",
+                "PeriodStartDate": "Date",
+                "PeriodEndDate": "Date",
+                "CustomerTradeNameNote": "String",
+                "UpdatedBy": "String",
+                "GoldLoadTimestamp": "DateTime"
+            },
+            "key": "CustomerId",
+            "source_table": "customertradename"
+        },
+        "invoice": {
+            "columns": [
+                "InvoiceId",
+                "InvoiceNumber",
+                "CustomerId",
+                "OrderId",
+                "InvoiceDate",
+                "DueDate",
+                "SubTotal",
+                "TaxAmount",
+                "TotalAmount",
+                "InvoiceStatus",
+                "CreatedBy",
+                "GoldLoadTimestamp"
+            ],
+            "types": {
+                "InvoiceId": "String",
+                "InvoiceNumber": "String",
+                "CustomerId": "String",
+                "OrderId": "String",
+                "InvoiceDate": "Date",
+                "DueDate": "Date",
+                "SubTotal": "Float",
+                "TaxAmount": "Float",
+                "TotalAmount": "Float",
+                "InvoiceStatus": "String",
+                "CreatedBy": "String",
+                "GoldLoadTimestamp": "DateTime"
+            },
+            "key": "InvoiceId",
+            "source_table": "invoice"
+        },
         "location": {
-            "columns": ["LocationId", "CustomerId", "LocationName", "IsActive", "AddressLine1", "AddressLine2", "City", "StateId", "ZipCode", "CountryId", "SubdivisionName", "Region", "Latitude", "Longitude", "Note", "UpdatedBy", "GoldLoadTimestamp"],
+            "columns": [
+                "LocationId",
+                "CustomerId",
+                "LocationName",
+                "IsActive",
+                "AddressLine1",
+                "AddressLine2",
+                "City",
+                "StateId",
+                "ZipCode",
+                "CountryId",
+                "SubdivisionName",
+                "Region",
+                "Latitude",
+                "Longitude",
+                "Note",
+                "UpdatedBy",
+                "GoldLoadTimestamp"
+            ],
             "types": {
                 "LocationId": "String",
                 "CustomerId": "String",
                 "LocationName": "String",
-                "IsActive": "String",
+                "IsActive": "Boolean",
                 "AddressLine1": "String",
                 "AddressLine2": "String",
                 "City": "String",
                 "StateId": "String",
-                "ZipCode": "BigInt",
+                "ZipCode": "Float",
                 "CountryId": "String",
                 "SubdivisionName": "String",
                 "Region": "String",
@@ -91,52 +205,65 @@
             "key": "LocationId",
             "source_table": "location"
         },
-        "product": {
-            "columns": ["ProductID", "ProductName", "ProductDescription", "BrandName", "ProductNumber", "Color", "ProductModel", "ProductCategoryID", "CategoryName", "ListPrice", "StandardCost", "Weight", "WeightUom", "ProductStatus", "CreatedDate", "SellStartDate", "SellEndDate", "IsoCurrencyCode", "UpdatedDate", "CreatedBy", "UpdatedBy", "GoldLoadTimestamp"],
+        "orderline": {
+            "columns": [
+                "OrderId",
+                "OrderLineNumber",
+                "ProductId",
+                "Quantity",
+                "UnitPrice",
+                "LineTotal",
+                "DiscountAmount",
+                "TaxAmount",
+                "GoldLoadTimestamp"
+            ],
             "types": {
-                "ProductID": "BigInt",
-                "ProductName": "String",
-                "ProductDescription": "String",
-                "BrandName": "String",
-                "ProductNumber": "String",
-                "Color": "String",
-                "ProductModel": "String",
-                "ProductCategoryID": "String",
-                "CategoryName": "String",
-                "ListPrice": "Float",
-                "StandardCost": "Float",
-                "Weight": "String",
-                "WeightUom": "String",
-                "ProductStatus": "String",
-                "CreatedDate": "String",
-                "SellStartDate": "String",
-                "SellEndDate": "String",
-                "IsoCurrencyCode": "String",
-                "UpdatedDate": "String",
-                "CreatedBy": "String",
-                "UpdatedBy": "String",
+                "OrderId": "String",
+                "OrderLineNumber": "BigInt",
+                "ProductId": "BigInt",
+                "Quantity": "Float",
+                "UnitPrice": "Float",
+                "LineTotal": "Float",
+                "DiscountAmount": "Float",
+                "TaxAmount": "Float",
                 "GoldLoadTimestamp": "DateTime"
             },
-            "key": "ProductID",
-            "source_table": "product"
+            "key": "OrderId",
+            "source_table": "orderline"
         },
-        "productcategory": {
-            "columns": ["CategoryID", "ParentCategoryId", "CategoryName", "CategoryDescription", "BrandName", "BrandLogoUrl", "IsActive", "GoldLoadTimestamp"],
+        "orderpayment": {
+            "columns": [
+                "OrderId",
+                "PaymentMethod",
+                "TransactionId",
+                "GoldLoadTimestamp"
+            ],
             "types": {
-                "CategoryID": "BigInt",
-                "ParentCategoryId": "String",
-                "CategoryName": "String",
-                "CategoryDescription": "String",
-                "BrandName": "String",
-                "BrandLogoUrl": "String",
-                "IsActive": "String",
+                "OrderId": "String",
+                "PaymentMethod": "String",
+                "TransactionId": "String",
                 "GoldLoadTimestamp": "DateTime"
             },
-            "key": "CategoryID",
-            "source_table": "productcategory"
+            "key": "OrderId",
+            "source_table": "orderpayment"
         },
         "orders": {
-            "columns": ["OrderId", "SalesChannelId", "OrderNumber", "CustomerId", "CustomerAccountId", "OrderDate", "OrderStatus", "SubTotal", "TaxAmount", "OrderTotal", "PaymentMethod", "IsoCurrencyCode", "CreatedBy", "GoldLoadTimestamp"],
+            "columns": [
+                "OrderId",
+                "SalesChannelId",
+                "OrderNumber",
+                "CustomerId",
+                "CustomerAccountId",
+                "OrderDate",
+                "OrderStatus",
+                "SubTotal",
+                "TaxAmount",
+                "OrderTotal",
+                "PaymentMethod",
+                "IsoCurrencyCode",
+                "CreatedBy",
+                "GoldLoadTimestamp"
+            ],
             "types": {
                 "OrderId": "String",
                 "SalesChannelId": "String",
@@ -156,69 +283,19 @@
             "key": "OrderId",
             "source_table": "orders"
         },
-        "orderline": {
-            "columns": ["OrderId", "OrderLineNumber", "ProductId", "Quantity", "UnitPrice", "LineTotal", "DiscountAmount", "TaxAmount", "GoldLoadTimestamp"],
-            "types": {
-                "OrderId": "String",
-                "OrderLineNumber": "BigInt",
-                "ProductId": "String",
-                "Quantity": "Float",
-                "UnitPrice": "Float",
-                "LineTotal": "Float",
-                "DiscountAmount": "Float",
-                "TaxAmount": "Float",
-                "GoldLoadTimestamp": "String"
-            },
-            "key": "OrderId",
-            "source_table": "orderline"
-        },
-        "orderpayment": {
-            "columns": ["OrderId", "PaymentMethod", "TransactionId", "GoldLoadTimestamp"],
-            "types": {
-                "OrderId": "String",
-                "PaymentMethod": "String",
-                "TransactionId": "String",
-                "GoldLoadTimestamp": "DateTime"
-            },
-            "key": "OrderId",
-            "source_table": "orderpayment"
-        },
-        "account": {
-            "columns": ["AccountId", "AccountNumber", "CustomerId", "AccountType", "AccountStatus", "CreatedDate", "CreatedBy", "GoldLoadTimestamp"],
-            "types": {
-                "AccountId": "String",
-                "AccountNumber": "String",
-                "CustomerId": "String",
-                "AccountType": "String",
-                "AccountStatus": "String",
-                "CreatedDate": "Date",
-                "CreatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
-            },
-            "key": "AccountId",
-            "source_table": "account"
-        },
-        "invoice": {
-            "columns": ["InvoiceId", "InvoiceNumber", "CustomerId", "OrderId", "InvoiceDate", "DueDate", "SubTotal", "TaxAmount", "TotalAmount", "InvoiceStatus", "CreatedBy", "GoldLoadTimestamp"],
-            "types": {
-                "InvoiceId": "String",
-                "InvoiceNumber": "String",
-                "CustomerId": "String",
-                "OrderId": "String",
-                "InvoiceDate": "Date",
-                "DueDate": "Date",
-                "SubTotal": "Float",
-                "TaxAmount": "Float",
-                "TotalAmount": "Float",
-                "InvoiceStatus": "String",
-                "CreatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
-            },
-            "key": "InvoiceId",
-            "source_table": "invoice"
-        },
         "payment": {
-            "columns": ["PaymentId", "PaymentNumber", "InvoiceId", "OrderId", "PaymentDate", "PaymentAmount", "PaymentStatus", "PaymentMethod", "CreatedBy", "GoldLoadTimestamp"],
+            "columns": [
+                "PaymentId",
+                "PaymentNumber",
+                "InvoiceId",
+                "OrderId",
+                "PaymentDate",
+                "PaymentAmount",
+                "PaymentStatus",
+                "PaymentMethod",
+                "CreatedBy",
+                "GoldLoadTimestamp"
+            ],
             "types": {
                 "PaymentId": "String",
                 "PaymentNumber": "String",
@@ -233,109 +310,213 @@
             },
             "key": "PaymentId",
             "source_table": "payment"
+        },
+        "product": {
+            "columns": [
+                "ProductID",
+                "ProductName",
+                "ProductDescription",
+                "BrandName",
+                "ProductNumber",
+                "Color",
+                "ProductModel",
+                "ProductCategoryID",
+                "CategoryName",
+                "ListPrice",
+                "StandardCost",
+                "Weight",
+                "WeightUom",
+                "ProductStatus",
+                "CreatedDate",
+                "SellStartDate",
+                "SellEndDate",
+                "IsoCurrencyCode",
+                "UpdatedDate",
+                "CreatedBy",
+                "UpdatedBy",
+                "GoldLoadTimestamp"
+            ],
+            "types": {
+                "ProductID": "BigInt",
+                "ProductName": "String",
+                "ProductDescription": "String",
+                "BrandName": "String",
+                "ProductNumber": "String",
+                "Color": "String",
+                "ProductModel": "String",
+                "ProductCategoryID": "Float",
+                "CategoryName": "String",
+                "ListPrice": "Float",
+                "StandardCost": "Float",
+                "Weight": "Float",
+                "WeightUom": "String",
+                "ProductStatus": "String",
+                "CreatedDate": "Date",
+                "SellStartDate": "Date",
+                "SellEndDate": "Date",
+                "IsoCurrencyCode": "String",
+                "UpdatedDate": "Date",
+                "CreatedBy": "String",
+                "UpdatedBy": "String",
+                "GoldLoadTimestamp": "DateTime"
+            },
+            "key": "ProductID",
+            "source_table": "product"
+        },
+        "productcategory": {
+            "columns": [
+                "CategoryID",
+                "ParentCategoryId",
+                "CategoryName",
+                "CategoryDescription",
+                "BrandName",
+                "BrandLogoUrl",
+                "IsActive",
+                "GoldLoadTimestamp"
+            ],
+            "types": {
+                "CategoryID": "BigInt",
+                "ParentCategoryId": "String",
+                "CategoryName": "String",
+                "CategoryDescription": "String",
+                "BrandName": "String",
+                "BrandLogoUrl": "String",
+                "IsActive": "Boolean",
+                "GoldLoadTimestamp": "DateTime"
+            },
+            "key": "CategoryID",
+            "source_table": "productcategory"
         }
     },
     "relationships": [
         {
-            "name": "customer_account",
-            "from": "customeraccount",
-            "to": "customer",
-            "fromKey": "CustomerId",
-            "toKey": "CustomerId"
-        },
-        {
-            "name": "customer_tradename",
-            "from": "customertradename",
-            "to": "customer",
-            "fromKey": "CustomerId",
-            "toKey": "CustomerId"
-        },
-        {
-            "name": "customer_relationshiptype",
-            "from": "customer",
-            "to": "customerrelationshiptype",
-            "fromKey": "CustomerRelationshipTypeId",
-            "toKey": "CustomerRelationshipTypeId"
-        },
-        {
-            "name": "customer_location",
-            "from": "location",
-            "to": "customer",
-            "fromKey": "CustomerId",
-            "toKey": "CustomerId"
-        },
-        {
-            "name": "customer_orders",
-            "from": "orders",
-            "to": "customer",
-            "fromKey": "CustomerId",
-            "toKey": "CustomerId"
-        },
-        {
-            "name": "order_customeraccount",
-            "from": "orders",
-            "to": "customeraccount",
-            "fromKey": "CustomerAccountId",
-            "toKey": "CustomerAccountId"
-        },
-        {
-            "name": "order_orderline",
-            "from": "orderline",
-            "to": "orders",
-            "fromKey": "OrderId",
-            "toKey": "OrderId"
-        },
-        {
-            "name": "order_orderpayment",
-            "from": "orderpayment",
-            "to": "orders",
-            "fromKey": "OrderId",
-            "toKey": "OrderId"
-        },
-        {
-            "name": "product_category",
-            "from": "product",
-            "to": "productcategory",
-            "fromKey": "ProductCategoryID",
-            "toKey": "CategoryID"
-        },
-        {
-            "name": "orderline_product",
-            "from": "orderline",
-            "to": "product",
-            "fromKey": "ProductId",
-            "toKey": "ProductID"
-        },
-        {
-            "name": "customer_account_entity",
+            "name": "account_to_customer",
             "from": "account",
             "to": "customer",
             "fromKey": "CustomerId",
             "toKey": "CustomerId"
         },
         {
-            "name": "order_invoice",
-            "from": "invoice",
-            "to": "orders",
-            "fromKey": "OrderId",
-            "toKey": "OrderId"
+            "name": "account_to_customertradename",
+            "from": "account",
+            "to": "customertradename",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
         },
         {
-            "name": "customer_invoice",
+            "name": "customer_to_customerrelationshiptype",
+            "from": "customer",
+            "to": "customerrelationshiptype",
+            "fromKey": "CustomerRelationshipTypeId",
+            "toKey": "CustomerRelationshipTypeId"
+        },
+        {
+            "name": "customeraccount_to_customer",
+            "from": "customeraccount",
+            "to": "customer",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "customeraccount_to_customertradename",
+            "from": "customeraccount",
+            "to": "customertradename",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "invoice_to_customer",
             "from": "invoice",
             "to": "customer",
             "fromKey": "CustomerId",
             "toKey": "CustomerId"
         },
         {
-            "name": "invoice_payment",
+            "name": "invoice_to_customertradename",
+            "from": "invoice",
+            "to": "customertradename",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "invoice_to_orderline",
+            "from": "invoice",
+            "to": "orderline",
+            "fromKey": "OrderId",
+            "toKey": "OrderId"
+        },
+        {
+            "name": "invoice_to_orderpayment",
+            "from": "invoice",
+            "to": "orderpayment",
+            "fromKey": "OrderId",
+            "toKey": "OrderId"
+        },
+        {
+            "name": "invoice_to_orders",
+            "from": "invoice",
+            "to": "orders",
+            "fromKey": "OrderId",
+            "toKey": "OrderId"
+        },
+        {
+            "name": "location_to_customer",
+            "from": "location",
+            "to": "customer",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "location_to_customertradename",
+            "from": "location",
+            "to": "customertradename",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "orders_to_customer",
+            "from": "orders",
+            "to": "customer",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "orders_to_customertradename",
+            "from": "orders",
+            "to": "customertradename",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "orders_to_customeraccount",
+            "from": "orders",
+            "to": "customeraccount",
+            "fromKey": "CustomerAccountId",
+            "toKey": "CustomerAccountId"
+        },
+        {
+            "name": "payment_to_invoice",
             "from": "payment",
             "to": "invoice",
             "fromKey": "InvoiceId",
             "toKey": "InvoiceId"
         },
         {
-            "name": "order_payment",
+            "name": "payment_to_orderline",
+            "from": "payment",
+            "to": "orderline",
+            "fromKey": "OrderId",
+            "toKey": "OrderId"
+        },
+        {
+            "name": "payment_to_orderpayment",
+            "from": "payment",
+            "to": "orderpayment",
+            "fromKey": "OrderId",
+            "toKey": "OrderId"
+        },
+        {
+            "name": "payment_to_orders",
             "from": "payment",
             "to": "orders",
             "fromKey": "OrderId",
