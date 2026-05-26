@@ -1,0 +1,43 @@
+=== DATABASE SCHEMA ===
+
+account(AccountId*:str, AccountNumber:str, CustomerId:str, AccountType:str, AccountStatus:str, CreatedDate:dat, CreatedBy:str)
+customer(CustomerId*:str, CustomerTypeId:str, CustomerRelationshipTypeId:str, DateOfBirth:dat, CustomerEstablishedDate:dat, IsActive:bool, FirstName:str, LastName:str, Gender:str, PrimaryPhone:str, SecondaryPhone:str, PrimaryEmail:str, SecondaryEmail:str, CreatedBy:str, UpdatedBy:str)
+customeraccount(CustomerAccountId*:str, ParentAccountId:str, CustomerAccountName:str, CustomerId:str, IsoCurrencyCode:str, UpdatedBy:str)
+customerrelationshiptype(CustomerRelationshipTypeId*:str, CustomerRelationshipTypeName:str, CustomerRelationshipTypeDescription:str)
+customertradename(CustomerId*:str, CustomerTypeId:str, TradeNameId:str, TradeName:str, PeriodStartDate:dat, PeriodEndDate:dat, CustomerTradeNameNote:str, UpdatedBy:str)
+invoice(InvoiceId*:str, InvoiceNumber:str, CustomerId:str, OrderId:str, InvoiceDate:dat, DueDate:dat, SubTotal:flo, TaxAmount:flo, TotalAmount:flo, InvoiceStatus:str, CreatedBy:str)
+location(LocationId*:str, CustomerId:str, LocationName:str, IsActive:bool, AddressLine1:str, AddressLine2:str, City:str, StateId:str, ZipCode:int, CountryId:str, SubdivisionName:str, Region:str, Latitude:flo, Longitude:flo, Note:str, UpdatedBy:str)
+orderline(OrderId*:str, OrderLineNumber:int, ProductId:int, Quantity:flo, UnitPrice:flo, LineTotal:flo, DiscountAmount:flo, TaxAmount:flo)
+orderpayment(OrderId*:str, PaymentMethod:str, TransactionId:str)
+orders(OrderId*:str, SalesChannelId:str, OrderNumber:str, CustomerId:str, CustomerAccountId:str, OrderDate:dat, OrderStatus:str, SubTotal:flo, TaxAmount:flo, OrderTotal:flo, PaymentMethod:str, IsoCurrencyCode:str, CreatedBy:str)
+payment(PaymentId*:str, PaymentNumber:str, InvoiceId:str, OrderId:str, PaymentDate:dat, PaymentAmount:flo, PaymentStatus:str, PaymentMethod:str, CreatedBy:str)
+product(ProductId*:int, ProductName:str, ProductDescription:str, BrandName:str, ProductNumber:str, Color:str, ProductModel:str, ProductCategoryId:int, CategoryName:str, ListPrice:flo, StandardCost:flo, Weight:flo, WeightUom:str, ProductStatus:str, CreatedDate:dat, SellStartDate:dat, SellEndDate:dat, IsoCurrencyCode:str, UpdatedDate:dat, CreatedBy:str, UpdatedBy:str)
+productcategory(ProductCategoryId*:int, ParentCategoryId:str, CategoryName:str, CategoryDescription:str, BrandName:str, BrandLogoUrl:str, IsActive:bool)
+
+JOINS:
+  account.CustomerId -> customer.CustomerId
+  account.CustomerId -> customertradename.CustomerId
+  customer.CustomerRelationshipTypeId -> customerrelationshiptype.CustomerRelationshipTypeId
+  customeraccount.CustomerId -> customer.CustomerId
+  customeraccount.CustomerId -> customertradename.CustomerId
+  invoice.CustomerId -> customer.CustomerId
+  invoice.CustomerId -> customertradename.CustomerId
+  invoice.OrderId -> orderline.OrderId
+  invoice.OrderId -> orderpayment.OrderId
+  invoice.OrderId -> orders.OrderId
+  location.CustomerId -> customer.CustomerId
+  location.CustomerId -> customertradename.CustomerId
+  orderline.ProductId -> product.ProductId
+  orders.CustomerId -> customer.CustomerId
+  orders.CustomerId -> customertradename.CustomerId
+  orders.CustomerAccountId -> customeraccount.CustomerAccountId
+  payment.InvoiceId -> invoice.InvoiceId
+  payment.OrderId -> orderline.OrderId
+  payment.OrderId -> orderpayment.OrderId
+  payment.OrderId -> orders.OrderId
+  product.ProductCategoryId -> productcategory.ProductCategoryId
+
+RULES:
+- Use T-SQL syntax
+- Key columns marked with *
+- Types: str=string, int=integer, num=decimal
