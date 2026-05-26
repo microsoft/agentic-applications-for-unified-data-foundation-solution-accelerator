@@ -15,17 +15,17 @@ var abbrs = loadJsonContent('./abbreviations.json')
 @minLength(3)
 @maxLength(20)
 @description('A unique application/solution name for all resources in this deployment. This should be 3-20 characters long:')
-param environmentName string = 'agenticappudf'
+param solutionName string = 'agenticappudf'
 
 @maxLength(5)
 @description('Optional. A unique text value for the solution.')
-param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, environmentName), 0, 5)
+param solutionUniqueText string = substring(uniqueString(subscription().id, resourceGroup().name, solutionName), 0, 5)
 
 @description('Optional: Existing Log Analytics Workspace Resource ID')
 param existingLogAnalyticsWorkspaceId string = ''
 
 @description('Use this parameter to use an existing AI project resource ID')
-param azureExistingAIProjectResourceId string = ''
+param existingFoundryProjectResourceId string = ''
 
 @description('Optional. created by user name')
 param createdBy string = contains(deployer(), 'userPrincipalName') ? split(deployer().userPrincipalName, '@')[0] : deployer().objectId
@@ -66,7 +66,7 @@ param gptModelName string = 'gpt-4.1-mini'
 @description('Version of the GPT model to deploy:')
 param gptModelVersion string = '2025-04-14'
 
-param azureOpenAIApiVersion string = '2025-01-01-preview'
+param azureOpenaiAPIVersion string = '2025-01-01-preview'
 
 param azureAiAgentApiVersion string = '2025-05-01'
 
@@ -88,21 +88,17 @@ param embeddingDeploymentCapacity int = 80
 @description('Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app.')
 param deployApp bool = true
 
-@description('Set to true for workshop deployment with sample data and simplified configuration.')
-param isWorkshop bool = true
-
 @description('Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used.')
 param azureEnvOnly bool = false
 
-// If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
-var shouldDeployApp = !isWorkshop || deployApp
+var shouldDeployApp = deployApp
 
-param AZURE_LOCATION string = ''
-var solutionLocation = empty(AZURE_LOCATION) ? resourceGroup().location : AZURE_LOCATION
+param location string = ''
+var solutionLocation = empty(location) ? resourceGroup().location : location
 
 var solutionSuffix = toLower(trim(replace(
   replace(
-    replace(replace(replace(replace('${environmentName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
+    replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
     ' ',
     ''
   ),
@@ -131,7 +127,7 @@ var solutionSuffix = toLower(trim(replace(
   }
 })
 @description('Location for AI Foundry deployment. This is the location where the AI Foundry resources will be deployed.')
-param aiDeploymentsLocation string
+param azureAiServiceLocation string
 
 @description('The principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC.')
 @allowed(['User', 'ServicePrincipal'])
@@ -143,20 +139,6 @@ var deployingUserPrincipalId = deployerInfo.objectId
 var existingTags = resourceGroup().tags ?? {}
 
 // ========== Resource Group Tag ========== //
-resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorkshop) {
-  name: 'default'
-  properties: {
-    tags: union(
-      existingTags,
-      {
-        TemplateName: 'Unified Data Analysis Agents'
-        CreatedBy: createdBy
-        DeploymentName: deployment().name
-        Type: 'WAF'
-      }
-    )
-  }
-}
 
 // ========== Managed Identity ========== //
 module managedIdentityModule 'deploy_managed_identity.bicep' = {
@@ -174,7 +156,7 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
   name: 'deploy_ai_foundry'
   params: {
     solutionName: solutionSuffix
-    solutionLocation: aiDeploymentsLocation
+    solutionLocation: azureAiServiceLocation
     deploymentType: deploymentType
     gptModelName: gptModelName
     gptModelVersion: gptModelVersion
@@ -183,17 +165,16 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
     embeddingDeploymentCapacity: embeddingDeploymentCapacity
     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
-    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
     deployingUserPrincipalId: deployingUserPrincipalId
     deployingUserPrincipalType: deployingUserPrincipalType
-    isWorkshop: isWorkshop
     searchServiceLocation: searchServiceLocation
   }
   scope: resourceGroup(resourceGroup().name)
 }
 
 // ========== Cosmos DB module ========== //
-module cosmosDBModule 'deploy_cosmos_db.bicep' = if (isWorkshop && deployApp) {
+module cosmosDBModule 'deploy_cosmos_db.bicep' = if (deployApp) {
   name: 'deploy_cosmos_db'
   params: {
     accountName: '${abbrs.databases.cosmosDBDatabase}${solutionSuffix}'
@@ -203,7 +184,7 @@ module cosmosDBModule 'deploy_cosmos_db.bicep' = if (isWorkshop && deployApp) {
 }
 
 // ========== SQL DB module ========== //
-module sqlDBModule 'deploy_sql_db.bicep' = if (isWorkshop && azureEnvOnly) {
+module sqlDBModule 'deploy_sql_db.bicep' = if (azureEnvOnly) {
   name: 'deploy_sql_db'
   params: {
     serverName: '${abbrs.databases.sqlDatabaseServer}${solutionSuffix}'
@@ -239,37 +220,36 @@ module backend_custom 'deploy_backend_custom.bicep' = if (shouldDeployApp && bac
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
     aiServicesName: aifoundry.outputs.aiServicesName
-    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
-    enableCosmosDb: shouldDeployApp && isWorkshop
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
+    enableCosmosDb: shouldDeployApp
     logAnalyticsWorkspaceId: resolvedLogAnalyticsWorkspaceId
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
-      AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
       AZURE_OPENAI_RESOURCE: aifoundry.outputs.aiServicesName
       AZURE_AI_AGENT_ENDPOINT: aifoundry.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: 'True'
-      AZURE_COSMOSDB_ACCOUNT: isWorkshop ? cosmosDBModule!.outputs.cosmosAccountName : ''
-      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: isWorkshop ? cosmosDBModule!.outputs.cosmosContainerName : ''
-      AZURE_COSMOSDB_DATABASE: isWorkshop ? cosmosDBModule!.outputs.cosmosDatabaseName : ''
-      AZURE_COSMOSDB_ENABLE_FEEDBACK: isWorkshop ? 'True' : ''
-      AZURE_SQLDB_DATABASE: (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
-      AZURE_SQLDB_SERVER: (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
-      AZURE_SQLDB_USER_MID: (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
+      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule!.outputs.cosmosAccountName
+      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule!.outputs.cosmosContainerName
+      AZURE_COSMOSDB_DATABASE: cosmosDBModule!.outputs.cosmosDatabaseName
+      AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
+      AZURE_SQLDB_DATABASE: azureEnvOnly ? sqlDBModule!.outputs.sqlDbName : ''
+      AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
+      AZURE_SQLDB_USER_MID: azureEnvOnly ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-      AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
-      AZURE_AI_SEARCH_INDEX: isWorkshop ? 'knowledge_index' : ''
-      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
+      AZURE_AI_SEARCH_ENDPOINT: aifoundry.outputs.aiSearchTarget
+      AZURE_AI_SEARCH_INDEX: 'knowledge_index'
+      AZURE_AI_SEARCH_CONNECTION_NAME: aifoundry.outputs.aiSearchConnectionName
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: aifoundry.outputs.applicationInsightsConnectionString
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
-      IS_WORKSHOP: isWorkshop ? 'True' : 'False'
       AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
       APP_ENV: 'Prod'
       AZURE_BASIC_LOGGING_LEVEL: 'INFO'
@@ -292,30 +272,30 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
     name: 'api-cs-${solutionSuffix}'
     solutionLocation: solutionLocation
     imageTag: 'latest_v2'
-    acrName: 'dataagentscontainerreg'
+    containerRegistryName: 'dataagentscontainerreg'
     appServicePlanId: hostingplan!.outputs.name
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
     aiServicesName: aifoundry.outputs.aiServicesName
-    azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
       AZURE_OPENAI_ENDPOINT: aifoundry.outputs.aiServicesTarget
-      AZURE_ENV_OPENAI_API_VERSION: azureOpenAIApiVersion
+      AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
       AZURE_OPENAI_RESOURCE: aifoundry.outputs.aiServicesName
       AZURE_AI_AGENT_ENDPOINT: aifoundry.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: 'True'
-      AZURE_COSMOSDB_ACCOUNT: isWorkshop ? cosmosDBModule!.outputs.cosmosAccountName : ''
-      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: isWorkshop ? cosmosDBModule!.outputs.cosmosContainerName : ''
-      AZURE_COSMOSDB_DATABASE: isWorkshop ? cosmosDBModule!.outputs.cosmosDatabaseName : ''
-      AZURE_COSMOSDB_ENABLE_FEEDBACK: isWorkshop ? 'True' : ''
+      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule!.outputs.cosmosAccountName
+      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule!.outputs.cosmosContainerName
+      AZURE_COSMOSDB_DATABASE: cosmosDBModule!.outputs.cosmosDatabaseName
+      AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
-      AZURE_AI_SEARCH_ENDPOINT: isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
-      AZURE_AI_SEARCH_INDEX: isWorkshop ? 'call_transcripts_index' : ''
-      AZURE_AI_SEARCH_CONNECTION_NAME: isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
+      AZURE_AI_SEARCH_ENDPOINT: aifoundry.outputs.aiSearchTarget
+      AZURE_AI_SEARCH_INDEX: 'knowledge_index'
+      AZURE_AI_SEARCH_CONNECTION_NAME: aifoundry.outputs.aiSearchConnectionName
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
@@ -323,6 +303,10 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
       APP_ENV: 'Prod'
+      AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
+      USE_DATA_AGENT: 'False'
+      AZURE_SQLDB_DATABASE: azureEnvOnly ? sqlDBModule!.outputs.sqlDbName : ''
+      AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
 
       FABRIC_SQL_DATABASE: ''
       FABRIC_SQL_SERVER: ''
@@ -346,7 +330,6 @@ module frontend_custom 'deploy_frontend_custom.bicep' = if (shouldDeployApp) {
     appSettings: {
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_custom!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
       CHAT_LANDING_TEXT: landingText
-      IS_WORKSHOP: isWorkshop ? 'True' : 'False'
     }
   }
   scope: resourceGroup(resourceGroup().name)
@@ -363,13 +346,13 @@ output SOLUTION_NAME string = solutionSuffix
 output RESOURCE_GROUP_NAME string = resourceGroup().name
 
 @description('Cosmos DB account name for conversation history storage')
-output AZURE_COSMOSDB_ACCOUNT string = shouldDeployApp && isWorkshop ? cosmosDBModule!.outputs.cosmosAccountName : ''
+output AZURE_COSMOSDB_ACCOUNT string = shouldDeployApp ? cosmosDBModule!.outputs.cosmosAccountName : ''
 
 @description('Cosmos DB container name for storing conversations')
-output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = isWorkshop ? 'conversations' : ''
+output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = 'conversations'
 
 @description('Cosmos DB database name for conversation history')
-output AZURE_COSMOSDB_DATABASE string = isWorkshop ? 'db_conversation_history' : ''
+output AZURE_COSMOSDB_DATABASE string = 'db_conversation_history'
 
 @description('GPT model deployment name (e.g., gpt-4o-mini)')
 output AZURE_ENV_GPT_MODEL_NAME string = gptModelName
@@ -381,13 +364,13 @@ output AZURE_OPENAI_ENDPOINT string = aifoundry.outputs.aiServicesTarget
 output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = embeddingModel
 
 @description('Azure SQL database name (Azure-only mode)')
-output AZURE_SQLDB_DATABASE string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlDbName : ''
+output AZURE_SQLDB_DATABASE string = azureEnvOnly ? sqlDBModule!.outputs.sqlDbName : ''
 
 @description('Azure SQL server fully qualified domain name (Azure-only mode)')
-output AZURE_SQLDB_SERVER string = (isWorkshop && azureEnvOnly) ? sqlDBModule!.outputs.sqlServerName : ''
+output AZURE_SQLDB_SERVER string = azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
 
 @description('Managed identity client ID for SQL authentication (Azure-only mode)')
-output AZURE_SQLDB_USER_MID string = (isWorkshop && azureEnvOnly) ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
+output AZURE_SQLDB_USER_MID string = azureEnvOnly ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
 
 @description('Backend API managed identity client ID')
 output API_UID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
@@ -414,22 +397,22 @@ output WEB_APP_URL string = shouldDeployApp ? frontend_custom!.outputs.appUrl : 
 output USE_CASE string = usecase
 
 @description('Azure AI Search service endpoint URL')
-output AZURE_AI_SEARCH_ENDPOINT string = isWorkshop ? aifoundry.outputs.aiSearchTarget : ''
+output AZURE_AI_SEARCH_ENDPOINT string = aifoundry.outputs.aiSearchTarget
 
 @description('Azure AI Search index name for document search')
-output AZURE_AI_SEARCH_INDEX string = isWorkshop ? 'knowledge_index' : ''
+output AZURE_AI_SEARCH_INDEX string = 'knowledge_index'
 
 @description('Azure AI Search service resource name')
-output AZURE_AI_SEARCH_NAME string = isWorkshop ? aifoundry.outputs.aiSearchName : ''
+output AZURE_AI_SEARCH_NAME string = aifoundry.outputs.aiSearchName
 
 @description('Local path to documents folder for search indexing')
-output SEARCH_DATA_FOLDER string = isWorkshop ? 'data/default/documents' : ''
+output SEARCH_DATA_FOLDER string = 'data/default/documents'
 
 @description('AI Foundry connection name for Azure AI Search')
-output AZURE_AI_SEARCH_CONNECTION_NAME string = isWorkshop ? aifoundry.outputs.aiSearchConnectionName : ''
+output AZURE_AI_SEARCH_CONNECTION_NAME string = aifoundry.outputs.aiSearchConnectionName
 
 @description('AI Foundry connection ID for Azure AI Search')
-output AZURE_AI_SEARCH_CONNECTION_ID string = isWorkshop ? aifoundry.outputs.aiSearchConnectionId : ''
+output AZURE_AI_SEARCH_CONNECTION_ID string = aifoundry.outputs.aiSearchConnectionId
 
 @description('Azure AI Foundry project endpoint URL')
 output AZURE_AI_PROJECT_ENDPOINT string = aifoundry.outputs.projectEndpoint
@@ -449,9 +432,6 @@ output FOUNDRY_PROJECT_PID string = aifoundry.outputs.aiProjectPrincipalId
 @description('Backend runtime stack (python or dotnet)')
 output BACKEND_RUNTIME_STACK string = backendRuntimeStack
 
-@description('Flag indicating workshop deployment mode')
-output IS_WORKSHOP bool = isWorkshop
-
 @description('Flag indicating whether to deploy App Service')
 output AZURE_ENV_DEPLOY_APP bool = deployApp
 
@@ -462,6 +442,6 @@ output AZURE_ENV_ONLY bool = azureEnvOnly
 output USER_MID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
 
 @description('Existing or newly created AI project resource ID')
-output AZURE_EXISTING_AIPROJECT_RESOURCE_ID string = !empty(azureExistingAIProjectResourceId)
-  ? azureExistingAIProjectResourceId
+output AZURE_EXISTING_AIPROJECT_RESOURCE_ID string = !empty(existingFoundryProjectResourceId)
+  ? existingFoundryProjectResourceId
   : aifoundry.outputs.aiFoundryResourceId

@@ -116,8 +116,10 @@ REM ============================================================
 for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
     if "%%A"=="AZURE_RESOURCE_GROUP" set "AZURE_RESOURCE_GROUP=%%~B"
     if "%%A"=="AZURE_COSMOSDB_ACCOUNT" set "AZURE_COSMOSDB_ACCOUNT=%%~B"
+    if "%%A"=="AZURE_COSMOSDB_DATABASE" set "AZURE_COSMOSDB_DATABASE=%%~B"
+    if "%%A"=="AZURE_COSMOSDB_CONVERSATIONS_CONTAINER" set "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER=%%~B"
+    if "%%A"=="AZURE_COSMOSDB_ENABLE_FEEDBACK" set "AZURE_COSMOSDB_ENABLE_FEEDBACK=%%~B"
     if "%%A"=="BACKEND_RUNTIME_STACK" set "BACKEND_RUNTIME_STACK=%%~B"
-    if "%%A"=="IS_WORKSHOP" set "IS_WORKSHOP=%%~B"
     if "%%A"=="AZURE_ENV_ONLY" set "AZURE_ENV_ONLY=%%~B"
     if "%%A"=="AGENT_NAME_CHAT" set "AGENT_NAME_CHAT=%%~B"
     if "%%A"=="AGENT_NAME_TITLE" set "AGENT_NAME_TITLE=%%~B"
@@ -146,10 +148,15 @@ for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
         set "AZURE_SQLDB_SERVER=%%~B"
         for /f "tokens=1 delims=." %%C in ("%%~B") do set "AZURE_SQLDB_SERVER_NAME=%%C"
     )
+    if "%%A"=="AZURE_SQLDB_DATABASE" set "AZURE_SQLDB_DATABASE=%%~B"
     if "%%A"=="SQLDB_SERVER" (
         set "SQLDB_SERVER=%%~B"
         for /f "tokens=1 delims=." %%C in ("%%~B") do set "SQLDB_SERVER_NAME=%%C"
     )
+    if "%%A"=="SQLDB_DATABASE" set "SQLDB_DATABASE=%%~B"
+    if "%%A"=="USE_DATA_AGENT" set "USE_DATA_AGENT=%%~B"
+    if "%%A"=="AZURE_AI_SEARCH_ENDPOINT" set "AZURE_AI_SEARCH_ENDPOINT=%%~B"
+    if "%%A"=="AZURE_AI_SEARCH_INDEX" set "AZURE_AI_SEARCH_INDEX=%%~B"
 )
 
 REM Fallback: AZURE_ENV_GPT_MODEL_NAME falls back to AZURE_OPENAI_DEPLOYMENT_MODEL
@@ -170,8 +177,12 @@ if not defined AZURE_SQLDB_SERVER (
     )
 )
 
+REM Fallback: AZURE_SQLDB_DATABASE falls back to SQLDB_DATABASE
+if not defined AZURE_SQLDB_DATABASE (
+    if defined SQLDB_DATABASE set "AZURE_SQLDB_DATABASE=!SQLDB_DATABASE!"
+)
+
 REM Normalize booleans to lowercase
-if /i "!IS_WORKSHOP!"=="true" (set "IS_WORKSHOP=true") else (set "IS_WORKSHOP=false")
 if /i "!AZURE_ENV_ONLY!"=="true" (set "AZURE_ENV_ONLY=true") else (set "AZURE_ENV_ONLY=false")
 
 REM Default USE_CHAT_HISTORY_ENABLED to true if not set (for existing deployments)
@@ -187,7 +198,6 @@ if not defined BACKEND_RUNTIME_STACK set "BACKEND_RUNTIME_STACK=python"
 echo.
 echo Configuration:
 echo   BACKEND_RUNTIME_STACK=%BACKEND_RUNTIME_STACK%
-echo   IS_WORKSHOP=%IS_WORKSHOP%
 echo   AZURE_ENV_ONLY=%AZURE_ENV_ONLY%
 echo   USE_CHAT_HISTORY_ENABLED=%USE_CHAT_HISTORY_ENABLED%
 echo.
@@ -211,11 +221,9 @@ if not defined AGENT_NAME_CHAT (
     echo Loaded agent names from env: AGENT_NAME_CHAT=!AGENT_NAME_CHAT!, AGENT_NAME_TITLE=!AGENT_NAME_TITLE!
 )
 
-REM Load Fabric SQL settings (needed unless workshop + azure-only mode)
-REM Python code: get_db_connection() uses Azure SQL only when IS_WORKSHOP=true AND AZURE_ENV_ONLY=true
-REM All other combinations use Fabric SQL
+REM Load Fabric SQL settings (needed unless azure-only mode)
 set "USE_FABRIC_SQL=true"
-if "%IS_WORKSHOP%"=="true" if "%AZURE_ENV_ONLY%"=="true" set "USE_FABRIC_SQL=false"
+if "%AZURE_ENV_ONLY%"=="true" set "USE_FABRIC_SQL=false"
 
 if "%USE_FABRIC_SQL%"=="true" (
     if not defined FABRIC_SQL_SERVER (
@@ -230,7 +238,7 @@ if "%USE_FABRIC_SQL%"=="true" (
         echo Loaded Fabric SQL from env: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
     )
 ) else (
-    echo Using Azure SQL mode ^(IS_WORKSHOP=true, AZURE_ENV_ONLY=true^). AZURE_SQLDB_SERVER=%AZURE_SQLDB_SERVER%
+    echo Using Azure SQL mode ^(AZURE_ENV_ONLY=true^). AZURE_SQLDB_SERVER=%AZURE_SQLDB_SERVER%
 )
 
 REM ============================================================
@@ -281,6 +289,10 @@ if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" if exist "%API_DOTNET_DIR%" (
             "$json.'FABRIC_SQL_CONNECTION_STRING' = '!FABRIC_SQL_CONNECTION_STRING!';" ^
             "$json.'FABRIC_SQL_DATABASE' = '!FABRIC_SQL_DATABASE!';" ^
             "$json.'FABRIC_SQL_SERVER' = '!FABRIC_SQL_SERVER!';" ^
+            "$json.'AZURE_ENV_ONLY' = '!AZURE_ENV_ONLY!';" ^
+            "$json.'AZURE_SQLDB_SERVER' = '!AZURE_SQLDB_SERVER!';" ^
+            "$json.'AZURE_SQLDB_DATABASE' = '!AZURE_SQLDB_DATABASE!';" ^
+            "$json.'USE_DATA_AGENT' = '!USE_DATA_AGENT!';" ^
             "$json.'APP_ENV' = 'dev';" ^
             "$json.'AGENT_NAME_CHAT' = '!AGENT_NAME_CHAT!';" ^
             "$json.'AGENT_NAME_TITLE' = '!AGENT_NAME_TITLE!';" ^
@@ -298,6 +310,12 @@ if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" if exist "%API_DOTNET_DIR%" (
             "$json.'SOLUTION_NAME' = '!SOLUTION_NAME!';" ^
             "$json.'USE_AI_PROJECT_CLIENT' = '!USE_AI_PROJECT_CLIENT!';" ^
             "$json.'USE_CHAT_HISTORY_ENABLED' = '!USE_CHAT_HISTORY_ENABLED!';" ^
+            "$json.'AZURE_COSMOSDB_ACCOUNT' = '!AZURE_COSMOSDB_ACCOUNT!';" ^
+            "$json.'AZURE_COSMOSDB_DATABASE' = '!AZURE_COSMOSDB_DATABASE!';" ^
+            "$json.'AZURE_COSMOSDB_CONVERSATIONS_CONTAINER' = '!AZURE_COSMOSDB_CONVERSATIONS_CONTAINER!';" ^
+            "$json.'AZURE_COSMOSDB_ENABLE_FEEDBACK' = '!AZURE_COSMOSDB_ENABLE_FEEDBACK!';" ^
+            "$json.'AZURE_AI_SEARCH_ENDPOINT' = '!AZURE_AI_SEARCH_ENDPOINT!';" ^
+            "$json.'AZURE_AI_SEARCH_INDEX' = '!AZURE_AI_SEARCH_INDEX!';" ^
             "$json | ConvertTo-Json -Depth 10 | Set-Content '!API_DOTNET_DIR!\appsettings.json' -Encoding UTF8"
 
         echo Configured src\api\dotnet\appsettings.json with environment values
@@ -313,7 +331,6 @@ REM ============================================================
 set "APP_ENV_FILE=%ROOT_DIR%\src\App\.env"
 (
     echo REACT_APP_API_BASE_URL=http://127.0.0.1:8000
-    echo REACT_APP_IS_WORKSHOP=%IS_WORKSHOP%
     echo REACT_APP_CHAT_LANDING_TEXT=You can ask questions around sales, products and orders.
 ) > "%APP_ENV_FILE%"
 echo Updated src\App\.env with frontend configuration

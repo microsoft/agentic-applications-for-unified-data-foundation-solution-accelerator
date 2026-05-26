@@ -2,10 +2,13 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "environmentName": {
+    "deploymentFlavor": {
+      "value": "${DEPLOYMENT_FLAVOR=bicep}"
+    },
+    "solutionName": {
       "value": "${AZURE_ENV_NAME}"
     },
-    "AZURE_LOCATION": {
+    "location": {
       "value": "${AZURE_LOCATION}"
     },
     "secondaryLocation": {
@@ -20,11 +23,14 @@
     "gptModelVersion": {
       "value": "${AZURE_ENV_GPT_MODEL_VERSION}"
     },
-    "azureOpenAIApiVersion": {
+    "azureOpenaiAPIVersion": {
       "value": "${AZURE_ENV_OPENAI_API_VERSION}"
     },
     "gptDeploymentCapacity": {
       "value": "${AZURE_ENV_GPT_MODEL_CAPACITY}"
+    },
+    "embeddingDeploymentCapacity": {
+      "value": "${AZURE_ENV_EMBEDDING_DEPLOYMENT_CAPACITY}"
     },
     "imageTag": {
       "value": "${AZURE_ENV_IMAGE_TAG}"
@@ -32,16 +38,16 @@
     "existingLogAnalyticsWorkspaceId": {
       "value": "${AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID}"
     },
-    "azureExistingAIProjectResourceId": {
+    "existingFoundryProjectResourceId": {
       "value": "${AZURE_EXISTING_AIPROJECT_RESOURCE_ID}"
     },
     "backendRuntimeStack": {
       "value": "${BACKEND_RUNTIME_STACK}"
     },
-    "aiDeploymentsLocation": {
+    "azureAiServiceLocation": {
       "value": "${AZURE_ENV_AI_SERVICE_LOCATION}"
     },
-    "acrName": {
+    "containerRegistryName": {
       "value": "${AZURE_ENV_CONTAINER_REGISTRY_NAME}"
     },
     "usecase": {
@@ -53,14 +59,26 @@
     "deployApp": {
       "value": "${AZURE_ENV_DEPLOY_APP=true}"
     },
-    "isWorkshop": {
-      "value": "${IS_WORKSHOP=true}"
-    },
     "azureEnvOnly": {
       "value": "${AZURE_ENV_ONLY=false}"
     },
     "deployingUserPrincipalType": {
       "value": "${DEPLOYING_USER_PRINCIPAL_TYPE=User}"
+    },
+    "useUserAccessToken":{
+      "value": "${USE_USER_ACCESS_TOKEN}"
+    },
+    "createFabricWorkspace": {
+      "value": "${CREATE_FABRIC_WORKSPACE=false}"
+    },
+    "azureFabricCapacityName": {
+      "value": "${AZURE_FABRIC_CAPACITY_NAME}"
+    },
+    "fabricCapacitySku": {
+      "value": "${FABRIC_CAPACITY_SKU=F2}"
+    },
+    "fabricAdminMembers": {
+      "value": "${FABRIC_ADMIN_MEMBERS=[]}"
     }
   }
 }

@@ -149,7 +149,6 @@ if [ -n "$AZURE_SQLDB_SERVER" ]; then
 fi
 
 # Normalize booleans to lowercase
-IS_WORKSHOP=$(echo "${IS_WORKSHOP:-false}" | tr '[:upper:]' '[:lower:]')
 AZURE_ENV_ONLY=$(echo "${AZURE_ENV_ONLY:-false}" | tr '[:upper:]' '[:lower:]')
 
 # Default USE_CHAT_HISTORY_ENABLED to true if not set (for existing deployments)
@@ -162,7 +161,6 @@ BACKEND_RUNTIME_STACK="${BACKEND_RUNTIME_STACK:-python}"
 echo ""
 echo "Configuration:"
 echo "  BACKEND_RUNTIME_STACK=$BACKEND_RUNTIME_STACK"
-echo "  IS_WORKSHOP=$IS_WORKSHOP"
 echo "  AZURE_ENV_ONLY=$AZURE_ENV_ONLY"
 echo "  USE_CHAT_HISTORY_ENABLED=$USE_CHAT_HISTORY_ENABLED"
 echo ""
@@ -187,11 +185,9 @@ else
     echo "Loaded agent names from env: AGENT_NAME_CHAT=$AGENT_NAME_CHAT, AGENT_NAME_TITLE=$AGENT_NAME_TITLE"
 fi
 
-# Load Fabric SQL settings (needed unless workshop + azure-only mode)
-# Python code: get_db_connection() uses Azure SQL only when IS_WORKSHOP=true AND AZURE_ENV_ONLY=true
-# All other combinations use Fabric SQL
+# Load Fabric SQL settings (needed unless azure-only mode)
 USE_FABRIC_SQL="true"
-if [ "$IS_WORKSHOP" = "true" ] && [ "$AZURE_ENV_ONLY" = "true" ]; then
+if [ "$AZURE_ENV_ONLY" = "true" ]; then
     USE_FABRIC_SQL="false"
 fi
 
@@ -209,7 +205,7 @@ if [ "$USE_FABRIC_SQL" = "true" ]; then
         echo "Loaded Fabric SQL from env: SERVER=$FABRIC_SQL_SERVER, DATABASE=$FABRIC_SQL_DATABASE"
     fi
 else
-    echo "Using Azure SQL mode (IS_WORKSHOP=true, AZURE_ENV_ONLY=true). AZURE_SQLDB_SERVER=$AZURE_SQLDB_SERVER"
+    echo "Using Azure SQL mode (AZURE_ENV_ONLY=true). AZURE_SQLDB_SERVER=$AZURE_SQLDB_SERVER"
 fi
 
 # ============================================================
@@ -266,18 +262,24 @@ with open('$API_DOTNET_DIR/appsettings.json.sample', 'r') as f:
 
 env_keys = [
     'FABRIC_SQL_CONNECTION_STRING', 'FABRIC_SQL_DATABASE', 'FABRIC_SQL_SERVER',
+    'AZURE_ENV_ONLY', 'AZURE_SQLDB_SERVER', 'AZURE_SQLDB_DATABASE', 'USE_DATA_AGENT',
     'AGENT_NAME_CHAT', 'AGENT_NAME_TITLE', 'API_UID',
     'APPINSIGHTS_INSTRUMENTATIONKEY', 'APPLICATIONINSIGHTS_CONNECTION_STRING',
     'AZURE_AI_AGENT_API_VERSION', 'AZURE_AI_AGENT_ENDPOINT', 'AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME',
     'AZURE_ENV_OPENAI_API_VERSION', 'AZURE_ENV_GPT_MODEL_NAME', 'AZURE_OPENAI_ENDPOINT',
     'AZURE_OPENAI_RESOURCE', 'DISPLAY_CHART_DEFAULT', 'SOLUTION_NAME',
-    'USE_AI_PROJECT_CLIENT', 'USE_CHAT_HISTORY_ENABLED'
+    'USE_AI_PROJECT_CLIENT', 'USE_CHAT_HISTORY_ENABLED',
+    'AZURE_COSMOSDB_ACCOUNT', 'AZURE_COSMOSDB_DATABASE',
+    'AZURE_COSMOSDB_CONVERSATIONS_CONTAINER', 'AZURE_COSMOSDB_ENABLE_FEEDBACK',
+    'AZURE_AI_SEARCH_ENDPOINT', 'AZURE_AI_SEARCH_INDEX'
 ]
 
 # Fallback mappings: new_key -> old_key (for backward compatibility)
 fallback_keys = {
     'AZURE_ENV_GPT_MODEL_NAME': 'AZURE_OPENAI_DEPLOYMENT_MODEL',
-    'AZURE_ENV_OPENAI_API_VERSION': 'AZURE_OPENAI_API_VERSION'
+    'AZURE_ENV_OPENAI_API_VERSION': 'AZURE_OPENAI_API_VERSION',
+    'AZURE_SQLDB_SERVER': 'SQLDB_SERVER',
+    'AZURE_SQLDB_DATABASE': 'SQLDB_DATABASE'
 }
 
 for key in env_keys:

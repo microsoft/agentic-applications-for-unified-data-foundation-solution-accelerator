@@ -21,17 +21,6 @@ export function getChatLandingText() {
   );
 }
 
-export function isWorkShopDeployment() {
-  const rawValue = getRuntimeConfigValue(
-    "IS_WORKSHOP",
-    "REACT_APP_IS_WORKSHOP",
-    "false"
-  );
-  // Strip quotes and whitespace that might be included
-  const value = rawValue.replace(/['"]/g, '').trim().toLowerCase();
-  return value === "true";
-}
-
 export function getAppTitlePrimary() {
   return getRuntimeConfigValue(
     "APP_TITLE_PRIMARY",

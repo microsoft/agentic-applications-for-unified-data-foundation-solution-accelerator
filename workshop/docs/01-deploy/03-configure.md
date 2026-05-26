@@ -25,13 +25,13 @@ python -m venv .venv
 === "Fast (Recommended)"
 
     ```bash
-    pip install uv && uv pip install -r scripts/requirements.txt
+    pip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt
     ```
 
 === "Standard"
 
     ```bash
-    pip install -r scripts/requirements.txt
+    pip install -r infra/scripts/post-provision/requirements.txt
     ```
 
 ### Verify Setup

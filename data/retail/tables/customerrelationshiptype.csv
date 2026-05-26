@@ -1,0 +1,10 @@
+CustomerRelationshipTypeId,CustomerRelationshipTypeName,CustomerRelationshipTypeDescription,GoldLoadTimestamp
+Standard,Standard Individual,Basic individual customer with standard service level and pricing. Entry-level tier for personal customers.,2025-08-26 22:25:53.095806
+Premium,Premium Individual,"Enhanced individual customer with priority support, exclusive offers, and premium service benefits.",2025-08-26 22:25:53.095806
+VIP,VIP Individual,"Top-tier individual customer with white-glove service, dedicated support, and exclusive access to premium products and events.",2025-08-26 22:25:53.095806
+SMB,Small-Medium Business,"Small to medium-sized business customers with volume discounts, business support, and flexible payment terms.",2025-08-26 22:25:53.095806
+Premier,Premier Business,"High-value business customers with dedicated account management, priority support, and customized solutions.",2025-08-26 22:25:53.095806
+Partner,Strategic Partner,"Strategic business partners including resellers, distributors, and channel partners with special pricing and co-marketing opportunities.",2025-08-26 22:25:53.095806
+Local,Local Government,"Local government entities including cities, counties, municipalities, and local agencies with government pricing and procurement support.",2025-08-26 22:25:53.095806
+State,State Government,"State government departments and agencies with enterprise-level support, compliance assistance, and state contract pricing.",2025-08-26 22:25:53.095806
+Federal,Federal Government,"Federal government agencies and departments with specialized compliance support, GSA pricing, and security clearance requirements.",2025-08-26 22:25:53.095806
