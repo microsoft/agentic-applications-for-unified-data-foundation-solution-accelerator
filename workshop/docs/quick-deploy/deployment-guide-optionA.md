@@ -178,7 +178,7 @@ python -m venv .venv
 ```
 
 ```bash
-pip install uv && uv pip install -r scripts/requirements.txt
+pip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt
 ```
 
 ### 5. Build the solution
@@ -210,7 +210,7 @@ az login
 > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
 ```bash
-python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
+python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
 ```
 
 > **Note:** If you omit `--fabric-workspace-id`, the script will prompt you for it interactively. 
@@ -219,7 +219,7 @@ python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-worksp
 ### 6. Test the agent
 
 ```bash
-python scripts/07_test_agent.py
+python infra/scripts/post-provision/07_test_agent.py
 ```
 
 **Sample questions to try:**
@@ -281,7 +281,7 @@ Instead of using AI-generated sample data, you can run the entire lab with **you
 2. Run the build with `--custom-data`:
 
     ```bash
-    python scripts/00_build_solution.py --custom-data data/customdata --fabric-workspace-id <your-workspace-id>
+    python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata --fabric-workspace-id <your-workspace-id>
     ```
 
     You will be prompted for your **Industry** and **Use Case**. The script will auto-generate the config, skip step 01 (AI data generation), and run the remaining pipeline steps.

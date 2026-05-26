@@ -122,14 +122,14 @@ def create_guide():
         'You will pass this as --fabric-workspace-id when running the build script (skip if using Azure-only mode)')
     
     pdf.step(5, 'Setup Python environment',
-        'python -m venv .venv\n.venv\\Scripts\\activate   # or: source .venv/bin/activate\npip install uv && uv pip install -r scripts/requirements.txt')
+        'python -m venv .venv\n.venv\\Scripts\\activate   # or: source .venv/bin/activate\npip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt')
     
     pdf.step(6, 'Build the solution (~5 min)',
-        'python scripts/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>',
-        'Azure-only mode? Use: python scripts/00_build_solution.py --from 03')
+        'python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>',
+        'Azure-only mode? Use: python infra/scripts/post-provision/00_build_solution.py --from 03')
     
     pdf.step(7, 'Test the agent',
-        'python scripts/07_test_agent.py')
+        'python infra/scripts/post-provision/07_test_agent.py')
     
     pdf.step(8, 'Launch the application',
         'Open the app URL shown in the azd up output in your browser')
@@ -144,7 +144,7 @@ def create_guide():
     pdf.section_header('Customize for Your Industry')
     pdf.set_font(pdf.code_font, '', 7)
     pdf.set_fill_color(*LIGHT_GRAY)
-    pdf.multi_cell(0, 4, 'python scripts/00_build_solution.py --clean --industry "Insurance" --usecase "Claims processing"', fill=True)
+    pdf.multi_cell(0, 4, 'python infra/scripts/post-provision/00_build_solution.py --clean --industry "Insurance" --usecase "Claims processing"', fill=True)
     pdf.ln(1)
     pdf.info_text('Industries: Telecommunications | Insurance | Finance | Retail | Manufacturing | Energy')
     

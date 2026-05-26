@@ -535,7 +535,7 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
       AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
       API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.aiSearchTarget
-      AZURE_AI_SEARCH_INDEX: 'call_transcripts_index'
+      AZURE_AI_SEARCH_INDEX: 'knowledge_index'
       AZURE_AI_SEARCH_CONNECTION_NAME: ai_search.outputs.aiSearchConnectionName
 
       USE_AI_PROJECT_CLIENT: 'True'
@@ -544,6 +544,10 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix 
       APP_ENV: 'Prod'
+      AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
+      USE_DATA_AGENT: 'False'
+      AZURE_SQLDB_DATABASE: azureEnvOnly ? sqlDBModule!.outputs.sqlDbName : ''
+      AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
 
       AGENT_NAME_CHAT: ''
       AGENT_NAME_TITLE: ''

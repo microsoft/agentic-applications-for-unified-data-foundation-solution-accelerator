@@ -89,7 +89,7 @@ SIZE_CONFIG = {
 size_config = SIZE_CONFIG[size]
 
 # Create output directory
-base_data_dir = os.path.join(script_dir, "..", "data")
+base_data_dir = os.path.join(script_dir, "..", "..", "..", "data")
 os.makedirs(base_data_dir, exist_ok=True)
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -912,11 +912,11 @@ print(f"""
 Next steps:
   1. Update .env: DATA_FOLDER={data_dir}
   2. Run the pipeline:
-     python scripts/02_create_fabric_items.py
-     python scripts/03_generate_agent_prompt.py
-     python scripts/05_upload_to_search.py
-     python scripts/06_create_agent.py
-     python scripts/07_test_agent.py
+     python infra/scripts/post-provision/02_create_fabric_items.py
+     python infra/scripts/post-provision/03_generate_agent_prompt.py
+     python infra/scripts/post-provision/05_upload_to_search.py
+     python infra/scripts/post-provision/06_create_agent.py
+     python infra/scripts/post-provision/07_test_agent.py
 """)
 
 # ============================================================================
@@ -924,7 +924,7 @@ Next steps:
 # ============================================================================
 
 env_path = os.path.join(script_dir, ".env")
-project_root = os.path.abspath(os.path.join(script_dir, ".."))
+project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
 
 # Use relative path for .env (relative to project root)
 relative_data_dir = os.path.relpath(data_dir, project_root)

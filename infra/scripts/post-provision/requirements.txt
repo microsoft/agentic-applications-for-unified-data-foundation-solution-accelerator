@@ -1,5 +1,5 @@
 # Fabric Ontology Lab - Requirements
-# Install with: pip install -r scripts/requirements.txt
+# Install with: pip install -r infra/scripts/post-provision/requirements.txt
 # Versions locked for workshop consistency (April 2026)
 
 # Azure Authentication

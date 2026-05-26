@@ -25,10 +25,44 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 This will allow the scripts to run for the current session without permanently changing your system's policy.
 
-## Deployment Options & Steps
-###  Fabric Deployment 
+## Deployment Options
+
+This solution offers two deployment paths:
+
+| Option | Description | Requirements |
+|--------|-------------|--------------|
+| **Option A — Fabric + Foundry (Default)** | Full deployment with Microsoft Fabric (Data Agent, Ontology, Lakehouse) + Azure AI Foundry | Fabric capacity (F8+) + Azure subscription |
+| **Option B — Azure-Only** | Azure-only deployment with Azure SQL + Azure AI Foundry (no Fabric required) | Azure subscription only |
+
+---
+
+## Scenario Packs
+
+Pre-built scenario packs provide ready-to-use datasets without requiring AI data generation. They are ideal for demos, workshops, and testing.
+
+| Pack | Industry | Use Case | Tables | Documents |
+|------|----------|----------|--------|-----------|
+| **retail** | Retail | Inventory and sales operations | 13 (customers, orders, products, invoices, payments, locations) | None (SQL-only) |
+| **insurance** | Insurance | Claims processing and customer management | 4 (customer, policy, claim, communicationshistory) | None (SQL-only) |
+
+> **Note:** If you don't use `--scenario-pack`, the default behavior generates AI-based sample data (Telecommunications - Network operations with outage tracking and trouble ticket management) with CSV data.
+
+To use a scenario pack, add `--scenario-pack <name>` to the build command (see step 7 below).
+
+---
+
+## Deployment Steps
+
+###  Fabric Deployment (Option A)
 <!-- if you have an existing workspace use this Id -->
 1. Follow the steps in [Fabric Deployment](./Fabric_deployment.md) to create a Fabric workspace
+
+    > **Important (Fabric Admin Portal):** Before proceeding, ensure the following tenant settings are enabled in the [Fabric Admin Portal](https://app.fabric.microsoft.com/admin-portal) → **Tenant settings**:
+    > - **Ontology (preview)** — Required for Data Agent to function
+    > - **Graph (preview)** — Required for entity relationships
+    > - **Copilot and Azure OpenAI Service** — Required for AI features
+    >
+    > These settings may take up to 15 minutes to propagate. See [Fabric IQ Tenant Settings](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings) for details.
 
 Pick from the options below to see step-by-step instructions for GitHub Codespaces, VS Code Dev Containers, VS Code (Web), Local Environments, and Bicep deployments.
 
@@ -206,25 +240,19 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     azd auth login --tenant-id <tenant-id>
     ```
 
-    > **Note**: This solution accelerator now supports two modes (standard and workshop). By default it will run in workshop mode. If you do not want to run the workshop please set IS_WORKSHOP run the below azd command to set the workshop to false. 
-
-      ```sh
-      azd env set IS_WORKSHOP false
-      ```
-    
-      In standard mode, by default the backend API is configured to Python.
+      By default the backend API is configured to Python.
       To use dotnet instead, run the below command.
 
       ```sh
       azd env set BACKEND_RUNTIME_STACK dotnet
       ```
-      
-      In standard mode, by default the use case is set to Retail Sales.
-      To switch to Insurance, run the below command.
+
+      **For Option B (Azure-only mode)**, set the following before running `azd up`:
 
       ```sh
-      azd env set USE_CASE Insurance-improve-customer-meetings
+      azd env set AZURE_ENV_ONLY true
       ```
+
     **NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
     ```bash 
     azd config set provision.preflight off
@@ -238,94 +266,85 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 3. Provide an `azd` environment name (e.g., "daapp").
 4. Select a subscription from your Azure account and choose a location that has quota for all the resources.
-<!--5. Choose the programming language for the backend API:
-   - **Python**
-   - **.NET (dotnet)**
-6. Choose the use case: 
-   - **Retail-sales-analysis**
-   - **Insurance-improve-customer-meetings** -->
 
    This deployment will take *7-10 minutes* to provision the resources in your account and set up the solution with sample data.
    
    If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
-5. Once the deployment has completed successfully, copy the 2 bash commands from the terminal (ex. 
-`bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh` and
-`bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
+5. Setup Python environment:
 
-> **Note**: If you are running this deployment in GitHub Codespaces or VS Code Dev Container or Visual Studio Code (WEB) skip to step 7. 
-
-6. Create and activate a virtual environment 
-  
     ```shell
     python -m venv .venv
     ```
 
     ```shell
-    source .venv/Scripts/activate
+    .venv\Scripts\activate   # or: source .venv/bin/activate
     ```
 
-7. Login to Azure
+    ```shell
+    pip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt
+    ```
+
+6. Login to Azure:
+
     ```shell
     az login
     ```
 
-    Alternatively, login to Azure using a device code (recommended when using VS Code Web):
+    > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
+
+7. Build the solution:
+
+    **Fabric mode (default - Option A)** — requires a Fabric workspace ID:
 
     ```shell
-    az login --use-device-code
+    python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
     ```
 
-> **Note**: you will need to open a Git Bash terminal to complete steps 8 and 9.  
-8. Run the bash script from the output of the azd deployment. The script will look like the following:
-    
-    ```Shell
-    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
-    ```
-    If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
-    ```Shell
-    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <ai-project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group> <usecase> [<is-workshop>]
+    > You can find your workspace ID in the Fabric URL: `https://app.fabric.microsoft.com/groups/<workspace-id>/...`
+
+    **Azure-only mode (Option B)** — if you set `AZURE_ENV_ONLY=true`:
+
+    ```shell
+    python infra/scripts/post-provision/00_build_solution.py --from 03
     ```
 
-    **Step 8 Parameter Reference:**
+    **Using a Scenario Pack** (pre-built datasets — no AI generation needed):
 
-    | Parameter | azd env Variable | Format / Example |
-    |---|---|---|
-    | `<ai-project-endpoint>` | `AZURE_AI_PROJECT_ENDPOINT` | URL starting with `https://` (e.g., `https://<ai-service>.services.ai.azure.com/api/projects/<project>`) |
-    | `<solution-name>` | `SOLUTION_NAME` | Alphanumeric string (e.g., `da5fi6dninkrjn`) |
-    | `<gpt-model-name>` | `AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME` | Model name (e.g., `gpt-4o-mini`, `gpt-4o`, `gpt-4`) |
-    | `<ai-foundry-resource-id>` | `AI_FOUNDRY_RESOURCE_ID` | Full resource ID starting with `/subscriptions/...` |
-    | `<api-app-name>` | `API_APP_NAME` | App Service name (e.g., `api-cs-<solutionname>`) |
-    | `<resource-group>` | `AZURE_RESOURCE_GROUP` | Resource group name (e.g., `rg-<envname>`) |
-    | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
-    | `<is-workshop>` | `IS_WORKSHOP` | `true` or `false` (defaults to `false`) |
+    ```shell
+    # Option A (Fabric) - Retail scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario-pack retail --fabric-workspace-id <your-workspace-id>
 
-9. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
-    ```Shell
-    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>
+    # Option A (Fabric) - Insurance scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario-pack insurance --fabric-workspace-id <your-workspace-id>
+
+    # Option B (Azure-only) - Retail scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario-pack retail
+
+    # Option B (Azure-only) - Insurance scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario-pack insurance
     ```
 
-    If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
-    ```Shell
-    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup> <usecase>
+    > **Note:** Scenario packs skip data generation (step 01) and document upload (step 05) automatically.
+    > Press **Enter** to start or **Ctrl+C** to cancel the process.
+
+8. Test the agent:
+
+    ```shell
+    python infra/scripts/post-provision/07_test_agent.py
     ```
 
-    **Step 9 Parameter Reference:**
+    **Sample questions by scenario:**
 
-    | Parameter | azd env Variable | Format / Example |
-    |---|---|---|
-    | `<fabric-workspaceId>` | *(user-provided)* | GUID (e.g., `5bxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxx246`) |
-    | `<solutionname>` | `SOLUTION_NAME` | Alphanumeric string (e.g., `da5fi6dninkrjn`) |
-    | `<ai-foundry-name>` | `AI_SERVICE_NAME` | AI Foundry account name (e.g., `aisa-<solutionname>`) |
-    | `<backend-api-mid-principal>` | `API_PID` | Managed identity Principal (Object) ID — GUID |
-    | `<backend-api-mid-client>` | `API_UID` | Managed identity Client ID — GUID |
-    | `<api-app-name>` | `API_APP_NAME` | App Service name (e.g., `api-cs-<solutionname>`) |
-    | `<resourcegroup>` | `RESOURCE_GROUP_NAME` | Resource group name (e.g., `rg-<envname>`) |
-    | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
+    | Scenario | Sample Questions |
+    |----------|-----------------|
+    | **Default** | "How many tickets are high priority?" · "What is the average score from inspections?" · "What constitutes a failed inspection?" |
+    | **Retail** | "Show the top 5 products by total quantity sold last month?" · "Show total revenue by year for last 5 years" · "Show top 10 products by Revenue in the last year" |
+    | **Insurance** | "I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?" · "Can you provide details of her communications?" · "Based on Ida's policy data has she ever missed a payment?" |
 
-10. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
+9. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
-11. If you are done trying out the application, you can delete the resources by running `azd down`.
+10. If you are done trying out the application, you can delete the resources by running `azd down`.
 
 
 ## Post Deployment Steps
@@ -338,32 +357,22 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
      - Follow steps in [Delete Resource Group](./DeleteResourceGroup.md) if your deployment fails and/or you need to clean up the resources.
 
-3. **Cleaning Up Fabric Resources**
-
-     If you are done trying out the accelerator and want to clean up the Fabric resources (lakehouse, SQL database, and role assignments), run the following script:
-
-     ```shell
-     bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId>
-     ```
-
-     If you don't have azd env then you need to pass parameters along with the command:
-     
-     ```shell
-     bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-principal-id>
-     ```
-
-     **Note**: This script will remove the lakehouse, SQL database, and service principal role assignments from the Fabric workspace. To completely remove all Azure resources, use `azd down`.
-
 ## Sample Questions 
 
 To help you get started, here are some **Sample Questions** you can ask in the app:
 
-For Retail sales analysis use case: 
+**Default scenario (Telecommunications - Network Operations):**
+
+1. How many tickets are high priority?
+2. What is the average score from inspections?
+3. What constitutes a failed inspection?
+
+**Retail scenario pack:**
 - Show total revenue by year for last 5 years as a line chart.
 - Show top 10 products by Revenue in the last year in a table.
 - Show as a donut chart.
 
-For Insurance improve customer meetings use case: 
+**Insurance scenario pack:**
 - I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?
 - Can you provide details of her communications?
 - Based on Ida's policy data has she ever missed a payment?
