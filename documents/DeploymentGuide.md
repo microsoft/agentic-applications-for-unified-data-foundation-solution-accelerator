@@ -25,10 +25,44 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 This will allow the scripts to run for the current session without permanently changing your system's policy.
 
-## Deployment Options & Steps
-###  Fabric Deployment 
+## Deployment Options
+
+This solution offers two deployment paths:
+
+| Option | Description | Requirements |
+|--------|-------------|--------------|
+| **Option A — Fabric + Foundry (Default)** | Full deployment with Microsoft Fabric (Data Agent, Ontology, Lakehouse) + Azure AI Foundry | Fabric capacity (F8+) + Azure subscription |
+| **Option B — Azure-Only** | Azure-only deployment with Azure SQL + Azure AI Foundry (no Fabric required) | Azure subscription only |
+
+---
+
+## Scenario Packs
+
+Pre-built scenario packs provide ready-to-use datasets without requiring AI data generation. They are ideal for demos, workshops, and testing.
+
+| Pack | Industry | Use Case | Tables | Documents |
+|------|----------|----------|--------|-----------|
+| **retail** | Retail | Inventory and sales operations | 13 (customers, orders, products, invoices, payments, locations) | None (SQL-only) |
+| **insurance** | Insurance | Claims processing and customer management | 4 (customer, policy, claim, communicationshistory) | None (SQL-only) |
+
+> **Note:** If you don't use `--scenario-pack`, the default behavior generates AI-based sample data (Telecommunications - Network operations with outage tracking and trouble ticket management) with CSV data.
+
+To use a scenario pack, add `--scenario-pack <name>` to the build command (see step 7 below).
+
+---
+
+## Deployment Steps
+
+###  Fabric Deployment (Option A)
 <!-- if you have an existing workspace use this Id -->
 1. Follow the steps in [Fabric Deployment](./Fabric_deployment.md) to create a Fabric workspace
+
+    > **Important (Fabric Admin Portal):** Before proceeding, ensure the following tenant settings are enabled in the [Fabric Admin Portal](https://app.fabric.microsoft.com/admin-portal) → **Tenant settings**:
+    > - **Ontology (preview)** — Required for Data Agent to function
+    > - **Graph (preview)** — Required for entity relationships
+    > - **Copilot and Azure OpenAI Service** — Required for AI features
+    >
+    > These settings may take up to 15 minutes to propagate. See [Fabric IQ Tenant Settings](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings) for details.
 
 Pick from the options below to see step-by-step instructions for GitHub Codespaces, VS Code Dev Containers, VS Code (Web), Local Environments, and Bicep deployments.
 
@@ -212,13 +246,13 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
       ```sh
       azd env set BACKEND_RUNTIME_STACK dotnet
       ```
-      
-      In standard mode, by default the use case is set to Retail Sales.
-      To switch to Insurance, run the below command.
+
+      **For Option B (Azure-only mode)**, set the following before running `azd up`:
 
       ```sh
-      azd env set USE_CASE Insurance-improve-customer-meetings
+      azd env set AZURE_ENV_ONLY true
       ```
+
     **NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
     ```bash 
     azd config set provision.preflight off
@@ -232,12 +266,6 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 3. Provide an `azd` environment name (e.g., "daapp").
 4. Select a subscription from your Azure account and choose a location that has quota for all the resources.
-<!--5. Choose the programming language for the backend API:
-   - **Python**
-   - **.NET (dotnet)**
-6. Choose the use case: 
-   - **Retail-sales-analysis**
-   - **Insurance-improve-customer-meetings** -->
 
    This deployment will take *7-10 minutes* to provision the resources in your account and set up the solution with sample data.
    
@@ -267,7 +295,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 7. Build the solution:
 
-    **Fabric mode** (default — requires a Fabric workspace ID):
+    **Fabric mode (default - Option A)** — requires a Fabric workspace ID:
 
     ```shell
     python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
@@ -275,13 +303,30 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
     > You can find your workspace ID in the Fabric URL: `https://app.fabric.microsoft.com/groups/<workspace-id>/...`
 
-    **Azure-only mode** (if you set `AZURE_ENV_ONLY=true`):
+    **Azure-only mode (Option B)** — if you set `AZURE_ENV_ONLY=true`:
 
     ```shell
     python infra/scripts/post-provision/00_build_solution.py --from 03
     ```
 
-    > **Note:** Press **Enter** to start or **Ctrl+C** to cancel the process.
+    **Using a Scenario Pack** (pre-built datasets — no AI generation needed):
+
+    ```shell
+    # Option A (Fabric) - Retail scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario-pack retail --fabric-workspace-id <your-workspace-id>
+
+    # Option A (Fabric) - Insurance scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario-pack insurance --fabric-workspace-id <your-workspace-id>
+
+    # Option B (Azure-only) - Retail scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario-pack retail
+
+    # Option B (Azure-only) - Insurance scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario-pack insurance
+    ```
+
+    > **Note:** Scenario packs skip data generation (step 01) and document upload (step 05) automatically.
+    > Press **Enter** to start or **Ctrl+C** to cancel the process.
 
 8. Test the agent:
 
@@ -289,11 +334,13 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     python infra/scripts/post-provision/07_test_agent.py
     ```
 
-    **Sample questions to try:**
+    **Sample questions by scenario:**
 
-    - "How many tickets are high priority?"
-    - "What is the average score from inspections?"
-    - "What constitutes a failed inspection?"
+    | Scenario | Sample Questions |
+    |----------|-----------------|
+    | **Default** | "How many tickets are high priority?" · "What is the average score from inspections?" · "What constitutes a failed inspection?" |
+    | **Retail** | "Show the top 5 products by total quantity sold last month?" · "Show total revenue by year for last 5 years" · "Show top 10 products by Revenue in the last year" |
+    | **Insurance** | "I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?" · "Can you provide details of her communications?" · "Based on Ida's policy data has she ever missed a payment?" |
 
 9. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
@@ -314,12 +361,18 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 To help you get started, here are some **Sample Questions** you can ask in the app:
 
-For Retail sales analysis use case: 
+**Default scenario (Telecommunications - Network Operations):**
+
+1. How many tickets are high priority?
+2. What is the average score from inspections?
+3. What constitutes a failed inspection?
+
+**Retail scenario pack:**
 - Show total revenue by year for last 5 years as a line chart.
 - Show top 10 products by Revenue in the last year in a table.
 - Show as a donut chart.
 
-For Insurance improve customer meetings use case: 
+**Insurance scenario pack:**
 - I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?
 - Can you provide details of her communications?
 - Based on Ida's policy data has she ever missed a payment?
