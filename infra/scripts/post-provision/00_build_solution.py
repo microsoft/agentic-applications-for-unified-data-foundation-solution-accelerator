@@ -662,12 +662,14 @@ def ensure_deployer_roles():
     # Format: /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.CognitiveServices/accounts/{account}/projects/{project}
     foundry_resource_id = os.getenv("AI_FOUNDRY_RESOURCE_ID", "").strip()
     if not foundry_resource_id:
-        print("  [SKIP] AI_FOUNDRY_RESOURCE_ID not set — skipping role check")
+        if args.verbose:
+            print("  [SKIP] AI_FOUNDRY_RESOURCE_ID not set — skipping role check")
         return
 
     parts = foundry_resource_id.split("/")
     if len(parts) < 9:
-        print(f"  [WARN] Invalid Foundry resource ID format — skipping role check")
+        if args.verbose:
+            print(f"  [WARN] Invalid Foundry resource ID format — skipping role check")
         return
 
     subscription_id = parts[2]
@@ -696,10 +698,12 @@ def ensure_deployer_roles():
             # Fallback to AZURE_CLIENT_ID (for service principal / CI scenarios)
             deployer_principal_id = os.getenv("AZURE_CLIENT_ID", "").strip()
         if not deployer_principal_id:
-            print("  [WARN] Could not determine deployer identity — run 'az login' and retry")
+            if args.verbose:
+                print("  [WARN] Could not determine deployer identity — run 'az login' and retry")
             return
     except FileNotFoundError:
-        print("  [WARN] Azure CLI not found — skipping role check")
+        if args.verbose:
+            print("  [WARN] Azure CLI not found — skipping role check")
         return
 
     for role_name, role_id in roles.items():
@@ -712,7 +716,8 @@ def ensure_deployer_roles():
             result = subprocess.run(check_cmd, capture_output=True, text=True, shell=True, check=True)
             count = int(result.stdout.strip() or "0")
             if count > 0:
-                print(f"  [OK] '{role_name}' is already assigned to deployer on '{ai_service_name}' — no action needed")
+                if args.verbose:
+                    print(f"  [OK] '{role_name}' is already assigned to deployer on '{ai_service_name}' — no action needed")
                 continue
         except (subprocess.CalledProcessError, ValueError):
             pass
@@ -724,13 +729,101 @@ def ensure_deployer_roles():
         )
         try:
             subprocess.run(assign_cmd, capture_output=True, text=True, shell=True, check=True)
-            print(f"  [OK] Assigned '{role_name}' to deployer on '{ai_service_name}'")
+            if args.verbose:
+                print(f"  [OK] Assigned '{role_name}' to deployer on '{ai_service_name}'")
         except subprocess.CalledProcessError as e:
             print(f"  [WARN] Could not assign '{role_name}': {e.stderr.strip()[:200]}")
 
 
-print("Checking deployer roles on AI Foundry...")
+if args.verbose:
+    print("Checking deployer roles on AI Foundry...")
 ensure_deployer_roles()
+
+# ============================================================================
+# Ensure deployer is SQL Server AD admin (for steps that need SQL access)
+# ============================================================================
+
+def ensure_sql_admin():
+    """
+    Ensure the deployer is set as Azure SQL Server AD admin.
+    Required for steps like 04 (upload to SQL) that need DDL permissions.
+    """
+    sql_server_host = os.getenv("AZURE_SQLDB_SERVER") or os.getenv("SQLDB_SERVER")
+    resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
+
+    if not sql_server_host or not resource_group:
+        if args.verbose:
+            print("  [SKIP] SQL Server or resource group not set — skipping SQL admin check")
+        return
+
+    # Extract server name from hostname (e.g., "myserver.database.windows.net" → "myserver")
+    sql_server_name = sql_server_host.split(".")[0]
+
+    # Get deployer display name and object ID
+    try:
+        result = subprocess.run(
+            "az account show --query user.name -o tsv",
+            capture_output=True, text=True, shell=True, check=True
+        )
+        deployer_upn = result.stdout.strip()
+        if not deployer_upn:
+            if args.verbose:
+                print("  [WARN] Could not determine deployer UPN — skipping SQL admin check")
+            return
+    except subprocess.CalledProcessError:
+        if args.verbose:
+            print("  [WARN] Could not get signed-in user — skipping SQL admin check")
+        return
+
+    # Check if AD admin is already set
+    try:
+        result = subprocess.run(
+            f'az sql server ad-admin list --server-name "{sql_server_name}" '
+            f'--resource-group "{resource_group}" --query "[].login" -o tsv',
+            capture_output=True, text=True, shell=True, check=True
+        )
+        existing_admins = result.stdout.strip()
+        if deployer_upn in existing_admins:
+            if args.verbose:
+                print(f"  [OK] Deployer '{deployer_upn}' is already SQL AD admin on '{sql_server_name}' — no action needed")
+            return
+    except subprocess.CalledProcessError:
+        pass
+
+    # Get deployer object ID for ad-admin create
+    try:
+        result = subprocess.run(
+            "az ad signed-in-user show --query id -o tsv",
+            capture_output=True, text=True, shell=True
+        )
+        deployer_object_id = result.stdout.strip() if result.returncode == 0 else ""
+        if not deployer_object_id:
+            deployer_object_id = os.getenv("AZURE_CLIENT_ID", "").strip()
+        if not deployer_object_id:
+            if args.verbose:
+                print("  [WARN] Could not get deployer object ID — skipping SQL admin setup")
+            return
+    except FileNotFoundError:
+        return
+
+    # Set deployer as AD admin
+    try:
+        subprocess.run(
+            f'az sql server ad-admin create --server-name "{sql_server_name}" '
+            f'--resource-group "{resource_group}" '
+            f'--display-name "{deployer_upn}" --object-id "{deployer_object_id}"',
+            capture_output=True, text=True, shell=True, check=True
+        )
+        print(f"  [OK] Set deployer '{deployer_upn}' as SQL AD admin on '{sql_server_name}'")
+    except subprocess.CalledProcessError as e:
+        print(f"  [WARN] Could not set SQL AD admin: {e.stderr.strip()[:200]}")
+
+
+# Only run SQL admin check if pipeline includes SQL steps (04)
+if "04" in pipeline:
+    if args.verbose:
+        print("Checking deployer SQL admin access...")
+    ensure_sql_admin()
 
 # ============================================================================
 # Run Pipeline
