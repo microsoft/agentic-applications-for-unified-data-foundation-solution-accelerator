@@ -5,7 +5,7 @@
 After generation completes, test the agent:
 
 ```bash
-python scripts/07_test_agent.py
+python infra/scripts/post-provision/07_test_agent.py
 ```
 
 ## Use the Generated Sample Questions
@@ -97,10 +97,10 @@ The web application is already deployed during the initial `azd up` deployment. 
 
 ```bash
 # Edit .env with new customer's industry and use case, then:
-python scripts/00_build_solution.py --clean
+python infra/scripts/post-provision/00_build_solution.py --clean
 
 # Or inline:
-python scripts/00_build_solution.py --clean \
+python infra/scripts/post-provision/00_build_solution.py --clean \
   --industry "New Industry" \
   --usecase "New use case description"
 ```

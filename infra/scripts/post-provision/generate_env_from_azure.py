@@ -9,13 +9,13 @@ The script will:
 2. Fall back to querying individual Azure resources if no App Service found
 
 Usage:
-    python scripts/generate_env_from_azure.py --resource-group <rg-name>
-    python scripts/generate_env_from_azure.py -g <rg-name> --app-name <api-app-name>
-    python scripts/generate_env_from_azure.py -g <rg-name> --no-app-service
+    python infra/scripts/post-provision/generate_env_from_azure.py --resource-group <rg-name>
+    python infra/scripts/post-provision/generate_env_from_azure.py -g <rg-name> --app-name <api-app-name>
+    python infra/scripts/post-provision/generate_env_from_azure.py -g <rg-name> --no-app-service
     
 Example:
-    python scripts/generate_env_from_azure.py --resource-group rg-myproject-dev
-    python scripts/generate_env_from_azure.py -g rg-myproject-dev --app-name myproject-api
+    python infra/scripts/post-provision/generate_env_from_azure.py --resource-group rg-myproject-dev
+    python infra/scripts/post-provision/generate_env_from_azure.py -g rg-myproject-dev --app-name myproject-api
 """
 
 import argparse
@@ -699,7 +699,7 @@ def main():
     parser.add_argument(
         "--env-file", "-e",
         default=None,
-        help="Path to output .env file (default: scripts/.env)"
+        help="Path to output .env file (default: infra/scripts/post-provision/.env)"
     )
     parser.add_argument(
         "--azd-env", "-n",

@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "1669571910605278052"
+      "templateHash": "11387218344039379389"
     }
   },
   "parameters": {
@@ -57137,13 +57137,17 @@
               "AZURE_COSMOSDB_ENABLE_FEEDBACK": "True",
               "API_UID": "",
               "AZURE_AI_SEARCH_ENDPOINT": "[reference('ai_search').outputs.endpoint.value]",
-              "AZURE_AI_SEARCH_INDEX": "call_transcripts_index",
+              "AZURE_AI_SEARCH_INDEX": "knowledge_index",
               "AZURE_AI_SEARCH_CONNECTION_NAME": "[reference('foundry_search_connection').outputs.connectionName.value]",
               "USE_AI_PROJECT_CLIENT": "True",
               "DISPLAY_CHART_DEFAULT": "False",
               "APPLICATIONINSIGHTS_CONNECTION_STRING": "[if(parameters('enableMonitoring'), reference('app_insights').outputs.connectionString.value, '')]",
               "SOLUTION_NAME": "[variables('solutionSuffix')]",
               "APP_ENV": "Prod",
+              "AZURE_ENV_ONLY": "[if(parameters('azureEnvOnly'), 'True', 'False')]",
+              "USE_DATA_AGENT": "False",
+              "AZURE_SQLDB_DATABASE": "[if(parameters('azureEnvOnly'), reference('sqlDBModule').outputs.databaseName.value, '')]",
+              "AZURE_SQLDB_SERVER": "[if(parameters('azureEnvOnly'), reference('sqlDBModule').outputs.serverFqdn.value, '')]",
               "AGENT_NAME_CHAT": "",
               "AGENT_NAME_TITLE": "",
               "FABRIC_SQL_DATABASE": "",
@@ -62800,6 +62804,7 @@
         "foundry_search_connection",
         "hostingplan",
         "log_analytics",
+        "sqlDBModule",
         "virtualNetwork"
       ]
     },

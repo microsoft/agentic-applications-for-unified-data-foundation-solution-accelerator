@@ -40,7 +40,7 @@ def load_azd_env():
     Returns True if azd env was found and loaded.
     """
     script_dir = Path(__file__).parent
-    azure_dir = script_dir.parent / ".azure"
+    azure_dir = script_dir.parent.parent.parent / ".azure"
     
     # Get environment name from config.json or AZURE_ENV_NAME
     env_name = os.environ.get("AZURE_ENV_NAME", "")
@@ -61,7 +61,7 @@ def load_azd_env():
 
 def load_project_env():
     """
-    Load environment variables from scripts/.env file.
+    Load environment variables from infra/scripts/post-provision/.env file.
     
     Contains Fabric-specific and project settings.
     """
@@ -81,10 +81,10 @@ def load_all_env():
     
     Priority:
     1. azd environment (Azure service endpoints) - if .azure folder exists
-    2. Project scripts/.env (Azure endpoints + Fabric/industry settings)
+    2. Project infra/scripts/post-provision/.env (Azure endpoints + Fabric/industry settings)
     
     When infra is pre-provisioned without 'azd up', the .azure folder won't exist.
-    In this case, scripts/.env should contain ALL settings (Azure + project).
+    In this case, infra/scripts/post-provision/.env should contain ALL settings (Azure + project).
     Use generate_env_from_azure.py to create this file from existing resources.
     
     Returns tuple (azd_loaded, project_loaded)
@@ -97,7 +97,7 @@ def load_all_env():
         print("⚠️  No environment configuration found.")
         print("   Options:")
         print("   1. Run 'azd up' to deploy infrastructure")
-        print("   2. Run 'python scripts/generate_env_from_azure.py -g <resource-group>'")
+        print("   2. Run 'python infra/scripts/post-provision/generate_env_from_azure.py -g <resource-group>'")
         print("      to generate .env from existing Azure resources")
     
     return azd_loaded, project_loaded
@@ -165,8 +165,8 @@ def get_data_folder() -> str:
     if os.path.isabs(data_folder):
         return data_folder
     
-    # Resolve relative path from project root (parent of scripts folder)
-    project_root = Path(__file__).parent.parent
+    # Resolve relative path from project root (3 levels up from infra/scripts/post-provision/)
+    project_root = Path(__file__).parent.parent.parent.parent
     return str((project_root / data_folder).resolve())
 
 

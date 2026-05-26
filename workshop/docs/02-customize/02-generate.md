@@ -9,7 +9,7 @@ az login
 
 Override `.env` settings directly from the command line:
 ```bash
-python scripts/00_build_solution.py --clean --industry "Insurance" --usecase "Property insurance with claims processing and policy management"
+python infra/scripts/post-provision/00_build_solution.py --clean --industry "Insurance" --usecase "Property insurance with claims processing and policy management"
 ```
 
 | Flag | Purpose |
@@ -20,7 +20,7 @@ python scripts/00_build_solution.py --clean --industry "Insurance" --usecase "Pr
 With your `.env` configured, generate customer-specific data:
 
 ```bash
-python scripts/00_build_solution.py --clean
+python infra/scripts/post-provision/00_build_solution.py --clean
 ```
 
 ## Generation Process

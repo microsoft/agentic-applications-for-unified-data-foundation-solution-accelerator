@@ -233,7 +233,7 @@ The startup scripts automate environment configuration, Azure authentication, ro
 
 ### Script Behavior by Deployment Scenario
 
-The scripts auto-detect configuration from the `.env` file. Key flags: `BACKEND_RUNTIME_STACK` (`python`|`dotnet`) and `IS_WORKSHOP` (`true`|`false`). Defaults to Python backend if not set.
+The scripts auto-detect configuration from the `.env` file. Key flags: `BACKEND_RUNTIME_STACK` (`python`|`dotnet`) and `AZURE_ENV_ONLY` (`true`|`false`). Defaults to Python backend if not set.
 
 | Scenario | Python Backend | .NET Backend |
 |----------|---------------|--------------|
@@ -243,8 +243,8 @@ The scripts auto-detect configuration from the `.env` file. Key flags: `BACKEND_
 
 | Database Mode | When | Environment Variables |
 |--------------|------|----------------------|
-| **Fabric SQL** | `IS_WORKSHOP=false`, or `AZURE_ENV_ONLY=false` | `FABRIC_SQL_SERVER`, `FABRIC_SQL_DATABASE` |
-| **Azure SQL** | `IS_WORKSHOP=true` **and** `AZURE_ENV_ONLY=true` | `AZURE_SQLDB_SERVER`, `AZURE_SQLDB_DATABASE` |
+| **Fabric SQL** | `AZURE_ENV_ONLY=false` | `FABRIC_SQL_SERVER`, `FABRIC_SQL_DATABASE` |
+| **Azure SQL** | `AZURE_ENV_ONLY=true` | `AZURE_SQLDB_SERVER`, `AZURE_SQLDB_DATABASE` |
 
 ---
 

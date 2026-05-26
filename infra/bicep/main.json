@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "13510268338634261511"
+      "templateHash": "9434647921749216965"
     }
   },
   "parameters": {
@@ -2543,7 +2543,7 @@
               "AZURE_COSMOSDB_ENABLE_FEEDBACK": "True",
               "API_UID": "",
               "AZURE_AI_SEARCH_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiSearchTarget.value]",
-              "AZURE_AI_SEARCH_INDEX": "call_transcripts_index",
+              "AZURE_AI_SEARCH_INDEX": "knowledge_index",
               "AZURE_AI_SEARCH_CONNECTION_NAME": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiSearchConnectionName.value]",
               "USE_AI_PROJECT_CLIENT": "True",
               "DISPLAY_CHART_DEFAULT": "False",
@@ -2551,6 +2551,10 @@
               "DUMMY_TEST": "True",
               "SOLUTION_NAME": "[variables('solutionSuffix')]",
               "APP_ENV": "Prod",
+              "AZURE_ENV_ONLY": "[if(parameters('azureEnvOnly'), 'True', 'False')]",
+              "USE_DATA_AGENT": "False",
+              "AZURE_SQLDB_DATABASE": "[if(parameters('azureEnvOnly'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.sql-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.sqlDbName.value, '')]",
+              "AZURE_SQLDB_SERVER": "[if(parameters('azureEnvOnly'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.sql-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.sqlServerName.value, '')]",
               "AGENT_NAME_CHAT": "",
               "AGENT_NAME_TITLE": "",
               "FABRIC_SQL_DATABASE": "",
@@ -2711,7 +2715,8 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64))]"
+        "[resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.sql-db.{0}', parameters('solutionName')), 64))]"
       ]
     },
     {
