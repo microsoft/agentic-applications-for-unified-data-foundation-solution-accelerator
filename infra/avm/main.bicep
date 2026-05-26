@@ -634,8 +634,8 @@ module foundry_storage_connection './modules/ai/ai-foundry-connection.bicep' = {
   }
 }
 
-// Application Insights connection (single call for both existing and new paths)
-module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = if (enableMonitoring) {
+// Application Insights connection (skip if using existing Foundry project which already has one)
+module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = if (enableMonitoring && !useExistingAIProject) {
   name: take('module.foundry-appi-conn.${solutionName}', 64)
   scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
   params: {

@@ -292,14 +292,14 @@ module ai_foundry_project './modules/ai/ai-foundry-project.bicep' = if (empty(ex
 }
 
 // ========== Unified AI Foundry resource name vars ========== //
-var useExisting = !empty(existingFoundryProjectResourceId)
-var aiFoundryResourceName = useExisting ? split(existingFoundryProjectResourceId, '/')[8] : ai_foundry_project!.outputs.name
-var aiProjectResourceName = useExisting ? split(existingFoundryProjectResourceId, '/')[10] : ai_foundry_project!.outputs.projectName
-var aiServiceSubscription = useExisting ? split(existingFoundryProjectResourceId, '/')[2] : subscription().subscriptionId
-var aiServiceResourceGroup = useExisting ? split(existingFoundryProjectResourceId, '/')[4] : resourceGroup().name
+var useExistingAIProject = !empty(existingFoundryProjectResourceId)
+var aiFoundryResourceName = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[8] : ai_foundry_project!.outputs.name
+var aiProjectResourceName = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[10] : ai_foundry_project!.outputs.projectName
+var aiServiceSubscription = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[2] : subscription().subscriptionId
+var aiServiceResourceGroup = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[4] : resourceGroup().name
 
 // Reference existing AI Foundry project (identity only)
-module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (useExisting) {
+module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (useExistingAIProject) {
   name: take('module.existing-project-setup.${solutionName}', 64)
   scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
   params: {
@@ -345,8 +345,8 @@ module foundry_storage_connection './modules/ai/ai-foundry-connection.bicep' = {
   }
 }
 
-// Application Insights connection (single call for both existing and new paths)
-module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = {
+// Application Insights connection (skip if using existing Foundry project which already has one)
+module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = if (!useExistingAIProject) {
   name: take('module.foundry-appi-conn.${solutionName}', 64)
   scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
   params: {
@@ -391,12 +391,12 @@ module ai_search './modules/ai/ai-search.bicep' = {
 }
 
 // ========== AI outputs (ternary: existing vs new) ========== //
-var aiFoundryEndpoint = useExisting ? existing_project_setup!.outputs.aiFoundryEndpoint : ai_foundry_project!.outputs.endpoint
-var projectEndpoint = useExisting ? existing_project_setup!.outputs.projectEndpoint : ai_foundry_project!.outputs.projectEndpoint
-var aiFoundryName = useExisting ? existing_project_setup!.outputs.aiServicesAccountName : ai_foundry_project!.outputs.name
-var aiProjectName = useExisting ? existing_project_setup!.outputs.aiProjectNameOutput : ai_foundry_project!.outputs.projectName
-var aiFoundryResourceId = useExisting ? existing_project_setup!.outputs.aiFoundryResourceId : ai_foundry_project!.outputs.resourceId
-var aiProjectPrincipalId = useExisting ? existing_project_setup!.outputs.aiProjectPrincipalId : ai_foundry_project!.outputs.projectIdentityPrincipalId
+var aiFoundryEndpoint = useExistingAIProject ? existing_project_setup!.outputs.aiFoundryEndpoint : ai_foundry_project!.outputs.endpoint
+var projectEndpoint = useExistingAIProject ? existing_project_setup!.outputs.projectEndpoint : ai_foundry_project!.outputs.projectEndpoint
+var aiFoundryName = useExistingAIProject ? existing_project_setup!.outputs.aiServicesAccountName : ai_foundry_project!.outputs.name
+var aiProjectName = useExistingAIProject ? existing_project_setup!.outputs.aiProjectNameOutput : ai_foundry_project!.outputs.projectName
+var aiFoundryResourceId = useExistingAIProject ? existing_project_setup!.outputs.aiFoundryResourceId : ai_foundry_project!.outputs.resourceId
+var aiProjectPrincipalId = useExistingAIProject ? existing_project_setup!.outputs.aiProjectPrincipalId : ai_foundry_project!.outputs.projectIdentityPrincipalId
 var aiSearchConnectionId = foundry_search_connection.outputs.connectionId
 
 // ========== Storage Account module ========== //
