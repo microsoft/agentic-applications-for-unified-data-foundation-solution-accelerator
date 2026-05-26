@@ -11,8 +11,7 @@
                 "AccountType",
                 "AccountStatus",
                 "CreatedDate",
-                "CreatedBy",
-                "GoldLoadTimestamp"
+                "CreatedBy"
             ],
             "types": {
                 "AccountId": "String",
@@ -21,8 +20,7 @@
                 "AccountType": "String",
                 "AccountStatus": "String",
                 "CreatedDate": "Date",
-                "CreatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
+                "CreatedBy": "String"
             },
             "key": "AccountId",
             "source_table": "account"
@@ -43,8 +41,7 @@
                 "PrimaryEmail",
                 "SecondaryEmail",
                 "CreatedBy",
-                "UpdatedBy",
-                "GoldLoadTimestamp"
+                "UpdatedBy"
             ],
             "types": {
                 "CustomerId": "String",
@@ -61,8 +58,7 @@
                 "PrimaryEmail": "String",
                 "SecondaryEmail": "String",
                 "CreatedBy": "String",
-                "UpdatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
+                "UpdatedBy": "String"
             },
             "key": "CustomerId",
             "source_table": "customer"
@@ -74,8 +70,7 @@
                 "CustomerAccountName",
                 "CustomerId",
                 "IsoCurrencyCode",
-                "UpdatedBy",
-                "GoldLoadTimestamp"
+                "UpdatedBy"
             ],
             "types": {
                 "CustomerAccountId": "String",
@@ -83,8 +78,7 @@
                 "CustomerAccountName": "String",
                 "CustomerId": "String",
                 "IsoCurrencyCode": "String",
-                "UpdatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
+                "UpdatedBy": "String"
             },
             "key": "CustomerAccountId",
             "source_table": "customeraccount"
@@ -93,14 +87,12 @@
             "columns": [
                 "CustomerRelationshipTypeId",
                 "CustomerRelationshipTypeName",
-                "CustomerRelationshipTypeDescription",
-                "GoldLoadTimestamp"
+                "CustomerRelationshipTypeDescription"
             ],
             "types": {
                 "CustomerRelationshipTypeId": "String",
                 "CustomerRelationshipTypeName": "String",
-                "CustomerRelationshipTypeDescription": "String",
-                "GoldLoadTimestamp": "DateTime"
+                "CustomerRelationshipTypeDescription": "String"
             },
             "key": "CustomerRelationshipTypeId",
             "source_table": "customerrelationshiptype"
@@ -114,8 +106,7 @@
                 "PeriodStartDate",
                 "PeriodEndDate",
                 "CustomerTradeNameNote",
-                "UpdatedBy",
-                "GoldLoadTimestamp"
+                "UpdatedBy"
             ],
             "types": {
                 "CustomerId": "String",
@@ -125,8 +116,7 @@
                 "PeriodStartDate": "Date",
                 "PeriodEndDate": "Date",
                 "CustomerTradeNameNote": "String",
-                "UpdatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
+                "UpdatedBy": "String"
             },
             "key": "CustomerId",
             "source_table": "customertradename"
@@ -143,8 +133,7 @@
                 "TaxAmount",
                 "TotalAmount",
                 "InvoiceStatus",
-                "CreatedBy",
-                "GoldLoadTimestamp"
+                "CreatedBy"
             ],
             "types": {
                 "InvoiceId": "String",
@@ -157,8 +146,7 @@
                 "TaxAmount": "Float",
                 "TotalAmount": "Float",
                 "InvoiceStatus": "String",
-                "CreatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
+                "CreatedBy": "String"
             },
             "key": "InvoiceId",
             "source_table": "invoice"
@@ -180,8 +168,7 @@
                 "Latitude",
                 "Longitude",
                 "Note",
-                "UpdatedBy",
-                "GoldLoadTimestamp"
+                "UpdatedBy"
             ],
             "types": {
                 "LocationId": "String",
@@ -192,15 +179,14 @@
                 "AddressLine2": "String",
                 "City": "String",
                 "StateId": "String",
-                "ZipCode": "Float",
+                "ZipCode": "BigInt",
                 "CountryId": "String",
                 "SubdivisionName": "String",
                 "Region": "String",
                 "Latitude": "Float",
                 "Longitude": "Float",
                 "Note": "String",
-                "UpdatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
+                "UpdatedBy": "String"
             },
             "key": "LocationId",
             "source_table": "location"
@@ -214,8 +200,7 @@
                 "UnitPrice",
                 "LineTotal",
                 "DiscountAmount",
-                "TaxAmount",
-                "GoldLoadTimestamp"
+                "TaxAmount"
             ],
             "types": {
                 "OrderId": "String",
@@ -225,8 +210,7 @@
                 "UnitPrice": "Float",
                 "LineTotal": "Float",
                 "DiscountAmount": "Float",
-                "TaxAmount": "Float",
-                "GoldLoadTimestamp": "DateTime"
+                "TaxAmount": "Float"
             },
             "key": "OrderId",
             "source_table": "orderline"
@@ -235,14 +219,12 @@
             "columns": [
                 "OrderId",
                 "PaymentMethod",
-                "TransactionId",
-                "GoldLoadTimestamp"
+                "TransactionId"
             ],
             "types": {
                 "OrderId": "String",
                 "PaymentMethod": "String",
-                "TransactionId": "String",
-                "GoldLoadTimestamp": "DateTime"
+                "TransactionId": "String"
             },
             "key": "OrderId",
             "source_table": "orderpayment"
@@ -261,8 +243,7 @@
                 "OrderTotal",
                 "PaymentMethod",
                 "IsoCurrencyCode",
-                "CreatedBy",
-                "GoldLoadTimestamp"
+                "CreatedBy"
             ],
             "types": {
                 "OrderId": "String",
@@ -277,8 +258,7 @@
                 "OrderTotal": "Float",
                 "PaymentMethod": "String",
                 "IsoCurrencyCode": "String",
-                "CreatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
+                "CreatedBy": "String"
             },
             "key": "OrderId",
             "source_table": "orders"
@@ -293,8 +273,7 @@
                 "PaymentAmount",
                 "PaymentStatus",
                 "PaymentMethod",
-                "CreatedBy",
-                "GoldLoadTimestamp"
+                "CreatedBy"
             ],
             "types": {
                 "PaymentId": "String",
@@ -305,22 +284,21 @@
                 "PaymentAmount": "Float",
                 "PaymentStatus": "String",
                 "PaymentMethod": "String",
-                "CreatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
+                "CreatedBy": "String"
             },
             "key": "PaymentId",
             "source_table": "payment"
         },
         "product": {
             "columns": [
-                "ProductID",
+                "ProductId",
                 "ProductName",
                 "ProductDescription",
                 "BrandName",
                 "ProductNumber",
                 "Color",
                 "ProductModel",
-                "ProductCategoryID",
+                "ProductCategoryId",
                 "CategoryName",
                 "ListPrice",
                 "StandardCost",
@@ -333,18 +311,17 @@
                 "IsoCurrencyCode",
                 "UpdatedDate",
                 "CreatedBy",
-                "UpdatedBy",
-                "GoldLoadTimestamp"
+                "UpdatedBy"
             ],
             "types": {
-                "ProductID": "BigInt",
+                "ProductId": "BigInt",
                 "ProductName": "String",
                 "ProductDescription": "String",
                 "BrandName": "String",
                 "ProductNumber": "String",
                 "Color": "String",
                 "ProductModel": "String",
-                "ProductCategoryID": "Float",
+                "ProductCategoryId": "BigInt",
                 "CategoryName": "String",
                 "ListPrice": "Float",
                 "StandardCost": "Float",
@@ -357,34 +334,31 @@
                 "IsoCurrencyCode": "String",
                 "UpdatedDate": "Date",
                 "CreatedBy": "String",
-                "UpdatedBy": "String",
-                "GoldLoadTimestamp": "DateTime"
+                "UpdatedBy": "String"
             },
-            "key": "ProductID",
+            "key": "ProductId",
             "source_table": "product"
         },
         "productcategory": {
             "columns": [
-                "CategoryID",
+                "ProductCategoryId",
                 "ParentCategoryId",
                 "CategoryName",
                 "CategoryDescription",
                 "BrandName",
                 "BrandLogoUrl",
-                "IsActive",
-                "GoldLoadTimestamp"
+                "IsActive"
             ],
             "types": {
-                "CategoryID": "BigInt",
+                "ProductCategoryId": "BigInt",
                 "ParentCategoryId": "String",
                 "CategoryName": "String",
                 "CategoryDescription": "String",
                 "BrandName": "String",
                 "BrandLogoUrl": "String",
-                "IsActive": "Boolean",
-                "GoldLoadTimestamp": "DateTime"
+                "IsActive": "Boolean"
             },
-            "key": "CategoryID",
+            "key": "ProductCategoryId",
             "source_table": "productcategory"
         }
     },
@@ -474,6 +448,13 @@
             "toKey": "CustomerId"
         },
         {
+            "name": "orderline_to_product",
+            "from": "orderline",
+            "to": "product",
+            "fromKey": "ProductId",
+            "toKey": "ProductId"
+        },
+        {
             "name": "orders_to_customer",
             "from": "orders",
             "to": "customer",
@@ -521,6 +502,13 @@
             "to": "orders",
             "fromKey": "OrderId",
             "toKey": "OrderId"
+        },
+        {
+            "name": "product_to_productcategory",
+            "from": "product",
+            "to": "productcategory",
+            "fromKey": "ProductCategoryId",
+            "toKey": "ProductCategoryId"
         }
     ]
 }
