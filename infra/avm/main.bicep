@@ -589,7 +589,7 @@ module ai_foundry_project './modules/ai/ai-foundry-project.bicep' = if (!useExis
         principalType: deployingUserPrincipalType
       }
       {
-        roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
+        roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Foundry User
         principalId: deployingUserPrincipalId
         principalType: deployingUserPrincipalType
       }

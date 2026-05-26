@@ -519,6 +519,90 @@ input("Press Enter to start (Ctrl+C to cancel)...")
 print()
 
 # ============================================================================
+# Ensure deployer has required roles on AI Foundry
+# ============================================================================
+
+def ensure_deployer_roles():
+    """
+    Ensure the deployer has Cognitive Services User and Foundry User roles
+    on the AI Foundry resource. Parses scope from AI_FOUNDRY_RESOURCE_ID.
+    Skips if already assigned.
+    """
+    # Parse AI Foundry details from AI_FOUNDRY_RESOURCE_ID (works for both new and existing)
+    # Format: /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.CognitiveServices/accounts/{account}/projects/{project}
+    foundry_resource_id = os.getenv("AI_FOUNDRY_RESOURCE_ID", "").strip()
+    if not foundry_resource_id:
+        print("  [SKIP] AI_FOUNDRY_RESOURCE_ID not set — skipping role check")
+        return
+
+    parts = foundry_resource_id.split("/")
+    if len(parts) < 9:
+        print(f"  [WARN] Invalid Foundry resource ID format — skipping role check")
+        return
+
+    subscription_id = parts[2]
+    resource_group = parts[4]
+    ai_service_name = parts[8]
+
+    roles = {
+        "Cognitive Services User": "a97b65f3-24c7-4388-baec-2e87135dc908",
+        "Foundry User": "53ca6127-db72-4b80-b1b0-d745d6d5456d",
+    }
+
+    scope = (
+        f"/subscriptions/{subscription_id}"
+        f"/resourceGroups/{resource_group}"
+        f"/providers/Microsoft.CognitiveServices/accounts/{ai_service_name}"
+    )
+
+    # Get current user's principal ID (same approach as run_create_agents_scripts.sh)
+    try:
+        result = subprocess.run(
+            "az ad signed-in-user show --query id -o tsv",
+            capture_output=True, text=True, shell=True
+        )
+        deployer_principal_id = result.stdout.strip() if result.returncode == 0 else ""
+        if not deployer_principal_id:
+            # Fallback to AZURE_CLIENT_ID (for service principal / CI scenarios)
+            deployer_principal_id = os.getenv("AZURE_CLIENT_ID", "").strip()
+        if not deployer_principal_id:
+            print("  [WARN] Could not determine deployer identity — run 'az login' and retry")
+            return
+    except FileNotFoundError:
+        print("  [WARN] Azure CLI not found — skipping role check")
+        return
+
+    for role_name, role_id in roles.items():
+        # Check if role already assigned
+        check_cmd = (
+            f'az role assignment list --assignee "{deployer_principal_id}" '
+            f'--role "{role_id}" --scope "{scope}" --query "length(@)" -o tsv'
+        )
+        try:
+            result = subprocess.run(check_cmd, capture_output=True, text=True, shell=True, check=True)
+            count = int(result.stdout.strip() or "0")
+            if count > 0:
+                print(f"  [OK] '{role_name}' is already assigned to deployer on '{ai_service_name}' — no action needed")
+                continue
+        except (subprocess.CalledProcessError, ValueError):
+            pass
+
+        # Assign the role
+        assign_cmd = (
+            f'az role assignment create --assignee "{deployer_principal_id}" '
+            f'--role "{role_id}" --scope "{scope}"'
+        )
+        try:
+            subprocess.run(assign_cmd, capture_output=True, text=True, shell=True, check=True)
+            print(f"  [OK] Assigned '{role_name}' to deployer on '{ai_service_name}'")
+        except subprocess.CalledProcessError as e:
+            print(f"  [WARN] Could not assign '{role_name}': {e.stderr.strip()[:200]}")
+
+
+print("Checking deployer roles on AI Foundry...")
+ensure_deployer_roles()
+
+# ============================================================================
 # Run Pipeline
 # ============================================================================
 
