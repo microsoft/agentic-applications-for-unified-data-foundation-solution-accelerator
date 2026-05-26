@@ -2,9 +2,9 @@
 // Module: AI Search
 // Description: Deploys Azure AI Search with a two-step pattern:
 //   Step 1: Plain Bicep resource for fast initial creation (name, location, SKU)
-//   Step 2: Separate deployment to enable managed identity & full configuration
+//   Step 2: Separate module deployment to enable managed identity & full config
 // This reduces deployment time by making the resource available immediately
-// while identity enablement proceeds separately.
+// while identity enablement proceeds as a separate ARM deployment.
 // ============================================================================
 
 targetScope = 'resourceGroup'
@@ -31,34 +31,14 @@ resource aiSearch 'Microsoft.Search/searchServices@2025-05-01' = {
 }
 
 // ============================================================================
-// Step 2: Update — enables identity & full configuration
+// Step 2: Separate deployment — enables identity & full configuration
 // ============================================================================
-resource aiSearchUpdate 'Microsoft.Search/searchServices@2025-05-01' = {
-  name: aiSearchName
-  location: searchServiceLocation
-  sku: {
-    name: 'standard'
+module aiSearchIdentityUpdate 'ai-search-identity.bicep' = {
+  name: 'aiSearchIdentityUpdate'
+  params: {
+    searchServiceName: aiSearch.name
+    searchServiceLocation: searchServiceLocation
   }
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    replicaCount: 1
-    partitionCount: 1
-    hostingMode: 'Default'
-    publicNetworkAccess: 'enabled'
-    networkRuleSet: {
-      ipRules: []
-    }
-    encryptionWithCmk: {
-      enforcement: 'Unspecified'
-    }
-    disableLocalAuth: true
-    semanticSearch: 'free'
-  }
-  dependsOn: [
-    aiSearch
-  ]
 }
 
 // ============================================================================
@@ -81,4 +61,4 @@ output aiSearchService string = aiSearch.name
 output aiSearchConnectionName string = aiSearchConnectionName
 
 @description('The principal ID of the AI Search system-assigned managed identity.')
-output searchPrincipalId string = aiSearchUpdate.identity.principalId
+output searchPrincipalId string = aiSearchIdentityUpdate.outputs.searchPrincipalId
