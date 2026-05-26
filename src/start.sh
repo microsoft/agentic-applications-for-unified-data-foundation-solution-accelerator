@@ -84,10 +84,10 @@ locate_env_file() {
 check_local_env() {
     echo "Checking for local .env files..."
 
-    # Priority 2: Check scripts folder (populated by post-deployment scripts)
-    if [ -f "$ROOT_DIR/scripts/.env" ]; then
-        echo "Using existing .env file from scripts/ for configuration."
-        ENV_FILE="$ROOT_DIR/scripts/.env"
+    # Priority 2: Check infra/scripts/post-provision folder (populated by post-deployment scripts)
+    if [ -f "$ROOT_DIR/infra/scripts/post-provision/.env" ]; then
+        echo "Using existing .env file from infra/scripts/post-provision/ for configuration."
+        ENV_FILE="$ROOT_DIR/infra/scripts/post-provision/.env"
         return
     fi
 
@@ -110,8 +110,8 @@ check_local_env() {
     echo ""
     echo "Please choose one of the following options:"
     echo "  1. Run 'azd up' to deploy Azure resources and generate .env files"
-    echo "  2. Run the build script to populate scripts/.env from an existing resource group:"
-    echo "     python3 scripts/00_build_solution.py --resource-group <rg-name>"
+    echo "  2. Run the build script to populate infra/scripts/post-provision/.env from an existing resource group:"
+    echo "     python3 infra/scripts/post-provision/00_build_solution.py --resource-group <rg-name>"
     echo "     Or manually create $API_PYTHON_ENV_FILE with required environment variables"
     echo "  3. Copy an existing .env file to src/api/python/.env"
     echo ""
