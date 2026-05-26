@@ -22,6 +22,11 @@ param enableTelemetry bool = true
 @description('Resource ID of the Log Analytics workspace destination.')
 param logAnalyticsWorkspaceResourceId string
 
+@description('Name of the Log Analytics workspace (used for destination naming).')
+param logAnalyticsWorkspaceName string = ''
+
+var dcrLogAnalyticsDestinationName = !empty(logAnalyticsWorkspaceName) ? 'la-${logAnalyticsWorkspaceName}-destination' : 'la-${name}-destination'
+
 // ============================================================================
 // AVM Module Deployment
 // ============================================================================
@@ -98,22 +103,35 @@ module dataCollectionRule 'br/public:avm/res/insights/data-collection-rule:0.11.
               'Security!*[System[(EventID=4624 or EventID=4625)]]'
             ]
           }
+          {
+            name: 'AuditSuccessFailure'
+            streams: ['Microsoft-Event']
+            xPathQueries: [
+              'Security!*[System[(band(Keywords,13510798882111488)) and (EventID != 4624)]]'
+            ]
+          }
         ]
       }
       destinations: {
         logAnalytics: [
           {
             workspaceResourceId: logAnalyticsWorkspaceResourceId
-            name: 'la--1264800308'
+            name: dcrLogAnalyticsDestinationName
           }
         ]
       }
       dataFlows: [
         {
           streams: ['Microsoft-Perf']
-          destinations: ['la--1264800308']
+          destinations: [dcrLogAnalyticsDestinationName]
           transformKql: 'source'
           outputStream: 'Microsoft-Perf'
+        }
+        {
+          streams: ['Microsoft-Event']
+          destinations: [dcrLogAnalyticsDestinationName]
+          transformKql: 'source'
+          outputStream: 'Microsoft-Event'
         }
       ]
     }

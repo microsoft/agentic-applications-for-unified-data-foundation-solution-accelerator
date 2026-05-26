@@ -27,6 +27,18 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-08-01' = {
     allowSharedKeyAccess: true
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
+    encryption: {
+      services: {
+        blob: {
+          enabled: true
+        }
+        file: {
+          enabled: true
+        }
+      }
+      keySource: 'Microsoft.Storage'
+      requireInfrastructureEncryption: true
+    }
   }
 }
 

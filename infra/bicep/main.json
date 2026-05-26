@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "15762745190649898956"
+      "templateHash": "13510268338634261511"
     }
   },
   "parameters": {
@@ -330,7 +330,7 @@
     "backendApiImageName": "[format('DOCKER|{0}.azurecr.io/da-api:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
     "backendCsApiImageName": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
     "frontendImageName": "[format('DOCKER|{0}.azurecr.io/da-app:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
-    "reactAppLayoutConfig": "{\n  \"appConfig\": {\n      \"CHAT_CHATHISTORY\": {\n        \"CHAT\": 70,\n        \"CHATHISTORY\": 30\n      }\n    }\n  }\n}",
+    "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}",
     "landingText": "[if(equals(parameters('usecase'), 'Retail-sales-analysis'), 'You can ask questions around sales, products and orders.', 'You can ask questions around customer policies, claims and communications.')]"
   },
   "resources": [
@@ -1615,7 +1615,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "12910212384351744531"
+              "templateHash": "7953213819334231993"
             }
           },
           "parameters": {
@@ -1646,6 +1646,18 @@
               "location": "[parameters('searchServiceLocation')]",
               "sku": {
                 "name": "standard"
+              }
+            },
+            {
+              "type": "Microsoft.Search/searchServices",
+              "apiVersion": "2025-05-01",
+              "name": "[variables('aiSearchName')]",
+              "location": "[parameters('searchServiceLocation')]",
+              "sku": {
+                "name": "standard"
+              },
+              "identity": {
+                "type": "SystemAssigned"
               },
               "properties": {
                 "replicaCount": 1,
@@ -1660,87 +1672,6 @@
                 },
                 "disableLocalAuth": true,
                 "semanticSearch": "free"
-              }
-            },
-            {
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "aiSearchIdentityDeployment",
-              "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "searchServiceName": {
-                    "value": "[variables('aiSearchName')]"
-                  },
-                  "searchServiceLocation": {
-                    "value": "[parameters('searchServiceLocation')]"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.43.8.12551",
-                      "templateHash": "4883091907497965616"
-                    }
-                  },
-                  "parameters": {
-                    "searchServiceName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The name of the existing AI Search service."
-                      }
-                    },
-                    "searchServiceLocation": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The Azure region of the search service."
-                      }
-                    }
-                  },
-                  "resources": [
-                    {
-                      "type": "Microsoft.Search/searchServices",
-                      "apiVersion": "2025-05-01",
-                      "name": "[parameters('searchServiceName')]",
-                      "location": "[parameters('searchServiceLocation')]",
-                      "sku": {
-                        "name": "standard"
-                      },
-                      "identity": {
-                        "type": "SystemAssigned"
-                      },
-                      "properties": {
-                        "replicaCount": 1,
-                        "partitionCount": 1,
-                        "hostingMode": "Default",
-                        "publicNetworkAccess": "enabled",
-                        "networkRuleSet": {
-                          "ipRules": []
-                        },
-                        "encryptionWithCmk": {
-                          "enforcement": "Unspecified"
-                        },
-                        "disableLocalAuth": true,
-                        "semanticSearch": "free"
-                      }
-                    }
-                  ],
-                  "outputs": {
-                    "searchPrincipalId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The principal ID of the AI Search system-assigned managed identity."
-                      },
-                      "value": "[reference(resourceId('Microsoft.Search/searchServices', parameters('searchServiceName')), '2025-05-01', 'full').identity.principalId]"
-                    }
-                  }
-                }
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Search/searchServices', variables('aiSearchName'))]"
@@ -1788,7 +1719,7 @@
               "metadata": {
                 "description": "The principal ID of the AI Search system-assigned managed identity."
               },
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'aiSearchIdentityDeployment'), '2025-04-01').outputs.searchPrincipalId.value]"
+              "value": "[reference(resourceId('Microsoft.Search/searchServices', variables('aiSearchName')), '2025-05-01', 'full').identity.principalId]"
             }
           }
         }
@@ -1822,7 +1753,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "9894341012169819306"
+              "templateHash": "268701264144330560"
             }
           },
           "parameters": {
@@ -1866,7 +1797,19 @@
                 "allowBlobPublicAccess": false,
                 "allowSharedKeyAccess": true,
                 "minimumTlsVersion": "TLS1_2",
-                "supportsHttpsTrafficOnly": true
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                  "services": {
+                    "blob": {
+                      "enabled": true
+                    },
+                    "file": {
+                      "enabled": true
+                    }
+                  },
+                  "keySource": "Microsoft.Storage",
+                  "requireInfrastructureEncryption": true
+                }
               }
             },
             {
@@ -2408,7 +2351,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "4464770042864268016"
+              "templateHash": "5067552116297981479"
             }
           },
           "parameters": {
@@ -2486,7 +2429,8 @@
                   "alwaysOn": true,
                   "ftpsState": "Disabled",
                   "linuxFxVersion": "[parameters('appImageName')]"
-                }
+                },
+                "endToEndEncryptionEnabled": true
               }
             },
             {
@@ -2622,7 +2566,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "4464770042864268016"
+              "templateHash": "5067552116297981479"
             }
           },
           "parameters": {
@@ -2700,7 +2644,8 @@
                   "alwaysOn": true,
                   "ftpsState": "Disabled",
                   "linuxFxVersion": "[parameters('appImageName')]"
-                }
+                },
+                "endToEndEncryptionEnabled": true
               }
             },
             {
@@ -2810,7 +2755,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "4464770042864268016"
+              "templateHash": "5067552116297981479"
             }
           },
           "parameters": {
@@ -2888,7 +2833,8 @@
                   "alwaysOn": true,
                   "ftpsState": "Disabled",
                   "linuxFxVersion": "[parameters('appImageName')]"
-                }
+                },
+                "endToEndEncryptionEnabled": true
               }
             },
             {
@@ -2969,9 +2915,6 @@
           "solutionName": {
             "value": "[variables('solutionSuffix')]"
           },
-          "shouldDeployApp": {
-            "value": "[variables('shouldDeployApp')]"
-          },
           "existingFoundryProjectResourceId": {
             "value": "[parameters('existingFoundryProjectResourceId')]"
           },
@@ -3004,7 +2947,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "9410556139934753670"
+              "templateHash": "5642631186429066339"
             }
           },
           "parameters": {
@@ -3012,13 +2955,6 @@
               "type": "string",
               "metadata": {
                 "description": "The name of the solution, used as a base for naming all resources."
-              }
-            },
-            "shouldDeployApp": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Whether to deploy the application components (API, Frontend)."
               }
             },
             "existingFoundryProjectResourceId": {
@@ -3252,7 +3188,7 @@
               }
             },
             {
-              "condition": "[and(and(parameters('shouldDeployApp'), not(empty(variables('activeBackendPrincipalId')))), not(empty(parameters('cosmosAccountName'))))]",
+              "condition": "[and(not(empty(variables('activeBackendPrincipalId'))), not(empty(parameters('cosmosAccountName'))))]",
               "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
               "apiVersion": "2025-10-15",
               "name": "[format('{0}/{1}', parameters('cosmosAccountName'), guid(resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', parameters('cosmosAccountName'), '00000000-0000-0000-0000-000000000002'), resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosAccountName')), variables('activeBackendPrincipalId')))]",
@@ -3323,7 +3259,7 @@
               }
             },
             {
-              "condition": "[and(parameters('shouldDeployApp'), not(empty(variables('activeBackendPrincipalId'))))]",
+              "condition": "[not(empty(variables('activeBackendPrincipalId')))]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
               "name": "assignAiUserRoleToBackend",

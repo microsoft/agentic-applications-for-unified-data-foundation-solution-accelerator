@@ -69,6 +69,7 @@ module appService 'br/public:avm/res/web/site:0.15.1' = {
       vnetRouteAllEnabled: !empty(virtualNetworkSubnetId)
       vnetImagePullEnabled: !empty(virtualNetworkSubnetId)
     }
+    e2eEncryptionEnabled: true
     appSettingsKeyValuePairs: appSettings
     publicNetworkAccess: publicNetworkAccess
     virtualNetworkSubnetId: !empty(virtualNetworkSubnetId) ? virtualNetworkSubnetId : null

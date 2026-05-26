@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "1876792980184887767"
+      "templateHash": "1669571910605278052"
     }
   },
   "parameters": {
@@ -10350,7 +10350,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "14525665573531234400"
+              "templateHash": "8119718033747966779"
             }
           },
           "parameters": {
@@ -10385,10 +10385,18 @@
               "metadata": {
                 "description": "Resource ID of the Log Analytics workspace destination."
               }
+            },
+            "logAnalyticsWorkspaceName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Name of the Log Analytics workspace (used for destination naming)."
+              }
             }
           },
           "variables": {
-            "name": "[format('dcr-{0}', parameters('solutionName'))]"
+            "name": "[format('dcr-{0}', parameters('solutionName'))]",
+            "dcrLogAnalyticsDestinationName": "[if(not(empty(parameters('logAnalyticsWorkspaceName'))), format('la-{0}-destination', parameters('logAnalyticsWorkspaceName')), format('la-{0}-destination', variables('name')))]"
           },
           "resources": [
             {
@@ -10483,6 +10491,15 @@
                             "xPathQueries": [
                               "Security!*[System[(EventID=4624 or EventID=4625)]]"
                             ]
+                          },
+                          {
+                            "name": "AuditSuccessFailure",
+                            "streams": [
+                              "Microsoft-Event"
+                            ],
+                            "xPathQueries": [
+                              "Security!*[System[(band(Keywords,13510798882111488)) and (EventID != 4624)]]"
+                            ]
                           }
                         ]
                       },
@@ -10490,7 +10507,7 @@
                         "logAnalytics": [
                           {
                             "workspaceResourceId": "[parameters('logAnalyticsWorkspaceResourceId')]",
-                            "name": "la--1264800308"
+                            "name": "[variables('dcrLogAnalyticsDestinationName')]"
                           }
                         ]
                       },
@@ -10500,10 +10517,20 @@
                             "Microsoft-Perf"
                           ],
                           "destinations": [
-                            "la--1264800308"
+                            "[variables('dcrLogAnalyticsDestinationName')]"
                           ],
                           "transformKql": "source",
                           "outputStream": "Microsoft-Perf"
+                        },
+                        {
+                          "streams": [
+                            "Microsoft-Event"
+                          ],
+                          "destinations": [
+                            "[variables('dcrLogAnalyticsDestinationName')]"
+                          ],
+                          "transformKql": "source",
+                          "outputStream": "Microsoft-Event"
                         }
                       ]
                     }
@@ -29346,9 +29373,9 @@
       },
       "dependsOn": [
         "ai_foundry_project",
-        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
-        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').aiFoundry)]",
         "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').openAI)]",
+        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').aiFoundry)]",
+        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "virtualNetwork"
       ]
     },
@@ -29403,7 +29430,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "15223385138692873654"
+              "templateHash": "7373728242753539439"
             }
           },
           "parameters": {
@@ -29534,9 +29561,18 @@
           },
           "resources": [
             {
+              "type": "Microsoft.Search/searchServices",
+              "apiVersion": "2024-06-01-preview",
+              "name": "[variables('searchServiceName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "[parameters('skuName')]"
+              }
+            },
+            {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
-              "name": "[take(format('avm.res.search.search-service.{0}', variables('searchServiceName')), 64)]",
+              "name": "[take(format('avm.res.search.update.{0}', variables('searchServiceName')), 64)]",
               "properties": {
                 "expressionEvaluationOptions": {
                   "scope": "inner"
@@ -31654,7 +31690,10 @@
                     }
                   }
                 }
-              }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Search/searchServices', variables('searchServiceName'))]"
+              ]
             }
           ],
           "outputs": {
@@ -31663,14 +31702,14 @@
               "metadata": {
                 "description": "Resource ID of the AI Search service."
               },
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('avm.res.search.search-service.{0}', variables('searchServiceName')), 64)), '2025-04-01').outputs.resourceId.value]"
+              "value": "[resourceId('Microsoft.Search/searchServices', variables('searchServiceName'))]"
             },
             "name": {
               "type": "string",
               "metadata": {
                 "description": "Name of the AI Search service."
               },
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('avm.res.search.search-service.{0}', variables('searchServiceName')), 64)), '2025-04-01').outputs.name.value]"
+              "value": "[variables('searchServiceName')]"
             },
             "endpoint": {
               "type": "string",
@@ -31684,7 +31723,7 @@
               "metadata": {
                 "description": "System-assigned identity principal ID."
               },
-              "value": "[coalesce(tryGet(tryGet(reference(resourceId('Microsoft.Resources/deployments', take(format('avm.res.search.search-service.{0}', variables('searchServiceName')), 64)), '2025-04-01').outputs, 'systemAssignedMIPrincipalId'), 'value'), '')]"
+              "value": "[coalesce(tryGet(tryGet(reference(resourceId('Microsoft.Resources/deployments', take(format('avm.res.search.update.{0}', variables('searchServiceName')), 64)), '2025-04-01').outputs, 'systemAssignedMIPrincipalId'), 'value'), '')]"
             }
           }
         }
@@ -31739,7 +31778,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "14338836566800267339"
+              "templateHash": "9759754168048319511"
             }
           },
           "parameters": {
@@ -31928,6 +31967,9 @@
                     "value": "TLS1_2"
                   },
                   "supportsHttpsTrafficOnly": {
+                    "value": true
+                  },
+                  "requireInfrastructureEncryption": {
                     "value": true
                   },
                   "publicNetworkAccess": {
@@ -51399,7 +51441,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "13807248410339535718"
+              "templateHash": "3606247234084812851"
             }
           },
           "parameters": {
@@ -51530,6 +51572,9 @@
                       "vnetRouteAllEnabled": "[not(empty(parameters('virtualNetworkSubnetId')))]",
                       "vnetImagePullEnabled": "[not(empty(parameters('virtualNetworkSubnetId')))]"
                     }
+                  },
+                  "e2eEncryptionEnabled": {
+                    "value": true
                   },
                   "appSettingsKeyValuePairs": {
                     "value": "[parameters('appSettings')]"
@@ -57114,7 +57159,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "13807248410339535718"
+              "templateHash": "3606247234084812851"
             }
           },
           "parameters": {
@@ -57245,6 +57290,9 @@
                       "vnetRouteAllEnabled": "[not(empty(parameters('virtualNetworkSubnetId')))]",
                       "vnetImagePullEnabled": "[not(empty(parameters('virtualNetworkSubnetId')))]"
                     }
+                  },
+                  "e2eEncryptionEnabled": {
+                    "value": true
                   },
                   "appSettingsKeyValuePairs": {
                     "value": "[parameters('appSettings')]"
@@ -62806,7 +62854,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "13807248410339535718"
+              "templateHash": "3606247234084812851"
             }
           },
           "parameters": {
@@ -62937,6 +62985,9 @@
                       "vnetRouteAllEnabled": "[not(empty(parameters('virtualNetworkSubnetId')))]",
                       "vnetImagePullEnabled": "[not(empty(parameters('virtualNetworkSubnetId')))]"
                     }
+                  },
+                  "e2eEncryptionEnabled": {
+                    "value": true
                   },
                   "appSettingsKeyValuePairs": {
                     "value": "[parameters('appSettings')]"

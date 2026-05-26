@@ -92,6 +92,7 @@ module storage 'br/public:avm/res/storage/storage-account:0.19.0' = {
     allowSharedKeyAccess: allowSharedKeyAccess
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
+    requireInfrastructureEncryption: true
     publicNetworkAccess: publicNetworkAccess
     networkAcls: networkAcls
     blobServices: {
