@@ -544,6 +544,83 @@ def update_agent_app_settings():
         print("         You may need to set AGENT_NAME_CHAT and AGENT_NAME_TITLE manually.")
 
 
+def update_frontend_app_settings():
+    """Update frontend App Service with scenario-specific text (landing text, titles).
+
+    Reads the active scenario from DATA_FOLDER via the scenarios registry.
+    Falls back to generic defaults if no scenario is matched.
+    """
+    subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
+    resource_group = os.getenv("RESOURCE_GROUP_NAME")
+
+    # Frontend app name: same pattern as backend but prefixed with "app-"
+    # The webapp name is stored as WEB_APP_NAME or derived from the API app name
+    web_app_name = os.getenv("WEB_APP_NAME")
+    if not web_app_name:
+        # Derive from API_APP_NAME (api-xxx -> app-xxx)
+        api_name = os.getenv("API_APP_NAME", "")
+        if api_name.startswith("api-"):
+            web_app_name = "app-" + api_name[4:]
+
+    if not subscription_id or not resource_group or not web_app_name:
+        print("\n[SKIP] Frontend App Settings update - missing AZURE_SUBSCRIPTION_ID, RESOURCE_GROUP_NAME, or WEB_APP_NAME/API_APP_NAME")
+        return
+
+    # Determine scenario from DATA_FOLDER
+    from scenarios import get_scenario_by_folder
+    data_folder = os.getenv("DATA_FOLDER", "")
+    scenario_name, scenario_meta = get_scenario_by_folder(data_folder)
+
+    if scenario_meta:
+        landing_text = scenario_meta.get("landing_text", "")
+        app_title = scenario_meta.get("app_title", "Contoso")
+        app_header = scenario_meta.get("app_header", "| Unified Data Analysis Agents")
+    else:
+        # Fallback for custom data or unknown scenarios
+        landing_text = "Ask questions about your data."
+        app_title = "Contoso"
+        app_header = "| Unified Data Analysis Agents"
+
+    print(f"\n{'='*60}")
+    print("Updating Frontend App Service Settings")
+    print(f"{'='*60}")
+    print(f"  Web App: {web_app_name}")
+    print(f"  Scenario: {scenario_name or '(custom/default)'}")
+
+    try:
+        from azure.mgmt.web import WebSiteManagementClient
+
+        web_client = WebSiteManagementClient(credential, subscription_id)
+
+        # Get current settings
+        current = web_client.web_apps.list_application_settings(resource_group, web_app_name)
+        props = dict(current.properties or {})
+
+        new_settings = {
+            "CHAT_LANDING_TEXT": landing_text,
+            "APP_TITLE_PRIMARY": app_title,
+            "APP_TITLE_SECONDARY": app_header,
+        }
+
+        props.update(new_settings)
+
+        web_client.web_apps.update_application_settings(
+            resource_group,
+            web_app_name,
+            {"properties": props}
+        )
+
+        print("\n  Settings updated:")
+        for key, value in new_settings.items():
+            print(f"    {key}: {value}")
+
+        print("\n  [OK] Frontend app settings updated successfully!")
+
+    except Exception as e:
+        print(f"\n  [WARN] Failed to update frontend app settings: {e}")
+        print("         You may need to set CHAT_LANDING_TEXT, APP_TITLE_PRIMARY, APP_TITLE_SECONDARY manually.")
+
+
 # ============================================================================
 # Main
 # ============================================================================
@@ -559,6 +636,7 @@ else:
 # Always assign Cosmos DB role and update agent names in App Service
 assign_cosmos_role()
 update_agent_app_settings()
+update_frontend_app_settings()
 
 # Wait for 30 seconds as APP service restarts to ensure new permissions are in effect before any API calls are made
 time.sleep(30)

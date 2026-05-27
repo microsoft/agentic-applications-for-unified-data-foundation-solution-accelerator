@@ -129,13 +129,6 @@ param createdBy string = contains(deployer(), 'userPrincipalName') ? split(deplo
 
 // ── App Configuration ──
 
-@allowed([
-  'Retail-sales-analysis'
-  'Insurance-improve-customer-meetings'
-])
-@description('Optional. Industry use case for deployment.')
-param usecase string = 'Retail-sales-analysis'
-
 // ============================================================================
 // Variables
 // ============================================================================
@@ -451,8 +444,6 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
   scope: resourceGroup(resourceGroup().name)
 }
 
-var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
-
 // ========== Frontend Deployment ========== //
 module frontend_custom './modules/compute/app-service-custom.bicep' = if (shouldDeployApp) {
   name: 'deploy_frontend_custom'
@@ -468,7 +459,7 @@ module frontend_custom './modules/compute/app-service-custom.bicep' = if (should
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_custom!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
-      CHAT_LANDING_TEXT: landingText
+      CHAT_LANDING_TEXT: ''
     }
   }
   scope: resourceGroup(resourceGroup().name)
@@ -550,11 +541,11 @@ output API_PID string = shouldDeployApp ? (backendRuntimeStack == 'python' ? bac
 @description('Backend API App Service name')
 output MID_DISPLAY_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? 'api-${solutionSuffix}' : 'api-cs-${solutionSuffix}') : ''
 
+@description('Frontend web app resource name')
+output WEB_APP_NAME string = shouldDeployApp ? 'app-${solutionSuffix}' : ''
+
 @description('Frontend web application URL')
 output WEB_APP_URL string = shouldDeployApp ? frontend_custom!.outputs.appUrl : ''
-
-@description('Deployed use case identifier (e.g., Retail-sales-analysis)')
-output USE_CASE string = usecase
 
 @description('Azure AI Search service endpoint URL')
 output AZURE_AI_SEARCH_ENDPOINT string = ai_search.outputs.aiSearchTarget

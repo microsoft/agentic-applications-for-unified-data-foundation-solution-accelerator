@@ -14,7 +14,7 @@ Each scenario generates ready-to-use sample questions in the data folder:
 
 ```bash
 # View sample questions for your scenario
-cat data/default/config/sample_questions.txt
+cat data/scenarios/default/config/sample_questions.txt
 ```
 
 The file contains three categories of questions:

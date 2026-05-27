@@ -45,9 +45,9 @@ Pre-built scenario packs provide ready-to-use datasets without requiring AI data
 | **retail** | Retail | Inventory and sales operations | 13 (customers, orders, products, invoices, payments, locations) | None (SQL-only) |
 | **insurance** | Insurance | Claims processing and customer management | 4 (customer, policy, claim, communicationshistory) | None (SQL-only) |
 
-> **Note:** If you don't use `--scenario-pack`, the default behavior generates AI-based sample data (Telecommunications - Network operations with outage tracking and trouble ticket management) with CSV data.
+> **Note:** If you don't use `--scenario`, the default behavior generates AI-based sample data (Telecommunications - Network operations with outage tracking and trouble ticket management) with CSV data.
 
-To use a scenario pack, add `--scenario-pack <name>` to the build command (see step 7 below).
+To use a scenario pack, add `--scenario <name>` to the build command (see step 7 below).
 
 ---
 
@@ -313,16 +313,16 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
     ```shell
     # Option A (Fabric) - Retail scenario:
-    python infra/scripts/post-provision/00_build_solution.py --scenario-pack retail --fabric-workspace-id <your-workspace-id>
+    python infra/scripts/post-provision/00_build_solution.py --scenario retail --fabric-workspace-id <your-workspace-id>
 
     # Option A (Fabric) - Insurance scenario:
-    python infra/scripts/post-provision/00_build_solution.py --scenario-pack insurance --fabric-workspace-id <your-workspace-id>
+    python infra/scripts/post-provision/00_build_solution.py --scenario insurance --fabric-workspace-id <your-workspace-id>
 
     # Option B (Azure-only) - Retail scenario:
-    python infra/scripts/post-provision/00_build_solution.py --scenario-pack retail
+    python infra/scripts/post-provision/00_build_solution.py --scenario retail
 
     # Option B (Azure-only) - Insurance scenario:
-    python infra/scripts/post-provision/00_build_solution.py --scenario-pack insurance
+    python infra/scripts/post-provision/00_build_solution.py --scenario insurance
     ```
 
     > **Note:** Scenario packs skip data generation (step 01) and document upload (step 05) automatically.

@@ -139,9 +139,6 @@ param deployingUserPrincipalType string = 'User'
 // Parameters — App Configuration
 // ============================================================================
 
-@allowed(['Retail-sales-analysis', 'Insurance-improve-customer-meetings'])
-@description('Optional. Industry use case for deployment.')
-param usecase string = 'Retail-sales-analysis'
 
 @description('Optional. Primary title in the web app header.')
 param appTitlePrimary string = 'Contoso'
@@ -250,7 +247,6 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     deployingUserPrincipalType: deployingUserPrincipalType
-    usecase: usecase
     appTitlePrimary: appTitlePrimary
     appTitleSecondary: appTitleSecondary
     createFabricWorkspace: createFabricWorkspace
@@ -292,7 +288,6 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     deployingUserPrincipalType: deployingUserPrincipalType
-    usecase: usecase
     appTitlePrimary: appTitlePrimary
     appTitleSecondary: appTitleSecondary
     createFabricWorkspace: createFabricWorkspace
@@ -363,11 +358,11 @@ output API_PID string = isAvm ? avmDeployment!.outputs.API_PID : bicepDeployment
 @description('Backend API managed identity display name.')
 output MID_DISPLAY_NAME string = isAvm ? avmDeployment!.outputs.MID_DISPLAY_NAME : bicepDeployment!.outputs.MID_DISPLAY_NAME
 
+@description('Frontend web app resource name.')
+output WEB_APP_NAME string = isAvm ? avmDeployment!.outputs.WEB_APP_NAME : bicepDeployment!.outputs.WEB_APP_NAME
+
 @description('Frontend web application URL.')
 output WEB_APP_URL string = isAvm ? avmDeployment!.outputs.WEB_APP_URL : bicepDeployment!.outputs.WEB_APP_URL
-
-@description('Deployed use case identifier.')
-output USE_CASE string = isAvm ? avmDeployment!.outputs.USE_CASE : bicepDeployment!.outputs.USE_CASE
 
 @description('Azure AI Search endpoint.')
 output AZURE_AI_SEARCH_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_AI_SEARCH_ENDPOINT : bicepDeployment!.outputs.AZURE_AI_SEARCH_ENDPOINT

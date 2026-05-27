@@ -377,9 +377,9 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
         # Managed Identity
         "API_UID", "API_PID", "MID_DISPLAY_NAME",
         # App Service
-        "WEB_APP_URL", "API_APP_NAME",
+        "WEB_APP_URL", "WEB_APP_NAME", "API_APP_NAME",
         # Deployment
-        "USE_CASE", "BACKEND_RUNTIME_STACK",
+        "BACKEND_RUNTIME_STACK",
     ]
     
     lines = [
@@ -574,9 +574,6 @@ def generate_env_content(resource_group: str) -> str:
         "",
         "# --- App Service ---",
         f"WEB_APP_URL={web_app_url}",
-        "",
-        "# --- Settings ---",
-        "USE_CASE=Network operations with outage tracking and trouble ticket management",
     ]
 
     # Add Fabric capacity settings if a capacity resource was found

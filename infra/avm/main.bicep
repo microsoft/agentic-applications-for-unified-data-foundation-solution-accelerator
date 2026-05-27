@@ -206,10 +206,6 @@ param deployingUserPrincipalType string = 'User'
 // Parameters — App Configuration
 // ============================================================================
 
-@allowed(['Retail-sales-analysis', 'Insurance-improve-customer-meetings'])
-@description('Optional. Industry use case for deployment.')
-param usecase string = 'Retail-sales-analysis'
-
 @description('Optional. Primary title in the web app header.')
 param appTitlePrimary string = 'Contoso'
 
@@ -228,7 +224,6 @@ var shouldDeployApp = deployApp
 var useExistingAIProject = !empty(existingFoundryProjectResourceId)
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
-var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
 
 // Fabric Capacity: create when createFabricWorkspace=true and no existing capacity provided
 var useExistingFabricCapacity = !empty(azureFabricCapacityName)
@@ -933,7 +928,7 @@ module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployA
     diagnosticSettings: monitoringDiagnosticSettings
     appSettings: {
       APP_API_BASE_URL: shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl) : ''
-      CHAT_LANDING_TEXT: landingText
+      CHAT_LANDING_TEXT: ''
       APP_TITLE_PRIMARY: appTitlePrimary
       APP_TITLE_SECONDARY: appTitleSecondary
       PROXY_API_REQUESTS: enablePrivateNetworking ? 'true' : 'false'
@@ -1028,11 +1023,11 @@ output MID_DISPLAY_NAME string = shouldDeployApp
   ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.name : backend_csapi_docker!.outputs.name)
   : ''
 
+@description('Frontend web app resource name.')
+output WEB_APP_NAME string = shouldDeployApp ? frontend_docker!.outputs.name : ''
+
 @description('Frontend web application URL.')
 output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : ''
-
-@description('Deployed use case identifier.')
-output USE_CASE string = usecase
 
 @description('Azure AI Search endpoint.')
 output AZURE_AI_SEARCH_ENDPOINT string = ai_search.outputs.endpoint

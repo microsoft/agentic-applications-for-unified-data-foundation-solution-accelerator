@@ -6,7 +6,7 @@ This guide walks you through creating an **Ontology (preview)** item in Microsof
 
 ## Schema Overview
 
-The ontology is based on the schema defined in `data/default/config/ontology_config.json`:
+The ontology is based on the schema defined in `data/scenarios/default/config/ontology_config.json`:
 
 | Table | Columns | Key | Description |
 |---|---|---|---|

@@ -19,7 +19,7 @@ python infra/scripts/post-provision/00_build_solution.py --from 03
 
 > **Note:** Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
-This uses the `data/default` folder and runs all setup steps:
+This uses the `data/scenarios/default` folder and runs all setup steps:
 
 | Step | What Happens | Time |
 |------|--------------|------|

@@ -38,14 +38,6 @@ param createdBy string = contains(deployer(), 'userPrincipalName') ? split(deplo
 param backendRuntimeStack string = 'python'
 
 @minLength(1)
-@description('Industry use case for deployment:')
-@allowed([
-  'Retail-sales-analysis'
-  'Insurance-improve-customer-meetings'
-])
-param usecase string = 'Retail-sales-analysis'
-
-@minLength(1)
 @description('Secondary location for databases creation (example: eastus2):')
 param secondaryLocation string = 'eastus2'
 
@@ -316,8 +308,6 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
   scope: resourceGroup(resourceGroup().name)
 }
 
-var landingText = usecase == 'Retail-sales-analysis' ? 'You can ask questions around sales, products and orders.' : 'You can ask questions around customer policies, claims and communications.'
-
 // ========== Frontend Deployment ========== //
 module frontend_custom 'deploy_frontend_custom.bicep' = if (shouldDeployApp) {
   name: 'deploy_frontend_custom'
@@ -329,7 +319,7 @@ module frontend_custom 'deploy_frontend_custom.bicep' = if (shouldDeployApp) {
     logAnalyticsWorkspaceId: resolvedLogAnalyticsWorkspaceId
     appSettings: {
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_custom!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
-      CHAT_LANDING_TEXT: landingText
+      CHAT_LANDING_TEXT: ''
     }
   }
   scope: resourceGroup(resourceGroup().name)
@@ -390,11 +380,11 @@ output API_PID string = managedIdentityModule.outputs.managedIdentityBackendAppO
 @description('Backend API managed identity display name')
 output MID_DISPLAY_NAME string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.name
 
+@description('Frontend web app resource name')
+output WEB_APP_NAME string = shouldDeployApp ? '${abbrs.compute.webApp}${solutionSuffix}' : ''
+
 @description('Frontend web application URL')
 output WEB_APP_URL string = shouldDeployApp ? frontend_custom!.outputs.appUrl : ''
-
-@description('Deployed use case identifier (e.g., Retail-sales-analysis)')
-output USE_CASE string = usecase
 
 @description('Azure AI Search service endpoint URL')
 output AZURE_AI_SEARCH_ENDPOINT string = aifoundry.outputs.aiSearchTarget
