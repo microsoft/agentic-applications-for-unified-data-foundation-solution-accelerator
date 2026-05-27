@@ -459,7 +459,6 @@ def generate_env_from_app_service(resource_group: str, app_name: str) -> str | N
         lines.extend([
             "",
             "# --- Fabric Capacity (auto-detected) ---",
-            f"CREATE_FABRIC_WORKSPACE=true",
             f"AZURE_FABRIC_CAPACITY_RESOURCE_ID={fabric_capacity_id}",
             f"AZURE_FABRIC_CAPACITY_NAME={fabric_capacity_name}",
         ])
@@ -581,7 +580,6 @@ def generate_env_content(resource_group: str) -> str:
         lines.extend([
             "",
             "# --- Fabric Capacity (auto-detected) ---",
-            f"CREATE_FABRIC_WORKSPACE=true",
             f"FABRIC_CAPACITY_ID={fabric_capacity_id}",
             f"FABRIC_CAPACITY_NAME={fabric_capacity_name}",
         ])
@@ -594,8 +592,8 @@ def get_default_env_content() -> str:
     lines = [
         "",
         "# --- Fabric Settings ---",
-        "# FABRIC_WORKSPACE_ID is auto-created when CREATE_FABRIC_WORKSPACE=true,",
-        "# otherwise set it manually to an existing workspace ID.",
+        "# Set FABRIC_WORKSPACE_ID to reuse an existing workspace.",
+        "# Leave empty to auto-create a new workspace during post-provision.",
         "FABRIC_WORKSPACE_ID=",
         "DATA_FOLDER=data/default",
         "INDUSTRY=Telecommunications",

@@ -76,7 +76,6 @@ Examples:
   python infra/scripts/post-provision/00_build_solution.py --from 05      # Start from step 05
   python infra/scripts/post-provision/00_build_solution.py --only 06      # Run only specific steps
   python infra/scripts/post-provision/00_build_solution.py -g rg-myproject-dev  # Pre-provisioned infra
-  python infra/scripts/post-provision/00_build_solution.py --fabric-workspace-id <id>  # Pass Fabric workspace ID
   python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata  # Use your own data
   python infra/scripts/post-provision/00_build_solution.py --scenario insurance  # Use pre-built scenario
   python infra/scripts/post-provision/00_build_solution.py --list-scenarios      # Show available scenarios
@@ -94,7 +93,8 @@ parser.add_argument("--usecase", type=str,
 parser.add_argument("--size", choices=["small", "medium", "large"],
                     help="Data size for generation (overrides .env)")
 parser.add_argument("--fabric-workspace-id", type=str,
-                    help="Fabric workspace ID (overrides FABRIC_WORKSPACE_ID in .env)")
+                    help="Fabric workspace ID (overrides FABRIC_WORKSPACE_ID env var). "
+                         "If not set, a new workspace is created automatically.")
 parser.add_argument("--resource-group", "-g", type=str,
                     help="Azure resource group to fetch env settings from (for pre-provisioned infra)")
 parser.add_argument("--custom-data", type=str,
@@ -400,25 +400,11 @@ for step in pipeline:
         sys.exit(1)
 
 # ============================================================================
-# Interactive Prompt for Fabric Workspace ID (Fabric mode only)
+# Fabric Workspace ID (Fabric mode only)
 # ============================================================================
 
 if not azure_only:
-    create_fabric_workspace = os.getenv("CREATE_FABRIC_WORKSPACE", "false").lower() == "true"
     fabric_workspace_id = args.fabric_workspace_id or os.getenv("FABRIC_WORKSPACE_ID", "").strip()
-    if not fabric_workspace_id and not create_fabric_workspace:
-        print("\n" + "="*60)
-        print("Fabric Workspace Configuration")
-        print("="*60)
-        print("\nFabric mode requires a Workspace ID.")
-        print("You can find it in your Fabric URL: https://app.fabric.microsoft.com/groups/<workspace-id>")
-        fabric_workspace_id = input("\nFabric Workspace ID: ").strip()
-        if not fabric_workspace_id:
-            print("ERROR: Fabric Workspace ID is required in Fabric mode.")
-            print("       Pass --fabric-workspace-id <id> or set FABRIC_WORKSPACE_ID in .env")
-            print("       Or set CREATE_FABRIC_WORKSPACE=true to auto-create a workspace.")
-            print("       Or use AZURE_ENV_ONLY=true for Azure SQL mode.")
-            sys.exit(1)
     if fabric_workspace_id:
         # Make it available to downstream scripts
         os.environ["FABRIC_WORKSPACE_ID"] = fabric_workspace_id
@@ -426,8 +412,9 @@ if not azure_only:
         from dotenv import set_key
         env_path = os.path.join(script_dir, ".env")
         set_key(env_path, "FABRIC_WORKSPACE_ID", fabric_workspace_id)
-    elif create_fabric_workspace:
-        print("  (Workspace will be auto-created by step 02)")
+        print(f"\n[OK] Using existing Fabric Workspace: {fabric_workspace_id}")
+    else:
+        print("\n[OK] No FABRIC_WORKSPACE_ID provided — a new workspace will be created.")
 
 # ============================================================================
 # Interactive Prompts for Data Generation
@@ -575,6 +562,10 @@ for step in pipeline:
         successful += 1
         # Force reload environment after step 01 (it updates DATA_FOLDER, INDUSTRY, USECASE in .env)
         if step == "01":
+            from load_env import reload_env
+            reload_env()
+        # Force reload environment after step 02 (it updates FABRIC_WORKSPACE_ID in .env)
+        if step == "02":
             from load_env import reload_env
             reload_env()
     else:

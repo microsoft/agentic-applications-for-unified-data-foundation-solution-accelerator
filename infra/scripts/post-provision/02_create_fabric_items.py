@@ -54,13 +54,8 @@ p.add_argument("--datasource-type", choices=["ontology", "lakehouse"], default="
                help="Data source type for Data Agent: 'ontology' or 'lakehouse' (default)")
 args = p.parse_args()
 
-CREATE_FABRIC_WORKSPACE = os.getenv("CREATE_FABRIC_WORKSPACE", "false").lower() == "true"
-WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
-
-if not WORKSPACE_ID and not CREATE_FABRIC_WORKSPACE:
-    print("ERROR: FABRIC_WORKSPACE_ID not set in .env")
-    print("       Set FABRIC_WORKSPACE_ID or set CREATE_FABRIC_WORKSPACE=true to auto-create a workspace.")
-    sys.exit(1)
+WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID", "").strip() or None
+CREATE_FABRIC_WORKSPACE = not bool(WORKSPACE_ID)
 
 # Get data folder - use arg if provided, else from .env with proper path resolution
 if args.data_folder:

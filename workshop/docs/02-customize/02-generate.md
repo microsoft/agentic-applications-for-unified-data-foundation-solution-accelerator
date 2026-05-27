@@ -141,7 +141,7 @@ Build complete! Ready for customer PoC.
 
 ### Fabric errors on --clean
 
-- Ensure `--fabric-workspace-id` was passed correctly (or `FABRIC_WORKSPACE_ID` is set)
+- Ensure `FABRIC_WORKSPACE_ID` is set correctly (via `azd env set FABRIC_WORKSPACE_ID <id>`)
 - Check you have Contributor access to the workspace
 - Wait a minute and retry (Fabric operations can be slow)
 

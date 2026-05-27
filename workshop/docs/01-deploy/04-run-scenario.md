@@ -6,11 +6,18 @@ One command builds the solution including data processing and agent creation:
 
 Fabric Workspace Mode
 
+To reuse an existing Fabric workspace, set the workspace ID before running:
 ```bash
-python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
+azd env set FABRIC_WORKSPACE_ID <your-workspace-id>
 ```
 
-> **Note:** If you omit `--fabric-workspace-id`, the script will prompt you for it interactively. Press **Enter** key to start or **Ctrl+C** to cancel the process.
+> **Note:** If you omit `FABRIC_WORKSPACE_ID`, a new workspace will be created automatically.
+
+```bash
+python infra/scripts/post-provision/00_build_solution.py --from 02
+```
+
+> Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
 Azure Only Mode (if you ran `azd env set AZURE_ENV_ONLY true` before deploying)
 ```bash

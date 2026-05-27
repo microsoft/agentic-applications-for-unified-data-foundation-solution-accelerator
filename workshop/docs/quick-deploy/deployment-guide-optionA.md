@@ -23,7 +23,7 @@ Or choose one of the options below:
 
 > Note: Please use this optional prompt if you would like to use GitHub Copilot to run the workshop: 
 ```
-Can you please follow the step by step in https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/quick-deploy/deployment-guide-optionA/ for me. My Fabric Workspace id = <YOUR_FABRIC_WORKSPACE_ID>. Pass it using the --fabric-workspace-id parameter when running the build solution script.
+Can you please follow the step by step in https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/quick-deploy/deployment-guide-optionA/ for me. My Fabric Workspace id = <YOUR_FABRIC_WORKSPACE_ID>. Set it using 'azd env set FABRIC_WORKSPACE_ID <id>' before running the build solution script.
 Important instructions:
 Do NOT make any code changes to the repository files. 
 Only follow the deployment guide instructions exactly as documented. 
@@ -209,11 +209,17 @@ az login
 
 > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
+To reuse an existing Fabric workspace, set the workspace ID:
 ```bash
-python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
+azd env set FABRIC_WORKSPACE_ID <your-workspace-id>
 ```
 
-> **Note:** If you omit `--fabric-workspace-id`, the script will prompt you for it interactively. 
+> **Note:** If you omit `FABRIC_WORKSPACE_ID`, a new workspace will be created automatically.
+
+```bash
+python infra/scripts/post-provision/00_build_solution.py --from 02
+```
+
 > Press **Enter** key to start or **Ctrl+C** to cancel the process.
 
 ### 6. Test the agent
@@ -281,8 +287,10 @@ Instead of using AI-generated sample data, you can run the entire lab with **you
 2. Run the build with `--custom-data`:
 
     ```bash
-    python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata --fabric-workspace-id <your-workspace-id>
+    python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata
     ```
+
+    > **Tip:** To reuse an existing workspace, run `azd env set FABRIC_WORKSPACE_ID <your-workspace-id>` first. If omitted, a new workspace is created automatically.
 
     You will be prompted for your **Industry** and **Use Case**. The script will auto-generate the config, skip step 01 (AI data generation), and run the remaining pipeline steps.
 

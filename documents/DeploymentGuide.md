@@ -295,13 +295,19 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 7. Build the solution:
 
-    **Fabric mode (default - Option A)** — requires a Fabric workspace ID:
+    **Fabric mode (default - Option A):**
 
+    To reuse an existing Fabric workspace, set the workspace ID first:
     ```shell
-    python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
+    azd env set FABRIC_WORKSPACE_ID <your-workspace-id>
     ```
 
     > You can find your workspace ID in the Fabric URL: `https://app.fabric.microsoft.com/groups/<workspace-id>/...`
+    > If you omit `FABRIC_WORKSPACE_ID`, a new workspace will be created automatically.
+
+    ```shell
+    python infra/scripts/post-provision/00_build_solution.py --from 02
+    ```
 
     **Azure-only mode (Option B)** — if you set `AZURE_ENV_ONLY=true`:
 
@@ -313,10 +319,10 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
     ```shell
     # Option A (Fabric) - Retail scenario:
-    python infra/scripts/post-provision/00_build_solution.py --scenario retail --fabric-workspace-id <your-workspace-id>
+    python infra/scripts/post-provision/00_build_solution.py --scenario retail
 
     # Option A (Fabric) - Insurance scenario:
-    python infra/scripts/post-provision/00_build_solution.py --scenario insurance --fabric-workspace-id <your-workspace-id>
+    python infra/scripts/post-provision/00_build_solution.py --scenario insurance
 
     # Option B (Azure-only) - Retail scenario:
     python infra/scripts/post-provision/00_build_solution.py --scenario retail
@@ -324,6 +330,8 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     # Option B (Azure-only) - Insurance scenario:
     python infra/scripts/post-provision/00_build_solution.py --scenario insurance
     ```
+
+    > **Tip:** To reuse an existing Fabric workspace, run `azd env set FABRIC_WORKSPACE_ID <your-workspace-id>` before building.
 
     > **Note:** Scenario packs skip data generation (step 01) and document upload (step 05) automatically.
     > Press **Enter** to start or **Ctrl+C** to cancel the process.
