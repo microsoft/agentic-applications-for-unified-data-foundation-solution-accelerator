@@ -1,4 +1,0 @@
-=== SQL QUESTIONS (Structured Data) ===
-1. Show the top 5 products by total quantity sold last month?   
-2. Show total revenue by year for last 5 years.
-3. Show top 10 products by Revenue in the last year.

@@ -1,4 +1,0 @@
-=== SQL QUESTIONS (Structured Data) ===
-1. I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?
-2. Can you provide details of her communications?
-3. Based on Ida's policy data has she ever missed a payment?

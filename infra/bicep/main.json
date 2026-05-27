@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "9434647921749216965"
+      "templateHash": "14295846375871972140"
     }
   },
   "parameters": {
@@ -221,17 +221,6 @@
         "description": "Optional. Created by user name for resource tagging."
       }
     },
-    "usecase": {
-      "type": "string",
-      "defaultValue": "Retail-sales-analysis",
-      "allowedValues": [
-        "Retail-sales-analysis",
-        "Insurance-improve-customer-meetings"
-      ],
-      "metadata": {
-        "description": "Optional. Industry use case for deployment."
-      }
-    },
     "appTitlePrimary": {
       "type": "string",
       "defaultValue": "Contoso",
@@ -330,8 +319,7 @@
     "backendApiImageName": "[format('DOCKER|{0}.azurecr.io/da-api:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
     "backendCsApiImageName": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
     "frontendImageName": "[format('DOCKER|{0}.azurecr.io/da-app:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
-    "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}",
-    "landingText": "[if(equals(parameters('usecase'), 'Retail-sales-analysis'), 'You can ask questions around sales, products and orders.', 'You can ask questions around customer policies, claims and communications.')]"
+    "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
   },
   "resources": [
     {
@@ -2802,7 +2790,7 @@
             "value": {
               "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.applicationInsightsInstrumentationKey.value]",
               "APP_API_BASE_URL": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.appUrl.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.appUrl.value)]",
-              "CHAT_LANDING_TEXT": "[variables('landingText')]",
+              "CHAT_LANDING_TEXT": "",
               "APP_TITLE_PRIMARY": "[parameters('appTitlePrimary')]",
               "APP_TITLE_SECONDARY": "[parameters('appTitleSecondary')]"
             }
@@ -3821,19 +3809,19 @@
       },
       "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), format('api-{0}', variables('solutionSuffix')), format('api-cs-{0}', variables('solutionSuffix'))), '')]"
     },
+    "WEB_APP_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "Frontend web app resource name"
+      },
+      "value": "[if(variables('shouldDeployApp'), format('app-{0}', variables('solutionSuffix')), '')]"
+    },
     "WEB_APP_URL": {
       "type": "string",
       "metadata": {
         "description": "Frontend web application URL"
       },
       "value": "[if(variables('shouldDeployApp'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-frontend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.appUrl.value, '')]"
-    },
-    "USE_CASE": {
-      "type": "string",
-      "metadata": {
-        "description": "Deployed use case identifier (e.g., Retail-sales-analysis)"
-      },
-      "value": "[parameters('usecase')]"
     },
     "AZURE_AI_SEARCH_ENDPOINT": {
       "type": "string",

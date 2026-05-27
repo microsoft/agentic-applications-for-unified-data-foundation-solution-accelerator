@@ -1,7 +1,0 @@
-{
-    "name": "Insurance Claims Processing",
-    "industry": "Insurance",
-    "usecase": "Claims processing and customer management",
-    "description": "Pre-built dataset with customers, policies, claims, and communications history for an insurance company.",
-    "version": "1.0"
-}
