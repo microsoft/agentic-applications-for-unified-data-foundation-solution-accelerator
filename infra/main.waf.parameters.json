@@ -89,8 +89,8 @@
     "useUserAccessToken":{
       "value": "${USE_USER_ACCESS_TOKEN}"
     },
-    "createFabricWorkspace": {
-      "value": "${CREATE_FABRIC_WORKSPACE=false}"
+    "fabricWorkspaceId": {
+      "value": "${FABRIC_WORKSPACE_ID}"
     },
     "azureFabricCapacityName": {
       "value": "${AZURE_FABRIC_CAPACITY_NAME}"
