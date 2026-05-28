@@ -33,7 +33,6 @@ load_dotenv()
 HOST_NAME = "Agentic Applications for Unified Data Foundation"
 HOST_INSTRUCTIONS = "Answer questions about Sales, Products and Orders data."
 
-AZURE_ENV_ONLY = os.getenv("AZURE_ENV_ONLY", "true").lower() == "true"
 USE_USER_ACCESS_TOKEN = os.getenv("USE_USER_ACCESS_TOKEN", "false").lower() == "true"
 
 router = APIRouter()
@@ -167,13 +166,12 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
     """
     Async generator yielding ``(role, content)`` tuples.
 
-    Uses FoundryAgent with agent_framework to handle function calls (SQL)
-    and search tools automatically.  Fabric SQL is used when AZURE_ENV_ONLY
-    is false, otherwise Azure SQL.  *user_assertion* enables OBO credential.
+    Uses FoundryAgent with agent_framework to handle function calls
+    and search tools automatically.  SQL is handled server-side via
+    Fabric Data Agent (MCP).  *user_assertion* enables OBO credential.
     """
     complete_response = ""
     credential = None
-    db_connection = None
 
     try:
         if not query:
@@ -190,41 +188,12 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
             cache = get_thread_cache()
             conv_id = cache.get(conversation_id, None)
 
-            # Check if Data Agent mode is enabled (MCP handles SQL server-side)
-            use_data_agent = os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes")
-
-            custom_tool = None
-            if not use_data_agent:
-                # Get database connection based on AZURE_ENV_ONLY flag
-                from history_sql import SqlQueryTool, get_azure_sql_connection, get_fabric_db_connection
-
-                if AZURE_ENV_ONLY:
-                    logger.info("Using Azure SQL Database")
-                    db_connection = await get_azure_sql_connection()
-                else:
-                    logger.info("Using Fabric Lakehouse SQL")
-                    db_connection = await get_fabric_db_connection()
-
-                if not db_connection:
-                    logger.warning("Failed to establish database connection")
-
-                custom_tool = SqlQueryTool(pyodbc_conn=db_connection) if db_connection else None
-            else:
-                logger.info("Using Fabric Data Agent (MCP) - skipping local SQL tool")
-
-            # Create agent with tools
+            # Create agent — SQL handled server-side via Fabric Data Agent (MCP)
             agent_name = os.getenv("AGENT_NAME_CHAT")
-            if use_data_agent:
-                agent = FoundryAgent(
-                    project_client=project_client,
-                    agent_name=agent_name,
-                )
-            else:
-                agent = FoundryAgent(
-                    project_client=project_client,
-                    agent_name=agent_name,
-                    tools=custom_tool.execute_sql if custom_tool else None,
-                )
+            agent = FoundryAgent(
+                project_client=project_client,
+                agent_name=agent_name,
+            )
 
             # Create or retrieve conversation
             if not conv_id:
@@ -336,8 +305,6 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error streaming OpenAI text") from e
 
     finally:
-        if db_connection:
-            db_connection.close()
         if credential is not None:
             await credential.close()
         # Provide a fallback response when no data is received from OpenAI.

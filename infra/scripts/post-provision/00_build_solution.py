@@ -19,13 +19,6 @@ Steps (Fabric SQL mode):
     05  - Upload documents to AI Search
     06  - Create Foundry Agent (Fabric SQL + Search)
 
-Steps (Azure-only mode):
-    01  - Generate sample data
-    03  - Generate agent prompt
-    04  - Upload data to Azure SQL
-    05  - Upload documents to AI Search
-    06  - Create Foundry Agent (Azure SQL + Search)
-
 Custom Data mode (--custom-data):
     Skips step 01 and uses your own data from the specified folder.
     The folder must contain:
@@ -34,8 +27,8 @@ Custom Data mode (--custom-data):
     The config/ folder (ontology_config.json) is auto-generated from your CSVs.
 
 Both modes always use:
+    - Fabric Data Agent for structured data
     - Native AzureAISearchTool for document search
-    - execute_sql function tool for structured data
 """
 
 import argparse
@@ -53,15 +46,13 @@ STEPS = {
     "01": {"script": "01_generate_data.py", "name": "Generate Sample Data", "time": "~2min"},
     "02": {"script": "02_create_fabric_items.py", "name": "Create Fabric Lakehouse & Load Data", "time": "~1.5min", "fabric": True},
     "03": {"script": "03_generate_agent_prompt.py", "name": "Generate Agent Prompt", "time": "~5s"},
-    "04": {"script": "04_upload_to_sql.py", "name": "Upload to Azure SQL", "time": "~30s", "azure_only": True},
     "05": {"script": "05_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
     "06": {"script": "06_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
-    "08": {"script": "08_app_deployment.py", "name": "App Deployment Config", "time": "~15s", "deploy_app": True},
+    "08": {"script": "08_app_deployment.py", "name": "App Deployment Config", "time": "~15s"},
 }
 
-# Pipeline order by mode
+# Pipeline order
 FABRIC_PIPELINE = ["01", "02", "03", "05", "06", "08"]
-AZURE_ONLY_PIPELINE = ["01", "03", "04", "05", "06", "08"]
 
 # ============================================================================
 # Parse Arguments
@@ -220,9 +211,7 @@ if args.resource_group:
         print("Failed. Edit infra/scripts/post-provision/.env manually or retry with: python infra/scripts/post-provision/generate_env_from_azure.py -g <rg>")
         sys.exit(1)
 
-# Get azure_only from environment variable (set AZURE_ENV_ONLY=true to use Azure SQL mode)
-azure_only = os.getenv("AZURE_ENV_ONLY", "false").lower() in ("true", "1", "yes")
-deploy_app = os.getenv("AZURE_ENV_DEPLOY_APP", "false").lower() in ("true", "1", "yes")
+
 
 # ============================================================================
 # Handle --custom-data: validate folder, generate config, set DATA_FOLDER
@@ -333,8 +322,6 @@ if args.custom_data:
 
 if args.only:
     pipeline = args.only
-elif azure_only:
-    pipeline = AZURE_ONLY_PIPELINE.copy()
 else:
     pipeline = FABRIC_PIPELINE.copy()
 
@@ -382,10 +369,6 @@ if args.from_step:
         print(f"Available steps: {pipeline}")
         sys.exit(1)
 
-# Append app deployment step if AZURE_ENV_DEPLOY_APP is true
-if not deploy_app:
-    pipeline = [s for s in pipeline if s != "08"]
-
 # ============================================================================
 # Validate Scripts Exist
 # ============================================================================
@@ -403,18 +386,17 @@ for step in pipeline:
 # Fabric Workspace ID (Fabric mode only)
 # ============================================================================
 
-if not azure_only:
-    fabric_workspace_id = args.fabric_workspace_id or os.getenv("FABRIC_WORKSPACE_ID", "").strip()
-    if fabric_workspace_id:
-        # Make it available to downstream scripts
-        os.environ["FABRIC_WORKSPACE_ID"] = fabric_workspace_id
-        # Persist to .env so subsequent runs don't need to re-enter it
-        from dotenv import set_key
-        env_path = os.path.join(script_dir, ".env")
-        set_key(env_path, "FABRIC_WORKSPACE_ID", fabric_workspace_id)
-        print(f"\n[OK] Using existing Fabric Workspace: {fabric_workspace_id}")
-    else:
-        print("\n[OK] No FABRIC_WORKSPACE_ID provided — a new workspace will be created.")
+fabric_workspace_id = args.fabric_workspace_id or os.getenv("FABRIC_WORKSPACE_ID", "").strip()
+if fabric_workspace_id:
+    # Make it available to downstream scripts
+    os.environ["FABRIC_WORKSPACE_ID"] = fabric_workspace_id
+    # Persist to .env so subsequent runs don't need to re-enter it
+    from dotenv import set_key
+    env_path = os.path.join(script_dir, ".env")
+    set_key(env_path, "FABRIC_WORKSPACE_ID", fabric_workspace_id)
+    print(f"\n[OK] Using existing Fabric Workspace: {fabric_workspace_id}")
+else:
+    print("\n[OK] No FABRIC_WORKSPACE_ID provided — a new workspace will be created.")
 
 # ============================================================================
 # Interactive Prompts for Data Generation
@@ -457,7 +439,7 @@ if "01" in pipeline:
 # Print Plan
 # ============================================================================
 
-mode = "Azure SQL" if azure_only else "Fabric"
+mode = "Fabric"
 print("\n" + "="*60)
 print(f"Build Solution Pipeline ({mode} Mode)")
 print("="*60)
@@ -507,9 +489,6 @@ def run_step(step_id):
     
     if step_id == "02" and args.clean:
         cmd.append("--clean")
-    
-    if step_id == "06" and azure_only:
-        cmd.append("--azure-only")
     
     # Run the script
     start_time = time.time()

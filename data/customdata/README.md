@@ -39,15 +39,17 @@ industry and use case.
 
 After placing your data, run the build pipeline with `--custom-data`:
 
-**Option A (Fabric + Foundry):**
+To reuse an existing Fabric workspace, set the ID first:
 ```bash
-python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata --fabric-workspace-id <your-workspace-id>
+azd env set FABRIC_WORKSPACE_ID <your-workspace-id>
 ```
 
-**Option B (Azure-only):**
+Then run the build:
 ```bash
-python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata --from 03
+python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata
 ```
+
+> If `FABRIC_WORKSPACE_ID` is not set, a new workspace will be created automatically.
 
 You will be prompted for:
 - **Industry** — e.g. Healthcare, Retail, Manufacturing

@@ -1290,6 +1290,7 @@ print(f"\n[{step}/{total_steps}] Saving configuration...")
 
 ids_path = os.path.join(config_dir, "fabric_ids.json")
 fabric_ids = {
+    "workspace_id": WORKSPACE_ID,
     "lakehouse_id": lakehouse_id,
     "lakehouse_name": lakehouse_name,
     "ontology_id": ontology_id,

@@ -24,8 +24,6 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_AI_SERVICE_LOCATION`       | string  |                          | Location for AI Foundry deployment (e.g., `eastus`, `swedencentral`).      |
 | `AZURE_ENV_CONTAINER_REGISTRY_NAME`       | string  | `dataagentscontainerregworkshop` | Name of the Azure Container Registry to pull images from.           |
 | `AZURE_ENV_SEARCH_SERVICE_LOCATION`       | string  | *(resource group location)* | Location for Azure AI Search service deployment.                        |
-| `AZURE_ENV_DEPLOY_APP`                    | bool    | `true`                   | Deploy application components (API, Frontend, Cosmos DB).                  |
-| `AZURE_ENV_ONLY`                          | bool    | `false`                  | Deploy Azure SQL Server instead of Fabric SQL.                             |
 | `DEPLOYING_USER_PRINCIPAL_TYPE`           | string  | `User`                   | Principal type of deployer (allowed: `User`, `ServicePrincipal`).          |
 | `FABRIC_WORKSPACE_ID`                     | string  | ` `                      | Existing Fabric Workspace ID to reuse. If empty, a new workspace is created automatically. |
 

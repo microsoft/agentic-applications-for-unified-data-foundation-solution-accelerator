@@ -111,7 +111,6 @@ for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
     if "%%A"=="AZURE_COSMOSDB_CONVERSATIONS_CONTAINER" set "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER=%%~B"
     if "%%A"=="AZURE_COSMOSDB_ENABLE_FEEDBACK" set "AZURE_COSMOSDB_ENABLE_FEEDBACK=%%~B"
     if "%%A"=="BACKEND_RUNTIME_STACK" set "BACKEND_RUNTIME_STACK=%%~B"
-    if "%%A"=="AZURE_ENV_ONLY" set "AZURE_ENV_ONLY=%%~B"
     if "%%A"=="AGENT_NAME_CHAT" set "AGENT_NAME_CHAT=%%~B"
     if "%%A"=="AGENT_NAME_TITLE" set "AGENT_NAME_TITLE=%%~B"
     if "%%A"=="AI_FOUNDRY_RESOURCE_ID" set "AI_FOUNDRY_RESOURCE_ID=%%~B"
@@ -145,7 +144,6 @@ for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
         for /f "tokens=1 delims=." %%C in ("%%~B") do set "SQLDB_SERVER_NAME=%%C"
     )
     if "%%A"=="SQLDB_DATABASE" set "SQLDB_DATABASE=%%~B"
-    if "%%A"=="USE_DATA_AGENT" set "USE_DATA_AGENT=%%~B"
     if "%%A"=="AZURE_AI_SEARCH_ENDPOINT" set "AZURE_AI_SEARCH_ENDPOINT=%%~B"
     if "%%A"=="AZURE_AI_SEARCH_INDEX" set "AZURE_AI_SEARCH_INDEX=%%~B"
 )
@@ -174,7 +172,6 @@ if not defined AZURE_SQLDB_DATABASE (
 )
 
 REM Normalize booleans to lowercase
-if /i "!AZURE_ENV_ONLY!"=="true" (set "AZURE_ENV_ONLY=true") else (set "AZURE_ENV_ONLY=false")
 
 REM Default USE_CHAT_HISTORY_ENABLED to true if not set (for existing deployments)
 if not defined USE_CHAT_HISTORY_ENABLED (
@@ -189,7 +186,6 @@ if not defined BACKEND_RUNTIME_STACK set "BACKEND_RUNTIME_STACK=python"
 echo.
 echo Configuration:
 echo   BACKEND_RUNTIME_STACK=%BACKEND_RUNTIME_STACK%
-echo   AZURE_ENV_ONLY=%AZURE_ENV_ONLY%
 echo   USE_CHAT_HISTORY_ENABLED=%USE_CHAT_HISTORY_ENABLED%
 echo.
 
@@ -212,24 +208,17 @@ if not defined AGENT_NAME_CHAT (
     echo Loaded agent names from env: AGENT_NAME_CHAT=!AGENT_NAME_CHAT!, AGENT_NAME_TITLE=!AGENT_NAME_TITLE!
 )
 
-REM Load Fabric SQL settings (needed unless azure-only mode)
-set "USE_FABRIC_SQL=true"
-if "%AZURE_ENV_ONLY%"=="true" set "USE_FABRIC_SQL=false"
-
-if "%USE_FABRIC_SQL%"=="true" (
-    if not defined FABRIC_SQL_SERVER (
-        if exist "%FABRIC_IDS_FILE%" (
-            for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).sql_endpoint"') do set "FABRIC_SQL_SERVER=%%i"
-            for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).lakehouse_name"') do set "FABRIC_SQL_DATABASE=%%i"
-            echo Loaded Fabric SQL from fabric_ids.json: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
-        ) else (
-            echo [WARN] Fabric SQL mode required but fabric_ids.json not found. Database connections may fail.
-        )
+REM Load Fabric SQL settings
+if not defined FABRIC_SQL_SERVER (
+    if exist "%FABRIC_IDS_FILE%" (
+        for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).sql_endpoint"') do set "FABRIC_SQL_SERVER=%%i"
+        for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).lakehouse_name"') do set "FABRIC_SQL_DATABASE=%%i"
+        echo Loaded Fabric SQL from fabric_ids.json: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
     ) else (
-        echo Loaded Fabric SQL from env: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
+        echo [WARN] Fabric SQL mode required but fabric_ids.json not found. Database connections may fail.
     )
 ) else (
-    echo Using Azure SQL mode ^(AZURE_ENV_ONLY=true^). AZURE_SQLDB_SERVER=%AZURE_SQLDB_SERVER%
+    echo Loaded Fabric SQL from env: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
 )
 
 REM ============================================================
@@ -252,7 +241,7 @@ if /i "%BACKEND_RUNTIME_STACK%"=="python" (
         call :upsert_env "AGENT_NAME_TITLE" "!AGENT_NAME_TITLE!" "%API_PYTHON_ENV_FILE%"
     )
     REM Upsert Fabric SQL settings when needed
-    if "%USE_FABRIC_SQL%"=="true" if defined FABRIC_SQL_SERVER (
+    if defined FABRIC_SQL_SERVER (
         call :upsert_env "FABRIC_SQL_SERVER" "!FABRIC_SQL_SERVER!" "%API_PYTHON_ENV_FILE%"
         call :upsert_env "FABRIC_SQL_DATABASE" "!FABRIC_SQL_DATABASE!" "%API_PYTHON_ENV_FILE%"
     )
@@ -280,10 +269,6 @@ if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" if exist "%API_DOTNET_DIR%" (
             "$json.'FABRIC_SQL_CONNECTION_STRING' = '!FABRIC_SQL_CONNECTION_STRING!';" ^
             "$json.'FABRIC_SQL_DATABASE' = '!FABRIC_SQL_DATABASE!';" ^
             "$json.'FABRIC_SQL_SERVER' = '!FABRIC_SQL_SERVER!';" ^
-            "$json.'AZURE_ENV_ONLY' = '!AZURE_ENV_ONLY!';" ^
-            "$json.'AZURE_SQLDB_SERVER' = '!AZURE_SQLDB_SERVER!';" ^
-            "$json.'AZURE_SQLDB_DATABASE' = '!AZURE_SQLDB_DATABASE!';" ^
-            "$json.'USE_DATA_AGENT' = '!USE_DATA_AGENT!';" ^
             "$json.'APP_ENV' = 'dev';" ^
             "$json.'AGENT_NAME_CHAT' = '!AGENT_NAME_CHAT!';" ^
             "$json.'AGENT_NAME_TITLE' = '!AGENT_NAME_TITLE!';" ^

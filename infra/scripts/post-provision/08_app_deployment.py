@@ -7,23 +7,17 @@ Usage:
 
 Prerequisites:
     - Azure resources deployed (azd up)
-    - For Fabric mode: Fabric workspace created (02_create_fabric_items.py)
-    - For Azure SQL mode: SQL database populated (04_upload_to_sql.py)
+    - Fabric workspace created (02_create_fabric_items.py)
 
 What this script does:
-    - Fabric mode (AZURE_ENV_ONLY=false):
-        1. Assigns Fabric workspace Contributor role to Foundry project's system-assigned identity
-        2. Gets Fabric SQL endpoint and updates App Service settings
-    - Azure SQL mode (AZURE_ENV_ONLY=true):
-        1. Assigns Azure SQL db_datareader/db_datawriter roles to API managed identity
-    - Common (always runs):
-        1. Assigns Cosmos DB Data Contributor role to current user
-        2. Updates App Service with agent names (AGENT_NAME_CHAT, AGENT_NAME_TITLE)
+    1. Assigns Fabric workspace Contributor role to Foundry project's system-assigned identity
+    2. Gets Fabric SQL endpoint and updates App Service settings
+    3. Assigns Cosmos DB Data Contributor role to current user
+    4. Updates App Service with agent names (AGENT_NAME_CHAT, AGENT_NAME_TITLE)
 """
 
 import json
 import os
-import struct
 import sys
 import time
 
@@ -41,11 +35,8 @@ import requests
 # Configuration
 # ============================================================================
 
-azure_only = os.getenv("AZURE_ENV_ONLY", "false").lower() in ("true", "1", "yes")
-
 print(f"\n{'='*60}")
 print("App Deployment Configuration")
-print(f"  Mode: {'Azure SQL' if azure_only else 'Fabric'}")
 print(f"{'='*60}")
 
 credential = DefaultAzureCredential()
@@ -88,16 +79,31 @@ def fabric_request(method, url, **kwargs):
 
 
 def assign_fabric_roles():
-    """Assign Fabric workspace Contributor role.
+    """Assign Fabric workspace Contributor role to the Foundry project's system-assigned identity.
 
-    When USE_DATA_AGENT is true, assigns the role to the Foundry project's
-    system-assigned identity (FOUNDRY_PROJECT_PID).
-    Otherwise, assigns the role to the API managed identity (API_PID).
+    The Foundry project identity needs Contributor access to the Fabric workspace
+    so the agent can connect to the Fabric Data Agent via MCP.
     """
     FABRIC_API = "https://api.fabric.microsoft.com/v1"
-    WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
+    WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID", "").strip()
 
     print("\n[1/2] Assigning Fabric workspace role...")
+
+    # Fallback: load from fabric_ids.json if not in environment
+    if not WORKSPACE_ID:
+        from load_env import get_data_folder
+        try:
+            data_dir = get_data_folder()
+            config_dir = os.path.join(data_dir, "config")
+            fabric_ids_path = os.path.join(config_dir, "fabric_ids.json")
+            if os.path.exists(fabric_ids_path):
+                with open(fabric_ids_path, encoding="utf-8") as f:
+                    fabric_ids = json.load(f)
+                WORKSPACE_ID = fabric_ids.get("workspace_id", "")
+                if WORKSPACE_ID:
+                    print(f"  Loaded FABRIC_WORKSPACE_ID from fabric_ids.json: {WORKSPACE_ID}")
+        except Exception as e:
+            print(f"  [WARN] Failed to load fabric_ids.json: {e}")
 
     if not WORKSPACE_ID:
         print("  [SKIP] FABRIC_WORKSPACE_ID not set")
@@ -110,20 +116,12 @@ def assign_fabric_roles():
         print("  [SKIP] USE_USER_ACCESS_TOKEN is enabled - API uses user's own token, no workspace role needed")
         return
 
-    # Determine which principal to assign based on USE_DATA_AGENT
-    use_data_agent = os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes")
-    if use_data_agent:
-        principal_id = os.getenv("FOUNDRY_PROJECT_PID")
-        principal_label = "Foundry project system-assigned identity"
-        if not principal_id:
-            print("  [SKIP] FOUNDRY_PROJECT_PID not set. Run generate_env_from_azure.py to populate it.")
-            return
-    else:
-        principal_id = os.getenv("API_PID")
-        principal_label = "API managed identity"
-        if not principal_id:
-            print("  [SKIP] API_PID not set. Run generate_env_from_azure.py to populate it.")
-            return
+    # Assign Contributor role to the Foundry project's system-assigned identity
+    principal_id = os.getenv("FOUNDRY_PROJECT_PID")
+    principal_label = "Foundry project system-assigned identity"
+    if not principal_id:
+        print("  [SKIP] FOUNDRY_PROJECT_PID not set. Run generate_env_from_azure.py to populate it.")
+        return
 
     print(f"  Assigning Contributor role to {principal_label} ({principal_id})")
 
@@ -149,9 +147,9 @@ def assign_fabric_roles():
 def update_fabric_app_settings():
     """Get Fabric SQL endpoint and update App Service settings."""
     FABRIC_API = "https://api.fabric.microsoft.com/v1"
-    WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
-    LAKEHOUSE_ID = os.getenv("FABRIC_LAKEHOUSE_ID")
-    LAKEHOUSE_NAME = os.getenv("FABRIC_LAKEHOUSE_NAME")
+    WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID", "").strip()
+    LAKEHOUSE_ID = os.getenv("FABRIC_LAKEHOUSE_ID", "").strip()
+    LAKEHOUSE_NAME = os.getenv("FABRIC_LAKEHOUSE_NAME", "").strip()
     api_uid = os.getenv("API_UID")
 
     print("\n[2/2] Getting Fabric SQL endpoint and updating App Service...")
@@ -168,8 +166,9 @@ def update_fabric_app_settings():
             if os.path.exists(fabric_ids_path):
                 with open(fabric_ids_path, encoding="utf-8") as f:
                     fabric_ids = json.load(f)
-                LAKEHOUSE_ID = LAKEHOUSE_ID or fabric_ids.get("lakehouse_id")
-                LAKEHOUSE_NAME = LAKEHOUSE_NAME or fabric_ids.get("lakehouse_name")
+                WORKSPACE_ID = WORKSPACE_ID or fabric_ids.get("workspace_id", "")
+                LAKEHOUSE_ID = LAKEHOUSE_ID or fabric_ids.get("lakehouse_id", "")
+                LAKEHOUSE_NAME = LAKEHOUSE_NAME or fabric_ids.get("lakehouse_name", "")
         except Exception as e:
             print(f"  [WARN] Failed to load Fabric IDs from fabric_ids.json: {e}")
 
@@ -269,105 +268,6 @@ def update_fabric_app_settings():
             print(f"  NOTE: Set FABRIC_SQL_CONNECTION_STRING={fabric_conn_string} in App Service")
         else:
             print("  [SKIP] No App Service config to update (missing AZURE_SUBSCRIPTION_ID, RESOURCE_GROUP_NAME, or API_APP_NAME)")
-
-
-def assign_sql_roles():
-    """Assign Azure SQL db_datareader/db_datawriter roles to the API managed identity."""
-    # Support both new and legacy environment variable names for backward compatibility
-    sql_server = os.getenv("AZURE_SQLDB_SERVER") or os.getenv("SQLDB_SERVER")
-    sql_database = os.getenv("AZURE_SQLDB_DATABASE") or os.getenv("SQLDB_DATABASE")
-    api_mid_name = os.getenv("MID_DISPLAY_NAME")
-
-    print("\n[1/2] Assigning Azure SQL roles to API managed identity...")
-
-    if not sql_server or not sql_database:
-        print("  [SKIP] AZURE_SQLDB_SERVER or AZURE_SQLDB_DATABASE not set")
-        return
-    if not api_mid_name:
-        print("  [SKIP] MID_DISPLAY_NAME not set")
-        print("         Set MID_DISPLAY_NAME in azd environment to enable")
-        return
-
-    try:
-        import pyodbc
-    except ImportError:
-        print("  [WARN] pyodbc not installed. Run: pip install pyodbc")
-        return
-
-    try:
-        # Connect to Azure SQL
-        driver18 = "ODBC Driver 18 for SQL Server"
-        driver17 = "ODBC Driver 17 for SQL Server"
-
-        token = credential.get_token("https://database.windows.net/.default")
-        token_bytes = token.token.encode("utf-16-LE")
-        token_struct = struct.pack(
-            f"<I{len(token_bytes)}s",
-            len(token_bytes),
-            token_bytes
-        )
-        SQL_COPT_SS_ACCESS_TOKEN = 1256
-
-        conn = None
-        try:
-            connection_string = f"DRIVER={{{driver18}}};SERVER={sql_server};DATABASE={sql_database};"
-            conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-            print(f"  Connected using {driver18}")
-        except Exception:
-            connection_string = f"DRIVER={{{driver17}}};SERVER={sql_server};DATABASE={sql_database};"
-            conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-            print(f"  Connected using {driver17}")
-
-        cursor = conn.cursor()
-
-        # Check if user already exists
-        check_user_sql = f"SELECT COUNT(*) FROM sys.database_principals WHERE name = N'{api_mid_name}'"
-        cursor.execute(check_user_sql)
-        user_exists = cursor.fetchone()[0] > 0
-
-        if not user_exists:
-            create_user_sql = f"CREATE USER [{api_mid_name}] FROM EXTERNAL PROVIDER"
-            try:
-                cursor.execute(create_user_sql)
-                conn.commit()
-                print(f"  [OK] Created user: {api_mid_name}")
-            except Exception as e:
-                print(f"  [FAIL] Failed to create user {api_mid_name}: {e}")
-                cursor.close()
-                conn.close()
-                sys.exit(1)
-        else:
-            print(f"  [OK] User already exists: {api_mid_name}")
-
-        # Assign roles
-        for role in ['db_datareader', 'db_datawriter']:
-            check_role_sql = f"""
-                SELECT COUNT(*)
-                FROM sys.database_role_members rm
-                JOIN sys.database_principals rp ON rm.role_principal_id = rp.principal_id
-                JOIN sys.database_principals mp ON rm.member_principal_id = mp.principal_id
-                WHERE mp.name = N'{api_mid_name}' AND rp.name = N'{role}'
-            """
-            cursor.execute(check_role_sql)
-            has_role = cursor.fetchone()[0] > 0
-
-            if not has_role:
-                add_role_sql = f"ALTER ROLE [{role}] ADD MEMBER [{api_mid_name}]"
-                try:
-                    cursor.execute(add_role_sql)
-                    conn.commit()
-                    print(f"  [OK] Assigned {role} to {api_mid_name}")
-                except Exception as e:
-                    print(f"  [FAIL] Failed to assign {role}: {e}")
-            else:
-                print(f"  [OK] {api_mid_name} already has {role}")
-
-        cursor.close()
-        conn.close()
-
-    except Exception as e:
-        print(f"  [FAIL] SQL role assignment failed: {e}")
-
 
 
 # ============================================================================
@@ -517,14 +417,6 @@ def update_agent_app_settings():
         if title_agent_name:
             new_settings["AGENT_NAME_TITLE"] = title_agent_name
 
-        # Pass USE_DATA_AGENT flag so the API conditionally skips the SQL tool
-        # Force false in Azure SQL mode (no Fabric Data Agent exists)
-        if azure_only:
-            use_data_agent = False
-        else:
-            use_data_agent = os.getenv("USE_DATA_AGENT", "false").lower() in ("true", "1", "yes")
-        new_settings["USE_DATA_AGENT"] = str(use_data_agent).lower()
-
         props.update(new_settings)
 
         web_client.web_apps.update_application_settings(
@@ -625,15 +517,8 @@ def update_frontend_app_settings():
 # Main
 # ============================================================================
 
-if not azure_only:
-    # Fabric mode: assign workspace role and update App Service settings
-    assign_fabric_roles()
-    update_fabric_app_settings()
-else:
-    # Azure SQL mode: assign SQL roles to API managed identity, then restart app
-    assign_sql_roles()
-
-# Always assign Cosmos DB role and update agent names in App Service
+assign_fabric_roles()
+update_fabric_app_settings()
 assign_cosmos_role()
 update_agent_app_settings()
 update_frontend_app_settings()

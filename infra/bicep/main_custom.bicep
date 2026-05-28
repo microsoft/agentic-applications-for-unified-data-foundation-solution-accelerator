@@ -107,9 +107,6 @@ param backendRuntimeStack string = 'python'
 @description('Optional. Deploy the application components (Cosmos DB, API, Frontend).')
 param deployApp bool = true
 
-@description('Optional. Deploy Azure SQL Server instead of Fabric SQL.')
-param azureEnvOnly bool = false
-
 // ── Existing Resources ──
 
 @description('Optional. Resource ID of an existing Log Analytics workspace. Empty creates a new one.')
@@ -300,18 +297,6 @@ module cosmosDBModule './modules/data/cosmos-db.bicep' = if (deployApp) {
   scope: resourceGroup(resourceGroup().name)
 }
 
-// ========== SQL DB module ========== //
-module sqlDBModule './modules/data/sql-db.bicep' = if (azureEnvOnly) {
-  name: 'deploy_sql_db'
-  params: {
-    serverName: 'sql-${solutionSuffix}'
-    sqlDBName: 'sqldb-${solutionSuffix}'
-    solutionLocation: secondaryLocation
-    deployerPrincipalId: deployingUserPrincipalId
-  }
-  scope: resourceGroup(resourceGroup().name)
-}
-
 module hostingplan './modules/compute/app-service-plan.bicep' = if (shouldDeployApp) {
   name: 'deploy_app_service_plan'
   params: {
@@ -369,8 +354,6 @@ module backend_custom './modules/compute/app-service-custom.bicep' = if (shouldD
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule!.outputs.cosmosContainerName
       AZURE_COSMOSDB_DATABASE: cosmosDBModule!.outputs.cosmosDatabaseName
       AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
-      AZURE_SQLDB_DATABASE: azureEnvOnly ? sqlDBModule!.outputs.sqlDbName : ''
-      AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
       AZURE_SQLDB_USER_MID: ''
       API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.aiSearchTarget
@@ -382,7 +365,6 @@ module backend_custom './modules/compute/app-service-custom.bicep' = if (shouldD
       APPLICATIONINSIGHTS_CONNECTION_STRING: app_insights.outputs.applicationInsightsConnectionString
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
-      AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
       APP_ENV: 'Prod'
       AZURE_BASIC_LOGGING_LEVEL: 'INFO'
       AZURE_PACKAGE_LOGGING_LEVEL: 'WARNING'
@@ -431,10 +413,6 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
       APP_ENV: 'Prod'
-      AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
-      USE_DATA_AGENT: 'False'
-      AZURE_SQLDB_DATABASE: azureEnvOnly ? sqlDBModule!.outputs.sqlDbName : ''
-      AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
 
       FABRIC_SQL_DATABASE: ''
       FABRIC_SQL_SERVER: ''
@@ -514,13 +492,7 @@ output AZURE_OPENAI_ENDPOINT string = aiFoundryEndpoint
 @description('Embedding model deployment name for vector search')
 output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = embeddingModel
 
-@description('Azure SQL database name (Azure-only mode)')
-output AZURE_SQLDB_DATABASE string = azureEnvOnly ? sqlDBModule!.outputs.sqlDbName : ''
-
-@description('Azure SQL server fully qualified domain name (Azure-only mode)')
-output AZURE_SQLDB_SERVER string = azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
-
-@description('Managed identity client ID for SQL authentication (Azure-only mode)')
+@description('Managed identity client ID for SQL authentication')
 output AZURE_SQLDB_USER_MID string = ''
 
 @description('Backend API managed identity client ID (system-assigned, resolved at runtime)')
@@ -582,12 +554,6 @@ output FOUNDRY_PROJECT_PID string = aiProjectPrincipalId
 
 @description('Backend runtime stack (python or dotnet)')
 output BACKEND_RUNTIME_STACK string = backendRuntimeStack
-
-@description('Flag indicating whether to deploy App Service')
-output AZURE_ENV_DEPLOY_APP bool = deployApp
-
-@description('Flag indicating Azure-only mode (no Fabric)')
-output AZURE_ENV_ONLY bool = azureEnvOnly
 
 @description('Backend API managed identity client ID (system-assigned, resolved at runtime)')
 output USER_MID string = ''

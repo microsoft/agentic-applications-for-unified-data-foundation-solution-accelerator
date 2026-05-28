@@ -105,12 +105,6 @@ param appServicePlanSku string = 'B2'
 // Parameters — Feature Flags
 // ============================================================================
 
-@description('Optional. Deploy application components (API, Frontend, Cosmos DB).')
-param deployApp bool = true
-
-@description('Optional. Azure-only mode (deploy Azure SQL instead of Fabric SQL).')
-param azureEnvOnly bool = false
-
 @description('Optional. Enable chat history storage.')
 param useChatHistoryEnabled bool = true
 
@@ -242,8 +236,6 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     containerRegistryName: containerRegistryName
     backendRuntimeStack: backendRuntimeStack
     appServicePlanSku: appServicePlanSku
-    deployApp: deployApp
-    azureEnvOnly: azureEnvOnly
     useChatHistoryEnabled: useChatHistoryEnabled
     useUserAccessToken: useUserAccessToken
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
@@ -283,8 +275,6 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     imageTag: imageTag
     containerRegistryName: containerRegistryName
     backendRuntimeStack: backendRuntimeStack
-    deployApp: deployApp
-    azureEnvOnly: azureEnvOnly
     useChatHistoryEnabled: useChatHistoryEnabled
     useUserAccessToken: useUserAccessToken
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
@@ -332,12 +322,6 @@ output AZURE_OPENAI_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_OPENA
 
 @description('Embedding model deployment name.')
 output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = isAvm ? avmDeployment!.outputs.AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME : bicepDeployment!.outputs.AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME
-
-@description('Azure SQL database name (Azure-only mode).')
-output AZURE_SQLDB_DATABASE string = isAvm ? avmDeployment!.outputs.AZURE_SQLDB_DATABASE : bicepDeployment!.outputs.AZURE_SQLDB_DATABASE
-
-@description('Azure SQL server FQDN (Azure-only mode).')
-output AZURE_SQLDB_SERVER string = isAvm ? avmDeployment!.outputs.AZURE_SQLDB_SERVER : bicepDeployment!.outputs.AZURE_SQLDB_SERVER
 
 @description('Managed identity client ID for SQL auth.')
 output AZURE_SQLDB_USER_MID string = isAvm ? avmDeployment!.outputs.AZURE_SQLDB_USER_MID : bicepDeployment!.outputs.AZURE_SQLDB_USER_MID
@@ -404,12 +388,6 @@ output USE_CHAT_HISTORY_ENABLED string = isAvm ? avmDeployment!.outputs.USE_CHAT
 
 @description('Backend runtime stack.')
 output BACKEND_RUNTIME_STACK string = isAvm ? avmDeployment!.outputs.BACKEND_RUNTIME_STACK : bicepDeployment!.outputs.BACKEND_RUNTIME_STACK
-
-@description('Deploy app flag.')
-output AZURE_ENV_DEPLOY_APP bool = isAvm ? avmDeployment!.outputs.AZURE_ENV_DEPLOY_APP : bicepDeployment!.outputs.AZURE_ENV_DEPLOY_APP
-
-@description('Azure-only mode flag.')
-output AZURE_ENV_ONLY bool = isAvm ? avmDeployment!.outputs.AZURE_ENV_ONLY : bicepDeployment!.outputs.AZURE_ENV_ONLY
 
 @description('User access token forwarding flag.')
 output USE_USER_ACCESS_TOKEN string = isAvm ? avmDeployment!.outputs.USE_USER_ACCESS_TOKEN : bicepDeployment!.outputs.USE_USER_ACCESS_TOKEN

@@ -602,9 +602,6 @@ def get_default_env_content() -> str:
         "# --- Agent IDs (auto-populated by scripts) ---",
         "FABRIC_AGENT_ID=",
         "FOUNDRY_AGENT_ID=",
-        "",
-        "# --- Default value (auto-populated by scripts) ---",
-        "AZURE_ENV_DEPLOY_APP=true",
     ]
     return "\n".join(lines)
 
