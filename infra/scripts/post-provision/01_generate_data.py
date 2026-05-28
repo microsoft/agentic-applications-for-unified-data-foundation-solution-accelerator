@@ -19,6 +19,7 @@ Output structure:
 """
 
 import argparse
+import json
 import os
 import sys
 from datetime import datetime
@@ -48,16 +49,33 @@ if not FOUNDRY_ENDPOINT:
 # ============================================================================
 
 p = argparse.ArgumentParser(description="Generate sample data using AI for any industry/use case")
-p.add_argument("--industry", help="Industry name (overrides .env INDUSTRY)")
-p.add_argument("--usecase", help="Use case description (overrides .env USECASE)")
+p.add_argument("--scenario", help="Scenario name from data/scenarios/scenarios.json")
+p.add_argument("--industry", help="Industry name (overrides scenario/env)")
+p.add_argument("--usecase", help="Use case description (overrides scenario/env)")
 p.add_argument("--size", choices=["small", "medium", "large"],
-               help="Data size (overrides .env DATA_SIZE)")
+               help="Data size (overrides scenario/env)")
+p.add_argument("--output-dir", help="Output directory (overrides scenario folder/env)")
 args = p.parse_args()
 
-# Priority: CLI args > .env > interactive
-industry = args.industry or os.getenv("INDUSTRY")
-usecase = args.usecase or os.getenv("USECASE")
-size = args.size or os.getenv("DATA_SIZE", "small")
+# Load scenario config if --scenario is provided
+scenario_cfg = {}
+if args.scenario:
+    scenarios_path = os.path.abspath(os.path.join(script_dir, "..", "..", "..", "data", "scenarios", "scenarios.json"))
+    if not os.path.exists(scenarios_path):
+        print(f"ERROR: scenarios.json not found at {scenarios_path}")
+        sys.exit(1)
+    with open(scenarios_path) as f:
+        scenarios = json.load(f)
+    if args.scenario not in scenarios:
+        print(f"ERROR: Scenario '{args.scenario}' not found in scenarios.json")
+        print(f"Available: {', '.join(scenarios.keys())}")
+        sys.exit(1)
+    scenario_cfg = scenarios[args.scenario]
+
+# Priority: CLI args > scenario config > env vars > interactive
+industry = args.industry or scenario_cfg.get("industry") or os.getenv("INDUSTRY")
+usecase = args.usecase or scenario_cfg.get("usecase") or os.getenv("USECASE")
+size = args.size or scenario_cfg.get("data_size") or os.getenv("DATA_SIZE", "small")
 
 if not industry:
     print("\n" + "="*60)
@@ -88,20 +106,21 @@ SIZE_CONFIG = {
 }
 size_config = SIZE_CONFIG[size]
 
-# Create output directory — use DATA_FOLDER if set (scenario-driven), else create timestamped dir
-base_data_dir = os.path.join(script_dir, "..", "..", "..", "data")
-os.makedirs(base_data_dir, exist_ok=True)
+# Determine output directory
+# Priority: --output-dir > scenario config folder > DATA_FOLDER env var > timestamped fallback
+project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
 
-existing_data_folder = os.getenv("DATA_FOLDER")
-if existing_data_folder:
-    # Scenario or orchestrator already set the output folder
-    project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
-    data_dir = os.path.abspath(os.path.join(project_root, existing_data_folder))
+if args.output_dir:
+    data_dir = os.path.join(project_root, args.output_dir)
+elif scenario_cfg.get("folder"):
+    data_dir = os.path.join(project_root, scenario_cfg["folder"])
+elif os.getenv("DATA_FOLDER"):
+    data_dir = os.path.join(project_root, os.getenv("DATA_FOLDER"))
 else:
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     industry_slug = industry.lower().replace(" ", "_")[:20]
-    data_dir = os.path.join(base_data_dir, f"{timestamp}_{industry_slug}")
-    data_dir = os.path.abspath(data_dir)
+    data_dir = os.path.join(project_root, "data", "scenarios", industry_slug)
+
+data_dir = os.path.abspath(data_dir)
 
 print(f"\n{'='*60}")
 print(f"Generating data for: {industry}")
@@ -937,6 +956,41 @@ os.environ["USECASE"] = usecase
 print(f"[OK] Set DATA_FOLDER={relative_data_dir}")
 print(f"[OK] Set INDUSTRY={industry}")
 print(f"[OK] Set USECASE={usecase}")
+
+# ============================================================================
+# Auto-register scenario in scenarios.json (if not already registered)
+# ============================================================================
+
+scenarios_path = os.path.abspath(os.path.join(project_root, "data", "scenarios", "scenarios.json"))
+scenario_name = args.scenario  # Use provided name, or derive from industry
+
+if not scenario_name:
+    scenario_name = industry.lower().replace(" ", "_")[:30]
+
+# Check if already registered
+if os.path.exists(scenarios_path):
+    with open(scenarios_path) as f:
+        all_scenarios = json.load(f)
+else:
+    all_scenarios = {}
+
+if scenario_name not in all_scenarios:
+    all_scenarios[scenario_name] = {
+        "folder": relative_data_dir.replace("\\", "/"),
+        "industry": industry,
+        "usecase": usecase,
+        "data_size": size,
+        "type": "generate",
+        "description": f"AI-generated {industry} scenario",
+        "landing_text": f"Ask questions about {industry.lower()} data...",
+        "app_title": f"Contoso {industry}",
+        "app_header": f"| {industry} Agents"
+    }
+    with open(scenarios_path, "w") as f:
+        json.dump(all_scenarios, f, indent=2)
+    print(f"[OK] Registered scenario '{scenario_name}' in scenarios.json")
+else:
+    print(f"[OK] Scenario '{scenario_name}' already registered in scenarios.json")
 
 # ============================================================================
 # Clear Cosmos DB Conversation History

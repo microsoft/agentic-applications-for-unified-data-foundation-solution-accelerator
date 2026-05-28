@@ -15,17 +15,7 @@ All generated artifacts are saved to a scenario folder and used by the remaining
 
 ## Quick Start
 
-### Option 1: Use the Default Scenario (Simplest)
-
-Run without any flags — the `default` scenario generates Telecommunications data automatically:
-
-```bash
-python infra/scripts/post-provision/00_build_solution.py
-```
-
-This generates a small dataset for "Network operations with outage tracking and trouble ticket management".
-
-### Option 2: Register a Custom Generate Scenario
+### Option 1: Register a Custom Generate Scenario
 
 1. **Add an entry to [`data/scenarios/scenarios.json`](../data/scenarios/scenarios.json):**
 
@@ -56,12 +46,39 @@ The pipeline will:
 - Run step 01 (AI data generation) into that folder
 - Continue with steps 02–08 (Fabric, agent, app deployment)
 
-### Option 3: Override Industry/Use Case via CLI
+### Option 2: Generate Directly (Without Pre-registering)
 
-You can override the scenario metadata with CLI flags:
+You can run the data generator directly with just industry and use case — no `scenarios.json` entry needed:
 
 ```bash
+python infra/scripts/post-provision/01_generate_data.py --industry "Energy" --usecase "Grid monitoring and outage response" --size medium
+```
+
+This will:
+- Generate data into `data/scenarios/energy/`
+- **Auto-register** the scenario as `"energy"` in `scenarios.json`
+- Print: `[OK] Registered scenario 'energy' in scenarios.json`
+
+You can then run the full pipeline with:
+```bash
+python infra/scripts/post-provision/00_build_solution.py --scenario energy
+```
+
+To control the output location explicitly:
+```bash
+python infra/scripts/post-provision/01_generate_data.py --industry "Energy" --usecase "Grid monitoring" --size medium --output-dir data/scenarios/my_energy
+```
+
+### Option 3: Override Industry/Use Case via CLI
+
+You can override the scenario metadata with CLI flags on either the orchestrator or step 01 directly:
+
+```bash
+# Via orchestrator
 python infra/scripts/post-provision/00_build_solution.py --scenario my_energy --industry "Renewable Energy" --usecase "Solar farm monitoring" --size large
+
+# Via step 01 directly
+python infra/scripts/post-provision/01_generate_data.py --scenario my_energy --industry "Renewable Energy" --size large
 ```
 
 ## Scenario JSON Fields for `generate` Type
@@ -72,11 +89,41 @@ python infra/scripts/post-provision/00_build_solution.py --scenario my_energy --
 | `industry` | Yes | Domain name passed to the AI generator |
 | `usecase` | Yes | Use case description passed to the AI generator |
 | `data_size` | Yes | `small`, `medium`, or `large` — controls table row counts and document count |
-| `type` | Yes | Must be `"generate"` for synthetic data generation |
+| `type` | Yes | Must be `"generate"` for data generation |
 | `description` | No | Shown with `--list-scenarios` |
 | `landing_text` | No | Welcome message in the chat UI |
 | `app_title` | No | Browser tab title |
 | `app_header` | No | App header text |
+
+> **Note:** When using Option 2 (direct generation without pre-registering), these fields are auto-populated in `scenarios.json` from your CLI args.
+
+## Step 01 CLI Reference
+
+```
+python infra/scripts/post-provision/01_generate_data.py [OPTIONS]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--scenario NAME` | Load config from `scenarios.json` (folder, industry, usecase, size) |
+| `--industry TEXT` | Industry name (overrides scenario/env) |
+| `--usecase TEXT` | Use case description (overrides scenario/env) |
+| `--size small\|medium\|large` | Data size (overrides scenario/env) |
+| `--output-dir PATH` | Output directory (overrides scenario folder/env) |
+
+**Resolution priority** (for each parameter):
+1. CLI flag (`--industry`, `--output-dir`, etc.)
+2. Scenario config (if `--scenario` provided)
+3. `DATA_FOLDER` / `INDUSTRY` / `USECASE` / `DATA_SIZE` env vars
+4. Interactive prompt (industry/usecase only)
+
+**Output directory priority:**
+1. `--output-dir`
+2. Scenario's `folder` field
+3. `DATA_FOLDER` env var
+4. `data/scenarios/<industry_slug>/` (auto-derived)
+
+**Auto-registration:** After generation, the scenario is automatically registered in `scenarios.json` if not already present.
 
 ## Data Size Options
 
@@ -119,34 +166,6 @@ python infra/scripts/post-provision/00_build_solution.py --scenario my_energy --
 ```bash
 python infra/scripts/post-provision/00_build_solution.py --list-scenarios
 ```
-
-Output:
-```
-Available Scenarios (5):
---------------------------------------------------------------------------------
-  Name            Type       Industry        Use Case
---------------------------------------------------------------------------------
-  insurance       prebuilt   Insurance       Claims processing and customer management
-  retail          prebuilt   Retail          Inventory and sales operations
-  default         prebuilt   Telecommunications Network operations
-  default_large   prebuilt   Telecommunications Network operations and outage tracking
-  my_energy       generate   Energy          Grid monitoring and outage response
---------------------------------------------------------------------------------
-
-  Types: prebuilt = ready-to-use data
-         custom   = bring your own CSVs (auto-generates config)
-         generate = AI creates synthetic data for your industry/usecase
-```
-
-## Comparison: Three Scenario Types
-
-| | Prebuilt | Custom (BYOD) | Generate |
-|---|---------|---------------|----------|
-| **Data source** | Included in repo | User provides CSVs/PDFs | AI generates everything |
-| **Step 01** | Skipped | Skipped | Runs |
-| **Config generation** | Already exists | Auto-generated from CSVs | AI generates |
-| **Best for** | Quick demos | Real enterprise data | POC with custom domain |
-| **Guide** | [Deployment Guide](./DeploymentGuide.md) | [Bring Your Own Data](../data/customdata/README.md) | This document |
 
 ## Troubleshooting
 
