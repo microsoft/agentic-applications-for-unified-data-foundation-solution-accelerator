@@ -41,10 +41,16 @@ Pre-built scenario packs provide ready-to-use datasets without requiring AI data
 |------|----------|----------|--------|-----------|
 | **retail** | Retail | Inventory and sales operations | 13 (customers, orders, products, invoices, payments, locations) | None (SQL-only) |
 | **insurance** | Insurance | Claims processing and customer management | 4 (customer, policy, claim, communicationshistory) | None (SQL-only) |
+| **default** | Telecommunications | Network operations with outage tracking and trouble ticket management | AI-generated | AI-generated |
+| **default_large** | Telecommunications | Network operations (large dataset) | AI-generated | AI-generated |
 
-> **Note:** If you don't use `--scenario`, the default behavior generates AI-based sample data (Telecommunications - Network operations with outage tracking and trouble ticket management) with CSV data.
+> **Note:** If you don't use `--scenario`, the `default` scenario is used automatically (Telecommunications - Network operations with outage tracking and trouble ticket management) which generates AI-based sample data.
 
 To use a scenario pack, add `--scenario <name>` to the build command (see step 7 below).
+
+**Additional data options:**
+- [Bring Your Own Data](../data/customdata/README.md) — Use your own CSV tables and PDF documents
+- [Generate Custom Data](./GenerateCustomData.md) — AI-generate datasets for any custom industry/use case (ideal for POCs)
 
 ---
 

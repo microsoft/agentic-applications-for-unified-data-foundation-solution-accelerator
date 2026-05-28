@@ -1,9 +1,8 @@
 """
-Load environment variables from azd deployment and project .env file.
+Load environment variables from azd deployment.
 
-This module provides a unified way to load configuration:
-1. Azure service settings from azd environment (.azure/<env>/.env)
-2. Project-specific settings from project root .env (Fabric, industry, etc.)
+This module loads Azure service configuration from the azd environment (.azure/<env>/.env).
+Project-specific settings (industry, usecase, data_size) are managed via scenarios.json.
 
 Azure services (from azd):
     - AZURE_AI_AGENT_ENDPOINT
@@ -13,16 +12,7 @@ Azure services (from azd):
     - AZURE_STORAGE_BLOB_ENDPOINT
     - AZURE_CHAT_MODEL
     - AZURE_EMBEDDING_MODEL
-    - etc.
-
-Project settings (from .env):
     - FABRIC_WORKSPACE_ID
-    - SOLUTION_NAME
-    - INDUSTRY
-    - USECASE
-    - DATA_SIZE
-    - DATA_FOLDER
-    - FOUNDRY_AGENT_ID
     - etc.
 """
 
@@ -59,62 +49,22 @@ def load_azd_env():
     return False
 
 
-def load_project_env():
-    """
-    Load environment variables from infra/scripts/post-provision/.env file.
-    
-    Contains Fabric-specific and project settings.
-    """
-    script_dir = Path(__file__).parent
-    project_env = script_dir / ".env"
-    
-    if project_env.exists():
-        load_dotenv(project_env, override=False)  # Don't override azd values
-        return True
-    
-    return False
-
-
 def load_all_env():
     """
-    Load both azd and project environment variables.
+    Load azd environment variables.
     
-    Priority:
-    1. azd environment (Azure service endpoints) - if .azure folder exists
-    2. Project infra/scripts/post-provision/.env (Azure endpoints + Fabric/industry settings)
+    Reads Azure service endpoints from .azure/<env>/.env (created by azd up).
+    Project-specific settings (scenario, industry, etc.) come from scenarios.json.
     
-    When infra is pre-provisioned without 'azd up', the .azure folder won't exist.
-    In this case, infra/scripts/post-provision/.env should contain ALL settings (Azure + project).
-    Use generate_env_from_azure.py to create this file from existing resources.
-    
-    Returns tuple (azd_loaded, project_loaded)
+    Returns True if azd env was loaded.
     """
     azd_loaded = load_azd_env()
-    project_loaded = load_project_env()
     
-    # If neither loaded, provide guidance
-    if not azd_loaded and not project_loaded:
-        print("⚠️  No environment configuration found.")
-        print("   Options:")
-        print("   1. Run 'azd up' to deploy infrastructure")
-        print("   2. Run 'python infra/scripts/post-provision/generate_env_from_azure.py -g <resource-group>'")
-        print("      to generate .env from existing Azure resources")
+    if not azd_loaded:
+        print("⚠️  No azd environment found.")
+        print("   Run 'azd up' to deploy infrastructure, or set Azure env vars manually.")
     
-    return azd_loaded, project_loaded
-
-
-def reload_env():
-    """
-    Force reload environment variables from .env files.
-    Uses override=True to pick up changes made by scripts.
-    """
-    script_dir = Path(__file__).parent
-    project_env = script_dir / ".env"
-    
-    if project_env.exists():
-        load_dotenv(project_env, override=True)
-        return True
-    return False
+    return azd_loaded
 
 
 def get_required_env(var_name: str, description: str = None) -> str:
@@ -136,7 +86,7 @@ def get_required_env(var_name: str, description: str = None) -> str:
         desc = description or var_name
         raise ValueError(
             f"{var_name} not set. {desc}\n"
-            f"Run 'azd up' to deploy Azure resources or configure in .env"
+            f"Run 'azd up' to deploy Azure resources or set the variable manually."
         )
     return value
 
@@ -158,7 +108,8 @@ def get_data_folder() -> str:
     if not data_folder:
         raise ValueError(
             "DATA_FOLDER not set.\n"
-            "Run 01_generate_data.py first, or set DATA_FOLDER in .env"
+            "Use --scenario or --custom-data to specify data, "
+            "or set DATA_FOLDER environment variable."
         )
     
     # If already absolute, return as-is
@@ -195,7 +146,7 @@ def print_env_status():
         else:
             print(f"  [FAIL] {name}: not set")
     
-    # Project settings (from .env)
+    # Project settings (from scenario or env)
     project_vars = [
         ("FABRIC_WORKSPACE_ID", "Fabric Workspace"),
         ("SOLUTION_NAME", "Solution Name"),
@@ -203,10 +154,9 @@ def print_env_status():
         ("INDUSTRY", "Industry"),
         ("USECASE", "Use Case"),
         ("DATA_FOLDER", "Data Folder"),
-        ("FOUNDRY_AGENT_ID", "Agent ID"),
     ]
     
-    print("\n🟢 Project Settings (from .env):")
+    print("\n🟢 Project Settings:")
     for var, name in project_vars:
         value = os.environ.get(var, "")
         if value:

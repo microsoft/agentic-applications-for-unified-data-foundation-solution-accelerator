@@ -120,7 +120,7 @@ def assign_fabric_roles():
     principal_id = os.getenv("FOUNDRY_PROJECT_PID")
     principal_label = "Foundry project system-assigned identity"
     if not principal_id:
-        print("  [SKIP] FOUNDRY_PROJECT_PID not set. Run generate_env_from_azure.py to populate it.")
+        print("  [SKIP] FOUNDRY_PROJECT_PID not set. Ensure azd environment is configured.")
         return
 
     print(f"  Assigning Contributor role to {principal_label} ({principal_id})")

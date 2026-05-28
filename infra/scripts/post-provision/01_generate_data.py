@@ -88,14 +88,20 @@ SIZE_CONFIG = {
 }
 size_config = SIZE_CONFIG[size]
 
-# Create output directory
+# Create output directory — use DATA_FOLDER if set (scenario-driven), else create timestamped dir
 base_data_dir = os.path.join(script_dir, "..", "..", "..", "data")
 os.makedirs(base_data_dir, exist_ok=True)
 
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-industry_slug = industry.lower().replace(" ", "_")[:20]
-data_dir = os.path.join(base_data_dir, f"{timestamp}_{industry_slug}")
-data_dir = os.path.abspath(data_dir)
+existing_data_folder = os.getenv("DATA_FOLDER")
+if existing_data_folder:
+    # Scenario or orchestrator already set the output folder
+    project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
+    data_dir = os.path.abspath(os.path.join(project_root, existing_data_folder))
+else:
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    industry_slug = industry.lower().replace(" ", "_")[:20]
+    data_dir = os.path.join(base_data_dir, f"{timestamp}_{industry_slug}")
+    data_dir = os.path.abspath(data_dir)
 
 print(f"\n{'='*60}")
 print(f"Generating data for: {industry}")
@@ -910,54 +916,27 @@ for csv in csv_files:
 
 print(f"""
 Next steps:
-  1. Update .env: DATA_FOLDER={data_dir}
-  2. Run the pipeline:
-     python infra/scripts/post-provision/02_create_fabric_items.py
-     python infra/scripts/post-provision/03_generate_agent_prompt.py
-     python infra/scripts/post-provision/05_upload_to_search.py
-     python infra/scripts/post-provision/06_create_agent.py
-     python infra/scripts/post-provision/07_test_agent.py
+  The pipeline will continue with the remaining steps automatically.
+  DATA_FOLDER={data_dir}
 """)
 
 # ============================================================================
-# Update .env with data folder path
+# Update environment with data folder path
 # ============================================================================
 
-env_path = os.path.join(script_dir, ".env")
 project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
 
-# Use relative path for .env (relative to project root)
+# Use relative path (relative to project root)
 relative_data_dir = os.path.relpath(data_dir, project_root)
 
-if os.path.exists(env_path):
-    with open(env_path, "r") as f:
-        env_content = f.read()
-    
-    lines = env_content.split("\n")
-    
-    # Update or add each setting
-    settings_to_update = {
-        "DATA_FOLDER": relative_data_dir,
-        "INDUSTRY": industry,
-        "USECASE": usecase,
-    }
-    
-    for key, value in settings_to_update.items():
-        found = False
-        for i, line in enumerate(lines):
-            if line.startswith(f"{key}="):
-                lines[i] = f"{key}={value}"
-                found = True
-                break
-        if not found:
-            lines.append(f"{key}={value}")
-    
-    with open(env_path, "w") as f:
-        f.write("\n".join(lines))
-    
-    print(f"[OK] Updated .env with DATA_FOLDER={relative_data_dir}")
-    print(f"[OK] Updated .env with INDUSTRY={industry}")
-    print(f"[OK] Updated .env with USECASE={usecase}")
+# Set environment variables for downstream scripts in the same process
+os.environ["DATA_FOLDER"] = relative_data_dir
+os.environ["INDUSTRY"] = industry
+os.environ["USECASE"] = usecase
+
+print(f"[OK] Set DATA_FOLDER={relative_data_dir}")
+print(f"[OK] Set INDUSTRY={industry}")
+print(f"[OK] Set USECASE={usecase}")
 
 # ============================================================================
 # Clear Cosmos DB Conversation History

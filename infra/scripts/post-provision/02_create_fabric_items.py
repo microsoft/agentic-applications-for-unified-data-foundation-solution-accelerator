@@ -304,21 +304,9 @@ if CREATE_FABRIC_WORKSPACE:
                 print(f"ERROR: Failed to create workspace: {create_resp.status_code} {create_resp.text}")
                 sys.exit(1)
 
-        # Persist workspace ID to .env for future runs and refresh in-process env
-        env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+        # Persist workspace ID in-process for downstream scripts
         os.environ["FABRIC_WORKSPACE_ID"] = WORKSPACE_ID
-        with open(env_file, "r") as f:
-            env_content = f.read()
-        if "FABRIC_WORKSPACE_ID" not in env_content:
-            with open(env_file, "a") as f:
-                f.write(f"\nFABRIC_WORKSPACE_ID={WORKSPACE_ID}\n")
-            print(f"  [OK] Saved FABRIC_WORKSPACE_ID to infra/scripts/post-provision/.env")
-        else:
-            import re
-            updated = re.sub(r'^FABRIC_WORKSPACE_ID=.*$', f'FABRIC_WORKSPACE_ID={WORKSPACE_ID}', env_content, flags=re.MULTILINE)
-            with open(env_file, "w") as f:
-                f.write(updated)
-            print(f"  [OK] Updated FABRIC_WORKSPACE_ID in infra/scripts/post-provision/.env")
+        print(f"  [OK] FABRIC_WORKSPACE_ID set to: {WORKSPACE_ID}")
 
     # Step B: Check if capacity is already assigned, assign if not
     ws_resp = make_request("GET", f"{FABRIC_API}/workspaces/{WORKSPACE_ID}")
