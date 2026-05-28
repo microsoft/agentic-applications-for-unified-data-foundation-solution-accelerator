@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "14490484640790301928"
+      "templateHash": "10497002165915606978"
     }
   },
   "parameters": {
@@ -7918,7 +7918,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "15990131164332243525"
+              "templateHash": "12776036543739450475"
             }
           },
           "parameters": {
@@ -8003,6 +8003,13 @@
                 "description": "Enable shareable link functionality."
               }
             },
+            "availabilityZones": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Availability zones for the Bastion Host public IP. Pass empty array to disable zone redundancy."
+              }
+            },
             "publicIPDiagnosticSettings": {
               "type": "array",
               "nullable": true,
@@ -8044,7 +8051,7 @@
                     "value": "[parameters('virtualNetworkResourceId')]"
                   },
                   "availabilityZones": {
-                    "value": []
+                    "value": "[parameters('availabilityZones')]"
                   },
                   "publicIPAddressObject": {
                     "value": {
@@ -68547,7 +68554,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "794765288390953924"
+              "templateHash": "9656580088814847134"
             }
           },
           "parameters": {
@@ -68930,190 +68937,6 @@
                   },
                   "aiFoundryName": {
                     "value": "[variables('existingAIFoundryName')]"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.43.8.12551",
-                      "templateHash": "7353258032010757384"
-                    }
-                  },
-                  "parameters": {
-                    "principalId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The principal ID to assign the role to."
-                      }
-                    },
-                    "roleDefinitionId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The resource ID of the role definition to assign."
-                      }
-                    },
-                    "roleAssignmentName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "A unique name for the role assignment."
-                      }
-                    },
-                    "aiFoundryName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The name of the AI Foundry account to scope the role assignment to."
-                      }
-                    },
-                    "principalType": {
-                      "type": "string",
-                      "defaultValue": "ServicePrincipal",
-                      "allowedValues": [
-                        "ServicePrincipal",
-                        "User"
-                      ],
-                      "metadata": {
-                        "description": "The principal type of the identity being assigned."
-                      }
-                    }
-                  },
-                  "resources": [
-                    {
-                      "type": "Microsoft.Authorization/roleAssignments",
-                      "apiVersion": "2022-04-01",
-                      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
-                      "name": "[parameters('roleAssignmentName')]",
-                      "properties": {
-                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]"
-                      }
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "condition": "[and(parameters('useExistingAIProject'), not(empty(parameters('deployerPrincipalId'))))]",
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "assignCogServicesUserToDeployerExisting",
-              "subscriptionId": "[variables('existingAIFoundrySubscription')]",
-              "resourceGroup": "[variables('existingAIFoundryResourceGroup')]",
-              "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "principalId": {
-                    "value": "[parameters('deployerPrincipalId')]"
-                  },
-                  "roleDefinitionId": {
-                    "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').cognitiveServicesUser)]"
-                  },
-                  "roleAssignmentName": {
-                    "value": "[guid(parameters('solutionName'), 'deployer-coguser', variables('existingAIFoundryName'), variables('roleDefinitions').cognitiveServicesUser)]"
-                  },
-                  "aiFoundryName": {
-                    "value": "[variables('existingAIFoundryName')]"
-                  },
-                  "principalType": {
-                    "value": "[parameters('deployerPrincipalType')]"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.43.8.12551",
-                      "templateHash": "7353258032010757384"
-                    }
-                  },
-                  "parameters": {
-                    "principalId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The principal ID to assign the role to."
-                      }
-                    },
-                    "roleDefinitionId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The resource ID of the role definition to assign."
-                      }
-                    },
-                    "roleAssignmentName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "A unique name for the role assignment."
-                      }
-                    },
-                    "aiFoundryName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The name of the AI Foundry account to scope the role assignment to."
-                      }
-                    },
-                    "principalType": {
-                      "type": "string",
-                      "defaultValue": "ServicePrincipal",
-                      "allowedValues": [
-                        "ServicePrincipal",
-                        "User"
-                      ],
-                      "metadata": {
-                        "description": "The principal type of the identity being assigned."
-                      }
-                    }
-                  },
-                  "resources": [
-                    {
-                      "type": "Microsoft.Authorization/roleAssignments",
-                      "apiVersion": "2022-04-01",
-                      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
-                      "name": "[parameters('roleAssignmentName')]",
-                      "properties": {
-                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
-                        "principalId": "[parameters('principalId')]",
-                        "principalType": "[parameters('principalType')]"
-                      }
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "condition": "[and(parameters('useExistingAIProject'), not(empty(parameters('deployerPrincipalId'))))]",
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "assignAiUserToDeployerExisting",
-              "subscriptionId": "[variables('existingAIFoundrySubscription')]",
-              "resourceGroup": "[variables('existingAIFoundryResourceGroup')]",
-              "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "principalId": {
-                    "value": "[parameters('deployerPrincipalId')]"
-                  },
-                  "roleDefinitionId": {
-                    "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').azureAiUser)]"
-                  },
-                  "roleAssignmentName": {
-                    "value": "[guid(parameters('solutionName'), 'deployer-aiuser', variables('existingAIFoundryName'), variables('roleDefinitions').azureAiUser)]"
-                  },
-                  "aiFoundryName": {
-                    "value": "[variables('existingAIFoundryName')]"
-                  },
-                  "principalType": {
-                    "value": "[parameters('deployerPrincipalType')]"
                   }
                 },
                 "template": {

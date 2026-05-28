@@ -421,8 +421,8 @@ module cosmosDBModule './modules/data/cosmos-db.bicep' = if (deployApp) {
 }
 
 //========== SQL DB module ========== //
-module sqlDBModule './modules/data/sql-db.bicep' = if(azureEnvOnly) {
-  name: take('module.sql-db.${solutionName}', 64)
+module sqlDBModule './modules/data/sql-database.bicep' = if(azureEnvOnly) {
+  name: take('module.sql-database.${solutionName}', 64)
   params: {
     serverName: 'sql-${solutionSuffix}'
     sqlDBName: 'sqldb-${solutionSuffix}'

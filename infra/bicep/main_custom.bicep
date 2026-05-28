@@ -359,7 +359,7 @@ module cosmosDBModule './modules/data/cosmos-db.bicep' = if (deployApp) {
 }
 
 // ========== SQL DB module ========== //
-module sqlDBModule './modules/data/sql-db.bicep' = if (azureEnvOnly) {
+module sqlDBModule './modules/data/sql-database.bicep' = if (azureEnvOnly) {
   name: 'deploy_sql_db'
   params: {
     serverName: 'sql-${solutionSuffix}'
