@@ -255,6 +255,15 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     azd config set provision.preflight off
     ```
 
+    **[Optional] Reuse an existing Fabric workspace:**
+
+    If you already have a Fabric workspace, set its ID before provisioning. This skips Fabric capacity creation during `azd up`:
+    ```shell
+    azd env set FABRIC_WORKSPACE_ID <your-workspace-id>
+    ```
+    > You can find your workspace ID in the Fabric URL: `https://app.fabric.microsoft.com/groups/<workspace-id>/...`
+    > If you omit `FABRIC_WORKSPACE_ID`, a new Fabric capacity and workspace will be created automatically.
+
 2. Provision and deploy all the resources:
 
     ```shell
@@ -291,14 +300,6 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
 7. Build the solution:
-
-    To reuse an existing Fabric workspace, set the workspace ID first:
-    ```shell
-    azd env set FABRIC_WORKSPACE_ID <your-workspace-id>
-    ```
-
-    > You can find your workspace ID in the Fabric URL: `https://app.fabric.microsoft.com/groups/<workspace-id>/...`
-    > If you omit `FABRIC_WORKSPACE_ID`, a new workspace will be created automatically.
 
     ```shell
     python infra/scripts/post-provision/00_build_solution.py --from 02
