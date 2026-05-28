@@ -145,8 +145,13 @@ if args.scenario and args.custom_data:
     sys.exit(1)
 
 # Default to "default" scenario when neither --scenario nor --custom-data is specified
+# BUT if --industry/--usecase is provided, treat as a generate run (no preset scenario)
 if not args.scenario and not args.custom_data:
-    args.scenario = "default"
+    if args.industry or args.usecase:
+        # User wants to generate data for a custom industry — don't use any preset scenario
+        pass
+    else:
+        args.scenario = "default"
 
 # Handle --scenario
 scenario_pack_dir = None
@@ -231,9 +236,9 @@ if args.scenario:
     )
     
     print(f"\n[OK] Scenario: {args.scenario}")
-    print(f"     Type: {scenario_meta.get('type', 'prebuilt')}")
-    print(f"     Industry: {scenario_meta['industry']}")
-    print(f"     Use Case: {scenario_meta['usecase']}")
+    print(f"     Type: {'generate' if (args.industry or args.usecase) else scenario_meta.get('type', 'prebuilt')}")
+    print(f"     Industry: {os.environ.get('INDUSTRY', '')}")
+    print(f"     Use Case: {os.environ.get('USECASE', '')}")
     print(f"     Documents: {'Yes' if has_documents else 'None (step 05 will be skipped)'}")
     print(f"     DATA_FOLDER set to: {relative_data_dir}")
 
@@ -336,6 +341,29 @@ if args.custom_data:
     print(f"     DATA_FOLDER set to: {relative_data_dir}")
 
 # ============================================================================
+# Handle generate mode: --industry/--usecase without --scenario or --custom-data
+# ============================================================================
+
+if not args.scenario and not custom_data_dir:
+    # Derive folder from industry name
+    industry_slug = (args.industry or "generated").lower().replace(" ", "_")[:20]
+    generate_data_dir = os.path.join(project_root, "data", "scenarios", industry_slug)
+    os.makedirs(generate_data_dir, exist_ok=True)
+
+    relative_data_dir = os.path.relpath(generate_data_dir, project_root)
+    os.environ["DATA_FOLDER"] = relative_data_dir
+    save_to_azd_env("DATA_FOLDER", relative_data_dir)
+    os.environ["INDUSTRY"] = args.industry or ""
+    os.environ["USECASE"] = args.usecase or ""
+    os.environ["DATA_SIZE"] = args.size or "small"
+
+    print(f"\n[OK] Generate mode")
+    print(f"     Type: generate")
+    print(f"     Industry: {args.industry}")
+    print(f"     Use Case: {args.usecase}")
+    print(f"     DATA_FOLDER set to: {relative_data_dir}")
+
+# ============================================================================
 # Determine Pipeline
 # ============================================================================
 
@@ -351,6 +379,15 @@ if custom_data_dir and "01" in pipeline:
 
 if scenario_pack_dir and "01" in pipeline:
     scenario_type = scenario_meta.get("type", "prebuilt") if scenario_meta else "prebuilt"
+    # If user explicitly provided --industry/--usecase that differ from the scenario defaults,
+    # treat as "generate" so step 01 runs with the custom industry/usecase
+    if scenario_type != "generate" and (args.industry or args.usecase):
+        user_industry = args.industry or ""
+        user_usecase = args.usecase or ""
+        meta_industry = scenario_meta.get("industry", "") if scenario_meta else ""
+        meta_usecase = scenario_meta.get("usecase", "") if scenario_meta else ""
+        if user_industry.lower() != meta_industry.lower() or user_usecase.lower() != meta_usecase.lower():
+            scenario_type = "generate"
     if scenario_type != "generate":
         pipeline = [s for s in pipeline if s != "01"]
         print("  (Skipping step 01 — using scenario pack data)")
