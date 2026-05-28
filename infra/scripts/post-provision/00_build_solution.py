@@ -114,6 +114,7 @@ load_all_env()
 # ============================================================================
 
 from scenarios import list_scenarios, get_scenario, get_scenario_abs_path
+from load_env import save_to_azd_env
 
 project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
 data_root = os.path.join(project_root, "data")
@@ -165,6 +166,7 @@ if args.scenario:
     # Set DATA_FOLDER and INDUSTRY/USECASE from scenario metadata
     relative_data_dir = os.path.relpath(scenario_pack_dir, project_root)
     os.environ["DATA_FOLDER"] = relative_data_dir
+    save_to_azd_env("DATA_FOLDER", relative_data_dir)
     os.environ["INDUSTRY"] = args.industry or scenario_meta.get("industry", "")
     os.environ["USECASE"] = args.usecase or scenario_meta.get("usecase", "")
     
@@ -322,6 +324,7 @@ if args.custom_data:
     # Set DATA_FOLDER in environment
     relative_data_dir = os.path.relpath(custom_data_dir, project_root)
     os.environ["DATA_FOLDER"] = relative_data_dir
+    save_to_azd_env("DATA_FOLDER", relative_data_dir)
     os.environ["INDUSTRY"] = custom_industry
     os.environ["USECASE"] = custom_usecase
 

@@ -953,6 +953,10 @@ os.environ["DATA_FOLDER"] = relative_data_dir
 os.environ["INDUSTRY"] = industry
 os.environ["USECASE"] = usecase
 
+# Persist DATA_FOLDER to azd env so standalone scripts can find it
+from load_env import save_to_azd_env
+save_to_azd_env("DATA_FOLDER", relative_data_dir)
+
 print(f"[OK] Set DATA_FOLDER={relative_data_dir}")
 print(f"[OK] Set INDUSTRY={industry}")
 print(f"[OK] Set USECASE={usecase}")

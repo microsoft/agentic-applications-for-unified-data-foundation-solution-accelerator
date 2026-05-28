@@ -91,6 +91,23 @@ def get_required_env(var_name: str, description: str = None) -> str:
     return value
 
 
+def save_to_azd_env(key: str, value: str):
+    """
+    Persist a key=value pair to the azd environment using 'azd env set'.
+    
+    This makes the value available to future script runs via load_azd_env().
+    Silently skips if azd is not available or fails.
+    """
+    import subprocess
+    try:
+        subprocess.run(
+            ["azd", "env", "set", key, value],
+            capture_output=True, text=True, timeout=30
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        pass  # azd not installed or not available — skip silently
+
+
 def get_data_folder() -> str:
     """
     Get DATA_FOLDER resolved to an absolute path.
