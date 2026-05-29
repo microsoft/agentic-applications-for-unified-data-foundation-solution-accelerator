@@ -46,13 +46,13 @@ STEPS = {
     "01": {"script": "01_generate_data.py", "name": "Generate Sample Data", "time": "~2min"},
     "02": {"script": "02_create_fabric_items.py", "name": "Create Fabric Lakehouse & Load Data", "time": "~1.5min", "fabric": True},
     "03": {"script": "03_generate_agent_prompt.py", "name": "Generate Agent Prompt", "time": "~5s"},
-    "05": {"script": "04_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
-    "06": {"script": "05_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
-    "08": {"script": "06_app_deployment.py", "name": "App Deployment Config", "time": "~15s"},
+    "04": {"script": "04_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
+    "05": {"script": "05_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
+    "06": {"script": "06_app_deployment.py", "name": "App Deployment Config", "time": "~15s"},
 }
 
 # Pipeline order
-FABRIC_PIPELINE = ["01", "02", "03", "05", "06", "08"]
+FABRIC_PIPELINE = ["01", "02", "03", "04", "05", "06"]
 
 # ============================================================================
 # Parse Arguments
@@ -198,18 +198,18 @@ if args.scenario:
             
             if not custom_industry or not custom_usecase:
                 print("\n" + "="*60)
-                print("Custom Scenario - Industry & Use Case")
+                print("BYOD Scenario - Industry & Use Case")
                 print("="*60)
                 print("\nDescribe your data so the agent understands the domain context.\n")
                 if not custom_industry:
                     custom_industry = input("Industry (e.g. Healthcare, Retail, Manufacturing): ").strip()
                     if not custom_industry:
-                        print("ERROR: Industry is required for custom scenarios.")
+                        print("ERROR: Industry is required for BYOD scenarios.")
                         sys.exit(1)
                 if not custom_usecase:
                     custom_usecase = input("Use Case (e.g. Patient records and clinical notes): ").strip()
                     if not custom_usecase:
-                        print("ERROR: Use case is required for custom scenarios.")
+                        print("ERROR: Use case is required for BYOD scenarios.")
                         sys.exit(1)
                 os.environ["INDUSTRY"] = custom_industry
                 os.environ["USECASE"] = custom_usecase
@@ -239,7 +239,7 @@ if args.scenario:
     print(f"     Type: {'generate' if (args.industry or args.usecase) else scenario_meta.get('type', 'prebuilt')}")
     print(f"     Industry: {os.environ.get('INDUSTRY', '')}")
     print(f"     Use Case: {os.environ.get('USECASE', '')}")
-    print(f"     Documents: {'Yes' if has_documents else 'None (step 05 will be skipped)'}")
+    print(f"     Documents: {'Yes' if has_documents else 'None (step 04 will be skipped)'}")
     print(f"     DATA_FOLDER set to: {relative_data_dir}")
 
 # ============================================================================
@@ -401,9 +401,9 @@ if scenario_pack_dir or custom_data_dir:
     has_pdfs = os.path.isdir(docs_path) and any(
         f.endswith(".pdf") for f in os.listdir(docs_path)
     )
-    if not has_pdfs and "05" in pipeline:
-        pipeline = [s for s in pipeline if s != "05"]
-        print("  (Skipping step 05 — no PDF documents found in data folder. Cleaning up search resources...)")
+    if not has_pdfs and "04" in pipeline:
+        pipeline = [s for s in pipeline if s != "04"]
+        print("  (Skipping step 04 — no PDF documents found in data folder. Cleaning up search resources...)")
 
         # Clean up existing search index, knowledge base, and knowledge source
         cleanup_script = os.path.join(script_dir, "04_upload_to_search.py")
@@ -633,5 +633,5 @@ Sample questions to try:
         print("\nSome steps failed. Check the output above for errors.")
         sys.exit(1)
 
-if web_app_url and "08" in pipeline:
+if web_app_url and "06" in pipeline:
     print(f"🚀 Your app is live! Open it here: {web_app_url}")

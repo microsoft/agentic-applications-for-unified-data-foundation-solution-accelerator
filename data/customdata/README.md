@@ -91,7 +91,7 @@ To make your custom data folder available as a named `--scenario`, add an entry 
     "folder": "data/customdata",
     "industry": "Healthcare",
     "usecase": "Patient records and clinical notes",
-    "type": "custom",
+    "type": "byod",
     "description": "Custom healthcare scenario",
     "landing_text": "Ask about patient records...",
     "app_title": "Healthcare Agent",
@@ -100,7 +100,7 @@ To make your custom data folder available as a named `--scenario`, add an entry 
 }
 ```
 
-> **Note:** Set `"type": "custom"` so the pipeline knows to auto-generate `ontology_config.json` from your CSVs.
+> **Note:** Set `"type": "byod"` so the pipeline knows to auto-generate `ontology_config.json` from your CSVs.
 
 **Field reference:**
 
