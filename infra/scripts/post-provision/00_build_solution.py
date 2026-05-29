@@ -372,7 +372,7 @@ if args.only:
 else:
     pipeline = FABRIC_PIPELINE.copy()
 
-# Skip data generation step when using custom data or prebuilt/custom scenario pack
+# Skip data generation step when using BYOD data or prebuilt/scenario pack
 if custom_data_dir and "01" in pipeline:
     pipeline = [s for s in pipeline if s != "01"]
     print("  (Skipping step 01 — using custom data instead of AI generation)")
@@ -381,7 +381,8 @@ if scenario_pack_dir and "01" in pipeline:
     scenario_type = scenario_meta.get("type", "prebuilt") if scenario_meta else "prebuilt"
     # If user explicitly provided --industry/--usecase that differ from the scenario defaults,
     # treat as "custom" so step 01 runs with the custom industry/usecase
-    if scenario_type != "custom" and (args.industry or args.usecase):
+    # (but never override "byod" scenarios — they always skip step 01)
+    if scenario_type not in ("custom", "byod") and (args.industry or args.usecase):
         user_industry = args.industry or ""
         user_usecase = args.usecase or ""
         meta_industry = scenario_meta.get("industry", "") if scenario_meta else ""

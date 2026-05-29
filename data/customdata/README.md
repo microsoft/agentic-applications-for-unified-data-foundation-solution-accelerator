@@ -74,7 +74,7 @@ re-running the pipeline. It describes:
 
 ## Tips
 
-- Look at `data/default/` for a working example of the expected structure
+- Look at `data/scenarios/default/` for a working example of the expected structure
 - If auto-detected keys or relationships are wrong, edit `config/ontology_config.json`
   and re-run from step 03: `python infra/scripts/post-provision/00_build_solution.py --from 03`
 - Delete `config/ontology_config.json` to force regeneration on the next run
