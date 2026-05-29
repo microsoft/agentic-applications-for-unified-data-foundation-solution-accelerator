@@ -145,7 +145,7 @@ if args.scenario and args.custom_data:
     sys.exit(1)
 
 # Default to "default" scenario when neither --scenario nor --custom-data is specified
-# BUT if --industry/--usecase is provided, treat as a generate run (no preset scenario)
+# BUT if --industry/--usecase is provided, treat as a custom run (no preset scenario)
 if not args.scenario and not args.custom_data:
     if args.industry or args.usecase:
         # User wants to generate data for a custom industry — don't use any preset scenario
@@ -175,7 +175,7 @@ if args.scenario:
     os.environ["INDUSTRY"] = args.industry or scenario_meta.get("industry", "")
     os.environ["USECASE"] = args.usecase or scenario_meta.get("usecase", "")
     
-    # Set DATA_SIZE for generate-type scenarios (used by step 01)
+    # Set DATA_SIZE for custom-type scenarios (used by step 01)
     if scenario_meta.get("data_size"):
         os.environ["DATA_SIZE"] = args.size or scenario_meta["data_size"]
     elif args.size:
@@ -236,7 +236,7 @@ if args.scenario:
     )
     
     print(f"\n[OK] Scenario: {args.scenario}")
-    print(f"     Type: {'generate' if (args.industry or args.usecase) else scenario_meta.get('type', 'prebuilt')}")
+    print(f"     Type: {'custom' if (args.industry or args.usecase) else scenario_meta.get('type', 'prebuilt')}")
     print(f"     Industry: {os.environ.get('INDUSTRY', '')}")
     print(f"     Use Case: {os.environ.get('USECASE', '')}")
     print(f"     Documents: {'Yes' if has_documents else 'None (step 04 will be skipped)'}")
@@ -341,7 +341,7 @@ if args.custom_data:
     print(f"     DATA_FOLDER set to: {relative_data_dir}")
 
 # ============================================================================
-# Handle generate mode: --industry/--usecase without --scenario or --custom-data
+# Handle custom mode: --industry/--usecase without --scenario or --custom-data
 # ============================================================================
 
 if not args.scenario and not custom_data_dir:
@@ -357,8 +357,8 @@ if not args.scenario and not custom_data_dir:
     os.environ["USECASE"] = args.usecase or ""
     os.environ["DATA_SIZE"] = args.size or "small"
 
-    print(f"\n[OK] Generate mode")
-    print(f"     Type: generate")
+    print(f"\n[OK] Custom mode (AI data generation)")
+    print(f"     Type: custom")
     print(f"     Industry: {args.industry}")
     print(f"     Use Case: {args.usecase}")
     print(f"     DATA_FOLDER set to: {relative_data_dir}")
