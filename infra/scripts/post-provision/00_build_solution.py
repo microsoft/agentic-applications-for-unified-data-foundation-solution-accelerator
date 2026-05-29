@@ -375,7 +375,7 @@ else:
 # Skip data generation step when using BYOD data or prebuilt/scenario pack
 if custom_data_dir and "01" in pipeline:
     pipeline = [s for s in pipeline if s != "01"]
-    print("  (Skipping step 01 — using custom data instead of AI generation)")
+    print("  (Skipping step 01 — using BYOD data instead of AI generation)")
 
 if scenario_pack_dir and "01" in pipeline:
     scenario_type = scenario_meta.get("type", "prebuilt") if scenario_meta else "prebuilt"
@@ -391,7 +391,7 @@ if scenario_pack_dir and "01" in pipeline:
             scenario_type = "custom"
     if scenario_type != "custom":
         pipeline = [s for s in pipeline if s != "01"]
-        print("  (Skipping step 01 — using scenario pack data)")
+        print("  (Skipping step 01 — using prebuilt/scenario pack data)")
     else:
         print("  (Running step 01 — generating AI data for custom industry/usecase)")
 
