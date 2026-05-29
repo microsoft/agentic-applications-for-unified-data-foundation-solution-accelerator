@@ -1,5 +1,5 @@
 """
-09 - App Deployment Configuration
+06 - App Deployment Configuration
 Assigns roles and permissions required for the deployed application.
 
 Usage:

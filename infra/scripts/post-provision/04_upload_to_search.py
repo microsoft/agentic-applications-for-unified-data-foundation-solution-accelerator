@@ -1,5 +1,5 @@
 """
-06 - Upload PDF Files to Azure AI Search
+04 - Upload PDF Files to Azure AI Search
 Uploads PDF files from the data folder to Azure AI Search with page-aware chunking.
 
 Usage:
