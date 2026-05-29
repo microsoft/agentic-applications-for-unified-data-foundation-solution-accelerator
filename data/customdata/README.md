@@ -109,7 +109,7 @@ To make your custom data folder available as a named `--scenario`, add an entry 
 | `folder` | Yes | Path to your data folder (relative to project root) containing `tables/` and `documents/` |
 | `industry` | Yes | Domain name (e.g. Healthcare, Retail, Manufacturing). Used for agent prompt context |
 | `usecase` | Yes | Brief description of what the data represents. Used for agent prompt context |
-| `type` | Yes | `custom` (auto-generates ontology config from CSVs) or `prebuilt` (expects config to exist) |
+| `type` | Yes | `prebuilt` (ready-to-use data), `custom` (AI creates synthetic data for your industry/usecase), or `byod` (bring your own CSVs, auto-generates config) |
 | `description` | No | Human-readable summary shown with `--list-scenarios` |
 | `landing_text` | No | Welcome message shown in the chat UI |
 | `app_title` | No | Browser tab / app title |

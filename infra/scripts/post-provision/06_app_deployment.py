@@ -3,7 +3,7 @@
 Assigns roles and permissions required for the deployed application.
 
 Usage:
-    python 08_app_deployment.py
+    python 06_app_deployment.py
 
 Prerequisites:
     - Azure resources deployed (azd up)
@@ -381,7 +381,7 @@ def update_agent_app_settings():
 
         if not os.path.exists(agent_ids_path):
             print(f"\n[SKIP] Agent App Settings update - {agent_ids_path} not found")
-            print("       Run 06_create_agent.py first.")
+            print("       Run 05_create_agent.py first.")
             return
 
         with open(agent_ids_path, encoding="utf-8") as f:

@@ -46,9 +46,9 @@ STEPS = {
     "01": {"script": "01_generate_data.py", "name": "Generate Sample Data", "time": "~2min"},
     "02": {"script": "02_create_fabric_items.py", "name": "Create Fabric Lakehouse & Load Data", "time": "~1.5min", "fabric": True},
     "03": {"script": "03_generate_agent_prompt.py", "name": "Generate Agent Prompt", "time": "~5s"},
-    "05": {"script": "05_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
-    "06": {"script": "06_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
-    "08": {"script": "08_app_deployment.py", "name": "App Deployment Config", "time": "~15s"},
+    "05": {"script": "04_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
+    "06": {"script": "05_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
+    "08": {"script": "06_app_deployment.py", "name": "App Deployment Config", "time": "~15s"},
 }
 
 # Pipeline order
@@ -134,8 +134,8 @@ if args.list_scenarios:
             print(f"  {name:<15} {stype:<10} {meta['industry']:<15} {meta['usecase']:<30}")
         print("-" * 80)
         print(f"\n  Types: prebuilt = ready-to-use data")
-        print(f"         custom   = bring your own CSVs (auto-generates config)")
-        print(f"         generate = AI creates synthetic data for your industry/usecase")
+        print(f"         byod   = bring your own CSVs (auto-generates config)")
+        print(f"         custom = AI creates synthetic data for your industry/usecase")
         print(f"\nUsage: python {os.path.basename(__file__)} --scenario <name>")
     sys.exit(0)
 
@@ -181,12 +181,12 @@ if args.scenario:
     elif args.size:
         os.environ["DATA_SIZE"] = args.size
 
-    # For generate-type scenarios, ensure the output folder exists
-    if scenario_meta.get("type") == "generate":
+    # For custom-type scenarios, ensure the output folder exists
+    if scenario_meta.get("type") == "custom":
         os.makedirs(scenario_pack_dir, exist_ok=True)
 
-    # For custom-type scenarios, auto-generate config if missing
-    if scenario_meta.get("type") == "custom":
+    # For byod-type scenarios, auto-generate config if missing
+    if scenario_meta.get("type") == "byod":
         config_dir = os.path.join(scenario_pack_dir, "config")
         os.makedirs(config_dir, exist_ok=True)
         config_path = os.path.join(config_dir, "ontology_config.json")
@@ -380,15 +380,15 @@ if custom_data_dir and "01" in pipeline:
 if scenario_pack_dir and "01" in pipeline:
     scenario_type = scenario_meta.get("type", "prebuilt") if scenario_meta else "prebuilt"
     # If user explicitly provided --industry/--usecase that differ from the scenario defaults,
-    # treat as "generate" so step 01 runs with the custom industry/usecase
-    if scenario_type != "generate" and (args.industry or args.usecase):
+    # treat as "custom" so step 01 runs with the custom industry/usecase
+    if scenario_type != "custom" and (args.industry or args.usecase):
         user_industry = args.industry or ""
         user_usecase = args.usecase or ""
         meta_industry = scenario_meta.get("industry", "") if scenario_meta else ""
         meta_usecase = scenario_meta.get("usecase", "") if scenario_meta else ""
         if user_industry.lower() != meta_industry.lower() or user_usecase.lower() != meta_usecase.lower():
-            scenario_type = "generate"
-    if scenario_type != "generate":
+            scenario_type = "custom"
+    if scenario_type != "custom":
         pipeline = [s for s in pipeline if s != "01"]
         print("  (Skipping step 01 — using scenario pack data)")
     else:
@@ -406,7 +406,7 @@ if scenario_pack_dir or custom_data_dir:
         print("  (Skipping step 05 — no PDF documents found in data folder. Cleaning up search resources...)")
 
         # Clean up existing search index, knowledge base, and knowledge source
-        cleanup_script = os.path.join(script_dir, "05_upload_to_search.py")
+        cleanup_script = os.path.join(script_dir, "04_upload_to_search.py")
         if os.path.exists(cleanup_script):
             result = subprocess.run(
                 [sys.executable, cleanup_script, "--cleanup"],
