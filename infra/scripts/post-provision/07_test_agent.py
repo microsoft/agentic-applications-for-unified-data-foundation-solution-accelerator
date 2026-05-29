@@ -20,7 +20,6 @@ import os
 import sys
 import json
 import re
-import struct
 import argparse
 import asyncio
 import traceback
@@ -44,7 +43,6 @@ from azure.identity import DefaultAzureCredential
 from azure.identity.aio import DefaultAzureCredential as AsyncDefaultAzureCredential
 from azure.ai.projects.aio import AIProjectClient
 from agent_framework.foundry import FoundryAgent
-import requests
 
 # ============================================================================
 # Configuration
@@ -54,9 +52,6 @@ ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
 
 # SQL Configuration
 FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
-# Support both new and legacy environment variable names for backward compatibility
-SQL_SERVER = os.getenv("AZURE_SQLDB_SERVER") or os.getenv("SQLDB_SERVER")
-SQL_DATABASE = os.getenv("AZURE_SQLDB_DATABASE") or os.getenv("SQLDB_DATABASE")
 
 if not ENDPOINT:
     print("ERROR: AZURE_AI_AGENT_ENDPOINT not set")
@@ -90,196 +85,26 @@ if not CHAT_AGENT_NAME:
     print("       Run 06_create_agent.py first or provide --agent-name")
     sys.exit(1)
 
-# Determine SQL mode from saved config
-SQL_MODE = agent_ids.get("sql_mode", "azure_sql")
-USE_FABRIC = SQL_MODE in ("fabric", "fabric_data_agent")
-USE_DATA_AGENT = SQL_MODE == "fabric_data_agent"
-
-# For Fabric mode, load additional config
-LAKEHOUSE_NAME = None
-LAKEHOUSE_ID = None
-SQL_ENDPOINT = None
-
-if USE_FABRIC and not USE_DATA_AGENT:
-    fabric_ids_path = os.path.join(config_dir, "fabric_ids.json")
-    if os.path.exists(fabric_ids_path):
-        with open(fabric_ids_path) as f:
-            fabric_ids = json.load(f)
-        LAKEHOUSE_NAME = fabric_ids.get("lakehouse_name")
-        LAKEHOUSE_ID = fabric_ids.get("lakehouse_id")
-elif not USE_FABRIC and not USE_DATA_AGENT:
-    # Use Azure SQL config from agent_ids or environment
-    SQL_SERVER = agent_ids.get("sql_server") or SQL_SERVER
-    SQL_DATABASE = agent_ids.get("sql_database") or SQL_DATABASE
-
-# Only require SQL config when not using Data Agent (MCP handles SQL server-side)
-if not USE_DATA_AGENT and not USE_FABRIC and (not SQL_SERVER or not SQL_DATABASE):
-    print("ERROR: Azure SQL not configured")
-    print("       Set AZURE_SQLDB_SERVER (or legacy SQLDB_SERVER) and AZURE_SQLDB_DATABASE (or legacy SQLDB_DATABASE)")
-    sys.exit(1)
-
-# Only import pyodbc when needed (not in Data Agent mode)
-if not USE_DATA_AGENT:
-    import pyodbc
+# SQL is always handled by Fabric Data Agent (MCP) - no local SQL config needed
 
 # ============================================================================
 # Print Configuration
 # ============================================================================
 
 print(f"\n{'='*60}")
-if USE_DATA_AGENT:
-    print("AI Agent Chat (Fabric Data Agent MCP + Native Search)")
-elif USE_FABRIC:
-    print("AI Agent Chat (Fabric SQL + Native Search)")
-else:
-    print("AI Agent Chat (Azure SQL + Native Search)")
+print("AI Agent Chat (Fabric Data Agent MCP + Native Search)")
 print(f"{'='*60}")
 print(f"Chat Agent: {CHAT_AGENT_NAME}")
-if USE_DATA_AGENT:
-    print(f"SQL Mode: Fabric Data Agent (MCP)")
-    print(f"Data Agent: {agent_ids.get('data_agent_name', 'N/A')}")
-    print(f"MCP Endpoint: {agent_ids.get('data_agent_mcp_endpoint', 'N/A')}")
-elif USE_FABRIC:
-    print("SQL Mode: Fabric Lakehouse")
-    print(f"Lakehouse: {LAKEHOUSE_NAME}")
-else:
-    print("SQL Mode: Azure SQL Database")
-    print(f"SQL Server: {SQL_SERVER}")
-    print(f"SQL Database: {SQL_DATABASE}")
+print(f"SQL Mode: Fabric Data Agent (MCP)")
+print(f"Data Agent: {agent_ids.get('data_agent_name', 'N/A')}")
+print(f"MCP Endpoint: {agent_ids.get('data_agent_mcp_endpoint', 'N/A')}")
 print("Type 'quit' to exit, 'help' for sample questions\n")
 
 # ============================================================================
-# SQL Connection Functions (not used in Data Agent mode)
+# Credential
 # ============================================================================
 
 credential = DefaultAzureCredential()
-
-def get_fabric_sql_endpoint():
-    """Get the SQL analytics endpoint for the Fabric Lakehouse"""
-    if not FABRIC_WORKSPACE_ID or not LAKEHOUSE_ID:
-        return None
-    
-    try:
-        token = credential.get_token("https://api.fabric.microsoft.com/.default")
-        headers = {"Authorization": f"Bearer {token.token}"}
-        url = f"https://api.fabric.microsoft.com/v1/workspaces/{FABRIC_WORKSPACE_ID}/lakehouses/{LAKEHOUSE_ID}"
-        
-        resp = requests.get(url, headers=headers)
-        if resp.status_code == 200:
-            data = resp.json()
-            props = data.get("properties", {})
-            sql_props = props.get("sqlEndpointProperties", {})
-            return sql_props.get("connectionString")
-        elif VERBOSE:
-            print(f"[Fabric] API error response: {resp.text}")
-    except Exception as e:
-        print(f"Warning: Could not get Fabric SQL endpoint: {e}")
-        traceback.print_exc()
-    return None
-
-
-def get_azure_sql_connection():
-    """Get a connection to Azure SQL Server using DefaultAzureCredential."""
-    driver18 = "ODBC Driver 18 for SQL Server"
-    driver17 = "ODBC Driver 17 for SQL Server"
-    
-    token = credential.get_token("https://database.windows.net/.default")
-    token_bytes = token.token.encode("utf-16-LE")
-    token_struct = struct.pack(
-        f"<I{len(token_bytes)}s",
-        len(token_bytes),
-        token_bytes
-    )
-    SQL_COPT_SS_ACCESS_TOKEN = 1256
-    
-    try:
-        connection_string = f"DRIVER={{{driver18}}};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};"
-        return pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-    except Exception as e:
-        if VERBOSE:
-            print(f"[Azure SQL] {driver18} failed: {e}")
-            print(f"[Azure SQL] Falling back to {driver17}...")
-        try:
-            connection_string = f"DRIVER={{{driver17}}};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};"
-            conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-            if VERBOSE:
-                print(f"[Azure SQL] Connected successfully using {driver17}")
-            return conn
-        except Exception as e2:
-            print(f"[Azure SQL] {driver17} also failed: {e2}")
-            traceback.print_exc()
-            raise
-
-
-def get_fabric_sql_connection():
-    """Get a connection to Fabric Lakehouse SQL endpoint."""
-    global SQL_ENDPOINT
-    if not SQL_ENDPOINT:
-        SQL_ENDPOINT = get_fabric_sql_endpoint()
-    
-    if not SQL_ENDPOINT:
-        raise Exception("Could not get Fabric SQL endpoint")
-    
-    token = credential.get_token("https://database.windows.net/.default")
-    token_bytes = token.token.encode("utf-16-LE")
-    token_struct = struct.pack(
-        f"<I{len(token_bytes)}s",
-        len(token_bytes),
-        token_bytes
-    )
-    SQL_COPT_SS_ACCESS_TOKEN = 1256
-    
-    connection_string = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER={SQL_ENDPOINT};DATABASE={LAKEHOUSE_NAME};Encrypt=yes;TrustServerCertificate=no"
-    try:
-        conn = pyodbc.connect(connection_string, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-        return conn
-    except Exception as e:
-        if VERBOSE:
-            print(f"[Fabric SQL] Connection failed: {e}")
-            traceback.print_exc()
-        raise
-
-
-def execute_sql(sql_query: str) -> str:
-    """Execute SQL query and return results."""
-    if VERBOSE:
-        print(f"\n[SQL] Executing query:\n{sql_query}")
-    try:
-        if USE_FABRIC:
-            conn = get_fabric_sql_connection()
-        else:
-            conn = get_azure_sql_connection()
-        
-        cursor = conn.cursor()
-        cursor.execute(sql_query)
-        
-        columns = [col[0] for col in cursor.description]
-        rows = cursor.fetchall()
-        
-        # Format results as markdown table
-        result_lines = []
-        result_lines.append("| " + " | ".join(columns) + " |")
-        result_lines.append("|" + "|".join(["---"] * len(columns)) + "|")
-        
-        for row in rows[:50]:  # Limit to 50 rows
-            values = [str(v) if v is not None else "NULL" for v in row]
-            result_lines.append("| " + " | ".join(values) + " |")
-        
-        if len(rows) > 50:
-            result_lines.append(f"\n... and {len(rows) - 50} more rows")
-        
-        result_lines.append(f"\n({len(rows)} rows returned)")
-        
-        conn.close()
-        result = "\n".join(result_lines)
-        if VERBOSE:
-            print(f"\n[SQL] Results:\n{result}")
-        return result
-        
-    except Exception as e:
-        traceback.print_exc()
-        return f"SQL Error: {str(e)}"
-
 
 # ============================================================================
 # Sample Questions - Load from config or use defaults
@@ -346,10 +171,7 @@ def show_help():
     print("\nSample questions to try:")
     for i, q in enumerate(sample_questions, 1):
         print(f"  {i}. {q}")
-    if USE_DATA_AGENT:
-        print("\n  SQL questions use Fabric Data Agent (MCP) tool")
-    else:
-        print("\n  SQL questions use execute_sql tool")
+    print("\n  SQL questions use Fabric Data Agent (MCP) tool")
     print("  Search questions use AI Search automatically")
     print("  Combined questions use both tools")
     print()
@@ -455,14 +277,10 @@ async def chat(user_message: str, agent, conversation_id: str = None):
 
 
 async def main():
-    # Build tools list - only pass execute_sql when not using Data Agent
-    tools = [execute_sql] if not USE_DATA_AGENT else None
-
     agent = FoundryAgent(
         project_endpoint=ENDPOINT,
         agent_name=CHAT_AGENT_NAME,
         credential=DefaultAzureCredential(),
-        tools=tools,
     )
 
     print("-" * 60)

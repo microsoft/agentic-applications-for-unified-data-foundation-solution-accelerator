@@ -27,12 +27,9 @@ This will allow the scripts to run for the current session without permanently c
 
 ## Deployment Options
 
-This solution offers two deployment paths:
+This solution deploys with Microsoft Fabric (Data Agent, Ontology, Lakehouse) + Azure AI Foundry.
 
-| Option | Description | Requirements |
-|--------|-------------|--------------|
-| **Option A — Fabric + Foundry (Default)** | Full deployment with Microsoft Fabric (Data Agent, Ontology, Lakehouse) + Azure AI Foundry | Fabric capacity (F8+) + Azure subscription |
-| **Option B — Azure-Only** | Azure-only deployment with Azure SQL + Azure AI Foundry (no Fabric required) | Azure subscription only |
+**Requirements:** Fabric capacity (F8+) + Azure subscription
 
 ---
 
@@ -44,16 +41,22 @@ Pre-built scenario packs provide ready-to-use datasets without requiring AI data
 |------|----------|----------|--------|-----------|
 | **retail** | Retail | Inventory and sales operations | 13 (customers, orders, products, invoices, payments, locations) | None (SQL-only) |
 | **insurance** | Insurance | Claims processing and customer management | 4 (customer, policy, claim, communicationshistory) | None (SQL-only) |
+| **default** | Telecommunications | Network operations with outage tracking and trouble ticket management | AI-generated | AI-generated |
+| **default_large** | Telecommunications | Network operations (large dataset) | AI-generated | AI-generated |
 
-> **Note:** If you don't use `--scenario`, the default behavior generates AI-based sample data (Telecommunications - Network operations with outage tracking and trouble ticket management) with CSV data.
+> **Note:** If you don't use `--scenario`, the `default` scenario is used automatically (Telecommunications - Network operations with outage tracking and trouble ticket management) which generates AI-based sample data.
 
 To use a scenario pack, add `--scenario <name>` to the build command (see step 7 below).
+
+**Additional data options:**
+- [Bring Your Own Data](../data/customdata/README.md) — Use your own CSV tables and PDF documents
+- [Generate Custom Data](./GenerateCustomData.md) — AI-generate datasets for any custom industry/use case (ideal for POCs)
 
 ---
 
 ## Deployment Steps
 
-###  Fabric Deployment (Option A)
+###  Fabric Deployment
 <!-- if you have an existing workspace use this Id -->
 1. Follow the steps in [Fabric Deployment](./Fabric_deployment.md) to create a Fabric workspace
 
@@ -247,16 +250,19 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
       azd env set BACKEND_RUNTIME_STACK dotnet
       ```
 
-      **For Option B (Azure-only mode)**, set the following before running `azd up`:
-
-      ```sh
-      azd env set AZURE_ENV_ONLY true
-      ```
-
     **NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
     ```bash 
     azd config set provision.preflight off
     ```
+
+    **[Optional] Reuse an existing Fabric workspace:**
+
+    If you already have a Fabric workspace, set its ID before provisioning. This skips Fabric capacity creation during `azd up`:
+    ```shell
+    azd env set FABRIC_WORKSPACE_ID <your-workspace-id>
+    ```
+    > You can find your workspace ID in the Fabric URL: `https://app.fabric.microsoft.com/groups/<workspace-id>/...`
+    > If you omit `FABRIC_WORKSPACE_ID`, a new Fabric capacity and workspace will be created automatically.
 
 2. Provision and deploy all the resources:
 
@@ -295,39 +301,17 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 7. Build the solution:
 
-    **Fabric mode (default - Option A):**
-
-    To reuse an existing Fabric workspace, set the workspace ID first:
-    ```shell
-    azd env set FABRIC_WORKSPACE_ID <your-workspace-id>
-    ```
-
-    > You can find your workspace ID in the Fabric URL: `https://app.fabric.microsoft.com/groups/<workspace-id>/...`
-    > If you omit `FABRIC_WORKSPACE_ID`, a new workspace will be created automatically.
-
     ```shell
     python infra/scripts/post-provision/00_build_solution.py --from 02
-    ```
-
-    **Azure-only mode (Option B)** — if you set `AZURE_ENV_ONLY=true`:
-
-    ```shell
-    python infra/scripts/post-provision/00_build_solution.py --from 03
     ```
 
     **Using a Scenario Pack** (pre-built datasets — no AI generation needed):
 
     ```shell
-    # Option A (Fabric) - Retail scenario:
+    # Retail scenario:
     python infra/scripts/post-provision/00_build_solution.py --scenario retail
 
-    # Option A (Fabric) - Insurance scenario:
-    python infra/scripts/post-provision/00_build_solution.py --scenario insurance
-
-    # Option B (Azure-only) - Retail scenario:
-    python infra/scripts/post-provision/00_build_solution.py --scenario retail
-
-    # Option B (Azure-only) - Insurance scenario:
+    # Insurance scenario:
     python infra/scripts/post-provision/00_build_solution.py --scenario insurance
     ```
 

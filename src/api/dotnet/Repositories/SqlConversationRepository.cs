@@ -3,7 +3,6 @@ using System.Data.Common;
 using System.Data.Odbc;
 using Azure.Core;
 using CsApi.Models;
-using Microsoft.Data.SqlClient;
 using System.Text.Json;
 
 namespace CsApi.Repositories;
@@ -18,7 +17,6 @@ public interface ISqlConversationRepository
     Task<bool?> DeleteAsync(string? userId, string conversationId, CancellationToken ct);
     Task<int?> DeleteAllAsync(string? userId, CancellationToken ct);
     Task<bool?> RenameAsync(string? userId, string conversationId, string title, CancellationToken ct);
-    Task<string> ExecuteChatQuery(string query, CancellationToken ct);
 }
 
 public class SqlConversationRepository : ISqlConversationRepository
@@ -66,46 +64,6 @@ public class SqlConversationRepository : ISqlConversationRepository
     {
         // History/conversation storage always uses Fabric SQL
         return await CreateFabricSqlConnectionAsync();
-    }
-
-    /// <summary>
-    /// Create connection for chat agent SQL queries, routed by AZURE_ENV_ONLY flag.
-    /// AZURE_ENV_ONLY=true → Azure SQL, else → Fabric SQL.
-    /// </summary>
-    private async Task<IDbConnection> CreateChatConnectionAsync()
-    {
-        var azureEnvOnly = string.Equals(_config["AZURE_ENV_ONLY"], "true", StringComparison.OrdinalIgnoreCase);
-
-        if (azureEnvOnly)
-        {
-            return await CreateAzureSqlConnectionAsync();
-        }
-
-        return await CreateFabricSqlConnectionAsync();
-    }
-
-    /// <summary>
-    /// Connect to Azure SQL Server using credential from factory.
-    /// </summary>
-    private async Task<IDbConnection> CreateAzureSqlConnectionAsync()
-    {
-        var sqlServer = _config["AZURE_SQLDB_SERVER"] ?? _config["SQLDB_SERVER"]
-            ?? throw new InvalidOperationException("AZURE_SQLDB_SERVER or SQLDB_SERVER is required when AZURE_ENV_ONLY=true");
-        var sqlDatabase = _config["AZURE_SQLDB_DATABASE"] ?? _config["SQLDB_DATABASE"]
-            ?? throw new InvalidOperationException("AZURE_SQLDB_DATABASE or SQLDB_DATABASE is required when AZURE_ENV_ONLY=true");
-
-        _logger.LogInformation("Connecting to Azure SQL Database: {Server}/{Database}", sqlServer, sqlDatabase);
-
-        var credential = _credentialFactory.Create(_config["AZURE_CLIENT_ID"]);
-        var token = await credential.GetTokenAsync(new TokenRequestContext(["https://database.windows.net/.default"]), CancellationToken.None);
-
-        var connectionString = $"Server={sqlServer};Database={sqlDatabase};Encrypt=True;TrustServerCertificate=False;";
-        var conn = new SqlConnection(connectionString)
-        {
-            AccessToken = token.Token
-        };
-        await conn.OpenAsync();
-        return conn;
     }
 
     /// <summary>
@@ -537,92 +495,5 @@ public class SqlConversationRepository : ISqlConversationRepository
 
         var rows = updateCmd.ExecuteNonQuery();
         return rows > 0;
-    }
-
-    public async Task<string> ExecuteChatQuery(string query, CancellationToken ct)
-    {
-        _logger.LogInformation("Chat Agent - Executing SQL query: {Query}", query);
-        var results = new List<Dictionary<string, object?>>();
-        using var conn = await CreateChatConnectionAsync();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = query;
-        try
-        {
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                var row = new Dictionary<string, object?>();
-                for (int i = 0; i < reader.FieldCount; i++)
-                {
-                    var colName = reader.GetName(i);
-                    var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                
-                    // Handle data type conversions for consistent serialization
-                    if (value != null)
-                    {
-                        // Convert DateTime, DateOnly, and TimeOnly to ISO format string
-                        if (value is DateTime dateTime)
-                        {
-                            row[colName] = dateTime.ToString("O"); // ISO 8601 format
-                        }
-                        else if (value is DateOnly dateOnly)
-                        {
-                            row[colName] = dateOnly.ToString("yyyy-MM-dd"); // ISO date format
-                        }
-                        else if (value is TimeOnly timeOnly)
-                        {
-                            row[colName] = timeOnly.ToString("HH:mm:ss"); // ISO time format
-                        }
-                        // Convert Decimal to double for numeric precision
-                        else if (value is decimal decimalValue)
-                        {
-                            row[colName] = (double)decimalValue;
-                        }
-                        // Handle other numeric types consistently
-                        else if (value is float floatValue)
-                        {
-                            row[colName] = (double)floatValue;
-                        }
-                        // Handle GUID as string for JSON serialization
-                        else if (value is Guid guidValue)
-                        {
-                            row[colName] = guidValue.ToString();
-                        }
-                        else
-                        {
-                            row[colName] = value;
-                        }
-                    }
-                    else
-                    {
-                        row[colName] = null;
-                    }
-                }
-                results.Add(row);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Preserve cancellation semantics for callers
-            throw;
-        }
-        catch (DbException ex)
-        {
-            _logger.LogError(ex, "SQL error executing chat query");
-            throw;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException && ex is not DbException)
-        {
-            _logger.LogError(ex, "Chat Agent - Error executing SQL query: {Query}", query);
-            throw;
-        }
-        if (results.Count == 0)
-        {
-            _logger.LogInformation("Chat Agent - SQL query returned no results.");
-            return "No results found.";            
-        }
-        var json = JsonSerializer.Serialize(results);
-        _logger.LogInformation("Chat Agent - Result of SQL query: {Result}", json);
-        return json;
     }
 }

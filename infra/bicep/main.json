@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "14295846375871972140"
+      "templateHash": "8213003686663049149"
     }
   },
   "parameters": {
@@ -168,13 +168,6 @@
         "description": "Optional. Deploy the application components (Cosmos DB, API, Frontend)."
       }
     },
-    "azureEnvOnly": {
-      "type": "bool",
-      "defaultValue": false,
-      "metadata": {
-        "description": "Optional. Deploy Azure SQL Server instead of Fabric SQL."
-      }
-    },
     "useChatHistoryEnabled": {
       "type": "bool",
       "defaultValue": true,
@@ -287,7 +280,7 @@
     "useUserAccessTokenSetting": "[if(parameters('useUserAccessToken'), 'True', 'False')]",
     "shouldDeployApp": "[parameters('deployApp')]",
     "useExistingFabricCapacity": "[not(empty(parameters('azureFabricCapacityName')))]",
-    "shouldCreateFabricCapacity": "[and(and(not(parameters('azureEnvOnly')), parameters('createFabricWorkspace')), not(variables('useExistingFabricCapacity')))]",
+    "shouldCreateFabricCapacity": "[and(parameters('createFabricWorkspace'), not(variables('useExistingFabricCapacity')))]",
     "fabricCapacityResourceName": "[if(variables('useExistingFabricCapacity'), parameters('azureFabricCapacityName'), format('fc{0}', variables('solutionSuffix')))]",
     "fabricCapacityDefaultAdmins": "[if(contains(variables('deployerInfo'), 'userPrincipalName'), createArray(variables('deployerInfo').userPrincipalName), createArray(variables('deployerInfo').objectId))]",
     "fabricTotalAdminMembers": "[union(variables('fabricCapacityDefaultAdmins'), parameters('fabricAdminMembers'))]",
@@ -2071,158 +2064,6 @@
       }
     },
     {
-      "condition": "[parameters('azureEnvOnly')]",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
-      "name": "[take(format('module.sql-db.{0}', parameters('solutionName')), 64)]",
-      "resourceGroup": "[resourceGroup().name]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "serverName": {
-            "value": "[format('sql-{0}', variables('solutionSuffix'))]"
-          },
-          "sqlDBName": {
-            "value": "[format('sqldb-{0}', variables('solutionSuffix'))]"
-          },
-          "solutionLocation": {
-            "value": "[parameters('secondaryLocation')]"
-          },
-          "deployerPrincipalId": {
-            "value": "[variables('deployingUserPrincipalId')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "12853491648646283253"
-            }
-          },
-          "parameters": {
-            "solutionLocation": {
-              "type": "string",
-              "metadata": {
-                "description": "The Azure region where the SQL Server and database will be deployed."
-              }
-            },
-            "serverName": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the SQL Server."
-              }
-            },
-            "sqlDBName": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the SQL database."
-              }
-            },
-            "deployerPrincipalId": {
-              "type": "string",
-              "metadata": {
-                "description": "The principal ID of the deployer for SQL Server admin access."
-              }
-            }
-          },
-          "variables": {
-            "location": "[parameters('solutionLocation')]"
-          },
-          "resources": [
-            {
-              "type": "Microsoft.Sql/servers",
-              "apiVersion": "2025-01-01",
-              "name": "[parameters('serverName')]",
-              "location": "[variables('location')]",
-              "kind": "v12.0",
-              "properties": {
-                "publicNetworkAccess": "Enabled",
-                "version": "12.0",
-                "restrictOutboundNetworkAccess": "Disabled",
-                "minimalTlsVersion": "1.2",
-                "administrators": {
-                  "login": "[parameters('deployerPrincipalId')]",
-                  "sid": "[parameters('deployerPrincipalId')]",
-                  "tenantId": "[subscription().tenantId]",
-                  "administratorType": "ActiveDirectory",
-                  "azureADOnlyAuthentication": true
-                }
-              }
-            },
-            {
-              "type": "Microsoft.Sql/servers/firewallRules",
-              "apiVersion": "2025-01-01",
-              "name": "[format('{0}/{1}', parameters('serverName'), 'AllowSpecificRange')]",
-              "properties": {
-                "startIpAddress": "0.0.0.0",
-                "endIpAddress": "255.255.255.255"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.Sql/servers/firewallRules",
-              "apiVersion": "2025-01-01",
-              "name": "[format('{0}/{1}', parameters('serverName'), 'AllowAllWindowsAzureIps')]",
-              "properties": {
-                "startIpAddress": "0.0.0.0",
-                "endIpAddress": "0.0.0.0"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.Sql/servers/databases",
-              "apiVersion": "2025-01-01",
-              "name": "[format('{0}/{1}', parameters('serverName'), parameters('sqlDBName'))]",
-              "location": "[variables('location')]",
-              "sku": {
-                "name": "GP_S_Gen5",
-                "tier": "GeneralPurpose",
-                "family": "Gen5",
-                "capacity": 2
-              },
-              "kind": "v12.0,user,vcore,serverless",
-              "properties": {
-                "collation": "SQL_Latin1_General_CP1_CI_AS",
-                "autoPauseDelay": 60,
-                "minCapacity": 1,
-                "readScale": "Disabled",
-                "zoneRedundant": false
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
-              ]
-            }
-          ],
-          "outputs": {
-            "sqlServerName": {
-              "type": "string",
-              "metadata": {
-                "description": "The fully qualified domain name of the SQL Server."
-              },
-              "value": "[format('{0}.database.windows.net', parameters('serverName'))]"
-            },
-            "sqlDbName": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the SQL database."
-              },
-              "value": "[parameters('sqlDBName')]"
-            }
-          }
-        }
-      }
-    },
-    {
       "condition": "[variables('shouldDeployApp')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
@@ -2363,8 +2204,6 @@
               "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.cosmosContainerName.value]",
               "AZURE_COSMOSDB_DATABASE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.cosmosDatabaseName.value]",
               "AZURE_COSMOSDB_ENABLE_FEEDBACK": "True",
-              "AZURE_SQLDB_DATABASE": "[if(parameters('azureEnvOnly'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.sql-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.sqlDbName.value, '')]",
-              "AZURE_SQLDB_SERVER": "[if(parameters('azureEnvOnly'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.sql-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.sqlServerName.value, '')]",
               "AZURE_SQLDB_USER_MID": "",
               "API_UID": "",
               "AZURE_AI_SEARCH_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiSearchTarget.value]",
@@ -2375,7 +2214,6 @@
               "APPLICATIONINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.applicationInsightsConnectionString.value]",
               "DUMMY_TEST": "True",
               "SOLUTION_NAME": "[variables('solutionSuffix')]",
-              "AZURE_ENV_ONLY": "[if(parameters('azureEnvOnly'), 'True', 'False')]",
               "USE_USER_ACCESS_TOKEN": "[variables('useUserAccessTokenSetting')]",
               "APP_ENV": "Prod",
               "AZURE_BASIC_LOGGING_LEVEL": "INFO",
@@ -2540,8 +2378,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.sql-db.{0}', parameters('solutionName')), 64))]"
+        "[resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64))]"
       ]
     },
     {
@@ -2595,10 +2432,6 @@
               "DUMMY_TEST": "True",
               "SOLUTION_NAME": "[variables('solutionSuffix')]",
               "APP_ENV": "Prod",
-              "AZURE_ENV_ONLY": "[if(parameters('azureEnvOnly'), 'True', 'False')]",
-              "USE_DATA_AGENT": "False",
-              "AZURE_SQLDB_DATABASE": "[if(parameters('azureEnvOnly'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.sql-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.sqlDbName.value, '')]",
-              "AZURE_SQLDB_SERVER": "[if(parameters('azureEnvOnly'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.sql-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.sqlServerName.value, '')]",
               "AGENT_NAME_CHAT": "",
               "AGENT_NAME_TITLE": "",
               "FABRIC_SQL_DATABASE": "",
@@ -2758,8 +2591,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
-        "[resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.sql-db.{0}', parameters('solutionName')), 64))]"
+        "[resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64))]"
       ]
     },
     {
@@ -3746,24 +3578,10 @@
       },
       "value": "[parameters('embeddingModel')]"
     },
-    "AZURE_SQLDB_DATABASE": {
-      "type": "string",
-      "metadata": {
-        "description": "Azure SQL database name (Azure-only mode)"
-      },
-      "value": "[if(parameters('azureEnvOnly'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.sql-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.sqlDbName.value, '')]"
-    },
-    "AZURE_SQLDB_SERVER": {
-      "type": "string",
-      "metadata": {
-        "description": "Azure SQL server fully qualified domain name (Azure-only mode)"
-      },
-      "value": "[if(parameters('azureEnvOnly'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.sql-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.sqlServerName.value, '')]"
-    },
     "AZURE_SQLDB_USER_MID": {
       "type": "string",
       "metadata": {
-        "description": "Managed identity client ID for SQL authentication (Azure-only mode)"
+        "description": "Managed identity client ID for SQL authentication"
       },
       "value": ""
     },
@@ -3913,20 +3731,6 @@
         "description": "Backend runtime stack (python or dotnet)"
       },
       "value": "[parameters('backendRuntimeStack')]"
-    },
-    "AZURE_ENV_DEPLOY_APP": {
-      "type": "bool",
-      "metadata": {
-        "description": "Flag indicating whether to deploy App Service"
-      },
-      "value": "[parameters('deployApp')]"
-    },
-    "AZURE_ENV_ONLY": {
-      "type": "bool",
-      "metadata": {
-        "description": "Flag indicating Azure-only mode (no Fabric)"
-      },
-      "value": "[parameters('azureEnvOnly')]"
     },
     "USE_USER_ACCESS_TOKEN": {
       "type": "string",

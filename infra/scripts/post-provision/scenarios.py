@@ -1,62 +1,37 @@
 """
 Scenario Registry
 =================
-Centralised registry of pre-built scenario packs.
-Each entry maps a scenario name to its metadata and data folder.
+Loads scenario packs from data/scenarios/scenarios.json.
+Users can edit that file to add/remove scenarios or configure custom data.
 
 Usage:
     from scenarios import list_scenarios, get_scenario, get_scenario_by_folder
 """
 
+import json
 import os
 
 # Resolve paths relative to project root
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", "..", ".."))
 _SCENARIOS_ROOT = os.path.join(_PROJECT_ROOT, "data", "scenarios")
+_SCENARIOS_JSON = os.path.join(_SCENARIOS_ROOT, "scenarios.json")
 
 # ============================================================================
-# Scenario Registry
+# Scenario Registry (loaded from scenarios.json)
 # ============================================================================
 
-SCENARIOS = {
-    "insurance": {
-        "folder": "data/scenarios/insurance",
-        "industry": "Insurance",
-        "usecase": "Claims processing and customer management",
-        "description": "Pre-built insurance scenario with claims, policies, customers and communications data.",
-        "landing_text": "You can ask questions around customer policies, claims and communications.",
-        "app_title": "Contoso Insurance",
-        "app_header": "| Claims Analysis Agents",
-    },
-    "retail": {
-        "folder": "data/scenarios/retail",
-        "industry": "Retail",
-        "usecase": "Inventory and sales operations",
-        "description": "Pre-built retail scenario with products, orders, customers, and inventory data.",
-        "landing_text": "You can ask questions around sales, products and orders.",
-        "app_title": "Contoso Retail",
-        "app_header": "| Unified Data Analysis Agents",
-    },
-    "default": {
-        "folder": "data/scenarios/default",
-        "industry": "Telecommunications",
-        "usecase": "Network operations",
-        "description": "Default telecommunications scenario with network operations data (small).",
-        "landing_text": "You can ask questions around network operations and outages.",
-        "app_title": "Contoso",
-        "app_header": "| Unified Data Analysis Agents",
-    },
-    "default_large": {
-        "folder": "data/scenarios/default_large",
-        "industry": "Telecommunications",
-        "usecase": "Network operations and outage tracking",
-        "description": "Default telecommunications scenario with expanded network operations data (large).",
-        "landing_text": "You can ask questions around network operations and outages.",
-        "app_title": "Contoso",
-        "app_header": "| Unified Data Analysis Agents",
-    },
-}
+
+def _load_scenarios():
+    """Load scenarios from JSON file. Returns empty dict if file not found."""
+    if not os.path.isfile(_SCENARIOS_JSON):
+        print(f"⚠️  scenarios.json not found at: {_SCENARIOS_JSON}")
+        return {}
+    with open(_SCENARIOS_JSON, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+SCENARIOS = _load_scenarios()
 
 
 def list_scenarios():

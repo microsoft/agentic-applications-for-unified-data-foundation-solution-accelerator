@@ -109,29 +109,24 @@ def create_guide():
     pdf.step(1, 'Clone the repository',
         'git clone https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator.git\ncd agentic-applications-for-unified-data-foundation-solution-accelerator')
     
-    pdf.step(2, '(Optional) Enable Azure-only mode',
-        'azd env set AZURE_ENV_ONLY true',
-        'Skip this if you have Microsoft Fabric access. Uses Azure SQL instead of Fabric SQL.')
-    
-    pdf.step(3, 'Deploy Azure resources (~7 min)',
+    pdf.step(2, 'Deploy Azure resources (~7 min)',
         'azd auth login\nazd up',
         'Choose environment name and region (eastus2 or westus2 recommended). If needed: azd auth login --tenant-id <tenant-id>')
     
-    pdf.step(4, 'Note your Fabric workspace ID',
+    pdf.step(3, 'Note your Fabric workspace ID',
         'Find your workspace ID in your Fabric URL: https://app.fabric.microsoft.com/groups/{workspace-id}/...',
-        'You will pass this as --fabric-workspace-id when running the build script (skip if using Azure-only mode)')
+        'You will pass this as --fabric-workspace-id when running the build script')
     
-    pdf.step(5, 'Setup Python environment',
+    pdf.step(4, 'Setup Python environment',
         'python -m venv .venv\n.venv\\Scripts\\activate   # or: source .venv/bin/activate\npip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt')
     
-    pdf.step(6, 'Build the solution (~5 min)',
-        'python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>',
-        'Azure-only mode? Use: python infra/scripts/post-provision/00_build_solution.py --from 03')
+    pdf.step(5, 'Build the solution (~5 min)',
+        'python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>')
     
-    pdf.step(7, 'Test the agent',
+    pdf.step(6, 'Test the agent',
         'python infra/scripts/post-provision/07_test_agent.py')
     
-    pdf.step(8, 'Launch the application',
+    pdf.step(7, 'Launch the application',
         'Open the app URL shown in the azd up output in your browser')
     
     # Sample Questions

@@ -281,28 +281,6 @@ class TestTrackEventIfConfigured:
             mock_track.assert_not_called()
 
 
-class TestSqlQueryTool:
-    """Tests for SqlQueryTool class."""
-
-    def test_sqlquerytool_exists(self):
-        """Test SqlQueryTool class exists."""
-        # SqlQueryTool uses Pydantic and requires specific fields
-        try:
-            from history_sql import SqlQueryTool
-            assert SqlQueryTool is not None
-        except ImportError:
-            pytest.skip("SqlQueryTool not available")
-
-    def test_sqlquerytool_with_mock_connection(self, mock_db_connection):  # noqa: ARG002
-        """Test SqlQueryTool with mocked connection."""
-        try:
-            from history_sql import SqlQueryTool
-            # SqlQueryTool may have required fields, so just verify it exists
-            assert hasattr(SqlQueryTool, 'run_sql_query') or hasattr(SqlQueryTool, '__init__')
-        except ImportError:
-            pytest.skip("SqlQueryTool requires specific initialization")
-
-
 class TestConversationManagement:
     """Tests for conversation management functions."""
 

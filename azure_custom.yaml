@@ -26,23 +26,17 @@ hooks:
   postprovision:
     windows:
       run: |
-        $deployApp = $env:AZURE_ENV_DEPLOY_APP
-
-        if ($deployApp -ne "false") {
-            Write-Host "Web app URL: "
-            Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
-        }
+        Write-Host "Web app URL: "
+        Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
 
       shell: pwsh
       continueOnError: false
       interactive: true
     posix:
       run: |
-        if [ "$AZURE_ENV_DEPLOY_APP" != "false" ]; then
-            echo "Web app URL: "
-            echo $WEB_APP_URL
-            echo ""
-        fi
+        echo "Web app URL: "
+        echo $WEB_APP_URL
+        echo ""
 
       shell: sh
       continueOnError: false

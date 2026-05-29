@@ -146,9 +146,6 @@ param appServicePlanSku string = 'B2'
 @description('Optional. Deploy application components (API, Frontend, Cosmos DB).')
 param deployApp bool = true
 
-@description('Optional. Azure-only mode (deploy Azure SQL instead of Fabric SQL).')
-param azureEnvOnly bool = false
-
 @description('Optional. Enable chat history storage.')
 param useChatHistoryEnabled bool = true
 
@@ -227,7 +224,7 @@ var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
 
 // Fabric Capacity: create when createFabricWorkspace=true and no existing capacity provided
 var useExistingFabricCapacity = !empty(azureFabricCapacityName)
-var shouldCreateFabricCapacity = !azureEnvOnly && createFabricWorkspace && !useExistingFabricCapacity
+var shouldCreateFabricCapacity = createFabricWorkspace && !useExistingFabricCapacity
 var fabricCapacityResourceName = useExistingFabricCapacity ? azureFabricCapacityName : 'fc${solutionSuffix}'
 var fabricCapacityDefaultAdmins = contains(deployerInfo, 'userPrincipalName')
   ? [deployerInfo.userPrincipalName]
@@ -776,23 +773,6 @@ module cosmosDBModule './modules/data/cosmos-db.bicep' = if (shouldDeployApp) {
   }
 }
 
-module sqlDBModule './modules/data/sql-database.bicep' = if (azureEnvOnly) {
-  name: take('module.sql-database.${solutionName}', 64)
-  params: {
-    solutionName: solutionSuffix
-    location: secondaryLocation
-    tags: tags
-    enableTelemetry: enableTelemetry
-    deployerPrincipalId: deployingUserPrincipalId
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.sqlServer]!.outputs.resourceId
-    ] : []
-  }
-}
-
 // ============================================================================
 // Module: Compute
 // ============================================================================
@@ -838,8 +818,6 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: 'conversations'
       AZURE_COSMOSDB_DATABASE: 'db_conversation_history'
       AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
-      AZURE_SQLDB_DATABASE: azureEnvOnly ? sqlDBModule!.outputs.databaseName : ''
-      AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.serverFqdn : ''
       AZURE_SQLDB_USER_MID: ''
       API_UID: ''
       AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.endpoint
@@ -849,7 +827,6 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
       DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? app_insights!.outputs.connectionString : ''
       SOLUTION_NAME: solutionSuffix
-      AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
       USE_USER_ACCESS_TOKEN: useUserAccessTokenSetting
       APP_ENV: 'Prod'
       AZURE_BASIC_LOGGING_LEVEL: 'INFO'
@@ -900,10 +877,6 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
       APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? app_insights!.outputs.connectionString : ''
       SOLUTION_NAME: solutionSuffix
       APP_ENV: 'Prod'
-      AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
-      USE_DATA_AGENT: 'False'
-      AZURE_SQLDB_DATABASE: azureEnvOnly ? sqlDBModule!.outputs.databaseName : ''
-      AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.serverFqdn : ''
       AGENT_NAME_CHAT: ''
       AGENT_NAME_TITLE: ''
       FABRIC_SQL_DATABASE: ''
@@ -992,12 +965,6 @@ output AZURE_OPENAI_ENDPOINT string = !useExistingAIProject ? ai_foundry_project
 @description('Embedding model deployment name.')
 output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = embeddingModel
 
-@description('Azure SQL database name (Azure-only mode).')
-output AZURE_SQLDB_DATABASE string = azureEnvOnly ? sqlDBModule!.outputs.databaseName : ''
-
-@description('Azure SQL server FQDN (Azure-only mode).')
-output AZURE_SQLDB_SERVER string = azureEnvOnly ? sqlDBModule!.outputs.serverFqdn : ''
-
 @description('Managed identity client ID for SQL auth.')
 output AZURE_SQLDB_USER_MID string = ''
 
@@ -1067,12 +1034,6 @@ output USE_CHAT_HISTORY_ENABLED string = useChatHistoryEnabledSetting
 
 @description('Backend runtime stack.')
 output BACKEND_RUNTIME_STACK string = backendRuntimeStack
-
-@description('Deploy app flag.')
-output AZURE_ENV_DEPLOY_APP bool = deployApp
-
-@description('Azure-only mode flag.')
-output AZURE_ENV_ONLY bool = azureEnvOnly
 
 @description('User access token forwarding flag.')
 output USE_USER_ACCESS_TOKEN string = useUserAccessTokenSetting

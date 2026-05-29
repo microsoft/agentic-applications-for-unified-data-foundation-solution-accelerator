@@ -55,7 +55,6 @@ p.add_argument("--datasource-type", choices=["ontology", "lakehouse"], default="
 args = p.parse_args()
 
 WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID", "").strip() or None
-CREATE_FABRIC_WORKSPACE = not bool(WORKSPACE_ID)
 
 # Get data folder - use arg if provided, else from .env with proper path resolution
 if args.data_folder:
@@ -76,6 +75,18 @@ tables_dir = os.path.join(data_dir, "tables")
 if not os.path.exists(config_dir):
     config_dir = data_dir
     tables_dir = data_dir
+
+# Fallback: load workspace_id from fabric_ids.json if env var was empty
+if not WORKSPACE_ID:
+    _ids_file = os.path.join(config_dir, "fabric_ids.json")
+    if os.path.exists(_ids_file):
+        with open(_ids_file) as f:
+            _saved = json.load(f)
+        if _saved.get("workspace_id"):
+            WORKSPACE_ID = _saved["workspace_id"]
+            print(f"  [OK] Loaded workspace_id from fabric_ids.json: {WORKSPACE_ID}")
+
+CREATE_FABRIC_WORKSPACE = not bool(WORKSPACE_ID)
 
 config_path = os.path.join(config_dir, "ontology_config.json")
 
@@ -304,21 +315,9 @@ if CREATE_FABRIC_WORKSPACE:
                 print(f"ERROR: Failed to create workspace: {create_resp.status_code} {create_resp.text}")
                 sys.exit(1)
 
-        # Persist workspace ID to .env for future runs and refresh in-process env
-        env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+        # Persist workspace ID in-process for downstream scripts
         os.environ["FABRIC_WORKSPACE_ID"] = WORKSPACE_ID
-        with open(env_file, "r") as f:
-            env_content = f.read()
-        if "FABRIC_WORKSPACE_ID" not in env_content:
-            with open(env_file, "a") as f:
-                f.write(f"\nFABRIC_WORKSPACE_ID={WORKSPACE_ID}\n")
-            print(f"  [OK] Saved FABRIC_WORKSPACE_ID to infra/scripts/post-provision/.env")
-        else:
-            import re
-            updated = re.sub(r'^FABRIC_WORKSPACE_ID=.*$', f'FABRIC_WORKSPACE_ID={WORKSPACE_ID}', env_content, flags=re.MULTILINE)
-            with open(env_file, "w") as f:
-                f.write(updated)
-            print(f"  [OK] Updated FABRIC_WORKSPACE_ID in infra/scripts/post-provision/.env")
+        print(f"  [OK] FABRIC_WORKSPACE_ID set to: {WORKSPACE_ID}")
 
     # Step B: Check if capacity is already assigned, assign if not
     ws_resp = make_request("GET", f"{FABRIC_API}/workspaces/{WORKSPACE_ID}")
@@ -361,6 +360,18 @@ if CREATE_FABRIC_WORKSPACE:
             sys.exit(1)
 
 print(f"Workspace ID: {WORKSPACE_ID}")
+
+# Early-save workspace_id to fabric_ids.json so re-runs can recover from later failures
+_early_ids_path = os.path.join(config_dir, "fabric_ids.json")
+_early_ids = {}
+if os.path.exists(_early_ids_path):
+    with open(_early_ids_path) as f:
+        _early_ids = json.load(f)
+_early_ids["workspace_id"] = WORKSPACE_ID
+os.makedirs(config_dir, exist_ok=True)
+with open(_early_ids_path, "w") as f:
+    json.dump(_early_ids, f, indent=2)
+print(f"  [OK] Early-saved workspace_id to fabric_ids.json")
 
 # ============================================================================
 # Step 0: Determine lakehouse/ontology names (use local tracking, minimize API calls)
@@ -1290,6 +1301,7 @@ print(f"\n[{step}/{total_steps}] Saving configuration...")
 
 ids_path = os.path.join(config_dir, "fabric_ids.json")
 fabric_ids = {
+    "workspace_id": WORKSPACE_ID,
     "lakehouse_id": lakehouse_id,
     "lakehouse_name": lakehouse_name,
     "ontology_id": ontology_id,

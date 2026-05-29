@@ -80,9 +80,6 @@ param embeddingDeploymentCapacity int = 80
 @description('Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app.')
 param deployApp bool = true
 
-@description('Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used.')
-param azureEnvOnly bool = false
-
 var shouldDeployApp = deployApp
 
 param location string = ''
@@ -175,19 +172,6 @@ module cosmosDBModule 'deploy_cosmos_db.bicep' = if (deployApp) {
   scope: resourceGroup(resourceGroup().name)
 }
 
-// ========== SQL DB module ========== //
-module sqlDBModule 'deploy_sql_db.bicep' = if (azureEnvOnly) {
-  name: 'deploy_sql_db'
-  params: {
-    serverName: '${abbrs.databases.sqlDatabaseServer}${solutionSuffix}'
-    sqlDBName: '${abbrs.databases.sqlDatabase}${solutionSuffix}'
-    solutionLocation: secondaryLocation
-    managedIdentityName: managedIdentityModule.outputs.managedIdentityOutput.name
-    deployerPrincipalId: deployingUserPrincipalId
-  }
-  scope: resourceGroup(resourceGroup().name)
-}
-
 module hostingplan 'deploy_app_service_plan.bicep' = if (shouldDeployApp) {
   name: 'deploy_app_service_plan'
   params: {
@@ -229,9 +213,7 @@ module backend_custom 'deploy_backend_custom.bicep' = if (shouldDeployApp && bac
       AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule!.outputs.cosmosContainerName
       AZURE_COSMOSDB_DATABASE: cosmosDBModule!.outputs.cosmosDatabaseName
       AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
-      AZURE_SQLDB_DATABASE: azureEnvOnly ? sqlDBModule!.outputs.sqlDbName : ''
-      AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
-      AZURE_SQLDB_USER_MID: azureEnvOnly ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
+      AZURE_SQLDB_USER_MID: ''
       API_UID: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
       AZURE_AI_SEARCH_ENDPOINT: aifoundry.outputs.aiSearchTarget
       AZURE_AI_SEARCH_INDEX: 'knowledge_index'
@@ -242,7 +224,6 @@ module backend_custom 'deploy_backend_custom.bicep' = if (shouldDeployApp && bac
       APPLICATIONINSIGHTS_CONNECTION_STRING: aifoundry.outputs.applicationInsightsConnectionString
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
-      AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
       APP_ENV: 'Prod'
       AZURE_BASIC_LOGGING_LEVEL: 'INFO'
       AZURE_PACKAGE_LOGGING_LEVEL: 'WARNING'
@@ -295,10 +276,6 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
       APP_ENV: 'Prod'
-      AZURE_ENV_ONLY: azureEnvOnly ? 'True' : 'False'
-      USE_DATA_AGENT: 'False'
-      AZURE_SQLDB_DATABASE: azureEnvOnly ? sqlDBModule!.outputs.sqlDbName : ''
-      AZURE_SQLDB_SERVER: azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
 
       FABRIC_SQL_DATABASE: ''
       FABRIC_SQL_SERVER: ''
@@ -353,14 +330,8 @@ output AZURE_OPENAI_ENDPOINT string = aifoundry.outputs.aiServicesTarget
 @description('Embedding model deployment name for vector search')
 output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = embeddingModel
 
-@description('Azure SQL database name (Azure-only mode)')
-output AZURE_SQLDB_DATABASE string = azureEnvOnly ? sqlDBModule!.outputs.sqlDbName : ''
-
-@description('Azure SQL server fully qualified domain name (Azure-only mode)')
-output AZURE_SQLDB_SERVER string = azureEnvOnly ? sqlDBModule!.outputs.sqlServerName : ''
-
-@description('Managed identity client ID for SQL authentication (Azure-only mode)')
-output AZURE_SQLDB_USER_MID string = azureEnvOnly ? managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId : ''
+@description('Managed identity client ID for SQL authentication')
+output AZURE_SQLDB_USER_MID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
 
 @description('Backend API managed identity client ID')
 output API_UID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
@@ -421,12 +392,6 @@ output FOUNDRY_PROJECT_PID string = aifoundry.outputs.aiProjectPrincipalId
 
 @description('Backend runtime stack (python or dotnet)')
 output BACKEND_RUNTIME_STACK string = backendRuntimeStack
-
-@description('Flag indicating whether to deploy App Service')
-output AZURE_ENV_DEPLOY_APP bool = deployApp
-
-@description('Flag indicating Azure-only mode (no Fabric)')
-output AZURE_ENV_ONLY bool = azureEnvOnly
 
 @description('Backend API managed identity client ID (alias for USER_MID use)')
 output USER_MID string = managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId

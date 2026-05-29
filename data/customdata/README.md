@@ -39,15 +39,17 @@ industry and use case.
 
 After placing your data, run the build pipeline with `--custom-data`:
 
-**Option A (Fabric + Foundry):**
+To reuse an existing Fabric workspace, set the ID first:
 ```bash
-python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata --fabric-workspace-id <your-workspace-id>
+azd env set FABRIC_WORKSPACE_ID <your-workspace-id>
 ```
 
-**Option B (Azure-only):**
+Then run the build:
 ```bash
-python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata --from 03
+python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata
 ```
+
+> If `FABRIC_WORKSPACE_ID` is not set, a new workspace will be created automatically.
 
 You will be prompted for:
 - **Industry** — e.g. Healthcare, Retail, Manufacturing
@@ -77,3 +79,43 @@ re-running the pipeline. It describes:
   and re-run from step 03: `python infra/scripts/post-provision/00_build_solution.py --from 03`
 - Delete `config/ontology_config.json` to force regeneration on the next run
 - Keep table and column names lowercase with underscores for best SQL compatibility
+
+## Registering a Custom Scenario
+
+To make your custom data folder available as a named `--scenario`, add an entry to
+[`data/scenarios/scenarios.json`](../scenarios/scenarios.json):
+
+```json
+{
+  "my_scenario": {
+    "folder": "data/customdata",
+    "industry": "Healthcare",
+    "usecase": "Patient records and clinical notes",
+    "type": "custom",
+    "description": "Custom healthcare scenario",
+    "landing_text": "Ask about patient records...",
+    "app_title": "Healthcare Agent",
+    "app_header": "Healthcare Data Assistant"
+  }
+}
+```
+
+> **Note:** Set `"type": "custom"` so the pipeline knows to auto-generate `ontology_config.json` from your CSVs.
+
+**Field reference:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `folder` | Yes | Path to your data folder (relative to project root) containing `tables/` and `documents/` |
+| `industry` | Yes | Domain name (e.g. Healthcare, Retail, Manufacturing). Used for agent prompt context |
+| `usecase` | Yes | Brief description of what the data represents. Used for agent prompt context |
+| `type` | Yes | `custom` (auto-generates ontology config from CSVs) or `prebuilt` (expects config to exist) |
+| `description` | No | Human-readable summary shown with `--list-scenarios` |
+| `landing_text` | No | Welcome message shown in the chat UI |
+| `app_title` | No | Browser tab / app title |
+| `app_header` | No | Header text displayed in the app UI |
+
+Then run:
+```bash
+python infra/scripts/post-provision/00_build_solution.py --scenario my_scenario
+```
