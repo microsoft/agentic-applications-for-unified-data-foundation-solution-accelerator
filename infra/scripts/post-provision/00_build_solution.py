@@ -82,6 +82,8 @@ parser.add_argument("--usecase", type=str,
                     help="Use case for data generation")
 parser.add_argument("--size", choices=["small", "medium", "large"],
                     help="Data size for generation (default: from scenarios.json or 'small')")
+parser.add_argument("--output-dir", type=str, dest="output_dir",
+                    help="Output directory for generated data (passed to step 01)")
 parser.add_argument("--custom-data", type=str,
                     help="Path to folder with tables/ (CSVs) and documents/ (PDFs). "
                          "Config is auto-generated from your CSV files.")
@@ -541,6 +543,8 @@ def run_step(step_id):
             cmd.extend(["--usecase", args.usecase])
         if args.size:
             cmd.extend(["--size", args.size])
+        if args.output_dir:
+            cmd.extend(["--output-dir", args.output_dir])
     
     if step_id == "02" and args.clean:
         cmd.append("--clean")
