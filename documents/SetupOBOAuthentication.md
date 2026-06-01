@@ -54,6 +54,8 @@ The `setup_app_authentication.ps1` script automatically sets up:
 .\infra\scripts\post-provision\setup_app_authentication.ps1
 ```
 
+---
+
 ## Troubleshooting
 
 - **Authentication changes can take up to 10 minutes** to propagate after running this script.
