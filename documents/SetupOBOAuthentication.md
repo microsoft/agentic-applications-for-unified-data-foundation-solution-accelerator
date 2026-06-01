@@ -52,6 +52,7 @@ The `setup_app_authentication.ps1` script automatically sets up:
 ```powershell
 # Auto-detect everything from azd environment
 .\infra\scripts\post-provision\setup_app_authentication.ps1
+```
 
 ## Troubleshooting
 
