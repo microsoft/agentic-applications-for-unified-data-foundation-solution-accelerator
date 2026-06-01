@@ -195,6 +195,7 @@ When you start the deployment, most parameters will have **default values**, but
 | **Use Local Build**                         | Boolean flag to determine if local container builds should be used.                         | false             |
 | **Existing Log Analytics Workspace**        | To reuse an existing Log Analytics Workspace ID.                                                          | *(empty)*              |
 | **Existing Azure AI Foundry Project**        | To reuse an existing Azure AI Foundry Project ID instead of creating a new one.              | *(empty)*          |
+| **Use User Access Token**                   | Enable On-Behalf-Of (OBO) flow so the API calls downstream services using the signed-in user's token. Requires running [OBO Authentication Setup](./SetupOBOAuthentication.md) after deployment. | false              |
 
 
 
