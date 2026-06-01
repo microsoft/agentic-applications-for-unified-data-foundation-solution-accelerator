@@ -46,13 +46,13 @@ STEPS = {
     "01": {"script": "01_generate_data.py", "name": "Generate Sample Data", "time": "~2min"},
     "02": {"script": "02_create_fabric_items.py", "name": "Create Fabric Lakehouse & Load Data", "time": "~1.5min", "fabric": True},
     "03": {"script": "03_generate_agent_prompt.py", "name": "Generate Agent Prompt", "time": "~5s"},
-    "05": {"script": "05_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
-    "06": {"script": "06_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
-    "08": {"script": "08_app_deployment.py", "name": "App Deployment Config", "time": "~15s"},
+    "04": {"script": "04_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
+    "05": {"script": "05_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
+    "06": {"script": "06_app_deployment.py", "name": "App Deployment Config", "time": "~15s"},
 }
 
 # Pipeline order
-FABRIC_PIPELINE = ["01", "02", "03", "05", "06", "08"]
+FABRIC_PIPELINE = ["01", "02", "03", "04", "05", "06"]
 
 # ============================================================================
 # Parse Arguments
@@ -82,6 +82,8 @@ parser.add_argument("--usecase", type=str,
                     help="Use case for data generation")
 parser.add_argument("--size", choices=["small", "medium", "large"],
                     help="Data size for generation (default: from scenarios.json or 'small')")
+parser.add_argument("--output-dir", type=str, dest="output_dir",
+                    help="Output directory for generated data (passed to step 01)")
 parser.add_argument("--custom-data", type=str,
                     help="Path to folder with tables/ (CSVs) and documents/ (PDFs). "
                          "Config is auto-generated from your CSV files.")
@@ -134,8 +136,8 @@ if args.list_scenarios:
             print(f"  {name:<15} {stype:<10} {meta['industry']:<15} {meta['usecase']:<30}")
         print("-" * 80)
         print(f"\n  Types: prebuilt = ready-to-use data")
-        print(f"         custom   = bring your own CSVs (auto-generates config)")
-        print(f"         generate = AI creates synthetic data for your industry/usecase")
+        print(f"         byod   = bring your own CSVs (auto-generates config)")
+        print(f"         custom = AI creates synthetic data for your industry/usecase")
         print(f"\nUsage: python {os.path.basename(__file__)} --scenario <name>")
     sys.exit(0)
 
@@ -145,7 +147,7 @@ if args.scenario and args.custom_data:
     sys.exit(1)
 
 # Default to "default" scenario when neither --scenario nor --custom-data is specified
-# BUT if --industry/--usecase is provided, treat as a generate run (no preset scenario)
+# BUT if --industry/--usecase is provided, treat as a custom run (no preset scenario)
 if not args.scenario and not args.custom_data:
     if args.industry or args.usecase:
         # User wants to generate data for a custom industry — don't use any preset scenario
@@ -175,18 +177,18 @@ if args.scenario:
     os.environ["INDUSTRY"] = args.industry or scenario_meta.get("industry", "")
     os.environ["USECASE"] = args.usecase or scenario_meta.get("usecase", "")
     
-    # Set DATA_SIZE for generate-type scenarios (used by step 01)
+    # Set DATA_SIZE for custom-type scenarios (used by step 01)
     if scenario_meta.get("data_size"):
         os.environ["DATA_SIZE"] = args.size or scenario_meta["data_size"]
     elif args.size:
         os.environ["DATA_SIZE"] = args.size
 
-    # For generate-type scenarios, ensure the output folder exists
-    if scenario_meta.get("type") == "generate":
+    # For custom-type scenarios, ensure the output folder exists
+    if scenario_meta.get("type") == "custom":
         os.makedirs(scenario_pack_dir, exist_ok=True)
 
-    # For custom-type scenarios, auto-generate config if missing
-    if scenario_meta.get("type") == "custom":
+    # For byod-type scenarios, auto-generate config if missing
+    if scenario_meta.get("type") == "byod":
         config_dir = os.path.join(scenario_pack_dir, "config")
         os.makedirs(config_dir, exist_ok=True)
         config_path = os.path.join(config_dir, "ontology_config.json")
@@ -198,18 +200,18 @@ if args.scenario:
             
             if not custom_industry or not custom_usecase:
                 print("\n" + "="*60)
-                print("Custom Scenario - Industry & Use Case")
+                print("BYOD Scenario - Industry & Use Case")
                 print("="*60)
                 print("\nDescribe your data so the agent understands the domain context.\n")
                 if not custom_industry:
                     custom_industry = input("Industry (e.g. Healthcare, Retail, Manufacturing): ").strip()
                     if not custom_industry:
-                        print("ERROR: Industry is required for custom scenarios.")
+                        print("ERROR: Industry is required for BYOD scenarios.")
                         sys.exit(1)
                 if not custom_usecase:
                     custom_usecase = input("Use Case (e.g. Patient records and clinical notes): ").strip()
                     if not custom_usecase:
-                        print("ERROR: Use case is required for custom scenarios.")
+                        print("ERROR: Use case is required for BYOD scenarios.")
                         sys.exit(1)
                 os.environ["INDUSTRY"] = custom_industry
                 os.environ["USECASE"] = custom_usecase
@@ -236,10 +238,10 @@ if args.scenario:
     )
     
     print(f"\n[OK] Scenario: {args.scenario}")
-    print(f"     Type: {'generate' if (args.industry or args.usecase) else scenario_meta.get('type', 'prebuilt')}")
+    print(f"     Type: {'custom' if (args.industry or args.usecase) else scenario_meta.get('type', 'prebuilt')}")
     print(f"     Industry: {os.environ.get('INDUSTRY', '')}")
     print(f"     Use Case: {os.environ.get('USECASE', '')}")
-    print(f"     Documents: {'Yes' if has_documents else 'None (step 05 will be skipped)'}")
+    print(f"     Documents: {'Yes' if has_documents else 'None (step 04 will be skipped)'}")
     print(f"     DATA_FOLDER set to: {relative_data_dir}")
 
 # ============================================================================
@@ -341,7 +343,7 @@ if args.custom_data:
     print(f"     DATA_FOLDER set to: {relative_data_dir}")
 
 # ============================================================================
-# Handle generate mode: --industry/--usecase without --scenario or --custom-data
+# Handle custom mode: --industry/--usecase without --scenario or --custom-data
 # ============================================================================
 
 if not args.scenario and not custom_data_dir:
@@ -357,8 +359,8 @@ if not args.scenario and not custom_data_dir:
     os.environ["USECASE"] = args.usecase or ""
     os.environ["DATA_SIZE"] = args.size or "small"
 
-    print(f"\n[OK] Generate mode")
-    print(f"     Type: generate")
+    print(f"\n[OK] Custom mode (AI data generation)")
+    print(f"     Type: custom")
     print(f"     Industry: {args.industry}")
     print(f"     Use Case: {args.usecase}")
     print(f"     DATA_FOLDER set to: {relative_data_dir}")
@@ -372,25 +374,26 @@ if args.only:
 else:
     pipeline = FABRIC_PIPELINE.copy()
 
-# Skip data generation step when using custom data or prebuilt/custom scenario pack
+# Skip data generation step when using BYOD data or prebuilt/scenario pack
 if custom_data_dir and "01" in pipeline:
     pipeline = [s for s in pipeline if s != "01"]
-    print("  (Skipping step 01 — using custom data instead of AI generation)")
+    print("  (Skipping step 01 — using BYOD data instead of AI generation)")
 
 if scenario_pack_dir and "01" in pipeline:
     scenario_type = scenario_meta.get("type", "prebuilt") if scenario_meta else "prebuilt"
     # If user explicitly provided --industry/--usecase that differ from the scenario defaults,
-    # treat as "generate" so step 01 runs with the custom industry/usecase
-    if scenario_type != "generate" and (args.industry or args.usecase):
+    # treat as "custom" so step 01 runs with the custom industry/usecase
+    # (but never override "byod" scenarios — they always skip step 01)
+    if scenario_type not in ("custom", "byod") and (args.industry or args.usecase):
         user_industry = args.industry or ""
         user_usecase = args.usecase or ""
         meta_industry = scenario_meta.get("industry", "") if scenario_meta else ""
         meta_usecase = scenario_meta.get("usecase", "") if scenario_meta else ""
         if user_industry.lower() != meta_industry.lower() or user_usecase.lower() != meta_usecase.lower():
-            scenario_type = "generate"
-    if scenario_type != "generate":
+            scenario_type = "custom"
+    if scenario_type != "custom":
         pipeline = [s for s in pipeline if s != "01"]
-        print("  (Skipping step 01 — using scenario pack data)")
+        print("  (Skipping step 01 — using prebuilt/scenario pack data)")
     else:
         print("  (Running step 01 — generating AI data for custom industry/usecase)")
 
@@ -401,12 +404,12 @@ if scenario_pack_dir or custom_data_dir:
     has_pdfs = os.path.isdir(docs_path) and any(
         f.endswith(".pdf") for f in os.listdir(docs_path)
     )
-    if not has_pdfs and "05" in pipeline:
-        pipeline = [s for s in pipeline if s != "05"]
-        print("  (Skipping step 05 — no PDF documents found in data folder. Cleaning up search resources...)")
+    if not has_pdfs and "04" in pipeline:
+        pipeline = [s for s in pipeline if s != "04"]
+        print("  (Skipping step 04 — no PDF documents found in data folder. Cleaning up search resources...)")
 
         # Clean up existing search index, knowledge base, and knowledge source
-        cleanup_script = os.path.join(script_dir, "05_upload_to_search.py")
+        cleanup_script = os.path.join(script_dir, "04_upload_to_search.py")
         if os.path.exists(cleanup_script):
             result = subprocess.run(
                 [sys.executable, cleanup_script, "--cleanup"],
@@ -540,6 +543,8 @@ def run_step(step_id):
             cmd.extend(["--usecase", args.usecase])
         if args.size:
             cmd.extend(["--size", args.size])
+        if args.output_dir:
+            cmd.extend(["--output-dir", args.output_dir])
     
     if step_id == "02" and args.clean:
         cmd.append("--clean")
@@ -633,5 +638,5 @@ Sample questions to try:
         print("\nSome steps failed. Check the output above for errors.")
         sys.exit(1)
 
-if web_app_url and "08" in pipeline:
+if web_app_url and "06" in pipeline:
     print(f"🚀 Your app is live! Open it here: {web_app_url}")

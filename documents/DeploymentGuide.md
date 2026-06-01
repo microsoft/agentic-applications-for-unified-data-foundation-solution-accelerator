@@ -184,17 +184,16 @@ When you start the deployment, most parameters will have **default values**, but
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
 | **Environment Name**                        | A **3–20 character alphanumeric value** used to generate a unique ID to prefix the resources.             | env\_name              |
-| **Backend Programming Language**                   | Programming language for the backend API: **python** or **dotnet**.                           | *(empty)*              |
-| **Use Case**                   | Use case: **Retail-sales-analysis** or **Insurance-improve-customer-meetings**.                           | *(empty)*              |
+| **Backend Programming Language**            | Programming language for the backend API: **python** or **dotnet**.                                       | python                 |
 | **Deployment Type**                         | Select from a drop-down list (allowed: `Standard`, `GlobalStandard`).                                     | GlobalStandard         |
-| **GPT Model**                               | Choose from **gpt-4, gpt-4o, gpt-4o-mini**.                                                               | gpt-4o-mini            |
-| **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2024-07-18             |
+| **GPT Model**                               | Name of the GPT model to deploy (e.g., `gpt-4.1-mini`).                                                  | gpt-4.1-mini           |
+| **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2025-04-14             |
 | **OpenAI API Version**                      | The Azure OpenAI API version to use.                                                                      | 2025-01-01-preview     |
-| **GPT Model Deployment Capacity**           | Configure capacity for **GPT models** (in thousands).                                                     | 30k                    |
-| **Image Tag**                               | Docker image tag to deploy. Common values: `latest`, `dev`, `hotfix`.                  | latest       |
-| **Use Local Build**                         | Boolean flag to determine if local container builds should be used.                         | false             |
+| **GPT Model Deployment Capacity**           | Configure capacity for **GPT models** (in thousands).                                                     | 150                    |
+| **Image Tag**                               | Docker image tag to deploy. Common values: `latest_v2`, `dev`, `hotfix`.                                  | latest\_v2             |
 | **Existing Log Analytics Workspace**        | To reuse an existing Log Analytics Workspace ID.                                                          | *(empty)*              |
-| **Existing Azure AI Foundry Project**        | To reuse an existing Azure AI Foundry Project ID instead of creating a new one.              | *(empty)*          |
+| **Existing Azure AI Foundry Project**       | To reuse an existing Azure AI Foundry Project ID instead of creating a new one.                           | *(empty)*              |
+| **Use User Access Token**                   | Enable On-Behalf-Of (OBO) flow so the API calls downstream services using the signed-in user's token. Requires running [OBO Authentication Setup](./SetupOBOAuthentication.md) after deployment. | false              |
 
 
 
@@ -203,9 +202,7 @@ When you start the deployment, most parameters will have **default values**, but
 <details>
   <summary><b>[Optional] Quota Recommendations</b></summary>
 
-By default, the **Gpt-4o-mini model capacity** in deployment is set to **30k tokens**, so we recommend updating the following:
-
-> **For Global Standard | GPT-4o-mini - increase the capacity to at least 150k tokens post-deployment for optimal performance.**
+By default, the **gpt-4.1-mini model capacity** in deployment is set to **150 TPM (thousands)**, which is the recommended minimum for optimal performance.
 
 Depending on your subscription quota and capacity, you can [adjust quota settings](AzureGPTQuotaSettings.md) to better meet your specific needs. You can also [adjust the deployment parameters](CustomizingAzdParameters.md) for additional optimization.
 

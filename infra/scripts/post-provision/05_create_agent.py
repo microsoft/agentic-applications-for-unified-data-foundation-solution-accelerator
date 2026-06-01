@@ -1,5 +1,5 @@
 """
-06_create_agent.py - Create AI Foundry Agent with Fabric Data Agent + AI Search / Knowledge Base
+05_create_agent.py - Create AI Foundry Agent with Fabric Data Agent + AI Search / Knowledge Base
 Unified script that creates agents using Fabric Data Agent for SQL and AI Search for documents.
 
 SQL Mode:
@@ -10,13 +10,13 @@ Search Modes:
     - Knowledge Base mode (--use-knowledge-base): Uses Foundry IQ Knowledge Base via MCP
 
 Usage:
-    python 06_create_agent.py                          # Fabric Data Agent + KB search
-    python 06_create_agent.py --use-knowledge-base     # (always True by default)
+    python 05_create_agent.py                          # Fabric Data Agent + KB search
+    python 05_create_agent.py --use-knowledge-base     # (always True by default)
 
 Prerequisites:
     - Run 01_generate_data.py (creates data and ontology_config.json)
     - Run 02_create_fabric_items.py (creates Fabric Lakehouse and Data Agent)
-    - Run 05_upload_to_search.py (uploads PDFs to AI Search)
+    - Run 04_upload_to_search.py (uploads PDFs to AI Search)
 
 Environment Variables (from azd):
     - AZURE_AI_AGENT_ENDPOINT: Azure AI Project endpoint

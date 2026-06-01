@@ -984,7 +984,7 @@ if scenario_name not in all_scenarios:
         "industry": industry,
         "usecase": usecase,
         "data_size": size,
-        "type": "generate",
+        "type": "custom",
         "description": f"AI-generated {industry} scenario",
         "landing_text": f"Ask questions about {industry.lower()} data...",
         "app_title": f"Contoso {industry}",

@@ -1,10 +1,10 @@
 """
-06 - Upload PDF Files to Azure AI Search
+04 - Upload PDF Files to Azure AI Search
 Uploads PDF files from the data folder to Azure AI Search with page-aware chunking.
 
 Usage:
-    python 05_upload_to_search.py
-    python 05_upload_to_search.py --cleanup   # Delete existing index, KB, and KS
+    python 04_upload_to_search.py
+    python 04_upload_to_search.py --cleanup   # Delete existing index, KB, and KS
 
 Prerequisites:
     - Run 01_generate_data.py (creates PDF files in data folder)

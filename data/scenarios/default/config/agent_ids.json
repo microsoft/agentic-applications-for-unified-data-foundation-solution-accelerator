@@ -1,5 +1,5 @@
 {
-  "_comment": "This file is populated when you run 06_create_agent.py",
+  "_comment": "This file is populated when you run 05_create_agent.py",
   "chat_agent_id": null,
   "chat_agent_name": null,
   "title_agent_id": null,

@@ -26,7 +26,7 @@ All generated artifacts are saved to a scenario folder and used by the remaining
     "industry": "Energy",
     "usecase": "Grid monitoring and outage response",
     "data_size": "medium",
-    "type": "generate",
+    "type": "custom",
     "description": "AI-generated energy grid monitoring scenario",
     "landing_text": "Ask about grid outages, response times, and maintenance schedules...",
     "app_title": "Contoso Energy",
@@ -51,7 +51,7 @@ The pipeline will:
 You can run the data generator directly with just industry and use case — no `scenarios.json` entry needed:
 
 ```bash
-python infra/scripts/post-provision/01_generate_data.py --industry "Energy" --usecase "Grid monitoring and outage response" --size medium
+python infra/scripts/post-provision/00_build_solution.py --only 01 --industry "Energy" --usecase "Grid monitoring and outage response" --size medium
 ```
 
 This will:
@@ -66,7 +66,7 @@ python infra/scripts/post-provision/00_build_solution.py --scenario energy
 
 To control the output location explicitly:
 ```bash
-python infra/scripts/post-provision/01_generate_data.py --industry "Energy" --usecase "Grid monitoring" --size medium --output-dir data/scenarios/my_energy
+python infra/scripts/post-provision/00_build_solution.py --only 01 --industry "Energy" --usecase "Grid monitoring" --size medium --output-dir data/scenarios/my_energy
 ```
 
 ### Option 3: Override Industry/Use Case via CLI
@@ -78,10 +78,10 @@ You can override the scenario metadata with CLI flags on either the orchestrator
 python infra/scripts/post-provision/00_build_solution.py --scenario my_energy --industry "Renewable Energy" --usecase "Solar farm monitoring" --size large
 
 # Via step 01 directly
-python infra/scripts/post-provision/01_generate_data.py --scenario my_energy --industry "Renewable Energy" --size large
+python infra/scripts/post-provision/00_build_solution.py --only 01 --scenario my_energy --industry "Renewable Energy" --size large
 ```
 
-## Scenario JSON Fields for `generate` Type
+## Scenario JSON Fields for `custom` Type
 
 | Field | Required | Description |
 |-------|----------|-------------|
@@ -89,7 +89,7 @@ python infra/scripts/post-provision/01_generate_data.py --scenario my_energy --i
 | `industry` | Yes | Domain name passed to the AI generator |
 | `usecase` | Yes | Use case description passed to the AI generator |
 | `data_size` | Yes | `small`, `medium`, or `large` — controls table row counts and document count |
-| `type` | Yes | Must be `"generate"` for data generation |
+| `type` | Yes | Must be `"custom"` for data generation |
 | `description` | No | Shown with `--list-scenarios` |
 | `landing_text` | No | Welcome message in the chat UI |
 | `app_title` | No | Browser tab title |
@@ -100,7 +100,7 @@ python infra/scripts/post-provision/01_generate_data.py --scenario my_energy --i
 ## Step 01 CLI Reference
 
 ```
-python infra/scripts/post-provision/01_generate_data.py [OPTIONS]
+python infra/scripts/post-provision/00_build_solution.py --only 01 [OPTIONS]
 ```
 
 | Flag | Description |
