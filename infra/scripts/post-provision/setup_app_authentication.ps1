@@ -104,7 +104,8 @@ function Get-AzdEnvValue {
 Write-Host "[1/9] Reading azd environment configuration..." -ForegroundColor Yellow
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$workspaceRoot = Split-Path -Parent $scriptDir
+# Navigate up from infra/scripts/post-provision to the repo root
+$workspaceRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $scriptDir))
 $azureFolder = Join-Path $workspaceRoot ".azure"
 
 if (-not $Environment) {
