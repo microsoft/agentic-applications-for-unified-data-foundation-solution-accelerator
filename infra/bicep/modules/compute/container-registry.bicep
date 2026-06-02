@@ -1,31 +1,53 @@
-targetScope = 'resourceGroup'
+// ============================================================================
+// Module: Azure Container Registry
+// Description: Creates an Azure Container Registry
+// API: Microsoft.ContainerRegistry/registries@2025-04-01
+// ============================================================================
 
-@description('The environment name used to generate unique resource names.')
-param environmentName string
+@description('Solution name used for naming convention.')
+param solutionName string
 
-@description('The Azure region where the container registry will be deployed.')
-param solutionLocation string = resourceGroup().location
+@description('Name of the container registry.')
+param name string = replace('cr${solutionName}', '-', '')
 
-var uniqueId = toLower(uniqueString(subscription().id, environmentName, solutionLocation))
-var solutionName = 'da${padLeft(take(uniqueId, 12), 12, '0')}'
-var containerRegistryName = 'cr${solutionName}'
-var containerRegistryNameCleaned = replace(containerRegistryName, '-', '')
- 
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-11-01' = {
-  name: containerRegistryName
-  location: solutionLocation
+@description('Azure region for deployment.')
+param location string
+
+@description('Resource tags.')
+param tags object = {}
+
+@description('SKU for the container registry.')
+@allowed(['Basic', 'Standard', 'Premium'])
+param sku string = 'Premium'
+
+@description('Enable admin user.')
+param adminUserEnabled bool = false
+
+@description('Public network access setting.')
+@allowed(['Enabled', 'Disabled'])
+param publicNetworkAccess string = 'Enabled'
+
+@description('Export policy status.')
+param exportPolicyStatus string = 'enabled'
+
+// ============================================================================
+// Resource Deployment
+// ============================================================================
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
+  name: name
+  location: location
+  tags: tags
   sku: {
-    name: 'Premium'
+    name: sku
   }
   properties: {
+    adminUserEnabled: adminUserEnabled
+    publicNetworkAccess: publicNetworkAccess
     dataEndpointEnabled: false
     networkRuleBypassOptions: 'AzureServices'
-    networkRuleSet: {
-      defaultAction: 'Allow'
-    }
     policies: {
-      quarantinePolicy: {
-        status: 'disabled'
+      exportPolicy: {
+        status: exportPolicyStatus
       }
       retentionPolicy: {
         status: 'enabled'
@@ -36,14 +58,18 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-11-01' =
         type: 'Notary'
       }
     }
-    publicNetworkAccess: 'Enabled'
     zoneRedundancy: 'Disabled'
   }
 }
- 
-@description('The name of the created container registry (without hyphens).')
-output createdAcrName string = containerRegistryNameCleaned
+
+// ============================================================================
+// Outputs
+// ============================================================================
+@description('The name of the container registry.')
+output name string = containerRegistry.name
+
+@description('The login server URL.')
+output loginServer string = containerRegistry.properties.loginServer
 
 @description('The resource ID of the container registry.')
-output createdAcrId string = containerRegistry.id
- 
+output resourceId string = containerRegistry.id

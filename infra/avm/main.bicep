@@ -665,9 +665,10 @@ module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for
 // Separate PE for AI Foundry to avoid AccountProvisioningStateInvalid race condition
 module aifoundry_private_endpoint './modules/networking/private-endpoint.bicep' = if (!useExistingAIProject && enablePrivateNetworking) {
   name: take('module.pe-ai-foundry.${solutionName}', 64)
+  dependsOn: [privateDnsZoneDeployments]
   params: {
     name: 'pep-aif-${solutionSuffix}'
-    location: azureAiServiceLocation
+    location: location
     tags: tags
     subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
     privateLinkServiceConnections: [
@@ -929,8 +930,6 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     existingAiProjectPrincipalId: useExistingAIProject ? existing_project_setup!.outputs.aiProjectPrincipalId : ''
-    deployerPrincipalId: deployingUserPrincipalId
-    deployerPrincipalType: deployingUserPrincipalType
   }
 }
 

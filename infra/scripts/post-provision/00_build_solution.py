@@ -3,7 +3,7 @@ Build Solution - Unified Pipeline
 Master script that runs all steps to build the complete solution.
 
 Usage:
-    # Run all steps from the beginning (uses either Fabric Lakehouse or Azure SQL + AI Search)
+    # Run all steps from the beginning (uses Fabric Lakehouse + AI Search)
     python infra/scripts/post-provision/00_build_solution.py
     
     # Start from a specific step
@@ -32,7 +32,6 @@ Both modes always use:
 """
 
 import argparse
-import atexit
 import json
 import subprocess
 import sys
@@ -40,133 +39,6 @@ import os
 import time
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# ============================================================================
-# SQL Server Network Access Helpers (CKM pattern)
-# ============================================================================
-# For WAF deployments, SQL public network access is disabled.
-# We temporarily enable it for data upload, then restore original state.
-
-_sql_was_disabled = False
-_sql_server_name = ""
-_sql_resource_group = ""
-
-_SHELL = sys.platform == "win32"  # az CLI on Windows is a .cmd, needs shell=True
-
-
-def _run_az(args_list):
-    """Run an az CLI command and return parsed JSON output (or None on error)."""
-    cmd = ["az"] + args_list + ["-o", "json"]
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, shell=_SHELL)
-        if result.returncode == 0 and result.stdout.strip():
-            return json.loads(result.stdout)
-    except Exception:
-        pass
-    return None
-
-
-def _run_az_cmd(args_list):
-    """Run an az CLI command (no JSON parsing needed)."""
-    cmd = ["az"] + args_list + ["--output", "none"]
-    try:
-        subprocess.run(cmd, capture_output=True, text=True, timeout=120, shell=_SHELL)
-    except Exception:
-        pass
-
-
-def enable_sql_public_access(resource_group):
-    """Temporarily enable SQL Server public access for data upload.
-
-    Checks actual state (using tsv output like CKM), enables if disabled,
-    adds temporary firewall rule.
-    """
-    global _sql_was_disabled, _sql_server_name, _sql_resource_group
-
-    sql_server = os.getenv("AZURE_SQLDB_SERVER", "").strip()
-    if not sql_server:
-        return
-
-    # Extract short name from FQDN
-    _sql_server_name = sql_server.split(".")[0] if "." in sql_server else sql_server
-    _sql_resource_group = resource_group
-
-    # Check current state using -o tsv (like CKM) to avoid JSON parsing issues
-    print("\n  Checking SQL Server public network access...")
-    cmd = ["az", "sql", "server", "show", "--name", _sql_server_name,
-           "--resource-group", resource_group,
-           "--query", "publicNetworkAccess", "-o", "tsv"]
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, shell=_SHELL)
-        current = result.stdout.strip() if result.returncode == 0 else ""
-    except Exception:
-        current = ""
-    print(f"  Current publicNetworkAccess: {current}")
-
-    if current != "Enabled":
-        _sql_was_disabled = True
-        print("  Enabling SQL Server public network access...")
-        _run_az_cmd(["sql", "server", "update", "--name", _sql_server_name,
-                     "--resource-group", resource_group,
-                     "--enable-public-network", "true"])
-
-        # Wait for propagation
-        print("  Waiting 30s for changes to propagate...")
-        time.sleep(30)
-
-        # Verify with retries
-        for attempt in range(1, 6):
-            try:
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=120, shell=_SHELL)
-                state = result.stdout.strip() if result.returncode == 0 else ""
-            except Exception:
-                state = ""
-            if state == "Enabled":
-                print("  [OK] SQL Server public access enabled")
-                break
-            time.sleep(5)
-        else:
-            print("  [WARN] Verification timed out for SQL Server")
-
-        # Add temporary firewall rule
-        print("  Adding temporary firewall rule (TempAllowAll)...")
-        _run_az_cmd(["sql", "server", "firewall-rule", "create",
-                     "--server", _sql_server_name, "--resource-group", resource_group,
-                     "--name", "TempAllowAll",
-                     "--start-ip-address", "0.0.0.0",
-                     "--end-ip-address", "255.255.255.255"])
-        print("  [OK] SQL firewall rule created")
-    else:
-        print("  [OK] SQL Server public access already enabled")
-
-
-def restore_sql_network_access():
-    """Restore SQL Server network access to original state.
-
-    Called via atexit to ensure cleanup even on errors/Ctrl+C.
-    """
-    global _sql_was_disabled
-
-    if not _sql_was_disabled or not _sql_server_name or not _sql_resource_group:
-        return
-
-    print("\n=== Restoring SQL Server network access ===")
-
-    # Remove temporary firewall rule
-    print("  Removing firewall rule (TempAllowAll)...")
-    _run_az_cmd(["sql", "server", "firewall-rule", "delete",
-                 "--server", _sql_server_name, "--resource-group", _sql_resource_group,
-                 "--name", "TempAllowAll", "--yes"])
-
-    # Disable public network access
-    print("  Disabling SQL Server public network access...")
-    _run_az_cmd(["sql", "server", "update", "--name", _sql_server_name,
-                 "--resource-group", _sql_resource_group,
-                 "--enable-public-network", "false"])
-    print("  [OK] SQL Server public access disabled")
-    print("==========================================\n")
-
-    _sql_was_disabled = False
 
 # ============================================================================
 # Configuration
@@ -736,92 +608,6 @@ if args.verbose:
 ensure_deployer_roles()
 
 # ============================================================================
-# Ensure deployer is SQL Server AD admin (for steps that need SQL access)
-# ============================================================================
-
-def ensure_sql_admin():
-    """
-    Ensure the deployer is set as Azure SQL Server AD admin.
-    Required for steps like 04 (upload to SQL) that need DDL permissions.
-    """
-    sql_server_host = os.getenv("AZURE_SQLDB_SERVER") or os.getenv("SQLDB_SERVER")
-    resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
-
-    if not sql_server_host or not resource_group:
-        if args.verbose:
-            print("  [SKIP] SQL Server or resource group not set — skipping SQL admin check")
-        return
-
-    # Extract server name from hostname (e.g., "myserver.database.windows.net" → "myserver")
-    sql_server_name = sql_server_host.split(".")[0]
-
-    # Get deployer display name and object ID
-    try:
-        result = subprocess.run(
-            "az account show --query user.name -o tsv",
-            capture_output=True, text=True, shell=True, check=True
-        )
-        deployer_upn = result.stdout.strip()
-        if not deployer_upn:
-            if args.verbose:
-                print("  [WARN] Could not determine deployer UPN — skipping SQL admin check")
-            return
-    except subprocess.CalledProcessError:
-        if args.verbose:
-            print("  [WARN] Could not get signed-in user — skipping SQL admin check")
-        return
-
-    # Check if AD admin is already set
-    try:
-        result = subprocess.run(
-            f'az sql server ad-admin list --server-name "{sql_server_name}" '
-            f'--resource-group "{resource_group}" --query "[].login" -o tsv',
-            capture_output=True, text=True, shell=True, check=True
-        )
-        existing_admins = result.stdout.strip()
-        if deployer_upn in existing_admins:
-            if args.verbose:
-                print(f"  [OK] Deployer '{deployer_upn}' is already SQL AD admin on '{sql_server_name}' — no action needed")
-            return
-    except subprocess.CalledProcessError:
-        pass
-
-    # Get deployer object ID for ad-admin create
-    try:
-        result = subprocess.run(
-            "az ad signed-in-user show --query id -o tsv",
-            capture_output=True, text=True, shell=True
-        )
-        deployer_object_id = result.stdout.strip() if result.returncode == 0 else ""
-        if not deployer_object_id:
-            deployer_object_id = os.getenv("AZURE_CLIENT_ID", "").strip()
-        if not deployer_object_id:
-            if args.verbose:
-                print("  [WARN] Could not get deployer object ID — skipping SQL admin setup")
-            return
-    except FileNotFoundError:
-        return
-
-    # Set deployer as AD admin
-    try:
-        subprocess.run(
-            f'az sql server ad-admin create --server-name "{sql_server_name}" '
-            f'--resource-group "{resource_group}" '
-            f'--display-name "{deployer_upn}" --object-id "{deployer_object_id}"',
-            capture_output=True, text=True, shell=True, check=True
-        )
-        print(f"  [OK] Set deployer '{deployer_upn}' as SQL AD admin on '{sql_server_name}'")
-    except subprocess.CalledProcessError as e:
-        print(f"  [WARN] Could not set SQL AD admin: {e.stderr.strip()[:200]}")
-
-
-# Only run SQL admin check if pipeline includes SQL steps (04)
-if "04" in pipeline:
-    if args.verbose:
-        print("Checking deployer SQL admin access...")
-    ensure_sql_admin()
-
-# ============================================================================
 # Run Pipeline
 # ============================================================================
 
@@ -893,32 +679,9 @@ def run_step(step_id):
 
 
 # ============================================================================
-# SQL Network Access: Enable before pipeline, restore after
+# Execute Pipeline
 # ============================================================================
 
-# Determine resource group name from azd environment
-_rg_name = os.getenv("AZURE_RESOURCE_GROUP", "").strip()
-if not _rg_name:
-    # Try inferring from azd env
-    try:
-        _azd_result = subprocess.run(
-            ["azd", "env", "get-values"],
-            capture_output=True, text=True, shell=_SHELL
-        )
-        if _azd_result.returncode == 0:
-            for line in _azd_result.stdout.splitlines():
-                if line.startswith("AZURE_RESOURCE_GROUP="):
-                    _rg_name = line.split("=", 1)[1].strip().strip('"')
-                    break
-    except Exception:
-        pass
-
-# Enable SQL public access if needed (no-op if already enabled)
-if _rg_name and os.getenv("AZURE_SQLDB_SERVER", "").strip():
-    atexit.register(restore_sql_network_access)
-    enable_sql_public_access(_rg_name)
-
-# Execute pipeline
 total_start = time.time()
 successful = 0
 failed = 0
@@ -926,14 +689,11 @@ failed = 0
 if args.quiet:
     print(f"\nRunning {len(pipeline)} steps...")
 
-try:
-    for step in pipeline:
-        if run_step(step):
-            successful += 1
-        else:
-            failed += 1
-finally:
-    restore_sql_network_access()
+for step in pipeline:
+    if run_step(step):
+        successful += 1
+    else:
+        failed += 1
 
 total_elapsed = time.time() - total_start
 

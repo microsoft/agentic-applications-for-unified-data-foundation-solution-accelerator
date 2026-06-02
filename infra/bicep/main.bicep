@@ -213,6 +213,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2023-07-01' = {
 module fabricCapacity './modules/fabric/fabric-capacity.bicep' = if (shouldCreateFabricCapacity) {
   name: take('module.fabric-capacity.${solutionName}', 64)
   params: {
+    solutionName: solutionSuffix
     name: fabricCapacityResourceName
     location: solutionLocation
     skuName: fabricCapacitySku
@@ -225,24 +226,29 @@ module fabricCapacity './modules/fabric/fabric-capacity.bicep' = if (shouldCreat
 }
 
 // ========== Monitoring (Log Analytics + Application Insights) ========== //
+var useExistingLogAnalytics = !empty(existingLogAnalyticsWorkspaceId)
+
 // ========== Log Analytics module ========== //
-module log_analytics './modules/monitoring/log-analytics.bicep' = {
+module log_analytics './modules/monitoring/log-analytics.bicep' = if (!useExistingLogAnalytics) {
   name: take('module.log-analytics.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
-    solutionLocation: azureAiServiceLocation
-    existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
+    location: azureAiServiceLocation
   }
   scope: resourceGroup(resourceGroup().name)
 }
+
+var logAnalyticsWorkspaceResourceId = useExistingLogAnalytics
+  ? existingLogAnalyticsWorkspaceId
+  : log_analytics!.outputs.resourceId
 
 // ========== Application Insights module ========== //
 module app_insights './modules/monitoring/app-insights.bicep' = {
   name: take('module.app-insights.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
-    solutionLocation: azureAiServiceLocation
-    logAnalyticsWorkspaceId: log_analytics.outputs.logAnalyticsWorkspaceId
+    location: azureAiServiceLocation
+    workspaceResourceId: logAnalyticsWorkspaceResourceId
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -293,8 +299,8 @@ module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (
   name: take('module.existing-project-setup.${solutionName}', 64)
   scope: resourceGroup(aiServiceSubscription, aiServiceResourceGroup)
   params: {
-    aiFoundryName: aiFoundryResourceName
-    aiProjectName: aiProjectResourceName
+    name: aiFoundryResourceName
+    projectName: aiProjectResourceName
   }
 }
 
@@ -307,11 +313,11 @@ module foundry_search_connection './modules/ai/ai-foundry-connection.bicep' = {
     aiServicesAccountName: aiFoundryResourceName
     projectName: aiProjectResourceName
     category: 'CognitiveSearch'
-    target: ai_search!.outputs.aiSearchTarget
+    target: ai_search!.outputs.endpoint
     authType: 'AAD'
     metadata: {
       ApiType: 'Azure'
-      ResourceId: ai_search!.outputs.aiSearchId
+      ResourceId: ai_search!.outputs.resourceId
     }
   }
 }
@@ -325,11 +331,11 @@ module foundry_storage_connection './modules/ai/ai-foundry-connection.bicep' = {
     aiServicesAccountName: aiFoundryResourceName
     projectName: aiProjectResourceName
     category: 'AzureBlob'
-    target: storage_account!.outputs.storageBlobEndpoint
+    target: storage_account!.outputs.blobEndpoint
     authType: 'AAD'
     metadata: {
-      ResourceId: storage_account!.outputs.storageAccountId
-      AccountName: storage_account!.outputs.storageAccountName
+      ResourceId: storage_account!.outputs.resourceId
+      AccountName: storage_account!.outputs.name
       ContainerName: 'default'
     }
   }
@@ -344,13 +350,13 @@ module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = if (
     aiServicesAccountName: aiFoundryResourceName
     projectName: aiProjectResourceName
     category: 'AppInsights'
-    target: app_insights.outputs.applicationInsightsId
+    target: app_insights.outputs.resourceId
     authType: 'ApiKey'
     isDefault: true
-    credentialsKey: app_insights.outputs.applicationInsightsInstrumentationKey
+    credentialsKey: app_insights.outputs.instrumentationKey
     metadata: {
       ApiType: 'Azure'
-      ResourceId: app_insights.outputs.applicationInsightsId
+      ResourceId: app_insights.outputs.resourceId
     }
   }
 }
@@ -375,7 +381,7 @@ module ai_search './modules/ai/ai-search.bicep' = {
   name: take('module.ai-search.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
-    searchServiceLocation: searchServiceLocation
+    location: searchServiceLocation
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -384,7 +390,7 @@ module ai_search './modules/ai/ai-search.bicep' = {
 var aiFoundryEndpoint = useExistingAIProject ? existing_project_setup!.outputs.aiFoundryEndpoint : ai_foundry_project!.outputs.endpoint
 var projectEndpoint = useExistingAIProject ? existing_project_setup!.outputs.projectEndpoint : ai_foundry_project!.outputs.projectEndpoint
 var aiFoundryName = useExistingAIProject ? existing_project_setup!.outputs.aiServicesAccountName : ai_foundry_project!.outputs.name
-var aiProjectName = useExistingAIProject ? existing_project_setup!.outputs.aiProjectNameOutput : ai_foundry_project!.outputs.projectName
+var aiProjectName = useExistingAIProject ? existing_project_setup!.outputs.aiProjectName : ai_foundry_project!.outputs.projectName
 var aiFoundryResourceId = useExistingAIProject ? existing_project_setup!.outputs.aiFoundryResourceId : ai_foundry_project!.outputs.resourceId
 var aiProjectPrincipalId = useExistingAIProject ? existing_project_setup!.outputs.aiProjectPrincipalId : ai_foundry_project!.outputs.projectIdentityPrincipalId
 var aiSearchConnectionId = foundry_search_connection.outputs.connectionId
@@ -394,7 +400,7 @@ module storage_account './modules/data/storage-account.bicep' = {
   name: take('module.storage-account.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
-    solutionLocation: azureAiServiceLocation
+    location: azureAiServiceLocation
     tags: {}
   }
   scope: resourceGroup(resourceGroup().name)
@@ -404,8 +410,9 @@ module storage_account './modules/data/storage-account.bicep' = {
 module cosmosDBModule './modules/data/cosmos-db.bicep' = if (deployApp) {
   name: take('module.cosmos-db.${solutionName}', 64)
   params: {
-    accountName: 'cosmos-${solutionSuffix}'
-    solutionLocation: secondaryLocation
+    solutionName: solutionSuffix
+    name: 'cosmos-${solutionSuffix}'
+    location: secondaryLocation
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -413,8 +420,8 @@ module cosmosDBModule './modules/data/cosmos-db.bicep' = if (deployApp) {
 module hostingplan './modules/compute/app-service-plan.bicep' = if (shouldDeployApp) {
   name: take('module.app-service-plan.${solutionName}', 64)
   params: {
-    solutionLocation: solutionLocation
-    HostingPlanName: 'asp-${solutionSuffix}'
+    solutionName: solutionSuffix
+    location: solutionLocation
   }
 }
 
@@ -436,12 +443,13 @@ var reactAppLayoutConfig = '''{
 module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
   name: take('module.app-service-pybackend.${solutionName}', 64)
   params: {
-    solutionName: 'api-${solutionSuffix}'
-    solutionLocation: solutionLocation
-    appServicePlanId: hostingplan!.outputs.name
-    appImageName: backendApiImageName
+    solutionName: solutionSuffix
+    name: 'api-${solutionSuffix}'
+    location: solutionLocation
+    serverFarmResourceId: hostingplan!.outputs.resourceId
+    linuxFxVersion: backendApiImageName
     appSettings: {
-      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
+      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
       REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
@@ -452,19 +460,19 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
-      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule!.outputs.cosmosAccountName
-      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule!.outputs.cosmosContainerName
-      AZURE_COSMOSDB_DATABASE: cosmosDBModule!.outputs.cosmosDatabaseName
+      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule!.outputs.name
+      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule!.outputs.containerName
+      AZURE_COSMOSDB_DATABASE: cosmosDBModule!.outputs.databaseName
       AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
       AZURE_SQLDB_USER_MID: ''
       API_UID: ''
-      AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.aiSearchTarget
+      AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.endpoint
       AZURE_AI_SEARCH_INDEX: 'knowledge_index'
-      AZURE_AI_SEARCH_CONNECTION_NAME: ai_search.outputs.aiSearchConnectionName
+      AZURE_AI_SEARCH_CONNECTION_NAME: foundry_search_connection.outputs.connectionName
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: app_insights.outputs.applicationInsightsConnectionString
+      APPLICATIONINSIGHTS_CONNECTION_STRING: app_insights.outputs.connectionString
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix
       USE_USER_ACCESS_TOKEN: useUserAccessTokenSetting
@@ -488,12 +496,13 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
 module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
   name: take('module.app-service-csbackend.${solutionName}', 64)
   params: {
-    solutionName: 'api-cs-${solutionSuffix}'
-    solutionLocation: solutionLocation
-    appServicePlanId: hostingplan!.outputs.name
-    appImageName: backendCsApiImageName
+    solutionName: solutionSuffix
+    name: 'api-cs-${solutionSuffix}'
+    location: solutionLocation
+    serverFarmResourceId: hostingplan!.outputs.resourceId
+    linuxFxVersion: backendCsApiImageName
     appSettings: {
-      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
+      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
       REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
@@ -504,18 +513,18 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
-      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule!.outputs.cosmosAccountName
-      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule!.outputs.cosmosContainerName
-      AZURE_COSMOSDB_DATABASE: cosmosDBModule!.outputs.cosmosDatabaseName
+      AZURE_COSMOSDB_ACCOUNT: cosmosDBModule!.outputs.name
+      AZURE_COSMOSDB_CONVERSATIONS_CONTAINER: cosmosDBModule!.outputs.containerName
+      AZURE_COSMOSDB_DATABASE: cosmosDBModule!.outputs.databaseName
       AZURE_COSMOSDB_ENABLE_FEEDBACK: 'True'
       API_UID: ''
-      AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.aiSearchTarget
+      AZURE_AI_SEARCH_ENDPOINT: ai_search.outputs.endpoint
       AZURE_AI_SEARCH_INDEX: 'knowledge_index'
-      AZURE_AI_SEARCH_CONNECTION_NAME: ai_search.outputs.aiSearchConnectionName
+      AZURE_AI_SEARCH_CONNECTION_NAME: foundry_search_connection.outputs.connectionName
 
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: app_insights.outputs.applicationInsightsConnectionString
+      APPLICATIONINSIGHTS_CONNECTION_STRING: app_insights.outputs.connectionString
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix 
       APP_ENV: 'Prod'
@@ -535,12 +544,13 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
 module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployApp) {
   name: take('module.app-service-frontend.${solutionName}', 64)
   params: {
-    solutionName: 'app-${solutionSuffix}'
-    solutionLocation: solutionLocation
-    appServicePlanId: hostingplan!.outputs.name
-    appImageName: frontendImageName
+    solutionName: solutionSuffix
+    name: 'app-${solutionSuffix}'
+    location: solutionLocation
+    serverFarmResourceId: hostingplan!.outputs.resourceId
+    linuxFxVersion: frontendImageName
     appSettings: {
-      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.applicationInsightsInstrumentationKey
+      APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
       CHAT_LANDING_TEXT: ''
       APP_TITLE_PRIMARY: appTitlePrimary
@@ -554,17 +564,19 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
   name: take('module.role-assignments.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
+    useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
-    aiFoundryName: aiFoundryName
-    aiSearchName: ai_search.outputs.aiSearchName
-    storageAccountName: storage_account.outputs.storageAccountName
+    aiFoundryResourceId: !useExistingAIProject ? aiFoundryResourceId : ''
+    aiSearchResourceId: ai_search.outputs.resourceId
+    storageAccountResourceId: storage_account.outputs.resourceId
     aiProjectPrincipalId: aiProjectPrincipalId
-    searchPrincipalId: ai_search.outputs.searchPrincipalId
-    deployingUserPrincipalId: deployingUserPrincipalId
-    deployingUserPrincipalType: deployingUserPrincipalType
-    backendAppPrincipalId: shouldDeployApp && backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : ''
-    backendCsApiPrincipalId: shouldDeployApp && backendRuntimeStack == 'dotnet' ? backend_csapi_docker!.outputs.identityPrincipalId : ''
-    cosmosAccountName: shouldDeployApp ? cosmosDBModule!.outputs.cosmosAccountName : ''
+    aiSearchPrincipalId: ai_search.outputs.identityPrincipalId
+    deployerPrincipalId: deployingUserPrincipalId
+    deployerPrincipalType: deployingUserPrincipalType
+    backendAppServicePrincipalId: shouldDeployApp
+      ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
+      : ''
+    cosmosDbAccountName: shouldDeployApp ? cosmosDBModule!.outputs.name : ''
     existingAiProjectPrincipalId: !empty(existingFoundryProjectResourceId) ? existing_project_setup!.outputs.aiProjectPrincipalId : ''
   }
   scope: resourceGroup(resourceGroup().name)
@@ -581,7 +593,7 @@ output SOLUTION_NAME string = solutionSuffix
 output RESOURCE_GROUP_NAME string = resourceGroup().name
 
 @description('Cosmos DB account name for conversation history storage')
-output AZURE_COSMOSDB_ACCOUNT string = shouldDeployApp ? cosmosDBModule!.outputs.cosmosAccountName : ''
+output AZURE_COSMOSDB_ACCOUNT string = shouldDeployApp ? cosmosDBModule!.outputs.name : ''
 
 @description('Cosmos DB container name for storing conversations')
 output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = 'conversations'
@@ -626,19 +638,19 @@ output WEB_APP_NAME string = shouldDeployApp ? 'app-${solutionSuffix}' : ''
 output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : ''
 
 @description('Azure AI Search service endpoint URL')
-output AZURE_AI_SEARCH_ENDPOINT string = ai_search.outputs.aiSearchTarget
+output AZURE_AI_SEARCH_ENDPOINT string = ai_search.outputs.endpoint
 
 @description('Azure AI Search index name for document search')
 output AZURE_AI_SEARCH_INDEX string = 'knowledge_index'
 
 @description('Azure AI Search service resource name')
-output AZURE_AI_SEARCH_NAME string = ai_search.outputs.aiSearchName
+output AZURE_AI_SEARCH_NAME string = ai_search.outputs.name
 
 @description('Local path to documents folder for search indexing')
 output SEARCH_DATA_FOLDER string = 'data/default/documents'
 
 @description('AI Foundry connection name for Azure AI Search')
-output AZURE_AI_SEARCH_CONNECTION_NAME string = ai_search.outputs.aiSearchConnectionName
+output AZURE_AI_SEARCH_CONNECTION_NAME string = foundry_search_connection.outputs.connectionName
 
 @description('AI Foundry connection ID for Azure AI Search')
 output AZURE_AI_SEARCH_CONNECTION_ID string = aiSearchConnectionId
