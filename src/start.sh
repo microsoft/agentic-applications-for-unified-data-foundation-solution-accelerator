@@ -138,9 +138,6 @@ if [ -n "$AZURE_SQLDB_SERVER" ]; then
     AZURE_SQLDB_SERVER_NAME="${AZURE_SQLDB_SERVER%%.*}"
 fi
 
-# Normalize booleans to lowercase
-AZURE_ENV_ONLY=$(echo "${AZURE_ENV_ONLY:-false}" | tr '[:upper:]' '[:lower:]')
-
 # Default USE_CHAT_HISTORY_ENABLED to true if not set (for existing deployments)
 USE_CHAT_HISTORY_ENABLED=$(echo "${USE_CHAT_HISTORY_ENABLED:-true}" | tr '[:upper:]' '[:lower:]')
 export USE_CHAT_HISTORY_ENABLED
@@ -151,7 +148,6 @@ BACKEND_RUNTIME_STACK="${BACKEND_RUNTIME_STACK:-python}"
 echo ""
 echo "Configuration:"
 echo "  BACKEND_RUNTIME_STACK=$BACKEND_RUNTIME_STACK"
-echo "  AZURE_ENV_ONLY=$AZURE_ENV_ONLY"
 echo "  USE_CHAT_HISTORY_ENABLED=$USE_CHAT_HISTORY_ENABLED"
 echo ""
 
@@ -175,27 +171,18 @@ else
     echo "Loaded agent names from env: AGENT_NAME_CHAT=$AGENT_NAME_CHAT, AGENT_NAME_TITLE=$AGENT_NAME_TITLE"
 fi
 
-# Load Fabric SQL settings (needed unless azure-only mode)
-USE_FABRIC_SQL="true"
-if [ "$AZURE_ENV_ONLY" = "true" ]; then
-    USE_FABRIC_SQL="false"
-fi
-
-if [ "$USE_FABRIC_SQL" = "true" ]; then
-    if [ -z "$FABRIC_SQL_SERVER" ]; then
-        if [ -f "$FABRIC_IDS_FILE" ]; then
-            FABRIC_SQL_SERVER=$(python3 -c "import json; print(json.load(open('$FABRIC_IDS_FILE'))['sql_endpoint'])" 2>/dev/null)
-            FABRIC_SQL_DATABASE=$(python3 -c "import json; print(json.load(open('$FABRIC_IDS_FILE'))['lakehouse_name'])" 2>/dev/null)
-            export FABRIC_SQL_SERVER FABRIC_SQL_DATABASE
-            echo "Loaded Fabric SQL from fabric_ids.json: SERVER=$FABRIC_SQL_SERVER, DATABASE=$FABRIC_SQL_DATABASE"
-        else
-            echo "[WARN] Fabric SQL mode required but fabric_ids.json not found. Database connections may fail."
-        fi
+# Load Fabric SQL settings
+if [ -z "$FABRIC_SQL_SERVER" ]; then
+    if [ -f "$FABRIC_IDS_FILE" ]; then
+        FABRIC_SQL_SERVER=$(python3 -c "import json; print(json.load(open('$FABRIC_IDS_FILE'))['sql_endpoint'])" 2>/dev/null)
+        FABRIC_SQL_DATABASE=$(python3 -c "import json; print(json.load(open('$FABRIC_IDS_FILE'))['lakehouse_name'])" 2>/dev/null)
+        export FABRIC_SQL_SERVER FABRIC_SQL_DATABASE
+        echo "Loaded Fabric SQL from fabric_ids.json: SERVER=$FABRIC_SQL_SERVER, DATABASE=$FABRIC_SQL_DATABASE"
     else
-        echo "Loaded Fabric SQL from env: SERVER=$FABRIC_SQL_SERVER, DATABASE=$FABRIC_SQL_DATABASE"
+        echo "[WARN] Fabric SQL mode required but fabric_ids.json not found. Database connections may fail."
     fi
 else
-    echo "Using Azure SQL mode (AZURE_ENV_ONLY=true). AZURE_SQLDB_SERVER=$AZURE_SQLDB_SERVER"
+    echo "Loaded Fabric SQL from env: SERVER=$FABRIC_SQL_SERVER, DATABASE=$FABRIC_SQL_DATABASE"
 fi
 
 # ============================================================
@@ -226,7 +213,7 @@ if [ "$BACKEND_RUNTIME_STACK" = "python" ]; then
         upsert_env "AGENT_NAME_TITLE" "$AGENT_NAME_TITLE" "$API_PYTHON_ENV_FILE"
     fi
     # Upsert Fabric SQL settings when needed
-    if [ "$USE_FABRIC_SQL" = "true" ] && [ -n "$FABRIC_SQL_SERVER" ]; then
+    if [ -n "$FABRIC_SQL_SERVER" ]; then
         upsert_env "FABRIC_SQL_SERVER" "$FABRIC_SQL_SERVER" "$API_PYTHON_ENV_FILE"
         upsert_env "FABRIC_SQL_DATABASE" "$FABRIC_SQL_DATABASE" "$API_PYTHON_ENV_FILE"
     fi
@@ -252,7 +239,6 @@ with open('$API_DOTNET_DIR/appsettings.json.sample', 'r') as f:
 
 env_keys = [
     'FABRIC_SQL_CONNECTION_STRING', 'FABRIC_SQL_DATABASE', 'FABRIC_SQL_SERVER',
-    'AZURE_ENV_ONLY', 'AZURE_SQLDB_SERVER', 'AZURE_SQLDB_DATABASE', 'USE_DATA_AGENT',
     'AGENT_NAME_CHAT', 'AGENT_NAME_TITLE', 'API_UID',
     'APPINSIGHTS_INSTRUMENTATIONKEY', 'APPLICATIONINSIGHTS_CONNECTION_STRING',
     'AZURE_AI_AGENT_API_VERSION', 'AZURE_AI_AGENT_ENDPOINT', 'AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME',
@@ -297,7 +283,7 @@ if [ -n "$AGENT_NAME_CHAT" ]; then
     export AGENT_NAME_CHAT
     export AGENT_NAME_TITLE
 fi
-if [ "$USE_FABRIC_SQL" = "true" ] && [ -n "$FABRIC_SQL_SERVER" ]; then
+if [ -n "$FABRIC_SQL_SERVER" ]; then
     export FABRIC_SQL_SERVER
     export FABRIC_SQL_DATABASE
 fi

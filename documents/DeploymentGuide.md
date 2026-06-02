@@ -25,10 +25,47 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 This will allow the scripts to run for the current session without permanently changing your system's policy.
 
-## Deployment Options & Steps
-###  Fabric Deployment 
+## Deployment Options
+
+This solution deploys with Microsoft Fabric (Data Agent, Ontology, Lakehouse) + Azure AI Foundry.
+
+**Requirements:** Fabric capacity (F8+) + Azure subscription
+
+---
+
+## Scenario Packs
+
+Pre-built scenario packs provide ready-to-use datasets without requiring AI data generation. They are ideal for demos, workshops, and testing.
+
+| Pack | Industry | Use Case | Tables | Documents |
+|------|----------|----------|--------|-----------|
+| **retail** | Retail | Inventory and sales operations | 13 (customers, orders, products, invoices, payments, locations) | None (SQL-only) |
+| **insurance** | Insurance | Claims processing and customer management | 4 (customer, policy, claim, communicationshistory) | None (SQL-only) |
+| **default** | Telecommunications | Network operations with outage tracking and trouble ticket management | AI-generated | AI-generated |
+| **default_large** | Telecommunications | Network operations (large dataset) | AI-generated | AI-generated |
+
+> **Note:** If you don't use `--scenario`, the `default` scenario is used automatically (Telecommunications - Network operations with outage tracking and trouble ticket management) which generates AI-based sample data.
+
+To use a scenario pack, add `--scenario <name>` to the build command (see step 7 below).
+
+**Additional data options:**
+- [Bring Your Own Data](../data/customdata/README.md) — Use your own CSV tables and PDF documents
+- [Generate Custom Data](./GenerateCustomData.md) — AI-generate datasets for any custom industry/use case (ideal for POCs)
+
+---
+
+## Deployment Steps
+
+###  Fabric Deployment
 <!-- if you have an existing workspace use this Id -->
 1. Follow the steps in [Fabric Deployment](./Fabric_deployment.md) to create a Fabric workspace
+
+    > **Important (Fabric Admin Portal):** Before proceeding, ensure the following tenant settings are enabled in the [Fabric Admin Portal](https://app.fabric.microsoft.com/admin-portal) → **Tenant settings**:
+    > - **Ontology (preview)** — Required for Data Agent to function
+    > - **Graph (preview)** — Required for entity relationships
+    > - **Copilot and Azure OpenAI Service** — Required for AI features
+    >
+    > These settings may take up to 15 minutes to propagate. See [Fabric IQ Tenant Settings](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings) for details.
 
 Pick from the options below to see step-by-step instructions for GitHub Codespaces, VS Code Dev Containers, VS Code (Web), Local Environments, and Bicep deployments.
 
@@ -147,17 +184,16 @@ When you start the deployment, most parameters will have **default values**, but
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
 | **Environment Name**                        | A **3–20 character alphanumeric value** used to generate a unique ID to prefix the resources.             | env\_name              |
-| **Backend Programming Language**                   | Programming language for the backend API: **python** or **dotnet**.                           | *(empty)*              |
-| **Use Case**                   | Use case: **Retail-sales-analysis** or **Insurance-improve-customer-meetings**.                           | *(empty)*              |
+| **Backend Programming Language**            | Programming language for the backend API: **python** or **dotnet**.                                       | python                 |
 | **Deployment Type**                         | Select from a drop-down list (allowed: `Standard`, `GlobalStandard`).                                     | GlobalStandard         |
-| **GPT Model**                               | Choose from **gpt-4, gpt-4o, gpt-4o-mini**.                                                               | gpt-4o-mini            |
-| **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2024-07-18             |
+| **GPT Model**                               | Name of the GPT model to deploy (e.g., `gpt-4.1-mini`).                                                  | gpt-4.1-mini           |
+| **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2025-04-14             |
 | **OpenAI API Version**                      | The Azure OpenAI API version to use.                                                                      | 2025-01-01-preview     |
-| **GPT Model Deployment Capacity**           | Configure capacity for **GPT models** (in thousands).                                                     | 30k                    |
-| **Image Tag**                               | Docker image tag to deploy. Common values: `latest`, `dev`, `hotfix`.                  | latest       |
-| **Use Local Build**                         | Boolean flag to determine if local container builds should be used.                         | false             |
+| **GPT Model Deployment Capacity**           | Configure capacity for **GPT models** (in thousands).                                                     | 150                    |
+| **Image Tag**                               | Docker image tag to deploy. Common values: `latest_v2`, `dev`, `hotfix`.                                  | latest\_v2             |
 | **Existing Log Analytics Workspace**        | To reuse an existing Log Analytics Workspace ID.                                                          | *(empty)*              |
-| **Existing Azure AI Foundry Project**        | To reuse an existing Azure AI Foundry Project ID instead of creating a new one.              | *(empty)*          |
+| **Existing Azure AI Foundry Project**       | To reuse an existing Azure AI Foundry Project ID instead of creating a new one.                           | *(empty)*              |
+| **Use User Access Token**                   | Enable On-Behalf-Of (OBO) flow so the API calls downstream services using the signed-in user's token. Requires running [OBO Authentication Setup](./SetupOBOAuthentication.md) after deployment. | false              |
 
 
 
@@ -166,9 +202,7 @@ When you start the deployment, most parameters will have **default values**, but
 <details>
   <summary><b>[Optional] Quota Recommendations</b></summary>
 
-By default, the **Gpt-4o-mini model capacity** in deployment is set to **30k tokens**, so we recommend updating the following:
-
-> **For Global Standard | GPT-4o-mini - increase the capacity to at least 150k tokens post-deployment for optimal performance.**
+By default, the **gpt-4.1-mini model capacity** in deployment is set to **150 TPM (thousands)**, which is the recommended minimum for optimal performance.
 
 Depending on your subscription quota and capacity, you can [adjust quota settings](AzureGPTQuotaSettings.md) to better meet your specific needs. You can also [adjust the deployment parameters](CustomizingAzdParameters.md) for additional optimization.
 
@@ -212,17 +246,20 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
       ```sh
       azd env set BACKEND_RUNTIME_STACK dotnet
       ```
-      
-      In standard mode, by default the use case is set to Retail Sales.
-      To switch to Insurance, run the below command.
 
-      ```sh
-      azd env set USE_CASE Insurance-improve-customer-meetings
-      ```
     **NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
     ```bash 
     azd config set provision.preflight off
     ```
+
+    **[Optional] Reuse an existing Fabric workspace:**
+
+    If you already have a Fabric workspace, set its ID before provisioning. This skips Fabric capacity creation during `azd up`:
+    ```shell
+    azd env set FABRIC_WORKSPACE_ID <your-workspace-id>
+    ```
+    > You can find your workspace ID in the Fabric URL: `https://app.fabric.microsoft.com/groups/<workspace-id>/...`
+    > If you omit `FABRIC_WORKSPACE_ID`, a new Fabric capacity and workspace will be created automatically.
 
 2. Provision and deploy all the resources:
 
@@ -232,12 +269,6 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 3. Provide an `azd` environment name (e.g., "daapp").
 4. Select a subscription from your Azure account and choose a location that has quota for all the resources.
-<!--5. Choose the programming language for the backend API:
-   - **Python**
-   - **.NET (dotnet)**
-6. Choose the use case: 
-   - **Retail-sales-analysis**
-   - **Insurance-improve-customer-meetings** -->
 
    This deployment will take *7-10 minutes* to provision the resources in your account and set up the solution with sample data.
    
@@ -267,21 +298,24 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 7. Build the solution:
 
-    **Fabric mode** (default — requires a Fabric workspace ID):
-
     ```shell
-    python infra/scripts/post-provision/00_build_solution.py --from 02 --fabric-workspace-id <your-workspace-id>
+    python infra/scripts/post-provision/00_build_solution.py --from 02
     ```
 
-    > You can find your workspace ID in the Fabric URL: `https://app.fabric.microsoft.com/groups/<workspace-id>/...`
-
-    **Azure-only mode** (if you set `AZURE_ENV_ONLY=true`):
+    **Using a Scenario Pack** (pre-built datasets — no AI generation needed):
 
     ```shell
-    python infra/scripts/post-provision/00_build_solution.py --from 03
+    # Retail scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario retail
+
+    # Insurance scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario insurance
     ```
 
-    > **Note:** Press **Enter** to start or **Ctrl+C** to cancel the process.
+    > **Tip:** To reuse an existing Fabric workspace, run `azd env set FABRIC_WORKSPACE_ID <your-workspace-id>` before building.
+
+    > **Note:** Scenario packs skip data generation (step 01) and document upload (step 05) automatically.
+    > Press **Enter** to start or **Ctrl+C** to cancel the process.
 
 8. Test the agent:
 
@@ -289,11 +323,13 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     python infra/scripts/post-provision/07_test_agent.py
     ```
 
-    **Sample questions to try:**
+    **Sample questions by scenario:**
 
-    - "How many tickets are high priority?"
-    - "What is the average score from inspections?"
-    - "What constitutes a failed inspection?"
+    | Scenario | Sample Questions |
+    |----------|-----------------|
+    | **Default** | "How many tickets are high priority?" · "What is the average score from inspections?" · "What constitutes a failed inspection?" |
+    | **Retail** | "Show the top 5 products by total quantity sold last month?" · "Show total revenue by year for last 5 years" · "Show top 10 products by Revenue in the last year" |
+    | **Insurance** | "I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?" · "Can you provide details of her communications?" · "Based on Ida's policy data has she ever missed a payment?" |
 
 9. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
@@ -314,12 +350,18 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 To help you get started, here are some **Sample Questions** you can ask in the app:
 
-For Retail sales analysis use case: 
+**Default scenario (Telecommunications - Network Operations):**
+
+1. How many tickets are high priority?
+2. What is the average score from inspections?
+3. What constitutes a failed inspection?
+
+**Retail scenario pack:**
 - Show total revenue by year for last 5 years as a line chart.
 - Show top 10 products by Revenue in the last year in a table.
 - Show as a donut chart.
 
-For Insurance improve customer meetings use case: 
+**Insurance scenario pack:**
 - I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?
 - Can you provide details of her communications?
 - Based on Ida's policy data has she ever missed a payment?

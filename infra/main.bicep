@@ -105,12 +105,6 @@ param appServicePlanSku string = 'B2'
 // Parameters — Feature Flags
 // ============================================================================
 
-@description('Optional. Deploy application components (API, Frontend, Cosmos DB).')
-param deployApp bool = true
-
-@description('Optional. Azure-only mode (deploy Azure SQL instead of Fabric SQL).')
-param azureEnvOnly bool = false
-
 @description('Optional. Enable chat history storage.')
 param useChatHistoryEnabled bool = true
 
@@ -139,9 +133,6 @@ param deployingUserPrincipalType string = 'User'
 // Parameters — App Configuration
 // ============================================================================
 
-@allowed(['Retail-sales-analysis', 'Insurance-improve-customer-meetings'])
-@description('Optional. Industry use case for deployment.')
-param usecase string = 'Retail-sales-analysis'
 
 @description('Optional. Primary title in the web app header.')
 param appTitlePrimary string = 'Contoso'
@@ -175,8 +166,10 @@ param enableRedundancy bool = false
 // Parameters — Fabric Capacity
 // ============================================================================
 
-@description('Optional. Set to true to auto-create a Fabric workspace during post-provision.')
-param createFabricWorkspace bool = false
+@description('Optional. Existing Fabric Workspace ID to reuse. If empty, a new workspace will be created during post-provision.')
+param fabricWorkspaceId string = ''
+
+var createFabricWorkspace = empty(fabricWorkspaceId)
 
 @description('Optional. Name of an existing Fabric capacity to reuse. Empty auto-creates when conditions are met.')
 param azureFabricCapacityName string = ''
@@ -243,14 +236,11 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     containerRegistryName: containerRegistryName
     backendRuntimeStack: backendRuntimeStack
     appServicePlanSku: appServicePlanSku
-    deployApp: deployApp
-    azureEnvOnly: azureEnvOnly
     useChatHistoryEnabled: useChatHistoryEnabled
     useUserAccessToken: useUserAccessToken
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     deployingUserPrincipalType: deployingUserPrincipalType
-    usecase: usecase
     appTitlePrimary: appTitlePrimary
     appTitleSecondary: appTitleSecondary
     createFabricWorkspace: createFabricWorkspace
@@ -285,14 +275,11 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     imageTag: imageTag
     containerRegistryName: containerRegistryName
     backendRuntimeStack: backendRuntimeStack
-    deployApp: deployApp
-    azureEnvOnly: azureEnvOnly
     useChatHistoryEnabled: useChatHistoryEnabled
     useUserAccessToken: useUserAccessToken
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     deployingUserPrincipalType: deployingUserPrincipalType
-    usecase: usecase
     appTitlePrimary: appTitlePrimary
     appTitleSecondary: appTitleSecondary
     createFabricWorkspace: createFabricWorkspace
@@ -336,12 +323,6 @@ output AZURE_OPENAI_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_OPENA
 @description('Embedding model deployment name.')
 output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = isAvm ? avmDeployment!.outputs.AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME : bicepDeployment!.outputs.AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME
 
-@description('Azure SQL database name (Azure-only mode).')
-output AZURE_SQLDB_DATABASE string = isAvm ? avmDeployment!.outputs.AZURE_SQLDB_DATABASE : bicepDeployment!.outputs.AZURE_SQLDB_DATABASE
-
-@description('Azure SQL server FQDN (Azure-only mode).')
-output AZURE_SQLDB_SERVER string = isAvm ? avmDeployment!.outputs.AZURE_SQLDB_SERVER : bicepDeployment!.outputs.AZURE_SQLDB_SERVER
-
 @description('Managed identity client ID for SQL auth.')
 output AZURE_SQLDB_USER_MID string = isAvm ? avmDeployment!.outputs.AZURE_SQLDB_USER_MID : bicepDeployment!.outputs.AZURE_SQLDB_USER_MID
 
@@ -363,11 +344,11 @@ output API_PID string = isAvm ? avmDeployment!.outputs.API_PID : bicepDeployment
 @description('Backend API managed identity display name.')
 output MID_DISPLAY_NAME string = isAvm ? avmDeployment!.outputs.MID_DISPLAY_NAME : bicepDeployment!.outputs.MID_DISPLAY_NAME
 
+@description('Frontend web app resource name.')
+output WEB_APP_NAME string = isAvm ? avmDeployment!.outputs.WEB_APP_NAME : bicepDeployment!.outputs.WEB_APP_NAME
+
 @description('Frontend web application URL.')
 output WEB_APP_URL string = isAvm ? avmDeployment!.outputs.WEB_APP_URL : bicepDeployment!.outputs.WEB_APP_URL
-
-@description('Deployed use case identifier.')
-output USE_CASE string = isAvm ? avmDeployment!.outputs.USE_CASE : bicepDeployment!.outputs.USE_CASE
 
 @description('Azure AI Search endpoint.')
 output AZURE_AI_SEARCH_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_AI_SEARCH_ENDPOINT : bicepDeployment!.outputs.AZURE_AI_SEARCH_ENDPOINT
@@ -408,12 +389,6 @@ output USE_CHAT_HISTORY_ENABLED string = isAvm ? avmDeployment!.outputs.USE_CHAT
 @description('Backend runtime stack.')
 output BACKEND_RUNTIME_STACK string = isAvm ? avmDeployment!.outputs.BACKEND_RUNTIME_STACK : bicepDeployment!.outputs.BACKEND_RUNTIME_STACK
 
-@description('Deploy app flag.')
-output AZURE_ENV_DEPLOY_APP bool = isAvm ? avmDeployment!.outputs.AZURE_ENV_DEPLOY_APP : bicepDeployment!.outputs.AZURE_ENV_DEPLOY_APP
-
-@description('Azure-only mode flag.')
-output AZURE_ENV_ONLY bool = isAvm ? avmDeployment!.outputs.AZURE_ENV_ONLY : bicepDeployment!.outputs.AZURE_ENV_ONLY
-
 @description('User access token forwarding flag.')
 output USE_USER_ACCESS_TOKEN string = isAvm ? avmDeployment!.outputs.USE_USER_ACCESS_TOKEN : bicepDeployment!.outputs.USE_USER_ACCESS_TOKEN
 
@@ -431,3 +406,6 @@ output SOLUTION_SUFFIX string = isAvm ? avmDeployment!.outputs.SOLUTION_SUFFIX :
 
 @description('Whether Fabric workspace creation is enabled.')
 output CREATE_FABRIC_WORKSPACE bool = createFabricWorkspace
+
+@description('The Fabric Workspace ID (passed through or empty if auto-creating).')
+output FABRIC_WORKSPACE_ID string = fabricWorkspaceId

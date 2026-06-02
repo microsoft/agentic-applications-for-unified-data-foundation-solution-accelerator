@@ -291,6 +291,5 @@ Files saved:
 Token estimate: ~{len(prompt_text.split())} tokens
 
 Next steps:
-  - Run 06_create_agent.py to create Foundry agent with Fabric Data Agent tool
-  - Or run 06_create_agent.py to create agent with pyodbc SQL tool
+  - Run 05_create_agent.py to create Foundry agent with Fabric Data Agent tool
 """)

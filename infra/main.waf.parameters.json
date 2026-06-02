@@ -50,17 +50,8 @@
     "containerRegistryName": {
       "value": "${AZURE_ENV_CONTAINER_REGISTRY_NAME}"
     },
-    "usecase": {
-      "value": "${USE_CASE}"
-    },
     "searchServiceLocation": {
       "value": "${AZURE_ENV_SEARCH_SERVICE_LOCATION}"
-    },
-    "deployApp": {
-      "value": "${AZURE_ENV_DEPLOY_APP=true}"
-    },
-    "azureEnvOnly": {
-      "value": "${AZURE_ENV_ONLY=false}"
     },
     "deployingUserPrincipalType": {
       "value": "${DEPLOYING_USER_PRINCIPAL_TYPE=User}"
@@ -92,8 +83,8 @@
     "useUserAccessToken":{
       "value": "${USE_USER_ACCESS_TOKEN}"
     },
-    "createFabricWorkspace": {
-      "value": "${CREATE_FABRIC_WORKSPACE=false}"
+    "fabricWorkspaceId": {
+      "value": "${FABRIC_WORKSPACE_ID}"
     },
     "azureFabricCapacityName": {
       "value": "${AZURE_FABRIC_CAPACITY_NAME}"

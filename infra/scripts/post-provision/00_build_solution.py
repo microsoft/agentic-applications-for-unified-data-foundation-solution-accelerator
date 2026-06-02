@@ -19,13 +19,6 @@ Steps (Fabric SQL mode):
     05  - Upload documents to AI Search
     06  - Create Foundry Agent (Fabric SQL + Search)
 
-Steps (Azure-only mode):
-    01  - Generate sample data
-    03  - Generate agent prompt
-    04  - Upload data to Azure SQL
-    05  - Upload documents to AI Search
-    06  - Create Foundry Agent (Azure SQL + Search)
-
 Custom Data mode (--custom-data):
     Skips step 01 and uses your own data from the specified folder.
     The folder must contain:
@@ -34,8 +27,8 @@ Custom Data mode (--custom-data):
     The config/ folder (ontology_config.json) is auto-generated from your CSVs.
 
 Both modes always use:
+    - Fabric Data Agent for structured data
     - Native AzureAISearchTool for document search
-    - execute_sql function tool for structured data
 """
 
 import argparse
@@ -183,15 +176,13 @@ STEPS = {
     "01": {"script": "01_generate_data.py", "name": "Generate Sample Data", "time": "~2min"},
     "02": {"script": "02_create_fabric_items.py", "name": "Create Fabric Lakehouse & Load Data", "time": "~1.5min", "fabric": True},
     "03": {"script": "03_generate_agent_prompt.py", "name": "Generate Agent Prompt", "time": "~5s"},
-    "04": {"script": "04_upload_to_sql.py", "name": "Upload to Azure SQL", "time": "~30s", "azure_only": True},
-    "05": {"script": "05_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
-    "06": {"script": "06_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
-    "08": {"script": "08_app_deployment.py", "name": "App Deployment Config", "time": "~15s", "deploy_app": True},
+    "04": {"script": "04_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
+    "05": {"script": "05_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
+    "06": {"script": "06_app_deployment.py", "name": "App Deployment Config", "time": "~15s"},
 }
 
-# Pipeline order by mode
-FABRIC_PIPELINE = ["01", "02", "03", "05", "06", "08"]
-AZURE_ONLY_PIPELINE = ["01", "03", "04", "05", "06", "08"]
+# Pipeline order
+FABRIC_PIPELINE = ["01", "02", "03", "04", "05", "06"]
 
 # ============================================================================
 # Parse Arguments
@@ -205,28 +196,24 @@ Examples:
   python infra/scripts/post-provision/00_build_solution.py                # Full Fabric mode or SQL mode
   python infra/scripts/post-provision/00_build_solution.py --from 05      # Start from step 05
   python infra/scripts/post-provision/00_build_solution.py --only 06      # Run only specific steps
-  python infra/scripts/post-provision/00_build_solution.py -g rg-myproject-dev  # Pre-provisioned infra
-  python infra/scripts/post-provision/00_build_solution.py --fabric-workspace-id <id>  # Pass Fabric workspace ID
   python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata  # Use your own data
-  python infra/scripts/post-provision/00_build_solution.py --scenario-pack insurance  # Use pre-built scenario pack
-  python infra/scripts/post-provision/00_build_solution.py --list-packs   # Show available scenario packs
+  python infra/scripts/post-provision/00_build_solution.py --scenario insurance  # Use pre-built scenario
+  python infra/scripts/post-provision/00_build_solution.py --list-scenarios      # Show available scenarios
 """
 )
-parser.add_argument("--scenario-pack", type=str,
-                    help="Use a pre-built scenario pack (e.g., insurance, retail). "
-                         "Use --list-packs to see available packs.")
-parser.add_argument("--list-packs", action="store_true",
-                    help="List available scenario packs and exit")
+parser.add_argument("--scenario", type=str,
+                    help="Use a pre-built scenario (e.g., insurance, retail). "
+                         "Use --list-scenarios to see available scenarios.")
+parser.add_argument("--list-scenarios", action="store_true",
+                    help="List available scenarios and exit")
 parser.add_argument("--industry", type=str, 
-                    help="Industry for data generation (overrides .env)")
+                    help="Industry for data generation")
 parser.add_argument("--usecase", type=str, 
-                    help="Use case for data generation (overrides .env)")
+                    help="Use case for data generation")
 parser.add_argument("--size", choices=["small", "medium", "large"],
-                    help="Data size for generation (overrides .env)")
-parser.add_argument("--fabric-workspace-id", type=str,
-                    help="Fabric workspace ID (overrides FABRIC_WORKSPACE_ID in .env)")
-parser.add_argument("--resource-group", "-g", type=str,
-                    help="Azure resource group to fetch env settings from (for pre-provisioned infra)")
+                    help="Data size for generation (default: from scenarios.json or 'small')")
+parser.add_argument("--output-dir", type=str, dest="output_dir",
+                    help="Output directory for generated data (passed to step 01)")
 parser.add_argument("--custom-data", type=str,
                     help="Path to folder with tables/ (CSVs) and documents/ (PDFs). "
                          "Config is auto-generated from your CSV files.")
@@ -255,134 +242,137 @@ from load_env import load_all_env
 load_all_env()
 
 # ============================================================================
-# Scenario Pack Discovery & Handling
+# Scenario Discovery & Handling
 # ============================================================================
+
+from scenarios import list_scenarios, get_scenario, get_scenario_abs_path
+from load_env import save_to_azd_env
 
 project_root = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
 data_root = os.path.join(project_root, "data")
 
 
-def discover_packs():
-    """Scan data/ for subdirectories containing pack.json (valid scenario packs)."""
-    import json
-    packs = {}
-    if not os.path.isdir(data_root):
-        return packs
-    for entry in sorted(os.listdir(data_root)):
-        pack_dir = os.path.join(data_root, entry)
-        pack_json = os.path.join(pack_dir, "pack.json")
-        if os.path.isdir(pack_dir) and os.path.isfile(pack_json):
-            # Validate required structure
-            config_path = os.path.join(pack_dir, "config", "ontology_config.json")
-            tables_dir = os.path.join(pack_dir, "tables")
-            if os.path.isfile(config_path) and os.path.isdir(tables_dir):
-                csv_files = [f for f in os.listdir(tables_dir) if f.endswith(".csv")]
-                if csv_files:
-                    with open(pack_json, "r") as f:
-                        pack_meta = json.load(f)
-                    pack_meta["_path"] = pack_dir
-                    pack_meta["_tables"] = csv_files
-                    packs[entry] = pack_meta
-    return packs
-
-
-if args.list_packs:
-    packs = discover_packs()
-    if not packs:
-        print("No scenario packs found in data/ folder.")
-        print("A valid pack requires: pack.json, config/ontology_config.json, tables/*.csv")
+if args.list_scenarios:
+    scenarios = list_scenarios()
+    if not scenarios:
+        print("No scenarios found.")
     else:
-        print(f"\nAvailable Scenario Packs ({len(packs)}):")
-        print("-" * 70)
-        print(f"  {'Name':<15} {'Industry':<15} {'Use Case':<25} {'Tables'}")
-        print("-" * 70)
-        for pack_name, meta in packs.items():
-            industry = meta.get("industry", "N/A")
-            usecase = meta.get("usecase", "N/A")
-            table_count = len(meta.get("_tables", []))
-            print(f"  {pack_name:<15} {industry:<15} {usecase:<25} {table_count} tables")
-        print("-" * 70)
-        print(f"\nUsage: python {os.path.basename(__file__)} --scenario-pack <name>")
+        print(f"\nAvailable Scenarios ({len(scenarios)}):")
+        print("-" * 80)
+        print(f"  {'Name':<15} {'Type':<10} {'Industry':<15} {'Use Case':<30}")
+        print("-" * 80)
+        for name, meta in scenarios.items():
+            stype = meta.get('type', 'prebuilt')
+            print(f"  {name:<15} {stype:<10} {meta['industry']:<15} {meta['usecase']:<30}")
+        print("-" * 80)
+        print(f"\n  Types: prebuilt = ready-to-use data")
+        print(f"         byod   = bring your own CSVs (auto-generates config)")
+        print(f"         custom = AI creates synthetic data for your industry/usecase")
+        print(f"\nUsage: python {os.path.basename(__file__)} --scenario <name>")
     sys.exit(0)
 
 # Validate mutual exclusivity
-if args.scenario_pack and args.custom_data:
-    print("ERROR: --scenario-pack and --custom-data cannot be used together.")
+if args.scenario and args.custom_data:
+    print("ERROR: --scenario and --custom-data cannot be used together.")
     sys.exit(1)
 
-# Handle --scenario-pack
+# Default to "default" scenario when neither --scenario nor --custom-data is specified
+# BUT if --industry/--usecase is provided, treat as a custom run (no preset scenario)
+if not args.scenario and not args.custom_data:
+    if args.industry or args.usecase:
+        # User wants to generate data for a custom industry — don't use any preset scenario
+        pass
+    else:
+        args.scenario = "default"
+
+# Handle --scenario
 scenario_pack_dir = None
-if args.scenario_pack:
-    packs = discover_packs()
-    pack_name = args.scenario_pack.lower()
+if args.scenario:
+    scenario_meta = get_scenario(args.scenario)
     
-    if pack_name not in packs:
-        print(f"ERROR: Scenario pack '{args.scenario_pack}' not found.")
-        if packs:
-            print(f"Available packs: {', '.join(packs.keys())}")
-        else:
-            print("No scenario packs found in data/ folder.")
-        print("Use --list-packs to see available packs with details.")
+    if scenario_meta is None:
+        print(f"ERROR: Scenario '{args.scenario}' not found.")
+        available = list_scenarios()
+        if available:
+            print(f"Available scenarios: {', '.join(available.keys())}")
+        print("Use --list-scenarios to see available scenarios with details.")
         sys.exit(1)
     
-    pack_meta = packs[pack_name]
-    scenario_pack_dir = pack_meta["_path"]
+    scenario_pack_dir = get_scenario_abs_path(args.scenario)
     
-    # Set DATA_FOLDER and INDUSTRY/USECASE from pack metadata
+    # Set DATA_FOLDER and INDUSTRY/USECASE from scenario metadata
     relative_data_dir = os.path.relpath(scenario_pack_dir, project_root)
     os.environ["DATA_FOLDER"] = relative_data_dir
-    os.environ["INDUSTRY"] = pack_meta.get("industry", "")
-    os.environ["USECASE"] = pack_meta.get("usecase", "")
+    save_to_azd_env("DATA_FOLDER", relative_data_dir)
+    os.environ["INDUSTRY"] = args.industry or scenario_meta.get("industry", "")
+    os.environ["USECASE"] = args.usecase or scenario_meta.get("usecase", "")
     
-    # Persist to .env
-    from dotenv import set_key
-    env_path = os.path.join(script_dir, ".env")
-    set_key(env_path, "DATA_FOLDER", relative_data_dir)
-    set_key(env_path, "INDUSTRY", pack_meta.get("industry", ""))
-    set_key(env_path, "USECASE", pack_meta.get("usecase", ""))
-    
+    # Set DATA_SIZE for custom-type scenarios (used by step 01)
+    if scenario_meta.get("data_size"):
+        os.environ["DATA_SIZE"] = args.size or scenario_meta["data_size"]
+    elif args.size:
+        os.environ["DATA_SIZE"] = args.size
+
+    # For custom-type scenarios, ensure the output folder exists
+    if scenario_meta.get("type") == "custom":
+        os.makedirs(scenario_pack_dir, exist_ok=True)
+
+    # For byod-type scenarios, auto-generate config if missing
+    if scenario_meta.get("type") == "byod":
+        config_dir = os.path.join(scenario_pack_dir, "config")
+        os.makedirs(config_dir, exist_ok=True)
+        config_path = os.path.join(config_dir, "ontology_config.json")
+        questions_path = os.path.join(config_dir, "sample_questions.txt")
+        
+        if not (os.path.exists(config_path) and os.path.exists(questions_path)):
+            custom_industry = os.environ["INDUSTRY"]
+            custom_usecase = os.environ["USECASE"]
+            
+            if not custom_industry or not custom_usecase:
+                print("\n" + "="*60)
+                print("BYOD Scenario - Industry & Use Case")
+                print("="*60)
+                print("\nDescribe your data so the agent understands the domain context.\n")
+                if not custom_industry:
+                    custom_industry = input("Industry (e.g. Healthcare, Retail, Manufacturing): ").strip()
+                    if not custom_industry:
+                        print("ERROR: Industry is required for BYOD scenarios.")
+                        sys.exit(1)
+                if not custom_usecase:
+                    custom_usecase = input("Use Case (e.g. Patient records and clinical notes): ").strip()
+                    if not custom_usecase:
+                        print("ERROR: Use case is required for BYOD scenarios.")
+                        sys.exit(1)
+                os.environ["INDUSTRY"] = custom_industry
+                os.environ["USECASE"] = custom_usecase
+            
+            print(f"\n[...] Generating config and sample questions from CSV files...")
+            gen_script = os.path.join(script_dir, "generate_config_from_csv.py")
+            gen_cmd = [
+                sys.executable, gen_script,
+                "--data-folder", scenario_pack_dir,
+                "--industry", custom_industry,
+                "--usecase", custom_usecase,
+            ]
+            gen_result = subprocess.run(gen_cmd, cwd=script_dir)
+            if gen_result.returncode != 0:
+                print("ERROR: Failed to generate config from CSV files.")
+                sys.exit(1)
+        else:
+            print(f"[OK] Using existing config: {config_path}")
+
     # Check for documents
     docs_dir = os.path.join(scenario_pack_dir, "documents")
     has_documents = os.path.isdir(docs_dir) and any(
         f.endswith(".pdf") for f in os.listdir(docs_dir)
     )
     
-    print(f"\n[OK] Scenario Pack: {pack_meta.get('name', pack_name)}")
-    print(f"     Industry: {pack_meta.get('industry', 'N/A')}")
-    print(f"     Use Case: {pack_meta.get('usecase', 'N/A')}")
-    print(f"     Tables: {', '.join(pack_meta.get('_tables', []))}")
-    print(f"     Documents: {'Yes' if has_documents else 'None (step 05 will be skipped)'}")
+    print(f"\n[OK] Scenario: {args.scenario}")
+    print(f"     Type: {'custom' if (args.industry or args.usecase) else scenario_meta.get('type', 'prebuilt')}")
+    print(f"     Industry: {os.environ.get('INDUSTRY', '')}")
+    print(f"     Use Case: {os.environ.get('USECASE', '')}")
+    print(f"     Documents: {'Yes' if has_documents else 'None (step 04 will be skipped)'}")
     print(f"     DATA_FOLDER set to: {relative_data_dir}")
-
-# ============================================================================
-# Generate .env from Azure if resource group provided
-# ============================================================================
-
-# If --resource-group is passed, generate/update .env from Azure
-# Otherwise, use existing .env file as-is
-if args.resource_group:
-    print(f"\nFetching settings from resource group: {args.resource_group}")
-    generate_script = os.path.join(script_dir, "generate_env_from_azure.py")
-    
-    gen_cmd = [sys.executable, generate_script, "--resource-group", args.resource_group]
-    if args.quiet:
-        gen_cmd.append("--quiet")
-    
-    result = subprocess.run(gen_cmd, cwd=script_dir)
-    
-    if result.returncode == 0:
-        print("✓ Environment configured from Azure.")
-        # Reload environment with new values
-        from load_env import reload_env
-        reload_env()
-        load_all_env()
-    else:
-        print("Failed. Edit infra/scripts/post-provision/.env manually or retry with: python infra/scripts/post-provision/generate_env_from_azure.py -g <rg>")
-        sys.exit(1)
-
-# Get azure_only from environment variable (set AZURE_ENV_ONLY=true to use Azure SQL mode)
-azure_only = os.getenv("AZURE_ENV_ONLY", "false").lower() in ("true", "1", "yes")
-deploy_app = os.getenv("AZURE_ENV_DEPLOY_APP", "false").lower() in ("true", "1", "yes")
 
 # ============================================================================
 # Handle --custom-data: validate folder, generate config, set DATA_FOLDER
@@ -468,15 +458,10 @@ if args.custom_data:
             print("ERROR: Failed to generate config from CSV files.")
             sys.exit(1)
 
-    # Set DATA_FOLDER in environment and persist to .env
+    # Set DATA_FOLDER in environment
     relative_data_dir = os.path.relpath(custom_data_dir, project_root)
     os.environ["DATA_FOLDER"] = relative_data_dir
-
-    from dotenv import set_key
-    env_path = os.path.join(script_dir, ".env")
-    set_key(env_path, "DATA_FOLDER", relative_data_dir)
-    set_key(env_path, "INDUSTRY", custom_industry)
-    set_key(env_path, "USECASE", custom_usecase)
+    save_to_azd_env("DATA_FOLDER", relative_data_dir)
     os.environ["INDUSTRY"] = custom_industry
     os.environ["USECASE"] = custom_usecase
 
@@ -488,24 +473,59 @@ if args.custom_data:
     print(f"     DATA_FOLDER set to: {relative_data_dir}")
 
 # ============================================================================
+# Handle custom mode: --industry/--usecase without --scenario or --custom-data
+# ============================================================================
+
+if not args.scenario and not custom_data_dir:
+    # Derive folder from industry name
+    industry_slug = (args.industry or "generated").lower().replace(" ", "_")[:20]
+    generate_data_dir = os.path.join(project_root, "data", "scenarios", industry_slug)
+    os.makedirs(generate_data_dir, exist_ok=True)
+
+    relative_data_dir = os.path.relpath(generate_data_dir, project_root)
+    os.environ["DATA_FOLDER"] = relative_data_dir
+    save_to_azd_env("DATA_FOLDER", relative_data_dir)
+    os.environ["INDUSTRY"] = args.industry or ""
+    os.environ["USECASE"] = args.usecase or ""
+    os.environ["DATA_SIZE"] = args.size or "small"
+
+    print(f"\n[OK] Custom mode (AI data generation)")
+    print(f"     Type: custom")
+    print(f"     Industry: {args.industry}")
+    print(f"     Use Case: {args.usecase}")
+    print(f"     DATA_FOLDER set to: {relative_data_dir}")
+
+# ============================================================================
 # Determine Pipeline
 # ============================================================================
 
 if args.only:
     pipeline = args.only
-elif azure_only:
-    pipeline = AZURE_ONLY_PIPELINE.copy()
 else:
     pipeline = FABRIC_PIPELINE.copy()
 
-# Skip data generation step when using custom data or scenario pack
+# Skip data generation step when using BYOD data or prebuilt/scenario pack
 if custom_data_dir and "01" in pipeline:
     pipeline = [s for s in pipeline if s != "01"]
-    print("  (Skipping step 01 — using custom data instead of AI generation)")
+    print("  (Skipping step 01 — using BYOD data instead of AI generation)")
 
 if scenario_pack_dir and "01" in pipeline:
-    pipeline = [s for s in pipeline if s != "01"]
-    print("  (Skipping step 01 — using scenario pack data)")
+    scenario_type = scenario_meta.get("type", "prebuilt") if scenario_meta else "prebuilt"
+    # If user explicitly provided --industry/--usecase that differ from the scenario defaults,
+    # treat as "custom" so step 01 runs with the custom industry/usecase
+    # (but never override "byod" scenarios — they always skip step 01)
+    if scenario_type not in ("custom", "byod") and (args.industry or args.usecase):
+        user_industry = args.industry or ""
+        user_usecase = args.usecase or ""
+        meta_industry = scenario_meta.get("industry", "") if scenario_meta else ""
+        meta_usecase = scenario_meta.get("usecase", "") if scenario_meta else ""
+        if user_industry.lower() != meta_industry.lower() or user_usecase.lower() != meta_usecase.lower():
+            scenario_type = "custom"
+    if scenario_type != "custom":
+        pipeline = [s for s in pipeline if s != "01"]
+        print("  (Skipping step 01 — using prebuilt/scenario pack data)")
+    else:
+        print("  (Running step 01 — generating AI data for custom industry/usecase)")
 
 # Skip document upload step if no documents available
 if scenario_pack_dir or custom_data_dir:
@@ -514,12 +534,12 @@ if scenario_pack_dir or custom_data_dir:
     has_pdfs = os.path.isdir(docs_path) and any(
         f.endswith(".pdf") for f in os.listdir(docs_path)
     )
-    if not has_pdfs and "05" in pipeline:
-        pipeline = [s for s in pipeline if s != "05"]
-        print("  (Skipping step 05 — no PDF documents found in data folder. Cleaning up search resources...)")
+    if not has_pdfs and "04" in pipeline:
+        pipeline = [s for s in pipeline if s != "04"]
+        print("  (Skipping step 04 — no PDF documents found in data folder. Cleaning up search resources...)")
 
         # Clean up existing search index, knowledge base, and knowledge source
-        cleanup_script = os.path.join(script_dir, "05_upload_to_search.py")
+        cleanup_script = os.path.join(script_dir, "04_upload_to_search.py")
         if os.path.exists(cleanup_script):
             result = subprocess.run(
                 [sys.executable, cleanup_script, "--cleanup"],
@@ -542,10 +562,6 @@ if args.from_step:
         print(f"Available steps: {pipeline}")
         sys.exit(1)
 
-# Append app deployment step if AZURE_ENV_DEPLOY_APP is true
-if not deploy_app:
-    pipeline = [s for s in pipeline if s != "08"]
-
 # ============================================================================
 # Validate Scripts Exist
 # ============================================================================
@@ -560,34 +576,14 @@ for step in pipeline:
         sys.exit(1)
 
 # ============================================================================
-# Interactive Prompt for Fabric Workspace ID (Fabric mode only)
+# Fabric Workspace ID (Fabric mode only)
 # ============================================================================
 
-if not azure_only:
-    create_fabric_workspace = os.getenv("CREATE_FABRIC_WORKSPACE", "false").lower() == "true"
-    fabric_workspace_id = args.fabric_workspace_id or os.getenv("FABRIC_WORKSPACE_ID", "").strip()
-    if not fabric_workspace_id and not create_fabric_workspace:
-        print("\n" + "="*60)
-        print("Fabric Workspace Configuration")
-        print("="*60)
-        print("\nFabric mode requires a Workspace ID.")
-        print("You can find it in your Fabric URL: https://app.fabric.microsoft.com/groups/<workspace-id>")
-        fabric_workspace_id = input("\nFabric Workspace ID: ").strip()
-        if not fabric_workspace_id:
-            print("ERROR: Fabric Workspace ID is required in Fabric mode.")
-            print("       Pass --fabric-workspace-id <id> or set FABRIC_WORKSPACE_ID in .env")
-            print("       Or set CREATE_FABRIC_WORKSPACE=true to auto-create a workspace.")
-            print("       Or use AZURE_ENV_ONLY=true for Azure SQL mode.")
-            sys.exit(1)
-    if fabric_workspace_id:
-        # Make it available to downstream scripts
-        os.environ["FABRIC_WORKSPACE_ID"] = fabric_workspace_id
-        # Persist to .env so subsequent runs don't need to re-enter it
-        from dotenv import set_key
-        env_path = os.path.join(script_dir, ".env")
-        set_key(env_path, "FABRIC_WORKSPACE_ID", fabric_workspace_id)
-    elif create_fabric_workspace:
-        print("  (Workspace will be auto-created by step 02)")
+fabric_workspace_id = os.getenv("FABRIC_WORKSPACE_ID", "").strip()
+if fabric_workspace_id:
+    print(f"\n[OK] Using existing Fabric Workspace: {fabric_workspace_id}")
+else:
+    print("\n[OK] No FABRIC_WORKSPACE_ID set — a new workspace will be created.")
 
 # ============================================================================
 # Interactive Prompts for Data Generation
@@ -596,7 +592,7 @@ if not azure_only:
 if "01" in pipeline:
     args.industry = args.industry or os.getenv("INDUSTRY")
     args.usecase = args.usecase or os.getenv("USECASE") or os.getenv("USE_CASE")
-    args.size = args.size or os.getenv("DATA_SIZE", "small")
+    args.size = args.size or os.getenv("DATA_SIZE") or "small"
     
     if not args.industry or not args.usecase:
         print("\n" + "="*60)
@@ -630,7 +626,7 @@ if "01" in pipeline:
 # Print Plan
 # ============================================================================
 
-mode = "Azure SQL" if azure_only else "Fabric"
+mode = "Fabric"
 print("\n" + "="*60)
 print(f"Build Solution Pipeline ({mode} Mode)")
 print("="*60)
@@ -853,12 +849,11 @@ def run_step(step_id):
             cmd.extend(["--usecase", args.usecase])
         if args.size:
             cmd.extend(["--size", args.size])
+        if args.output_dir:
+            cmd.extend(["--output-dir", args.output_dir])
     
     if step_id == "02" and args.clean:
         cmd.append("--clean")
-    
-    if step_id == "06" and azure_only:
-        cmd.append("--azure-only")
     
     # Run the script
     start_time = time.time()
@@ -935,10 +930,6 @@ try:
     for step in pipeline:
         if run_step(step):
             successful += 1
-            # Force reload environment after step 01 (it updates DATA_FOLDER, INDUSTRY, USECASE in .env)
-            if step == "01":
-                from load_env import reload_env
-                reload_env()
         else:
             failed += 1
 finally:
@@ -981,5 +972,5 @@ Sample questions to try:
         print("\nSome steps failed. Check the output above for errors.")
         sys.exit(1)
 
-if web_app_url and "08" in pipeline:
+if web_app_url and "06" in pipeline:
     print(f"🚀 Your app is live! Open it here: {web_app_url}")

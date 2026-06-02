@@ -53,7 +53,7 @@ def _looks_like_date_column(col_name: str, series: "pd.Series") -> bool:
         return name_hint
 
     try:
-        parsed = pd.to_datetime(sample, errors="coerce", infer_datetime_format=True)
+        parsed = pd.to_datetime(sample, errors="coerce", format="mixed")
         pct_parsed = parsed.notna().sum() / len(sample)
         # If >80 % parse as dates AND (name hints or 100 % parse), treat as date
         if pct_parsed >= 1.0:
@@ -69,7 +69,7 @@ def _has_time_component(series: "pd.Series") -> bool:
     """Return True if the date values include a non-midnight time part (→ DateTime)."""
     sample = series.dropna().head(20)
     try:
-        parsed = pd.to_datetime(sample, errors="coerce", infer_datetime_format=True).dropna()
+        parsed = pd.to_datetime(sample, errors="coerce", format="mixed").dropna()
         # If any value has a non-zero time component, it's DateTime
         return any(t.hour != 0 or t.minute != 0 or t.second != 0 for t in parsed)
     except Exception:

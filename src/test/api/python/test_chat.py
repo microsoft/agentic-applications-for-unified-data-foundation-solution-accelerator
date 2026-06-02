@@ -236,7 +236,6 @@ class TestStreamOpenAIText:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             # Setup mocks
@@ -263,7 +262,6 @@ class TestStreamOpenAIText:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             mock_cache.return_value = {}
 
@@ -282,7 +280,6 @@ class TestStreamOpenAIText:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             mock_cred.return_value = AsyncMock()
@@ -304,7 +301,6 @@ class TestStreamOpenAIText:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             mock_cache.return_value = {}
 
@@ -347,15 +343,11 @@ class TestStreamOpenAIText:
              patch('chat.AIProjectClient') as mock_project, \
              patch('chat.FoundryAgent', return_value=mock_agent), \
              patch('chat.get_thread_cache') as mock_cache, \
-             patch('history_sql.get_azure_sql_connection', new_callable=AsyncMock, return_value=Mock()) as mock_sql, \
-             patch('history_sql.get_fabric_db_connection', new_callable=AsyncMock, return_value=Mock()), \
-             patch('history_sql.SqlQueryTool') as mock_tool:
+             patch('history_sql.get_fabric_db_connection', new_callable=AsyncMock, return_value=Mock()):
 
             mock_cred.return_value = AsyncMock()
             mock_cred.return_value.close = AsyncMock()
             mock_project.return_value = mock_proj_inst
-            mock_tool.return_value = Mock()
-            mock_tool.return_value.execute_sql = Mock()
             mock_cache.return_value = {}
 
             results = []
@@ -423,7 +415,6 @@ class TestAdditionalCoverage:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             mock_cred.return_value = AsyncMock()
@@ -448,7 +439,6 @@ class TestAdditionalCoverage:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             # Mock cache with existing thread ID
             mock_cache_dict = {"conv_123": "existing_thread_123"}
@@ -556,7 +546,6 @@ class TestAdditionalCoverage:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             mock_cred.return_value = AsyncMock()
@@ -582,7 +571,6 @@ class TestAdditionalCoverage:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             # Mock empty cache (no existing thread)
             mock_cache_dict = {}
@@ -606,7 +594,6 @@ class TestAdditionalCoverage:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             mock_cred.return_value = AsyncMock()
@@ -634,7 +621,6 @@ class TestAdditionalCoverage:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             mock_cache.return_value = {}
 
@@ -678,7 +664,6 @@ class TestApplicationInsightsCoverage:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             mock_cred.return_value = AsyncMock()
@@ -702,7 +687,6 @@ class TestApplicationInsightsCoverage:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             # Mock cache with existing thread
             mock_cache_dict = {"conv_cached": "existing_thread_999"}
