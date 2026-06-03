@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "11202863171687351028"
+      "templateHash": "15751341523933229897"
     }
   },
   "parameters": {
@@ -614,7 +614,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "6134096388318323638"
+              "templateHash": "3276019876379547678"
             }
           },
           "parameters": {
@@ -677,6 +677,13 @@
               "metadata": {
                 "description": "Flow type for Application Insights."
               }
+            },
+            "kind": {
+              "type": "string",
+              "defaultValue": "web",
+              "metadata": {
+                "description": "Kind of Application Insights resource."
+              }
             }
           },
           "resources": [
@@ -686,7 +693,7 @@
               "name": "[parameters('name')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
-              "kind": "web",
+              "kind": "[parameters('kind')]",
               "properties": {
                 "Application_Type": "[parameters('applicationType')]",
                 "Flow_Type": "[parameters('flowType')]",
@@ -2048,6 +2055,14 @@
           },
           "tags": {
             "value": {}
+          },
+          "containers": {
+            "value": [
+              {
+                "name": "default",
+                "publicAccess": "None"
+              }
+            ]
           }
         },
         "template": {
@@ -2247,6 +2262,17 @@
           },
           "location": {
             "value": "[parameters('secondaryLocation')]"
+          },
+          "databaseName": {
+            "value": "db_conversation_history"
+          },
+          "containers": {
+            "value": [
+              {
+                "name": "conversations",
+                "partitionKeyPath": "/userId"
+              }
+            ]
           }
         },
         "template": {

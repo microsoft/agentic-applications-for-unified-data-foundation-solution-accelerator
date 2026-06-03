@@ -402,6 +402,9 @@ module storage_account './modules/data/storage-account.bicep' = {
     solutionName: solutionSuffix
     location: azureAiServiceLocation
     tags: {}
+    containers: [
+      { name: 'default', publicAccess: 'None' }
+    ]
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -413,6 +416,10 @@ module cosmosDBModule './modules/data/cosmos-db.bicep' = if (deployApp) {
     solutionName: solutionSuffix
     name: 'cosmos-${solutionSuffix}'
     location: secondaryLocation
+    databaseName: 'db_conversation_history'
+    containers: [
+      { name: 'conversations', partitionKeyPath: '/userId' }
+    ]
   }
   scope: resourceGroup(resourceGroup().name)
 }

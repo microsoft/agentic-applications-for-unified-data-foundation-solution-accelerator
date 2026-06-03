@@ -739,6 +739,9 @@ module storage_account './modules/data/storage-account.bicep' = {
     enableTelemetry: enableTelemetry
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
+    containers: [
+      { name: 'default', publicAccess: 'None' }
+    ]
     roleAssignments: [
       {
         roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor
@@ -761,6 +764,10 @@ module cosmosDBModule './modules/data/cosmos-db.bicep' = if (shouldDeployApp) {
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
+    databaseName: 'db_conversation_history'
+    containers: [
+      { name: 'conversations', partitionKeyPath: '/userId' }
+    ]
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
     zoneRedundant: enableRedundancy
