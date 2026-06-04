@@ -4,7 +4,7 @@ import sys
 import os
 import argparse
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from azure.ai.projects.models import PromptAgentDefinition, FunctionTool, AzureAISearchAgentTool, AzureAISearchToolResource, AISearchIndexResource
+from azure.ai.projects.models import PromptAgentDefinition, FunctionTool, AzureAISearchTool, AzureAISearchToolResource, AISearchIndexResource
 from azure_credential_utils import get_azure_credential
 
 p = argparse.ArgumentParser()
@@ -231,7 +231,7 @@ tools_list = [
 
 # Add Azure AI Search tool for workshop deployment
 if is_workshop and azure_ai_search_connection_name and azure_ai_search_index:
-    search_tool = AzureAISearchAgentTool(
+    search_tool = AzureAISearchTool(
         azure_ai_search=AzureAISearchToolResource(
             indexes=[
                 AISearchIndexResource(
