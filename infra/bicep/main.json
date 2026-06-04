@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "2724744708064058451"
+      "templateHash": "12344677289177963692"
     }
   },
   "parameters": {
@@ -3452,7 +3452,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "9572951001648196352"
+              "templateHash": "3971738562982100484"
             }
           },
           "parameters": {
@@ -3573,7 +3573,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.CognitiveServices/accounts', last(split(parameters('aiFoundryResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, resourceId('Microsoft.CognitiveServices/accounts', last(split(parameters('aiFoundryResourceId'), '/'))), variables('roleDefinitions').cognitiveServicesOpenAIUser, 'search-openai')]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', last(split(parameters('aiFoundryResourceId'), '/'))), parameters('aiSearchPrincipalId'), variables('roleDefinitions').cognitiveServicesOpenAIUser)]",
               "properties": {
                 "principalId": "[parameters('aiSearchPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').cognitiveServicesOpenAIUser)]",
@@ -3585,7 +3585,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.CognitiveServices/accounts', last(split(parameters('aiFoundryResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, parameters('backendAppServicePrincipalId'), variables('roleDefinitions').azureAiUser, 'backend-ai-services')]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', last(split(parameters('aiFoundryResourceId'), '/'))), parameters('backendAppServicePrincipalId'), variables('roleDefinitions').azureAiUser)]",
               "properties": {
                 "principalId": "[parameters('backendAppServicePrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').azureAiUser)]",
@@ -3597,7 +3597,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.Search/searchServices', last(split(parameters('aiSearchResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, parameters('aiProjectPrincipalId'), variables('roleDefinitions').searchIndexDataReader, 'project-search')]",
+              "name": "[guid(resourceId('Microsoft.Search/searchServices', last(split(parameters('aiSearchResourceId'), '/'))), parameters('aiProjectPrincipalId'), variables('roleDefinitions').searchIndexDataReader)]",
               "properties": {
                 "principalId": "[parameters('aiProjectPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').searchIndexDataReader)]",
@@ -3609,7 +3609,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.Search/searchServices', last(split(parameters('aiSearchResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, parameters('aiProjectPrincipalId'), variables('roleDefinitions').searchServiceContributor, 'project-search')]",
+              "name": "[guid(resourceId('Microsoft.Search/searchServices', last(split(parameters('aiSearchResourceId'), '/'))), parameters('aiProjectPrincipalId'), variables('roleDefinitions').searchServiceContributor)]",
               "properties": {
                 "principalId": "[parameters('aiProjectPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').searchServiceContributor)]",
@@ -3621,7 +3621,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.Search/searchServices', last(split(parameters('aiSearchResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, parameters('existingAiProjectPrincipalId'), variables('roleDefinitions').searchIndexDataReader, 'existing-project-search')]",
+              "name": "[guid(resourceId('Microsoft.Search/searchServices', last(split(parameters('aiSearchResourceId'), '/'))), 'existing', parameters('existingAiProjectPrincipalId'), variables('roleDefinitions').searchIndexDataReader)]",
               "properties": {
                 "principalId": "[parameters('existingAiProjectPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').searchIndexDataReader)]",
@@ -3633,7 +3633,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.Search/searchServices', last(split(parameters('aiSearchResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, parameters('existingAiProjectPrincipalId'), variables('roleDefinitions').searchServiceContributor, 'existing-project-search')]",
+              "name": "[guid(resourceId('Microsoft.Search/searchServices', last(split(parameters('aiSearchResourceId'), '/'))), 'existing', parameters('existingAiProjectPrincipalId'), variables('roleDefinitions').searchServiceContributor)]",
               "properties": {
                 "principalId": "[parameters('existingAiProjectPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').searchServiceContributor)]",
@@ -3645,7 +3645,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.Search/searchServices', last(split(parameters('aiSearchResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, parameters('backendAppServicePrincipalId'), variables('roleDefinitions').searchIndexDataReader, 'backend-search')]",
+              "name": "[guid(resourceId('Microsoft.Search/searchServices', last(split(parameters('aiSearchResourceId'), '/'))), parameters('backendAppServicePrincipalId'), variables('roleDefinitions').searchIndexDataReader)]",
               "properties": {
                 "principalId": "[parameters('backendAppServicePrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').searchIndexDataReader)]",
@@ -3657,7 +3657,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, parameters('aiProjectPrincipalId'), variables('roleDefinitions').storageBlobDataContributor, 'project-storage')]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/'))), parameters('aiProjectPrincipalId'), variables('roleDefinitions').storageBlobDataContributor)]",
               "properties": {
                 "principalId": "[parameters('aiProjectPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').storageBlobDataContributor)]",
@@ -3669,7 +3669,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, parameters('aiProjectPrincipalId'), variables('roleDefinitions').storageBlobDataReader, 'project-storage')]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/'))), parameters('aiProjectPrincipalId'), variables('roleDefinitions').storageBlobDataReader)]",
               "properties": {
                 "principalId": "[parameters('aiProjectPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').storageBlobDataReader)]",
@@ -3681,7 +3681,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, parameters('existingAiProjectPrincipalId'), variables('roleDefinitions').storageBlobDataContributor, 'existing-project-storage')]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/'))), 'existing', parameters('existingAiProjectPrincipalId'), variables('roleDefinitions').storageBlobDataContributor)]",
               "properties": {
                 "principalId": "[parameters('existingAiProjectPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').storageBlobDataContributor)]",
@@ -3693,7 +3693,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, parameters('existingAiProjectPrincipalId'), variables('roleDefinitions').storageBlobDataReader, 'existing-project-storage')]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/'))), 'existing', parameters('existingAiProjectPrincipalId'), variables('roleDefinitions').storageBlobDataReader)]",
               "properties": {
                 "principalId": "[parameters('existingAiProjectPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').storageBlobDataReader)]",
@@ -3705,7 +3705,7 @@
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2022-04-01",
               "scope": "[resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/')))]",
-              "name": "[guid(resourceGroup().id, parameters('aiSearchPrincipalId'), variables('roleDefinitions').storageBlobDataReader, 'search-storage')]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountResourceId'), '/'))), parameters('aiSearchPrincipalId'), variables('roleDefinitions').storageBlobDataReader)]",
               "properties": {
                 "principalId": "[parameters('aiSearchPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').storageBlobDataReader)]",
@@ -3803,7 +3803,7 @@
                     "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').cognitiveServicesOpenAIUser)]"
                   },
                   "roleAssignmentName": {
-                    "value": "[guid(parameters('solutionName'), 'search-openai', variables('existingAIFoundryName'), variables('roleDefinitions').cognitiveServicesOpenAIUser)]"
+                    "value": "[guid(variables('existingAIFoundryName'), parameters('aiSearchPrincipalId'), variables('roleDefinitions').cognitiveServicesOpenAIUser)]"
                   },
                   "aiFoundryName": {
                     "value": "[variables('existingAIFoundryName')]"
@@ -3892,7 +3892,7 @@
                     "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').azureAiUser)]"
                   },
                   "roleAssignmentName": {
-                    "value": "[guid(parameters('solutionName'), 'backend-aiuser', variables('existingAIFoundryName'), variables('roleDefinitions').azureAiUser)]"
+                    "value": "[guid(variables('existingAIFoundryName'), parameters('backendAppServicePrincipalId'), variables('roleDefinitions').azureAiUser)]"
                   },
                   "aiFoundryName": {
                     "value": "[variables('existingAIFoundryName')]"
