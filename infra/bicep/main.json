@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "15751341523933229897"
+      "templateHash": "2724744708064058451"
     }
   },
   "parameters": {
@@ -2246,7 +2246,7 @@
       "condition": "[parameters('deployApp')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "[take(format('module.cosmos-db.{0}', parameters('solutionName')), 64)]",
+      "name": "[take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)]",
       "resourceGroup": "[resourceGroup().name]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -2627,9 +2627,9 @@
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
               "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "[parameters('gptModelName')]",
               "USE_CHAT_HISTORY_ENABLED": "[variables('useChatHistoryEnabledSetting')]",
-              "AZURE_COSMOSDB_ACCOUNT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]",
-              "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.containerName.value]",
-              "AZURE_COSMOSDB_DATABASE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.databaseName.value]",
+              "AZURE_COSMOSDB_ACCOUNT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]",
+              "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.containerName.value]",
+              "AZURE_COSMOSDB_DATABASE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.databaseName.value]",
               "AZURE_COSMOSDB_ENABLE_FEEDBACK": "True",
               "AZURE_SQLDB_USER_MID": "",
               "API_UID": "",
@@ -2866,7 +2866,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64))]",
         "[resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64))]"
@@ -2912,9 +2912,9 @@
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
               "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "[parameters('gptModelName')]",
               "USE_CHAT_HISTORY_ENABLED": "[variables('useChatHistoryEnabledSetting')]",
-              "AZURE_COSMOSDB_ACCOUNT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]",
-              "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.containerName.value]",
-              "AZURE_COSMOSDB_DATABASE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.databaseName.value]",
+              "AZURE_COSMOSDB_ACCOUNT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]",
+              "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.containerName.value]",
+              "AZURE_COSMOSDB_DATABASE": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.databaseName.value]",
               "AZURE_COSMOSDB_ENABLE_FEEDBACK": "True",
               "API_UID": "",
               "AZURE_AI_SEARCH_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value]",
@@ -3146,7 +3146,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64))]",
         "[resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64))]"
@@ -3442,7 +3442,7 @@
             "value": "[parameters('deployingUserPrincipalType')]"
           },
           "backendAppServicePrincipalId": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value)), createObject('value', ''))]",
-          "cosmosDbAccountName": "[if(variables('shouldDeployApp'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value), createObject('value', ''))]",
+          "cosmosDbAccountName": "[if(variables('shouldDeployApp'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value), createObject('value', ''))]",
           "existingAiProjectPrincipalId": "[if(not(empty(parameters('existingFoundryProjectResourceId'))), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiProjectPrincipalId.value), createObject('value', ''))]"
         },
         "template": {
@@ -3969,7 +3969,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.storage-account.{0}', parameters('solutionName')), 64))]"
       ]
@@ -3995,7 +3995,7 @@
       "metadata": {
         "description": "Cosmos DB account name for conversation history storage"
       },
-      "value": "[if(variables('shouldDeployApp'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value, '')]"
+      "value": "[if(variables('shouldDeployApp'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value, '')]"
     },
     "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": {
       "type": "string",

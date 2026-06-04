@@ -757,8 +757,8 @@ module storage_account './modules/data/storage-account.bicep' = {
   }
 }
 
-module cosmosDBModule './modules/data/cosmos-db.bicep' = if (shouldDeployApp) {
-  name: take('module.cosmos-db.${solutionName}', 64)
+module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = if (shouldDeployApp) {
+  name: take('module.cosmos-db-nosql.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     location: location

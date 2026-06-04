@@ -410,8 +410,8 @@ module storage_account './modules/data/storage-account.bicep' = {
 }
 
 // ========== Cosmos DB module ========== //
-module cosmosDBModule './modules/data/cosmos-db.bicep' = if (deployApp) {
-  name: take('module.cosmos-db.${solutionName}', 64)
+module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = if (deployApp) {
+  name: take('module.cosmos-db-nosql.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     name: 'cosmos-${solutionSuffix}'
