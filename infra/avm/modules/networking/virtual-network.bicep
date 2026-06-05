@@ -122,6 +122,19 @@ param subnets subnetType[] = [
           }
         }
         {
+          name: 'AllowBastionHostCommunicationInbound'
+          properties: {
+            access: 'Allow'
+            direction: 'Inbound'
+            priority: 2704
+            protocol: '*'
+            sourcePortRange: '*'
+            destinationPortRanges: ['8080', '5701']
+            sourceAddressPrefix: 'VirtualNetwork'
+            destinationAddressPrefix: 'VirtualNetwork'
+          }
+        }
+        {
           name: 'AllowSshRdpOutbound'
           properties: {
             access: 'Allow'
@@ -145,6 +158,32 @@ param subnets subnetType[] = [
             destinationPortRange: '443'
             sourceAddressPrefix: '*'
             destinationAddressPrefix: 'AzureCloud'
+          }
+        }
+        {
+          name: 'AllowBastionHostCommunicationOutbound'
+          properties: {
+            access: 'Allow'
+            direction: 'Outbound'
+            priority: 120
+            protocol: '*'
+            sourcePortRange: '*'
+            destinationPortRanges: ['8080', '5701']
+            sourceAddressPrefix: 'VirtualNetwork'
+            destinationAddressPrefix: 'VirtualNetwork'
+          }
+        }
+        {
+          name: 'AllowGetSessionInformation'
+          properties: {
+            access: 'Allow'
+            direction: 'Outbound'
+            priority: 130
+            protocol: '*'
+            sourcePortRange: '*'
+            destinationPortRange: '80'
+            sourceAddressPrefix: '*'
+            destinationAddressPrefix: 'Internet'
           }
         }
       ]
@@ -195,6 +234,7 @@ module virtualNetwork 'br/public:avm/res/network/virtual-network:0.8.0' = {
         name: subnet.name
         addressPrefixes: subnet.?addressPrefixes
         networkSecurityGroupResourceId: !empty(subnet.?networkSecurityGroup) ? nsgs[i]!.outputs.resourceId : null
+        natGatewayResourceId: subnet.?natGatewayResourceId
         privateEndpointNetworkPolicies: subnet.?privateEndpointNetworkPolicies
         privateLinkServiceNetworkPolicies: subnet.?privateLinkServiceNetworkPolicies
         delegation: subnet.?delegation
@@ -291,6 +331,8 @@ type subnetType = {
   serviceEndpoints: string[]?
   @description('Optional. Disable default outbound connectivity.')
   defaultOutboundAccess: bool?
+  @description('Optional. Resource ID of the NAT Gateway to associate with the subnet.')
+  natGatewayResourceId: string?
 }
 
 @export()
