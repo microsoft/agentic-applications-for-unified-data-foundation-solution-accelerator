@@ -42,6 +42,9 @@ param enableIpConnect bool = false
 @description('Enable shareable link functionality.')
 param enableShareableLink bool = false
 
+@description('Availability zones for the Bastion Host public IP. Pass empty array to disable zone redundancy.')
+param availabilityZones array = []
+
 @description('Optional. Diagnostic settings for the public IP address.')
 param publicIPDiagnosticSettings array?
 
@@ -57,7 +60,7 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.8.2' = {
     enableTelemetry: enableTelemetry
     skuName: skuName
     virtualNetworkResourceId: virtualNetworkResourceId
-    availabilityZones: []
+    availabilityZones: availabilityZones
     publicIPAddressObject: {
       name: 'pip-${name}'
       diagnosticSettings: publicIPDiagnosticSettings

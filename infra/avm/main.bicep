@@ -581,7 +581,7 @@ module ai_foundry_project './modules/ai/ai-foundry-project.bicep' = if (!useExis
         principalType: deployingUserPrincipalType
       }
       {
-        roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Azure AI User
+        roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d' // Foundry User
         principalId: deployingUserPrincipalId
         principalType: deployingUserPrincipalType
       }
@@ -626,8 +626,8 @@ module foundry_storage_connection './modules/ai/ai-foundry-connection.bicep' = {
   }
 }
 
-// Application Insights connection (single call for both existing and new paths)
-module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = if (enableMonitoring) {
+// Application Insights connection (skip if using existing Foundry project which already has one)
+module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = if (enableMonitoring && !useExistingAIProject) {
   name: take('module.foundry-appi-conn.${solutionName}', 64)
   scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
   params: {
@@ -665,9 +665,10 @@ module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for
 // Separate PE for AI Foundry to avoid AccountProvisioningStateInvalid race condition
 module aifoundry_private_endpoint './modules/networking/private-endpoint.bicep' = if (!useExistingAIProject && enablePrivateNetworking) {
   name: take('module.pe-ai-foundry.${solutionName}', 64)
+  dependsOn: [privateDnsZoneDeployments]
   params: {
     name: 'pep-aif-${solutionSuffix}'
-    location: azureAiServiceLocation
+    location: location
     tags: tags
     subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
     privateLinkServiceConnections: [
@@ -738,6 +739,9 @@ module storage_account './modules/data/storage-account.bicep' = {
     enableTelemetry: enableTelemetry
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
+    containers: [
+      { name: 'default', publicAccess: 'None' }
+    ]
     roleAssignments: [
       {
         roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor
@@ -753,13 +757,17 @@ module storage_account './modules/data/storage-account.bicep' = {
   }
 }
 
-module cosmosDBModule './modules/data/cosmos-db.bicep' = if (shouldDeployApp) {
-  name: take('module.cosmos-db.${solutionName}', 64)
+module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = if (shouldDeployApp) {
+  name: take('module.cosmos-db-nosql.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
+    databaseName: 'db_conversation_history'
+    containers: [
+      { name: 'conversations', partitionKeyPath: '/userId' }
+    ]
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
     zoneRedundant: enableRedundancy
@@ -929,8 +937,6 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
     existingAiProjectPrincipalId: useExistingAIProject ? existing_project_setup!.outputs.aiProjectPrincipalId : ''
-    deployerPrincipalId: deployingUserPrincipalId
-    deployerPrincipalType: deployingUserPrincipalType
   }
 }
 

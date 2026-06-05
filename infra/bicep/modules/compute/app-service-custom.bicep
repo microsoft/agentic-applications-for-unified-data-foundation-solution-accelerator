@@ -59,6 +59,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
       linuxFxVersion: linuxFxVersion
       appCommandLine: appCommandLine
     }
+    endToEndEncryptionEnabled: true
   }
   resource basicPublishingCredentialsPoliciesFtp 'basicPublishingCredentialsPolicies' = {
     name: 'ftp'

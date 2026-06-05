@@ -34,6 +34,89 @@ from azure.identity import DefaultAzureCredential
 from azure.search.documents.indexes import SearchIndexClient
 
 # ============================================================================
+# Ensure deployer has required roles on AI Foundry (needed for embeddings)
+# ============================================================================
+
+def ensure_deployer_roles():
+    """
+    Ensure the deployer has Cognitive Services User and Foundry User roles
+    on the AI Foundry resource. Skips if already assigned.
+    """
+    import subprocess
+
+    foundry_resource_id = os.getenv("AI_FOUNDRY_RESOURCE_ID", "").strip()
+    if not foundry_resource_id:
+        return
+
+    parts = foundry_resource_id.split("/")
+    if len(parts) < 9:
+        return
+
+    subscription_id = parts[2]
+    resource_group = parts[4]
+    ai_service_name = parts[8]
+
+    roles = {
+        "Cognitive Services User": "a97b65f3-24c7-4388-baec-2e87135dc908",
+        "Foundry User": "53ca6127-db72-4b80-b1b0-d745d6d5456d",
+    }
+
+    scope = (
+        f"/subscriptions/{subscription_id}"
+        f"/resourceGroups/{resource_group}"
+        f"/providers/Microsoft.CognitiveServices/accounts/{ai_service_name}"
+    )
+    print(f"  Resource ID: {foundry_resource_id}")
+    print(f"  Scope: {scope}")
+
+    try:
+        result = subprocess.run(
+            "az ad signed-in-user show --query id -o tsv",
+            capture_output=True, text=True, shell=True
+        )
+        deployer_principal_id = result.stdout.strip() if result.returncode == 0 else ""
+        if not deployer_principal_id:
+            # Fallback: get UPN from az account show (works when Graph is blocked by CAE)
+            result = subprocess.run(
+                'az account show --query user.name -o tsv',
+                capture_output=True, text=True, shell=True
+            )
+            deployer_principal_id = result.stdout.strip() if result.returncode == 0 else ""
+        if not deployer_principal_id:
+            deployer_principal_id = os.getenv("AZURE_CLIENT_ID", "").strip()
+        if not deployer_principal_id:
+            return
+    except FileNotFoundError:
+        return
+
+    for role_name, role_id in roles.items():
+        check_cmd = (
+            f'az role assignment list --assignee "{deployer_principal_id}" '
+            f'--role "{role_id}" --scope "{scope}" --query "length(@)" -o tsv'
+        )
+        try:
+            result = subprocess.run(check_cmd, capture_output=True, text=True, shell=True, check=True)
+            count = int(result.stdout.strip() or "0")
+            if count > 0:
+                print(f"  [OK] '{role_name}' already assigned")
+                continue
+        except (subprocess.CalledProcessError, ValueError):
+            pass
+
+        assign_cmd = (
+            f'az role assignment create --assignee "{deployer_principal_id}" '
+            f'--role "{role_id}" --scope "{scope}"'
+        )
+        try:
+            subprocess.run(assign_cmd, capture_output=True, text=True, shell=True, check=True)
+            print(f"  [OK] Assigned '{role_name}' to deployer on '{ai_service_name}'")
+        except subprocess.CalledProcessError as e:
+            print(f"  [WARN] Could not assign '{role_name}': {e.stderr.strip()[:200]}")
+
+
+ensure_deployer_roles()
+
+# ============================================================================
 # Configuration
 # ============================================================================
 

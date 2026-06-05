@@ -114,6 +114,20 @@ else:
 
 data_dir = DATA_FOLDER  # Already absolute from get_data_folder()
 
+# Resolve project ARM path — parse from existing project resource ID if EXP mode, else use direct env vars
+_existing_project_id = os.getenv("AZURE_EXISTING_AIPROJECT_RESOURCE_ID", "").strip()
+if _existing_project_id:
+    _parts = _existing_project_id.split("/")
+    FOUNDRY_SUBSCRIPTION_ID = _parts[2]
+    FOUNDRY_RESOURCE_GROUP = _parts[4]
+    FOUNDRY_AI_SERVICE_NAME = _parts[8]
+    FOUNDRY_PROJECT_NAME = _parts[10] if len(_parts) > 10 else os.getenv("AZURE_AI_PROJECT_NAME", "")
+else:
+    FOUNDRY_SUBSCRIPTION_ID = os.getenv("AZURE_SUBSCRIPTION_ID", "")
+    FOUNDRY_RESOURCE_GROUP = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME", "")
+    FOUNDRY_AI_SERVICE_NAME = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE", "")
+    FOUNDRY_PROJECT_NAME = os.getenv("AZURE_AI_PROJECT_NAME", "")
+
 # Set up paths for folder structure
 config_dir = os.path.join(data_dir, "config")
 if not os.path.exists(config_dir):
@@ -477,15 +491,11 @@ def build_sql_tool(tables, data_agent_id, data_agent_name,
             f"fabric-dataagent-preview-{data_agent_id[:6]}"
         )
         # Build full ARM connection ID as required by the tool
-        subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
-        resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
-        ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
-        project_name = os.getenv("AZURE_AI_PROJECT_NAME")
         fabric_connection_id = (
-            f"/subscriptions/{subscription_id}"
-            f"/resourceGroups/{resource_group}"
-            f"/providers/Microsoft.CognitiveServices/accounts/{ai_service_name}"
-            f"/projects/{project_name}"
+            f"/subscriptions/{FOUNDRY_SUBSCRIPTION_ID}"
+            f"/resourceGroups/{FOUNDRY_RESOURCE_GROUP}"
+            f"/providers/Microsoft.CognitiveServices/accounts/{FOUNDRY_AI_SERVICE_NAME}"
+            f"/projects/{FOUNDRY_PROJECT_NAME}"
             f"/connections/{custom_keys_conn_name}"
         )
         tool = MicrosoftFabricPreviewTool(
@@ -587,12 +597,7 @@ def create_mcp_connection(credential, connection_name, target_url, audience, aut
     """Create a RemoteTool project connection via the CognitiveServices REST API."""
     import requests
 
-    subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
-    resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
-    ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
-    project_name = os.getenv("AZURE_AI_PROJECT_NAME")
-
-    if not (subscription_id and resource_group and ai_service_name and project_name):
+    if not (FOUNDRY_SUBSCRIPTION_ID and FOUNDRY_RESOURCE_GROUP and FOUNDRY_AI_SERVICE_NAME and FOUNDRY_PROJECT_NAME):
         print("[WARN] Cannot build project ARM path — need AZURE_SUBSCRIPTION_ID, "
               "AZURE_RESOURCE_GROUP, AI_SERVICE_NAME, and AZURE_AI_PROJECT_NAME.")
         return False
@@ -601,10 +606,10 @@ def create_mcp_connection(credential, connection_name, target_url, audience, aut
     headers = {"Authorization": f"Bearer {token}"}
 
     url = (
-        f"https://management.azure.com/subscriptions/{subscription_id}"
-        f"/resourceGroups/{resource_group}"
-        f"/providers/Microsoft.CognitiveServices/accounts/{ai_service_name}"
-        f"/projects/{project_name}"
+        f"https://management.azure.com/subscriptions/{FOUNDRY_SUBSCRIPTION_ID}"
+        f"/resourceGroups/{FOUNDRY_RESOURCE_GROUP}"
+        f"/providers/Microsoft.CognitiveServices/accounts/{FOUNDRY_AI_SERVICE_NAME}"
+        f"/projects/{FOUNDRY_PROJECT_NAME}"
         f"/connections/{connection_name}?api-version=2025-04-01-preview"
     )
 
@@ -641,12 +646,7 @@ def create_custom_keys_connection(credential, connection_name, custom_keys=None,
     """Create a CustomKeys project connection via the CognitiveServices REST API."""
     import requests
 
-    subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
-    resource_group = os.getenv("AZURE_RESOURCE_GROUP") or os.getenv("RESOURCE_GROUP_NAME")
-    ai_service_name = os.getenv("AI_SERVICE_NAME") or os.getenv("AZURE_OPENAI_RESOURCE")
-    project_name = os.getenv("AZURE_AI_PROJECT_NAME")
-
-    if not (subscription_id and resource_group and ai_service_name and project_name):
+    if not (FOUNDRY_SUBSCRIPTION_ID and FOUNDRY_RESOURCE_GROUP and FOUNDRY_AI_SERVICE_NAME and FOUNDRY_PROJECT_NAME):
         print("[WARN] Cannot build project ARM path — need AZURE_SUBSCRIPTION_ID, "
               "AZURE_RESOURCE_GROUP, AI_SERVICE_NAME, and AZURE_AI_PROJECT_NAME.")
         return False
@@ -655,10 +655,10 @@ def create_custom_keys_connection(credential, connection_name, custom_keys=None,
     headers = {"Authorization": f"Bearer {token}"}
 
     url = (
-        f"https://management.azure.com/subscriptions/{subscription_id}"
-        f"/resourceGroups/{resource_group}"
-        f"/providers/Microsoft.CognitiveServices/accounts/{ai_service_name}"
-        f"/projects/{project_name}"
+        f"https://management.azure.com/subscriptions/{FOUNDRY_SUBSCRIPTION_ID}"
+        f"/resourceGroups/{FOUNDRY_RESOURCE_GROUP}"
+        f"/providers/Microsoft.CognitiveServices/accounts/{FOUNDRY_AI_SERVICE_NAME}"
+        f"/projects/{FOUNDRY_PROJECT_NAME}"
         f"/connections/{connection_name}?api-version=2025-04-01-preview"
     )
 
