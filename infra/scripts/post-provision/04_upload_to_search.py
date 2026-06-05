@@ -66,6 +66,8 @@ def ensure_deployer_roles():
         f"/resourceGroups/{resource_group}"
         f"/providers/Microsoft.CognitiveServices/accounts/{ai_service_name}"
     )
+    print(f"  Resource ID: {foundry_resource_id}")
+    print(f"  Scope: {scope}")
 
     try:
         result = subprocess.run(
@@ -73,6 +75,13 @@ def ensure_deployer_roles():
             capture_output=True, text=True, shell=True
         )
         deployer_principal_id = result.stdout.strip() if result.returncode == 0 else ""
+        if not deployer_principal_id:
+            # Fallback: get UPN from az account show (works when Graph is blocked by CAE)
+            result = subprocess.run(
+                'az account show --query user.name -o tsv',
+                capture_output=True, text=True, shell=True
+            )
+            deployer_principal_id = result.stdout.strip() if result.returncode == 0 else ""
         if not deployer_principal_id:
             deployer_principal_id = os.getenv("AZURE_CLIENT_ID", "").strip()
         if not deployer_principal_id:
@@ -89,6 +98,7 @@ def ensure_deployer_roles():
             result = subprocess.run(check_cmd, capture_output=True, text=True, shell=True, check=True)
             count = int(result.stdout.strip() or "0")
             if count > 0:
+                print(f"  [OK] '{role_name}' already assigned")
                 continue
         except (subprocess.CalledProcessError, ValueError):
             pass
