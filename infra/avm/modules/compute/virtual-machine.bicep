@@ -93,6 +93,7 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.22.0' = {
     vmSize: vmSize
     adminUsername: adminUsername
     adminPassword: adminPassword
+    managedIdentities: { systemAssigned: true }
     patchMode: 'AutomaticByPlatform'
     bypassPlatformSafetyChecksOnUserSchedule: true
     maintenanceConfigurationResourceId: maintenanceConfigurationResourceId
