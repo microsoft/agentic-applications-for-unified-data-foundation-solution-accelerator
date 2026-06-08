@@ -53,11 +53,11 @@ param enableRedundancy bool = false
 // ============================================================================
 
 @secure()
-@description('Optional. The user name for the administrator account of the virtual machine. Allows to customize credentials if `enablePrivateNetworking` is set to true.')
+@description('Optional. The user name for the administrator account of the virtual machine. Required by Azure at provisioning time but not used for login when Entra ID is enabled.')
 param vmAdminUsername string?
 
 @secure()
-@description('Optional. The password for the administrator account of the virtual machine. Allows to customize credentials if `enablePrivateNetworking` is set to true.')
+@description('Optional. The password for the administrator account of the virtual machine. Auto-generated if not provided. Not used for login when Entra ID is enabled.')
 param vmAdminPassword string?
 
 @description('Optional. The size of the virtual machine. Defaults to Standard_D2s_v5.')
@@ -477,6 +477,7 @@ module proximityPlacementGroup './modules/compute/proximity-placement-group.bice
 }
 
 // Jumpbox VM — administration access when private networking is enabled
+// Login is via Microsoft Entra ID through Azure Bastion (not local credentials)
 module virtualMachine './modules/compute/virtual-machine.bicep' = if (enablePrivateNetworking) {
   name: take('module.virtual-machine.${solutionName}', 64)
   params: {
@@ -486,9 +487,18 @@ module virtualMachine './modules/compute/virtual-machine.bicep' = if (enablePriv
     enableTelemetry: enableTelemetry
     vmSize: vmSize
     availabilityZone: virtualMachineAvailabilityZone
-    adminUsername: vmAdminUsername ?? 'JumpboxAdmin'
-    adminPassword: vmAdminPassword ?? 'JumpboxAdminP@ssw0rd1234!'
+    adminUsername: vmAdminUsername ?? 'testvmuser'
+    adminPassword: vmAdminPassword ?? 'Vm!${uniqueString(subscription().subscriptionId, solutionName)}${guid(subscription().subscriptionId, solutionName, 'vm-admin-password')}'
     subnetResourceId: virtualNetwork!.outputs.administrationSubnetResourceId
+    deployingUserPrincipalId: deployingUserPrincipalId
+    deployingUserPrincipalType: deployingUserPrincipalType
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: '1c0163c0-47e6-4577-8991-ea5c82e286e4' // Virtual Machine Administrator Login
+        principalId: deployingUserPrincipalId
+        principalType: deployingUserPrincipalType
+      }
+    ]
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
     maintenanceConfigurationResourceId: maintenanceConfiguration!.outputs.resourceId
     proximityPlacementGroupResourceId: proximityPlacementGroup!.outputs.resourceId
