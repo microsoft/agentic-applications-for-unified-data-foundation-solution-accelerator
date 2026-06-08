@@ -378,25 +378,25 @@ echo [INFO] No Azure SQL Server configured, skipping admin role assignment.
 :done_sql
 
 REM ============================================================
-REM  Azure AI User role assignment (only when AI_FOUNDRY_RESOURCE_ID is set)
+REM  Foundry User role assignment (only when AI_FOUNDRY_RESOURCE_ID is set)
 REM ============================================================
 if not defined AI_FOUNDRY_RESOURCE_ID goto :skip_aiuser
 if "!AI_FOUNDRY_RESOURCE_ID!"=="" goto :skip_aiuser
 
 FOR /F "delims=" %%s IN ('az account show --query id -o tsv') DO set "subscription_id=%%s"
 
-echo Checking Azure AI User role assignment...
+echo Checking Foundry User role assignment...
 FOR /F "delims=" %%i IN ('az role assignment list --assignee %signed_user_id% --role "53ca6127-db72-4b80-b1b0-d745d6d5456d" --scope "%AI_FOUNDRY_RESOURCE_ID%" --query "[0].id" -o tsv 2^>nul') DO set "aiUserRoleExists=%%i"
 if defined aiUserRoleExists (
-    echo User already has the Azure AI User role.
+    echo User already has the Foundry User role.
 ) else (
-    echo Assigning Azure AI User role to AI Foundry account...
+    echo Assigning Foundry User role to AI Foundry account...
     call az role assignment create ^
         --assignee %signed_user_id% ^
         --role "53ca6127-db72-4b80-b1b0-d745d6d5456d" ^
         --scope "%AI_FOUNDRY_RESOURCE_ID%" ^
         --output none
-    echo Azure AI User role assigned successfully.
+    echo Foundry User role assigned successfully.
 )
 goto :done_aiuser
 

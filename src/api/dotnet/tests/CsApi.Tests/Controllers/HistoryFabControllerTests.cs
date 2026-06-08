@@ -1,3 +1,4 @@
+using Azure;
 using CsApi.Controllers;
 using CsApi.Interfaces;
 using CsApi.Models;
@@ -915,6 +916,115 @@ public class HistoryFabControllerTests
         // Verify messages were added (they should have generated IDs)
         _mockRepo.Verify(r => r.AddMessageAsync("test-user-123", "conv-123", 
             It.Is<ChatMessage>(m => !string.IsNullOrEmpty(m.Id)), It.IsAny<CancellationToken>()), Times.AtLeast(1));
+    }
+
+    #endregion
+
+    #region Title Generation Exception Tests
+
+    [Fact]
+    public async Task Update_TitleGenerationTaskCanceledException_UsesFallbackTitle()
+    {
+        // Arrange
+        _mockRepo.Setup(r => r.EnsureConversationAsync("test-user-123", "conv-123", "", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(("conv-123", true));
+        _mockRepo.Setup(r => r.ListAsync(It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConversationSummary>
+            {
+                new ConversationSummary { ConversationId = "conv-123", Title = "New Conversation", UpdatedAt = DateTime.UtcNow }
+            });
+        _mockRepo.Setup(r => r.ReadAsync(It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChatMessage>());
+        _mockTitleService.Setup(t => t.GenerateTitleAsync(It.IsAny<List<ChatMessage>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException("Title generation timed out"));
+
+        var request = new HistoryFabController.UpdateRequest
+        {
+            Conversation_Id = "conv-123",
+            Messages = new List<ChatMessage>
+            {
+                new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("Test") },
+                new ChatMessage { Role = "assistant", Content = JsonSerializer.SerializeToElement("Response") }
+            }
+        };
+
+        // Act
+        var result = await _controller.Update(request);
+
+        // Assert - Should still return Ok with fallback title
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
+        _mockRepo.Verify(r => r.UpdateConversationTitleAsync("test-user-123", "conv-123", "New Conversation", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Update_TitleGenerationRequestFailedException_UsesFallbackTitle()
+    {
+        // Arrange
+        _mockRepo.Setup(r => r.EnsureConversationAsync("test-user-123", "conv-123", "", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(("conv-123", true));
+        _mockRepo.Setup(r => r.ListAsync(It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConversationSummary>
+            {
+                new ConversationSummary { ConversationId = "conv-123", Title = "New Conversation", UpdatedAt = DateTime.UtcNow }
+            });
+        _mockRepo.Setup(r => r.ReadAsync(It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChatMessage>());
+        _mockTitleService.Setup(t => t.GenerateTitleAsync(It.IsAny<List<ChatMessage>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new RequestFailedException("Azure service unavailable"));
+
+        var request = new HistoryFabController.UpdateRequest
+        {
+            Conversation_Id = "conv-123",
+            Messages = new List<ChatMessage>
+            {
+                new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("Test") },
+                new ChatMessage { Role = "assistant", Content = JsonSerializer.SerializeToElement("Response") }
+            }
+        };
+
+        // Act
+        var result = await _controller.Update(request);
+
+        // Assert - Should still return Ok with fallback title
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
+        _mockRepo.Verify(r => r.UpdateConversationTitleAsync("test-user-123", "conv-123", "New Conversation", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Update_TitleGenerationInvalidOperationException_UsesFallbackTitle()
+    {
+        // Arrange
+        _mockRepo.Setup(r => r.EnsureConversationAsync("test-user-123", "conv-123", "", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(("conv-123", true));
+        _mockRepo.Setup(r => r.ListAsync(It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConversationSummary>
+            {
+                new ConversationSummary { ConversationId = "conv-123", Title = "New Conversation", UpdatedAt = DateTime.UtcNow }
+            });
+        _mockRepo.Setup(r => r.ReadAsync(It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChatMessage>());
+        _mockTitleService.Setup(t => t.GenerateTitleAsync(It.IsAny<List<ChatMessage>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("DB connection failed"));
+
+        var request = new HistoryFabController.UpdateRequest
+        {
+            Conversation_Id = "conv-123",
+            Messages = new List<ChatMessage>
+            {
+                new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("Test") },
+                new ChatMessage { Role = "assistant", Content = JsonSerializer.SerializeToElement("Response") }
+            }
+        };
+
+        // Act
+        var result = await _controller.Update(request);
+
+        // Assert - Should still return Ok with fallback title
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
+        _mockRepo.Verify(r => r.UpdateConversationTitleAsync("test-user-123", "conv-123", "New Conversation", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion

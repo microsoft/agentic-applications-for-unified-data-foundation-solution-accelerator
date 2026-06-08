@@ -5,10 +5,10 @@ import {
   Subtitle2,
   Body2,
   webLightTheme,
-  Avatar,
 } from "@fluentui/react-components";
 import "./App.css";
 import { ChatHistoryPanel } from "./components/ChatHistoryPanel/ChatHistoryPanel";
+import LoginButton from "./components/LoginButton/LoginButton";
 
 
 import { useAppDispatch, useAppSelector } from "./store/hooks";
@@ -59,17 +59,11 @@ const Dashboard: React.FC = () => {
   const [offset, setOffset] = useState<number>(0);
   const OFFSET_INCREMENT = 25;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
-  const [name, setName] = useState<string>("");
   const isInitialFetchStarted = useRef(false);
 
   useEffect(() => {
-    dispatch(fetchUserInfo()).unwrap().then((res) => {
-      const name: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'name')?.val ?? ''
-      setName(name)
-    }).catch(() => {
-      // Error fetching user info - silent fail
-    })
-  }, []);
+    dispatch(fetchUserInfo());
+  }, [dispatch]);
 
   const updateLayoutWidths = (newState: Record<string, boolean>) => {
     const noOfWidgetsOpen = Object.values(newState).filter((val) => val).length;
@@ -207,9 +201,7 @@ const Dashboard: React.FC = () => {
           </Subtitle2>
         </div>
         <div className="header-right-section">
-          <div>
-            <Avatar name={name} title={name} />
-          </div>
+          <LoginButton />
         </div>
       </div>
       <div className="main-container">

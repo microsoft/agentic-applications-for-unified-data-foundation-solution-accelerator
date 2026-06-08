@@ -175,9 +175,9 @@ namespace CsApi.Utils
                 {
                     _logger.LogError(ex, "ExpCache: Invalid argument while deleting thread");
                 }
-                catch (Exception ex) when (ex is not InvalidOperationException && ex is not RequestFailedException && ex is not UriFormatException && ex is not ArgumentException)
+                catch (Exception ex)
                 {
-                    _logger.LogError(ex, "ExpCache: Unexpected error deleting thread");
+                    _logger.LogError(ex, "ExpCache: Unexpected error while deleting thread");
                 }
             }
         }

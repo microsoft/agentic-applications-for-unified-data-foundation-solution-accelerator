@@ -1,5 +1,5 @@
 // ========== main_custom.bicep ========== //
-// WAF-aligned variant of main.bicep.
+// Non-WAF variant of main.bicep.
 // Key differences from main.bicep:
 //   - Deploys App Services via Oryx source-code build (azd deploy) instead of pre-built Docker images.
 //   - Adds azd-service-name tags so `azd deploy` can target the api and webapp services.
@@ -28,7 +28,7 @@ param existingLogAnalyticsWorkspaceId string = ''
 param azureExistingAIProjectResourceId string = ''
 
 @description('Optional. created by user name')
-param createdBy string = contains(deployer(), 'userPrincipalName') ? split(deployer().userPrincipalName, '@')[0] : deployer().objectId
+param createdBy string = !empty(deployer().?userPrincipalName ?? '') ? split(deployer().userPrincipalName, '@')[0] : !empty(deployer().?objectId ?? '') ? deployer().objectId : 'unknown-deployer'
 
 @description('Choose the programming language:')
 @allowed([
@@ -94,6 +94,9 @@ param isWorkshop bool = true
 @description('Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used.')
 param azureEnvOnly bool = false
 
+@description('Deployment date for tagging purposes.')
+param createdDate string = utcNow('yyyy-MM-dd')
+
 // If isWorkshop is false, always deploy; if isWorkshop is true, respect deployApp
 var shouldDeployApp = !isWorkshop || deployApp
 
@@ -143,7 +146,7 @@ var deployingUserPrincipalId = deployerInfo.objectId
 var existingTags = resourceGroup().tags ?? {}
 
 // ========== Resource Group Tag ========== //
-resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorkshop) {
+resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = {
   name: 'default'
   properties: {
     tags: union(
@@ -151,8 +154,9 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2021-04-01' = if (!isWorksh
       {
         TemplateName: 'Unified Data Analysis Agents'
         CreatedBy: createdBy
+        CreatedDate: createdDate
         DeploymentName: deployment().name
-        Type: 'WAF'
+        Type: 'Non-WAF'
       }
     )
   }

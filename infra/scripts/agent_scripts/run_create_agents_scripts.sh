@@ -192,7 +192,7 @@ fi
 echo "Getting signed in user id"
 signed_user_id=$(az ad signed-in-user show --query id -o tsv) || signed_user_id=${AZURE_CLIENT_ID}
 
-echo "Checking if the user has Azure AI User role on the AI Foundry"
+echo "Checking if the user has Foundry User role on the AI Foundry"
 role_assignment=$(MSYS_NO_PATHCONV=1 az role assignment list \
   --role "53ca6127-db72-4b80-b1b0-d745d6d5456d" \
   --scope "$aiFoundryResourceId" \
@@ -200,7 +200,7 @@ role_assignment=$(MSYS_NO_PATHCONV=1 az role assignment list \
   --query "[].roleDefinitionId" -o tsv)
 
 if [ -z "$role_assignment" ]; then
-    echo "User does not have the Azure AI User role. Assigning the role..."
+    echo "User does not have the Foundry User role. Assigning the role..."
     MSYS_NO_PATHCONV=1 az role assignment create \
       --assignee "$signed_user_id" \
       --role "53ca6127-db72-4b80-b1b0-d745d6d5456d" \
@@ -208,13 +208,13 @@ if [ -z "$role_assignment" ]; then
       --output none
 
     if [ $? -eq 0 ]; then
-        echo "✅ Azure AI User role assigned successfully."
+        echo "✅ Foundry User role assigned successfully."
     else
-        echo "❌ Failed to assign Azure AI User role."
+        echo "❌ Failed to assign Foundry User role."
         exit 1
     fi
 else
-    echo "User already has the Azure AI User role."
+    echo "User already has the Foundry User role."
 fi
 
 

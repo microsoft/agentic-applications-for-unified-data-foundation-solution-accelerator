@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.42.1.51946",
-      "templateHash": "3645839045207447954"
+      "version": "0.43.8.12551",
+      "templateHash": "11899548984467202213"
     }
   },
   "parameters": {
@@ -42,7 +42,7 @@
     },
     "createdBy": {
       "type": "string",
-      "defaultValue": "[if(contains(deployer(), 'userPrincipalName'), split(deployer().userPrincipalName, '@')[0], deployer().objectId)]",
+      "defaultValue": "[if(not(empty(coalesce(tryGet(deployer(), 'userPrincipalName'), ''))), split(deployer().userPrincipalName, '@')[0], if(not(empty(coalesce(tryGet(deployer(), 'objectId'), ''))), deployer().objectId, 'unknown-deployer'))]",
       "metadata": {
         "description": "Optional. created by user name"
       }
@@ -169,6 +169,13 @@
       "defaultValue": false,
       "metadata": {
         "description": "Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used."
+      }
+    },
+    "createdDate": {
+      "type": "string",
+      "defaultValue": "[utcNow('yyyy-MM-dd')]",
+      "metadata": {
+        "description": "Deployment date for tagging purposes."
       }
     },
     "useChatHistoryEnabled": {
@@ -489,12 +496,11 @@
   },
   "resources": [
     {
-      "condition": "[not(parameters('isWorkshop'))]",
       "type": "Microsoft.Resources/tags",
       "apiVersion": "2023-07-01",
       "name": "default",
       "properties": {
-        "tags": "[union(variables('existingTags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name, 'Type', 'Non-WAF'))]"
+        "tags": "[union(variables('existingTags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'CreatedDate', parameters('createdDate'), 'DeploymentName', deployment().name, 'Type', 'Non-WAF'))]"
       }
     },
     {
@@ -524,8 +530,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "16599617067634025517"
+              "version": "0.43.8.12551",
+              "templateHash": "13536969934887418432"
             }
           },
           "parameters": {
@@ -677,8 +683,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "16848402676405380264"
+              "version": "0.43.8.12551",
+              "templateHash": "7328767993983191959"
             }
           },
           "parameters": {
@@ -1090,7 +1096,17 @@
                 "allowBlobPublicAccess": false,
                 "allowSharedKeyAccess": true,
                 "minimumTlsVersion": "TLS1_2",
-                "supportsHttpsTrafficOnly": true
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                  "requireInfrastructureEncryption": true,
+                  "keySource": "Microsoft.Storage",
+                  "services": {
+                    "blob": {
+                      "enabled": true,
+                      "keyType": "Account"
+                    }
+                  }
+                }
               }
             },
             {
@@ -1565,8 +1581,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "9737384618167428949"
+                      "version": "0.43.8.12551",
+                      "templateHash": "8325817338129258671"
                     }
                   },
                   "parameters": {
@@ -1697,8 +1713,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "563276668960385803"
+                      "version": "0.43.8.12551",
+                      "templateHash": "5149350788597687463"
                     }
                   },
                   "parameters": {
@@ -1823,8 +1839,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "5534842626934673245"
+                      "version": "0.43.8.12551",
+                      "templateHash": "3195854664465026554"
                     }
                   },
                   "parameters": {
@@ -2085,8 +2101,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "5534842626934673245"
+                      "version": "0.43.8.12551",
+                      "templateHash": "3195854664465026554"
                     }
                   },
                   "parameters": {
@@ -2463,8 +2479,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "5276047402530342059"
+              "version": "0.43.8.12551",
+              "templateHash": "11610267304629320537"
             }
           },
           "parameters": {
@@ -2639,8 +2655,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "13789806692563246245"
+              "version": "0.43.8.12551",
+              "templateHash": "11421679036623536575"
             }
           },
           "parameters": {
@@ -2794,8 +2810,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "14100113989210974449"
+              "version": "0.43.8.12551",
+              "templateHash": "9298238518588007961"
             },
             "description": "Creates an Azure App Service plan."
           },
@@ -2961,8 +2977,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "17825916261368127000"
+              "version": "0.43.8.12551",
+              "templateHash": "9130434754659272533"
             }
           },
           "parameters": {
@@ -3049,7 +3065,7 @@
             "existingAIServicesName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[8], '')]",
             "existingAIProjectName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[10], '')]",
             "imageName": "[format('DOCKER|{0}.azurecr.io/da-api:{1}', parameters('acrName'), parameters('imageTag'))]",
-            "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
+            "reactAppLayoutConfig": "{\n  \"appConfig\": {\n      \"CHAT_CHATHISTORY\": {\n        \"CHAT\": 70,\n        \"CHATHISTORY\": 30\n      }\n    }\n  }\n}"
           },
           "resources": [
             {
@@ -3116,8 +3132,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "3327197611512448778"
+                      "version": "0.43.8.12551",
+                      "templateHash": "6010975927430793235"
                     }
                   },
                   "parameters": {
@@ -3191,10 +3207,13 @@
                       "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
                       "properties": {
                         "serverFarmId": "[parameters('appServicePlanId')]",
+                        "httpsOnly": true,
                         "siteConfig": {
                           "alwaysOn": true,
                           "ftpsState": "Disabled",
-                          "linuxFxVersion": "[parameters('appImageName')]"
+                          "linuxFxVersion": "[parameters('appImageName')]",
+                          "endToEndEncryptionEnabled": true,
+                          "minTlsVersion": "1.2"
                         }
                       }
                     },
@@ -3250,8 +3269,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.42.1.51946",
-                              "templateHash": "11771554881309131596"
+                              "version": "0.43.8.12551",
+                              "templateHash": "17534924770579664742"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -3329,8 +3348,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "9737384618167428949"
+                      "version": "0.43.8.12551",
+                      "templateHash": "8325817338129258671"
                     }
                   },
                   "parameters": {
@@ -3470,8 +3489,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "5534842626934673245"
+                      "version": "0.43.8.12551",
+                      "templateHash": "3195854664465026554"
                     }
                   },
                   "parameters": {
@@ -3820,8 +3839,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "15675271098519791556"
+              "version": "0.43.8.12551",
+              "templateHash": "6571493610130307054"
             }
           },
           "parameters": {
@@ -3894,7 +3913,7 @@
             "existingAIServicesName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[8], '')]",
             "existingAIProjectName": "[if(not(empty(parameters('azureExistingAIProjectResourceId'))), split(parameters('azureExistingAIProjectResourceId'), '/')[10], '')]",
             "imageName": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('acrName'), parameters('imageTag'))]",
-            "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
+            "reactAppLayoutConfig": "{\n  \"appConfig\": {\n      \"CHAT_CHATHISTORY\": {\n        \"CHAT\": 70,\n        \"CHATHISTORY\": 30\n      }\n    }\n  }\n}"
           },
           "resources": [
             {
@@ -3932,8 +3951,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "3327197611512448778"
+                      "version": "0.43.8.12551",
+                      "templateHash": "6010975927430793235"
                     }
                   },
                   "parameters": {
@@ -4007,10 +4026,13 @@
                       "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
                       "properties": {
                         "serverFarmId": "[parameters('appServicePlanId')]",
+                        "httpsOnly": true,
                         "siteConfig": {
                           "alwaysOn": true,
                           "ftpsState": "Disabled",
-                          "linuxFxVersion": "[parameters('appImageName')]"
+                          "linuxFxVersion": "[parameters('appImageName')]",
+                          "endToEndEncryptionEnabled": true,
+                          "minTlsVersion": "1.2"
                         }
                       }
                     },
@@ -4066,8 +4088,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.42.1.51946",
-                              "templateHash": "11771554881309131596"
+                              "version": "0.43.8.12551",
+                              "templateHash": "17534924770579664742"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },
@@ -4145,8 +4167,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "9737384618167428949"
+                      "version": "0.43.8.12551",
+                      "templateHash": "8325817338129258671"
                     }
                   },
                   "parameters": {
@@ -4286,8 +4308,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "5534842626934673245"
+                      "version": "0.43.8.12551",
+                      "templateHash": "3195854664465026554"
                     }
                   },
                   "parameters": {
@@ -4596,8 +4618,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "8805731831005341083"
+              "version": "0.43.8.12551",
+              "templateHash": "1401984777047551263"
             }
           },
           "parameters": {
@@ -4681,8 +4703,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.42.1.51946",
-                      "templateHash": "3327197611512448778"
+                      "version": "0.43.8.12551",
+                      "templateHash": "6010975927430793235"
                     }
                   },
                   "parameters": {
@@ -4756,10 +4778,13 @@
                       "identity": "[if(equals(parameters('userassignedIdentityId'), ''), createObject('type', 'SystemAssigned'), createObject('type', 'SystemAssigned, UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('userassignedIdentityId')), createObject())))]",
                       "properties": {
                         "serverFarmId": "[parameters('appServicePlanId')]",
+                        "httpsOnly": true,
                         "siteConfig": {
                           "alwaysOn": true,
                           "ftpsState": "Disabled",
-                          "linuxFxVersion": "[parameters('appImageName')]"
+                          "linuxFxVersion": "[parameters('appImageName')]",
+                          "endToEndEncryptionEnabled": true,
+                          "minTlsVersion": "1.2"
                         }
                       }
                     },
@@ -4815,8 +4840,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.42.1.51946",
-                              "templateHash": "11771554881309131596"
+                              "version": "0.43.8.12551",
+                              "templateHash": "17534924770579664742"
                             },
                             "description": "Updates app settings for an Azure App Service."
                           },

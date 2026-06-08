@@ -278,10 +278,10 @@ To run the application locally, your Azure account needs the following role assi
 # Get your principal ID
 PRINCIPAL_ID=$(az ad signed-in-user show --query id -o tsv)
 
-# Assign Azure AI User role
+# Assign Foundry User role
 az role assignment create \
   --assignee $PRINCIPAL_ID \
-  --role "Azure AI User" \
+  --role "Foundry User" \
   --scope "\subscriptions\<subscription-id>\resourceGroups\<resource-group>\providers\Microsoft.CognitiveServices\accounts\<ai-foundry-account>"
 ```
 
@@ -290,10 +290,10 @@ az role assignment create \
 # Get your principal ID
 $PRINCIPAL_ID = az ad signed-in-user show --query id -o tsv
 
-# Assign Azure AI User role
+# Assign Foundry User role
 az role assignment create `
   --assignee $PRINCIPAL_ID `
-  --role "Azure AI User" `
+  --role "Foundry User" `
   --scope "/subscriptions/<subscription-id>/resourceGroups/<resource-group>/providers/Microsoft.CognitiveServices/accounts/<ai-foundry-account>"
 ```
 

@@ -9,7 +9,7 @@
     "@azure/msal-browser": "^4.13.0",
     "@reduxjs/toolkit": "^2.5.0",
     "@testing-library/jest-dom": "^6.6.3",
-    "@fluentui/react-icons": "^2.0.305",
+    "@fluentui/react-icons": "2.0.323",
     "@fluentui/react-components": "^9.66.5",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.1",
@@ -76,8 +76,12 @@
     "brace-expansion": "1.1.13",
     "path-to-regexp": "0.1.13",
     "yaml": "2.8.3",
-    "webpack-dev-server": "5.2.3",
+    "webpack-dev-server": "5.2.4",
+    "qs": "6.15.2",
     "follow-redirects": "1.16.0",
-    "uuid": "14.0.0"
+    "uuid": "14.0.0",
+    "@babel/plugin-transform-modules-systemjs": "7.29.4",
+    "fast-uri": "3.1.2",
+    "@fluentui/react-icons": "$@fluentui/react-icons"
   }
 }
