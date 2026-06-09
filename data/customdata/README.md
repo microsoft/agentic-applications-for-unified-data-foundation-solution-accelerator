@@ -74,7 +74,7 @@ re-running the pipeline. It describes:
 
 ## Tips
 
-- Look at `data/default/` for a working example of the expected structure
+- Look at `data/scenarios/default/` for a working example of the expected structure
 - If auto-detected keys or relationships are wrong, edit `config/ontology_config.json`
   and re-run from step 03: `python infra/scripts/post-provision/00_build_solution.py --from 03`
 - Delete `config/ontology_config.json` to force regeneration on the next run
@@ -91,7 +91,7 @@ To make your custom data folder available as a named `--scenario`, add an entry 
     "folder": "data/customdata",
     "industry": "Healthcare",
     "usecase": "Patient records and clinical notes",
-    "type": "custom",
+    "type": "byod",
     "description": "Custom healthcare scenario",
     "landing_text": "Ask about patient records...",
     "app_title": "Healthcare Agent",
@@ -100,7 +100,7 @@ To make your custom data folder available as a named `--scenario`, add an entry 
 }
 ```
 
-> **Note:** Set `"type": "custom"` so the pipeline knows to auto-generate `ontology_config.json` from your CSVs.
+> **Note:** Set `"type": "byod"` so the pipeline knows to auto-generate `ontology_config.json` from your CSVs.
 
 **Field reference:**
 
@@ -109,7 +109,7 @@ To make your custom data folder available as a named `--scenario`, add an entry 
 | `folder` | Yes | Path to your data folder (relative to project root) containing `tables/` and `documents/` |
 | `industry` | Yes | Domain name (e.g. Healthcare, Retail, Manufacturing). Used for agent prompt context |
 | `usecase` | Yes | Brief description of what the data represents. Used for agent prompt context |
-| `type` | Yes | `custom` (auto-generates ontology config from CSVs) or `prebuilt` (expects config to exist) |
+| `type` | Yes | `prebuilt` (ready-to-use data), `custom` (AI creates synthetic data for your industry/usecase), or `byod` (bring your own CSVs, auto-generates config) |
 | `description` | No | Human-readable summary shown with `--list-scenarios` |
 | `landing_text` | No | Welcome message shown in the chat UI |
 | `app_title` | No | Browser tab / app title |

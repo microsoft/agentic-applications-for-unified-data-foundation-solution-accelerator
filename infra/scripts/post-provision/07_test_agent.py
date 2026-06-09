@@ -72,7 +72,7 @@ if not os.path.exists(config_dir):
 agent_ids_path = os.path.join(config_dir, "agent_ids.json")
 if not os.path.exists(agent_ids_path):
     print("ERROR: agent_ids.json not found")
-    print("       Run 06_create_agent.py first")
+    print("       Run 05_create_agent.py first")
     sys.exit(1)
 
 with open(agent_ids_path) as f:
@@ -82,7 +82,7 @@ with open(agent_ids_path) as f:
 CHAT_AGENT_NAME = args.agent_name or agent_ids.get("chat_agent_name")
 if not CHAT_AGENT_NAME:
     print("ERROR: No agent name found")
-    print("       Run 06_create_agent.py first or provide --agent-name")
+    print("       Run 05_create_agent.py first or provide --agent-name")
     sys.exit(1)
 
 # SQL is always handled by Fabric Data Agent (MCP) - no local SQL config needed

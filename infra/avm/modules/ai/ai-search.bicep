@@ -1,14 +1,20 @@
 // ============================================================================
 // Module: AI Search
-// Description: AVM wrapper for Azure AI Search with WAF alignment
-// AVM Module: avm/res/search/search-service:0.9.1
+// Description: Deploys Azure AI Search with a two-step pattern:
+//   Step 1: Plain Bicep resource for fast initial creation (name, location, SKU)
+//   Step 2: AVM module update to enable managed identity & full configuration
+// This reduces deployment time by making the resource available immediately
+// while identity enablement proceeds separately.
+// AVM Module: avm/res/search/search-service:0.12.0
 // WAF: https://learn.microsoft.com/azure/well-architected/service-guides/azure-cognitive-search
 // ============================================================================
 
 @description('Solution name suffix used to derive the resource name.')
+@minLength(3)
 param solutionName string
 
-var searchServiceName = 'srch-${solutionName}'
+@description('Optional. Override name for the search service. Defaults to srch-{solutionName}.')
+param name string = 'srch-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string
@@ -27,8 +33,8 @@ param replicaCount int = 1
 param partitionCount int = 1
 
 @description('Hosting mode.')
-@allowed(['default', 'highDensity'])
-param hostingMode string = 'default'
+@allowed(['Default', 'HighDensity'])
+param hostingMode string = 'Default'
 
 @description('Semantic search tier.')
 @allowed(['disabled', 'free', 'standard'])
@@ -40,6 +46,10 @@ param disableLocalAuth bool = true
 @description('Managed identity type for the search service.')
 param managedIdentityType string = 'SystemAssigned'
 
+@description('Public network access setting.')
+param publicNetworkAccess string = 'Enabled'
+
+// --- WAF: Telemetry ---
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
@@ -48,9 +58,6 @@ param enableTelemetry bool = true
 param diagnosticSettings array = []
 
 // --- WAF: Private Networking ---
-@description('Public network access setting.')
-param publicNetworkAccess string = 'Enabled'
-
 @description('Private endpoint configurations.')
 param privateEndpoints array = []
 
@@ -59,12 +66,23 @@ param privateEndpoints array = []
 param roleAssignments array = []
 
 // ============================================================================
-// AVM Module Deployment
+// Step 1: Initial resource creation (plain Bicep — fast)
 // ============================================================================
-module searchService 'br/public:avm/res/search/search-service:0.9.1' = {
-  name: take('avm.res.search.search-service.${searchServiceName}', 64)
+resource searchService 'Microsoft.Search/searchServices@2025-05-01' = {
+  name: name
+  location: location
+  sku: {
+    name: skuName
+  }
+}
+
+// ============================================================================
+// Step 2: AVM update — enables identity & full configuration
+// ============================================================================
+module searchServiceUpdate 'br/public:avm/res/search/search-service:0.12.0' = {
+  name: take('avm.res.search.update.${name}', 64)
   params: {
-    name: searchServiceName
+    name: name
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
@@ -82,19 +100,22 @@ module searchService 'br/public:avm/res/search/search-service:0.9.1' = {
     privateEndpoints: privateEndpoints
     roleAssignments: !empty(roleAssignments) ? roleAssignments : []
   }
+  dependsOn: [
+    searchService
+  ]
 }
 
 // ============================================================================
 // Outputs
 // ============================================================================
 @description('Resource ID of the AI Search service.')
-output resourceId string = searchService.outputs.resourceId
+output resourceId string = searchService.id
 
 @description('Name of the AI Search service.')
-output name string = searchService.outputs.name
+output name string = searchService.name
 
 @description('Endpoint URL of the AI Search service.')
-output endpoint string = 'https://${searchServiceName}.search.windows.net'
+output endpoint string = 'https://${searchService.name}.search.windows.net'
 
 @description('System-assigned identity principal ID.')
-output identityPrincipalId string = searchService.outputs.?systemAssignedMIPrincipalId ?? ''
+output identityPrincipalId string = searchServiceUpdate.outputs.?systemAssignedMIPrincipalId ?? ''

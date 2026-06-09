@@ -8,7 +8,8 @@
 @description('Solution name suffix used to derive the resource name.')
 param solutionName string
 
-var name = 'dcr-${solutionName}'
+@description('Optional. Override name for the data collection rule. Defaults to dcr-{solutionName}.')
+param name string = 'dcr-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string
@@ -16,11 +17,16 @@ param location string
 @description('Tags to apply to the resource.')
 param tags object = {}
 
+@description('Resource ID of the Log Analytics workspace destination.')
+param logAnalyticsWorkspaceResourceId string
+
+@description('Name of the Log Analytics workspace (used for destination naming).')
+param logAnalyticsWorkspaceName string = ''
+
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
-@description('Resource ID of the Log Analytics workspace destination.')
-param logAnalyticsWorkspaceResourceId string
+var dcrLogAnalyticsDestinationName = !empty(logAnalyticsWorkspaceName) ? 'la-${logAnalyticsWorkspaceName}-destination' : 'la-${name}-destination'
 
 // ============================================================================
 // AVM Module Deployment
@@ -98,22 +104,35 @@ module dataCollectionRule 'br/public:avm/res/insights/data-collection-rule:0.11.
               'Security!*[System[(EventID=4624 or EventID=4625)]]'
             ]
           }
+          {
+            name: 'AuditSuccessFailure'
+            streams: ['Microsoft-Event']
+            xPathQueries: [
+              'Security!*[System[(band(Keywords,13510798882111488)) and (EventID != 4624)]]'
+            ]
+          }
         ]
       }
       destinations: {
         logAnalytics: [
           {
             workspaceResourceId: logAnalyticsWorkspaceResourceId
-            name: 'la--1264800308'
+            name: dcrLogAnalyticsDestinationName
           }
         ]
       }
       dataFlows: [
         {
           streams: ['Microsoft-Perf']
-          destinations: ['la--1264800308']
+          destinations: [dcrLogAnalyticsDestinationName]
           transformKql: 'source'
           outputStream: 'Microsoft-Perf'
+        }
+        {
+          streams: ['Microsoft-Event']
+          destinations: [dcrLogAnalyticsDestinationName]
+          transformKql: 'source'
+          outputStream: 'Microsoft-Event'
         }
       ]
     }

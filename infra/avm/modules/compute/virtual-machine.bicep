@@ -1,13 +1,15 @@
 // ============================================================================
 // Module: Virtual Machine (Jumpbox)
-// Description: AVM wrapper for Azure Virtual Machine
+// Description: AVM wrapper for Azure Virtual Machine with Entra ID authentication
 // AVM Module: avm/res/compute/virtual-machine
+// Ref: https://learn.microsoft.com/azure/bastion/bastion-entra-id-authentication
 // ============================================================================
 
 @description('Solution name suffix used to derive the resource name.')
 param solutionName string
 
-var name = 'vm-${solutionName}'
+@description('Name of the virtual machine.')
+param name string = 'vm-${solutionName}'
 
 @description('Azure region for the resource.')
 param location string
@@ -15,25 +17,19 @@ param location string
 @description('Tags to apply to the resource.')
 param tags object = {}
 
-@description('Optional. Enable/Disable usage telemetry for module.')
-param enableTelemetry bool = true
-
 @description('VM size.')
 param vmSize string = 'Standard_D2s_v5'
 
 @secure()
-@description('Admin username for the VM.')
+@description('Local admin username. Required by Azure at provisioning time but not used for login when Entra ID is enabled.')
 param adminUsername string
 
 @secure()
-@description('Admin password for the VM.')
+@description('Local admin password. Required by Azure at provisioning time but not used for login when Entra ID is enabled.')
 param adminPassword string
 
 @description('Resource ID of the subnet for the VM NIC.')
 param subnetResourceId string
-
-@description('Optional. Diagnostic settings for the resource.')
-param diagnosticSettings array?
 
 @description('OS type for the VM.')
 param osType string = 'Windows'
@@ -52,14 +48,35 @@ param imageReference object = {
 @description('OS disk size in GB.')
 param osDiskSizeGB int = 128
 
-@description('Optional. Resource ID of the maintenance configuration.')
+@description('Resource ID of the maintenance configuration.')
 param maintenanceConfigurationResourceId string?
 
-@description('Optional. Resource ID of the proximity placement group.')
+@description('Resource ID of the proximity placement group.')
 param proximityPlacementGroupResourceId string?
 
-@description('Optional. Monitoring agent extension configuration (data collection rule associations).')
+@description('Monitoring agent extension configuration (data collection rule associations).')
 param extensionMonitoringAgentConfig object?
+
+@description('Diagnostic settings for the resource.')
+param diagnosticSettings array?
+
+@description('Enable Azure telemetry collection.')
+param enableTelemetry bool = true
+
+@description('Deploying user principal ID. Used for default role assignment to grant the deploying user login access to the VM. This is required because with Entra ID authentication enabled, local accounts cannot be used to access the VM, including the local admin account created at provisioning.')
+param deployingUserPrincipalId string
+
+@description('Deploying user principal type. Used for default role assignment to grant the deploying user login access to the VM. This is required because with Entra ID authentication enabled, local accounts cannot be used to access the VM, including the local admin account created at provisioning.')
+param deployingUserPrincipalType string = 'User'
+
+@description('Role assignments to apply to the virtual machine.')
+param roleAssignments array = [
+  {
+    roleDefinitionIdOrName: '1c0163c0-47e6-4577-8991-ea5c82e286e4' // Virtual Machine Administrator Login
+    principalId: deployingUserPrincipalId
+    principalType: deployingUserPrincipalType
+  }
+]
 
 // ============================================================================
 // AVM Module Deployment
@@ -76,6 +93,7 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.22.0' = {
     vmSize: vmSize
     adminUsername: adminUsername
     adminPassword: adminPassword
+    managedIdentities: { systemAssigned: true }
     patchMode: 'AutomaticByPlatform'
     bypassPlatformSafetyChecksOnUserSchedule: true
     maintenanceConfigurationResourceId: maintenanceConfigurationResourceId
@@ -107,7 +125,13 @@ module virtualMachine 'br/public:avm/res/compute/virtual-machine:0.22.0' = {
         ]
       }
     ]
-    extensionAadJoinConfig: { enabled: true, tags: tags, typeHandlerVersion: '1.0' }
+    roleAssignments: roleAssignments
+    extensionAadJoinConfig: {
+      enabled: true
+      tags: tags
+      typeHandlerVersion: '2.0'
+      settings: { mdmId: '' }
+    }
     extensionAntiMalwareConfig: {
       enabled: true
       settings: {
