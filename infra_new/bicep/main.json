@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "12344677289177963692"
+      "templateHash": "7605946542131878706"
     }
   },
   "parameters": {
@@ -2661,7 +2661,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "3870427694188038378"
+              "templateHash": "3778263018587699802"
             }
           },
           "parameters": {
@@ -2704,7 +2704,7 @@
               }
             },
             "appSettings": {
-              "type": "secureObject",
+              "type": "object",
               "defaultValue": {},
               "metadata": {
                 "description": "Application settings key-value pairs."
@@ -2941,7 +2941,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "3870427694188038378"
+              "templateHash": "3778263018587699802"
             }
           },
           "parameters": {
@@ -2984,7 +2984,7 @@
               }
             },
             "appSettings": {
-              "type": "secureObject",
+              "type": "object",
               "defaultValue": {},
               "metadata": {
                 "description": "Application settings key-value pairs."
@@ -3196,7 +3196,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "3870427694188038378"
+              "templateHash": "3778263018587699802"
             }
           },
           "parameters": {
@@ -3239,7 +3239,7 @@
               }
             },
             "appSettings": {
-              "type": "secureObject",
+              "type": "object",
               "defaultValue": {},
               "metadata": {
                 "description": "Application settings key-value pairs."
