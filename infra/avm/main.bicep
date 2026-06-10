@@ -656,41 +656,41 @@ module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for
 }]
 
 // Separate PE for AI Foundry to avoid AccountProvisioningStateInvalid race condition
-module aifoundry_private_endpoint './modules/networking/private-endpoint.bicep' = if (!useExistingAIProject && enablePrivateNetworking) {
-  name: take('module.pe-ai-foundry.${solutionName}', 64)
-  dependsOn: [privateDnsZoneDeployments]
-  params: {
-    name: 'pep-aif-${solutionSuffix}'
-    location: location
-    tags: tags
-    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
-    privateLinkServiceConnections: [
-      {
-        name: 'pep-aif-${solutionSuffix}'
-        properties: {
-          privateLinkServiceId: ai_foundry_project!.outputs.resourceId
-          groupIds: ['account']
-        }
-      }
-    ]
-    privateDnsZoneGroup: {
-      privateDnsZoneGroupConfigs: [
-        {
-          name: 'dns-zone-cognitiveservices'
-          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-        }
-        {
-          name: 'dns-zone-openai'
-          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
-        }
-        {
-          name: 'dns-zone-aifoundry'
-          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.aiFoundry]!.outputs.resourceId
-        }
-      ]
-    }
-  }
-}
+// module aifoundry_private_endpoint './modules/networking/private-endpoint.bicep' = if (!useExistingAIProject && enablePrivateNetworking) {
+//   name: take('module.pe-ai-foundry.${solutionName}', 64)
+//   dependsOn: [privateDnsZoneDeployments]
+//   params: {
+//     name: 'pep-aif-${solutionSuffix}'
+//     location: location
+//     tags: tags
+//     subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+//     privateLinkServiceConnections: [
+//       {
+//         name: 'pep-aif-${solutionSuffix}'
+//         properties: {
+//           privateLinkServiceId: ai_foundry_project!.outputs.resourceId
+//           groupIds: ['account']
+//         }
+//       }
+//     ]
+//     privateDnsZoneGroup: {
+//       privateDnsZoneGroupConfigs: [
+//         {
+//           name: 'dns-zone-cognitiveservices'
+//           privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+//         }
+//         {
+//           name: 'dns-zone-openai'
+//           privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
+//         }
+//         {
+//           name: 'dns-zone-aifoundry'
+//           privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.aiFoundry]!.outputs.resourceId
+//         }
+//       ]
+//     }
+//   }
+// }
 
 // ========== AI outputs (ternary: existing vs new) ========== //
 var aiFoundryEndpoint = useExistingAIProject ? existing_project_setup!.outputs.endpoint : ai_foundry_project!.outputs.endpoint
