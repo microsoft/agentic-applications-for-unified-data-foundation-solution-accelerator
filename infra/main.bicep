@@ -32,9 +32,6 @@ param solutionUniqueText string = substring(uniqueString(subscription().id, reso
 @description('Optional. Primary Azure region for resource deployment.')
 param location string = resourceGroup().location
 
-@description('Optional. Secondary location for database resources (example: eastus2).')
-param secondaryLocation string = 'eastus2'
-
 @allowed(['australiaeast', 'eastus', 'eastus2', 'francecentral', 'japaneast', 'swedencentral', 'uksouth', 'westus', 'westus3'])
 @metadata({
   azd:{
@@ -47,9 +44,6 @@ param secondaryLocation string = 'eastus2'
 })
 @description('Required. Location for AI Foundry and model deployments.')
 param azureAiServiceLocation string
-
-@description('Optional. Location for AI Search service deployment.')
-param searchServiceLocation string = location
 
 // ============================================================================
 // Parameters — AI Configuration
@@ -212,7 +206,6 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     solutionName: solutionName
     solutionUniqueText: solutionUniqueText
     location: location
-    secondaryLocation: secondaryLocation
     tags: tags
     enableTelemetry: enableTelemetry
     enableMonitoring: enableMonitoring
@@ -223,7 +216,6 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     vmAdminPassword: vmAdminPassword
     vmSize: vmSize
     azureAiServiceLocation: azureAiServiceLocation
-    searchServiceLocation: searchServiceLocation
     deploymentType: deploymentType
     gptModelName: gptModelName
     gptModelVersion: gptModelVersion
@@ -261,10 +253,9 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     solutionName: solutionName
     solutionUniqueText: solutionUniqueText
     location: location
-    secondaryLocation: secondaryLocation
+    tags: tags
     azureAiServiceLocation: azureAiServiceLocation
-    searchServiceLocation: searchServiceLocation
-    deploymentType: deploymentType  
+    deploymentType: deploymentType
     gptModelName: gptModelName
     gptModelVersion: gptModelVersion
     gptDeploymentCapacity: gptDeploymentCapacity
@@ -275,6 +266,7 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     imageTag: imageTag
     containerRegistryName: containerRegistryName
     backendRuntimeStack: backendRuntimeStack
+    appServicePlanSku: appServicePlanSku
     useChatHistoryEnabled: useChatHistoryEnabled
     useUserAccessToken: useUserAccessToken
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId

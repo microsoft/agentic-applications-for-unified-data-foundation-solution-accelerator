@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.43.8.12551",
-      "templateHash": "7605946542131878706"
+      "version": "0.44.1.10279",
+      "templateHash": "13957684609716935339"
     }
   },
   "parameters": {
@@ -28,16 +28,16 @@
     },
     "location": {
       "type": "string",
-      "defaultValue": "",
+      "defaultValue": "[resourceGroup().location]",
       "metadata": {
         "description": "Optional. Primary Azure region for resource deployment. Defaults to resource group location."
       }
     },
-    "secondaryLocation": {
-      "type": "string",
-      "defaultValue": "eastus2",
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
       "metadata": {
-        "description": "Optional. Secondary location for database resources (example: eastus2)."
+        "description": "Optional. Tags to apply to all resources."
       }
     },
     "azureAiServiceLocation": {
@@ -62,13 +62,6 @@
           ]
         },
         "description": "Required. Location for AI Foundry and model deployments."
-      }
-    },
-    "searchServiceLocation": {
-      "type": "string",
-      "defaultValue": "[resourceGroup().location]",
-      "metadata": {
-        "description": "Optional. Location for AI Search service deployment. Defaults to resource group location."
       }
     },
     "deploymentType": {
@@ -96,20 +89,6 @@
         "description": "Optional. Version of the GPT model to deploy."
       }
     },
-    "azureOpenaiAPIVersion": {
-      "type": "string",
-      "defaultValue": "2025-01-01-preview",
-      "metadata": {
-        "description": "Optional. Azure OpenAI API version."
-      }
-    },
-    "azureAiAgentApiVersion": {
-      "type": "string",
-      "defaultValue": "2025-05-01",
-      "metadata": {
-        "description": "Optional. Azure AI Agent API version."
-      }
-    },
     "gptDeploymentCapacity": {
       "type": "int",
       "defaultValue": 150,
@@ -125,7 +104,7 @@
         "text-embedding-3-small"
       ],
       "metadata": {
-        "description": "Optional. Name of the Text Embedding model to deploy."
+        "description": "Optional. Name of the embedding model to deploy."
       }
     },
     "embeddingDeploymentCapacity": {
@@ -133,7 +112,21 @@
       "defaultValue": 80,
       "minValue": 10,
       "metadata": {
-        "description": "Optional. Capacity of the Embedding Model deployment."
+        "description": "Optional. Capacity of the embedding model deployment."
+      }
+    },
+    "azureOpenaiAPIVersion": {
+      "type": "string",
+      "defaultValue": "2025-01-01-preview",
+      "metadata": {
+        "description": "Optional. Azure OpenAI API version."
+      }
+    },
+    "azureAiAgentApiVersion": {
+      "type": "string",
+      "defaultValue": "2025-05-01",
+      "metadata": {
+        "description": "Optional. Azure AI Agent API version."
       }
     },
     "imageTag": {
@@ -161,6 +154,28 @@
         "description": "Optional. Backend runtime stack."
       }
     },
+    "appServicePlanSku": {
+      "type": "string",
+      "defaultValue": "B2",
+      "allowedValues": [
+        "F1",
+        "D1",
+        "B1",
+        "B2",
+        "B3",
+        "S1",
+        "S2",
+        "S3",
+        "P1",
+        "P2",
+        "P3",
+        "P1v3",
+        "P1v4"
+      ],
+      "metadata": {
+        "description": "Optional. App Service Plan SKU."
+      }
+    },
     "deployApp": {
       "type": "bool",
       "defaultValue": true,
@@ -180,52 +195,6 @@
       "defaultValue": false,
       "metadata": {
         "description": "Optional. Enable user access token forwarding to the API."
-      }
-    },
-    "existingLogAnalyticsWorkspaceId": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Optional. Resource ID of an existing Log Analytics workspace. Empty creates a new one."
-      }
-    },
-    "existingFoundryProjectResourceId": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Optional. Resource ID of an existing AI Foundry project. Empty creates a new one."
-      }
-    },
-    "deployingUserPrincipalType": {
-      "type": "string",
-      "defaultValue": "User",
-      "allowedValues": [
-        "User",
-        "ServicePrincipal"
-      ],
-      "metadata": {
-        "description": "Optional. Principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC."
-      }
-    },
-    "createdBy": {
-      "type": "string",
-      "defaultValue": "[if(contains(deployer(), 'userPrincipalName'), split(deployer().userPrincipalName, '@')[0], deployer().objectId)]",
-      "metadata": {
-        "description": "Optional. Created by user name for resource tagging."
-      }
-    },
-    "appTitlePrimary": {
-      "type": "string",
-      "defaultValue": "Contoso",
-      "metadata": {
-        "description": "Optional. Primary title displayed in the header of the web app."
-      }
-    },
-    "appTitleSecondary": {
-      "type": "string",
-      "defaultValue": "| Unified Data Analysis Agents",
-      "metadata": {
-        "description": "Optional. Secondary title displayed in the header of the web app."
       }
     },
     "createFabricWorkspace": {
@@ -268,22 +237,63 @@
       "metadata": {
         "description": "Optional. Additional user/service principal object IDs to assign as Fabric Capacity admins."
       }
+    },
+    "existingLogAnalyticsWorkspaceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Resource ID of an existing Log Analytics workspace. Empty creates a new one."
+      }
+    },
+    "existingFoundryProjectResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Resource ID of an existing AI Foundry project. Empty creates a new one."
+      }
+    },
+    "deployingUserPrincipalType": {
+      "type": "string",
+      "defaultValue": "User",
+      "allowedValues": [
+        "User",
+        "ServicePrincipal"
+      ],
+      "metadata": {
+        "description": "Optional. Principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC."
+      }
+    },
+    "appTitlePrimary": {
+      "type": "string",
+      "defaultValue": "Contoso",
+      "metadata": {
+        "description": "Optional. Primary title displayed in the header of the web app."
+      }
+    },
+    "appTitleSecondary": {
+      "type": "string",
+      "defaultValue": "| Unified Data Analysis Agents",
+      "metadata": {
+        "description": "Optional. Secondary title displayed in the header of the web app."
+      }
     }
   },
   "variables": {
-    "solutionLocation": "[if(empty(parameters('location')), resourceGroup().location, parameters('location'))]",
     "solutionSuffix": "[toLower(trim(replace(replace(replace(replace(replace(replace(format('{0}{1}', parameters('solutionName'), parameters('solutionUniqueText')), '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))]",
     "deployerInfo": "[deployer()]",
     "deployingUserPrincipalId": "[variables('deployerInfo').objectId]",
+    "createdBy": "[if(contains(variables('deployerInfo'), 'userPrincipalName'), split(variables('deployerInfo').userPrincipalName, '@')[0], variables('deployerInfo').objectId)]",
     "existingTags": "[coalesce(resourceGroup().tags, createObject())]",
+    "shouldDeployApp": "[parameters('deployApp')]",
+    "useExistingAIProject": "[not(empty(parameters('existingFoundryProjectResourceId')))]",
     "useChatHistoryEnabledSetting": "[if(parameters('useChatHistoryEnabled'), 'True', 'False')]",
     "useUserAccessTokenSetting": "[if(parameters('useUserAccessToken'), 'True', 'False')]",
-    "shouldDeployApp": "[parameters('deployApp')]",
     "useExistingFabricCapacity": "[not(empty(parameters('azureFabricCapacityName')))]",
     "shouldCreateFabricCapacity": "[and(parameters('createFabricWorkspace'), not(variables('useExistingFabricCapacity')))]",
     "fabricCapacityResourceName": "[if(variables('useExistingFabricCapacity'), parameters('azureFabricCapacityName'), format('fc{0}', variables('solutionSuffix')))]",
     "fabricCapacityDefaultAdmins": "[if(contains(variables('deployerInfo'), 'userPrincipalName'), createArray(variables('deployerInfo').userPrincipalName), createArray(variables('deployerInfo').objectId))]",
     "fabricTotalAdminMembers": "[union(variables('fabricCapacityDefaultAdmins'), parameters('fabricAdminMembers'))]",
+    "resourceTags": "[union(variables('existingTags'), parameters('tags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', variables('createdBy'), 'DeploymentName', deployment().name, 'Type', 'Non-WAF'))]",
     "useExistingLogAnalytics": "[not(empty(parameters('existingLogAnalyticsWorkspaceId')))]",
     "aiModelDeployments": [
       {
@@ -307,9 +317,8 @@
         "raiPolicyName": "Microsoft.Default"
       }
     ],
-    "useExistingAIProject": "[not(empty(parameters('existingFoundryProjectResourceId')))]",
-    "aiServiceSubscription": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[2], subscription().subscriptionId)]",
-    "aiServiceResourceGroup": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[4], resourceGroup().name)]",
+    "aiFoundrySubscriptionId": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[2], subscription().subscriptionId)]",
+    "aiFoundryResourceGroupName": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[4], resourceGroup().name)]",
     "backendApiImageName": "[format('DOCKER|{0}.azurecr.io/da-api:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
     "backendCsApiImageName": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
     "frontendImageName": "[format('DOCKER|{0}.azurecr.io/da-app:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
@@ -318,10 +327,10 @@
   "resources": [
     {
       "type": "Microsoft.Resources/tags",
-      "apiVersion": "2023-07-01",
+      "apiVersion": "2024-11-01",
       "name": "default",
       "properties": {
-        "tags": "[union(variables('existingTags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy'), 'DeploymentName', deployment().name, 'Type', 'Non-WAF'))]"
+        "tags": "[variables('resourceTags')]"
       }
     },
     {
@@ -342,7 +351,7 @@
             "value": "[variables('fabricCapacityResourceName')]"
           },
           "location": {
-            "value": "[variables('solutionLocation')]"
+            "value": "[parameters('location')]"
           },
           "skuName": {
             "value": "[parameters('fabricCapacitySku')]"
@@ -351,7 +360,7 @@
             "value": "[variables('fabricTotalAdminMembers')]"
           },
           "tags": {
-            "value": "[union(variables('existingTags'), createObject('TemplateName', 'Unified Data Analysis Agents', 'CreatedBy', parameters('createdBy')))]"
+            "value": "[variables('resourceTags')]"
           }
         },
         "template": {
@@ -360,8 +369,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "12778366842165426364"
+              "version": "0.44.1.10279",
+              "templateHash": "16210701608149351637"
             }
           },
           "parameters": {
@@ -494,8 +503,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "11837290836179258853"
+              "version": "0.44.1.10279",
+              "templateHash": "12095091241389333540"
             }
           },
           "parameters": {
@@ -613,8 +622,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "3276019876379547678"
+              "version": "0.44.1.10279",
+              "templateHash": "3199910078817503702"
             }
           },
           "parameters": {
@@ -749,7 +758,119 @@
       ]
     },
     {
-      "condition": "[empty(parameters('existingFoundryProjectResourceId'))]",
+      "condition": "[variables('useExistingAIProject')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)]",
+      "subscriptionId": "[variables('aiFoundrySubscriptionId')]",
+      "resourceGroup": "[variables('aiFoundryResourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[8]), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value))]",
+          "projectName": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[10]), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectName.value))]"
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.44.1.10279",
+              "templateHash": "16532361737803235909"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "Required. The name of the existing Cognitive Services account."
+              }
+            },
+            "projectName": {
+              "type": "string",
+              "metadata": {
+                "description": "Required. The name of the existing AI project."
+              }
+            }
+          },
+          "resources": [],
+          "outputs": {
+            "resourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the AI Services account."
+              },
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the AI Services account."
+              },
+              "value": "[parameters('name')]"
+            },
+            "endpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Endpoint of the AI Services account (OpenAI Language Model Instance API)."
+              },
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01').endpoints['OpenAI Language Model Instance API']]"
+            },
+            "azureOpenAiCuEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI Content Understanding endpoint URL."
+              },
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01').endpoints['Content Understanding']]"
+            },
+            "principalId": {
+              "type": "string",
+              "metadata": {
+                "description": "System-assigned identity principal ID of the AI Services account (empty if none)."
+              },
+              "value": "[if(and(contains(reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01', 'full'), 'identity'), contains(reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01', 'full').identity, 'principalId')), reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01', 'full').identity.principalId, '')]"
+            },
+            "projectResourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the AI Foundry project."
+              },
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('name'), parameters('projectName'))]"
+            },
+            "projectName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the AI Foundry project."
+              },
+              "value": "[parameters('projectName')]"
+            },
+            "projectEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "AI Foundry project endpoint."
+              },
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('name'), parameters('projectName')), '2025-12-01').endpoints['AI Foundry API']]"
+            },
+            "projectIdentityPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "System-assigned identity principal ID of the project (empty if none)."
+              },
+              "value": "[if(and(contains(reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('name'), parameters('projectName')), '2025-12-01', 'full'), 'identity'), contains(reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('name'), parameters('projectName')), '2025-12-01', 'full').identity, 'principalId')), reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('name'), parameters('projectName')), '2025-12-01', 'full').identity.principalId, '')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64))]"
+      ]
+    },
+    {
+      "condition": "[not(variables('useExistingAIProject'))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)]",
@@ -773,8 +894,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "11110992144119277828"
+              "version": "0.44.1.10279",
+              "templateHash": "11485436297336856285"
             }
           },
           "parameters": {
@@ -927,6 +1048,13 @@
               },
               "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01').endpoints['OpenAI Language Model Instance API']]"
             },
+            "azureOpenAiCuEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure OpenAI Content Understanding endpoint URL."
+              },
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01').endpoints['Content Understanding']]"
+            },
             "principalId": {
               "type": "string",
               "metadata": {
@@ -967,109 +1095,11 @@
       }
     },
     {
-      "condition": "[variables('useExistingAIProject')]",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
-      "name": "[take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)]",
-      "subscriptionId": "[variables('aiServiceSubscription')]",
-      "resourceGroup": "[variables('aiServiceResourceGroup')]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "name": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[8]), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value))]",
-          "projectName": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[10]), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectName.value))]"
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "7433604311330565773"
-            }
-          },
-          "parameters": {
-            "name": {
-              "type": "string",
-              "metadata": {
-                "description": "Required. The name of the existing Cognitive Services account."
-              }
-            },
-            "projectName": {
-              "type": "string",
-              "metadata": {
-                "description": "Required. The name of the existing AI project."
-              }
-            }
-          },
-          "resources": [],
-          "outputs": {
-            "aiFoundryPrincipalId": {
-              "type": "string",
-              "metadata": {
-                "description": "The principal ID of the AI Foundry system-assigned managed identity."
-              },
-              "value": "[if(and(contains(reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01', 'full'), 'identity'), contains(reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01', 'full').identity, 'principalId')), reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01', 'full').identity.principalId, '')]"
-            },
-            "aiProjectPrincipalId": {
-              "type": "string",
-              "metadata": {
-                "description": "The principal ID of the AI Project system-assigned managed identity."
-              },
-              "value": "[if(and(contains(reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('name'), parameters('projectName')), '2025-12-01', 'full'), 'identity'), contains(reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('name'), parameters('projectName')), '2025-12-01', 'full').identity, 'principalId')), reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('name'), parameters('projectName')), '2025-12-01', 'full').identity.principalId, '')]"
-            },
-            "aiServicesAccountName": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the AI Services account."
-              },
-              "value": "[parameters('name')]"
-            },
-            "aiProjectName": {
-              "type": "string",
-              "metadata": {
-                "description": "The name of the AI project."
-              },
-              "value": "[parameters('projectName')]"
-            },
-            "aiFoundryEndpoint": {
-              "type": "string",
-              "metadata": {
-                "description": "The endpoint URL for the Azure OpenAI service."
-              },
-              "value": "[format('https://{0}.openai.azure.com/', parameters('name'))]"
-            },
-            "projectEndpoint": {
-              "type": "string",
-              "metadata": {
-                "description": "The endpoint URL for the AI Foundry project."
-              },
-              "value": "[format('https://{0}.services.ai.azure.com/api/projects/{1}', parameters('name'), parameters('projectName'))]"
-            },
-            "aiFoundryResourceId": {
-              "type": "string",
-              "metadata": {
-                "description": "The resource ID of the AI Services account."
-              },
-              "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64))]"
-      ]
-    },
-    {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64)]",
-      "subscriptionId": "[variables('aiServiceSubscription')]",
-      "resourceGroup": "[variables('aiServiceResourceGroup')]",
+      "subscriptionId": "[variables('aiFoundrySubscriptionId')]",
+      "resourceGroup": "[variables('aiFoundryResourceGroupName')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1103,8 +1133,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "17598394785963531330"
+              "version": "0.44.1.10279",
+              "templateHash": "3168957021848397230"
             }
           },
           "parameters": {
@@ -1226,8 +1256,8 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.foundry-storage-conn.{0}', parameters('solutionName')), 64)]",
-      "subscriptionId": "[variables('aiServiceSubscription')]",
-      "resourceGroup": "[variables('aiServiceResourceGroup')]",
+      "subscriptionId": "[variables('aiFoundrySubscriptionId')]",
+      "resourceGroup": "[variables('aiFoundryResourceGroupName')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1262,8 +1292,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "17598394785963531330"
+              "version": "0.44.1.10279",
+              "templateHash": "3168957021848397230"
             }
           },
           "parameters": {
@@ -1386,8 +1416,8 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.foundry-appi-conn.{0}', parameters('solutionName')), 64)]",
-      "subscriptionId": "[variables('aiServiceSubscription')]",
-      "resourceGroup": "[variables('aiServiceResourceGroup')]",
+      "subscriptionId": "[variables('aiFoundrySubscriptionId')]",
+      "resourceGroup": "[variables('aiFoundryResourceGroupName')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1427,8 +1457,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "17598394785963531330"
+              "version": "0.44.1.10279",
+              "templateHash": "3168957021848397230"
             }
           },
           "parameters": {
@@ -1556,8 +1586,8 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.model-deployment-{0}.{1}', copyIndex(), parameters('solutionName')), 64)]",
-      "subscriptionId": "[variables('aiServiceSubscription')]",
-      "resourceGroup": "[variables('aiServiceResourceGroup')]",
+      "subscriptionId": "[variables('aiFoundrySubscriptionId')]",
+      "resourceGroup": "[variables('aiFoundryResourceGroupName')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1590,8 +1620,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "8590492508744195961"
+              "version": "0.44.1.10279",
+              "templateHash": "10180502016624897684"
             }
           },
           "parameters": {
@@ -1703,7 +1733,7 @@
             "value": "[variables('solutionSuffix')]"
           },
           "location": {
-            "value": "[parameters('searchServiceLocation')]"
+            "value": "[parameters('location')]"
           }
         },
         "template": {
@@ -1712,8 +1742,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "9339534788879967829"
+              "version": "0.44.1.10279",
+              "templateHash": "6257848814063201814"
             }
           },
           "parameters": {
@@ -1879,8 +1909,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.43.8.12551",
-                      "templateHash": "3628768199502340395"
+                      "version": "0.44.1.10279",
+                      "templateHash": "11018325800773519753"
                     }
                   },
                   "parameters": {
@@ -2071,8 +2101,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "8152635002386994629"
+              "version": "0.44.1.10279",
+              "templateHash": "1975611088752225629"
             }
           },
           "parameters": {
@@ -2243,7 +2273,7 @@
       }
     },
     {
-      "condition": "[parameters('deployApp')]",
+      "condition": "[variables('shouldDeployApp')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)]",
@@ -2261,7 +2291,7 @@
             "value": "[format('cosmos-{0}', variables('solutionSuffix'))]"
           },
           "location": {
-            "value": "[parameters('secondaryLocation')]"
+            "value": "[parameters('location')]"
           },
           "databaseName": {
             "value": "db_conversation_history"
@@ -2281,8 +2311,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "1335207738172550086"
+              "version": "0.44.1.10279",
+              "templateHash": "1776329168736674430"
             }
           },
           "parameters": {
@@ -2454,7 +2484,10 @@
             "value": "[variables('solutionSuffix')]"
           },
           "location": {
-            "value": "[variables('solutionLocation')]"
+            "value": "[parameters('location')]"
+          },
+          "skuName": {
+            "value": "[parameters('appServicePlanSku')]"
           }
         },
         "template": {
@@ -2463,8 +2496,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "13546066439769694865"
+              "version": "0.44.1.10279",
+              "templateHash": "9486671591976114621"
             }
           },
           "parameters": {
@@ -2606,7 +2639,7 @@
             "value": "[format('api-{0}', variables('solutionSuffix'))]"
           },
           "location": {
-            "value": "[variables('solutionLocation')]"
+            "value": "[parameters('location')]"
           },
           "serverFarmResourceId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value]"
@@ -2620,10 +2653,10 @@
               "REACT_APP_LAYOUT_CONFIG": "[variables('reactAppLayoutConfig')]",
               "AZURE_ENV_GPT_MODEL_NAME": "[parameters('gptModelName')]",
               "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": "[parameters('embeddingModel')]",
-              "AZURE_OPENAI_ENDPOINT": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiFoundryEndpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value)]",
+              "AZURE_OPENAI_ENDPOINT": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value)]",
               "AZURE_ENV_OPENAI_API_VERSION": "[parameters('azureOpenaiAPIVersion')]",
-              "AZURE_OPENAI_RESOURCE": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiServicesAccountName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value)]",
-              "AZURE_AI_AGENT_ENDPOINT": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value)]",
+              "AZURE_OPENAI_RESOURCE": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value)]",
+              "AZURE_AI_AGENT_ENDPOINT": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value)]",
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
               "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "[parameters('gptModelName')]",
               "USE_CHAT_HISTORY_ENABLED": "[variables('useChatHistoryEnabledSetting')]",
@@ -2635,7 +2668,7 @@
               "API_UID": "",
               "AZURE_AI_SEARCH_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value]",
               "AZURE_AI_SEARCH_INDEX": "knowledge_index",
-              "AZURE_AI_SEARCH_CONNECTION_NAME": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionName.value]",
+              "AZURE_AI_SEARCH_CONNECTION_NAME": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionName.value]",
               "USE_AI_PROJECT_CLIENT": "True",
               "DISPLAY_CHART_DEFAULT": "False",
               "APPLICATIONINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionString.value]",
@@ -2660,8 +2693,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "3778263018587699802"
+              "version": "0.44.1.10279",
+              "templateHash": "13974117254762023166"
             }
           },
           "parameters": {
@@ -2867,8 +2900,8 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64))]",
         "[resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64))]"
       ]
     },
@@ -2891,7 +2924,7 @@
             "value": "[format('api-cs-{0}', variables('solutionSuffix'))]"
           },
           "location": {
-            "value": "[variables('solutionLocation')]"
+            "value": "[parameters('location')]"
           },
           "serverFarmResourceId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value]"
@@ -2905,10 +2938,10 @@
               "REACT_APP_LAYOUT_CONFIG": "[variables('reactAppLayoutConfig')]",
               "AZURE_ENV_GPT_MODEL_NAME": "[parameters('gptModelName')]",
               "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": "[parameters('embeddingModel')]",
-              "AZURE_OPENAI_ENDPOINT": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiFoundryEndpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value)]",
+              "AZURE_OPENAI_ENDPOINT": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value)]",
               "AZURE_ENV_OPENAI_API_VERSION": "[parameters('azureOpenaiAPIVersion')]",
-              "AZURE_OPENAI_RESOURCE": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiServicesAccountName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value)]",
-              "AZURE_AI_AGENT_ENDPOINT": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value)]",
+              "AZURE_OPENAI_RESOURCE": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value)]",
+              "AZURE_AI_AGENT_ENDPOINT": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value)]",
               "AZURE_AI_AGENT_API_VERSION": "[parameters('azureAiAgentApiVersion')]",
               "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": "[parameters('gptModelName')]",
               "USE_CHAT_HISTORY_ENABLED": "[variables('useChatHistoryEnabledSetting')]",
@@ -2919,7 +2952,7 @@
               "API_UID": "",
               "AZURE_AI_SEARCH_ENDPOINT": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value]",
               "AZURE_AI_SEARCH_INDEX": "knowledge_index",
-              "AZURE_AI_SEARCH_CONNECTION_NAME": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionName.value]",
+              "AZURE_AI_SEARCH_CONNECTION_NAME": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionName.value]",
               "USE_AI_PROJECT_CLIENT": "True",
               "DISPLAY_CHART_DEFAULT": "False",
               "APPLICATIONINSIGHTS_CONNECTION_STRING": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionString.value]",
@@ -2940,8 +2973,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "3778263018587699802"
+              "version": "0.44.1.10279",
+              "templateHash": "13974117254762023166"
             }
           },
           "parameters": {
@@ -3147,8 +3180,8 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64))]",
         "[resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64))]"
       ]
     },
@@ -3171,7 +3204,7 @@
             "value": "[format('app-{0}', variables('solutionSuffix'))]"
           },
           "location": {
-            "value": "[variables('solutionLocation')]"
+            "value": "[parameters('location')]"
           },
           "serverFarmResourceId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('module.app-service-plan.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value]"
@@ -3195,8 +3228,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "3778263018587699802"
+              "version": "0.44.1.10279",
+              "templateHash": "13974117254762023166"
             }
           },
           "parameters": {
@@ -3424,14 +3457,14 @@
           "existingFoundryProjectResourceId": {
             "value": "[parameters('existingFoundryProjectResourceId')]"
           },
-          "aiFoundryResourceId": "[if(not(variables('useExistingAIProject')), if(variables('useExistingAIProject'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiFoundryResourceId.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value)), createObject('value', ''))]",
+          "aiFoundryResourceId": "[if(not(variables('useExistingAIProject')), if(variables('useExistingAIProject'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value)), createObject('value', ''))]",
           "aiSearchResourceId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value]"
           },
           "storageAccountResourceId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.storage-account.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value]"
           },
-          "aiProjectPrincipalId": "[if(variables('useExistingAIProject'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiProjectPrincipalId.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectIdentityPrincipalId.value))]",
+          "aiProjectPrincipalId": "[if(variables('useExistingAIProject'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectIdentityPrincipalId.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectIdentityPrincipalId.value))]",
           "aiSearchPrincipalId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value]"
           },
@@ -3443,7 +3476,7 @@
           },
           "backendAppServicePrincipalId": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value)), createObject('value', ''))]",
           "cosmosDbAccountName": "[if(variables('shouldDeployApp'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value), createObject('value', ''))]",
-          "existingAiProjectPrincipalId": "[if(not(empty(parameters('existingFoundryProjectResourceId'))), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiProjectPrincipalId.value), createObject('value', ''))]"
+          "existingAiProjectPrincipalId": "[if(not(empty(parameters('existingFoundryProjectResourceId'))), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectIdentityPrincipalId.value), createObject('value', ''))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -3451,8 +3484,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "3971738562982100484"
+              "version": "0.44.1.10279",
+              "templateHash": "13302832521200483752"
             }
           },
           "parameters": {
@@ -3815,8 +3848,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.43.8.12551",
-                      "templateHash": "8140699401604799898"
+                      "version": "0.44.1.10279",
+                      "templateHash": "3414629451173950961"
                     }
                   },
                   "parameters": {
@@ -3904,8 +3937,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.43.8.12551",
-                      "templateHash": "8140699401604799898"
+                      "version": "0.44.1.10279",
+                      "templateHash": "3414629451173950961"
                     }
                   },
                   "parameters": {
@@ -3970,7 +4003,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.storage-account.{0}', parameters('solutionName')), 64))]"
       ]
     }
@@ -4023,7 +4056,7 @@
       "metadata": {
         "description": "Azure OpenAI service endpoint URL"
       },
-      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiFoundryEndpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value)]"
+      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.endpoint.value)]"
     },
     "AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME": {
       "type": "string",
@@ -4051,7 +4084,7 @@
       "metadata": {
         "description": "Azure AI Agent service endpoint URL"
       },
-      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value)]"
+      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value)]"
     },
     "AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME": {
       "type": "string",
@@ -4128,49 +4161,49 @@
       "metadata": {
         "description": "AI Foundry connection name for Azure AI Search"
       },
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionName.value]"
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionName.value]"
     },
     "AZURE_AI_SEARCH_CONNECTION_ID": {
       "type": "string",
       "metadata": {
         "description": "AI Foundry connection ID for Azure AI Search"
       },
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionId.value]"
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionId.value]"
     },
     "AZURE_AI_PROJECT_ENDPOINT": {
       "type": "string",
       "metadata": {
         "description": "Azure AI Foundry project endpoint URL"
       },
-      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value)]"
+      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectEndpoint.value)]"
     },
     "AI_FOUNDRY_RESOURCE_ID": {
       "type": "string",
       "metadata": {
         "description": "Azure AI Foundry resource ID for role assignments"
       },
-      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiFoundryResourceId.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value)]"
+      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value)]"
     },
     "AZURE_AI_PROJECT_NAME": {
       "type": "string",
       "metadata": {
         "description": "Azure AI Foundry project name"
       },
-      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiProjectName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectName.value)]"
+      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectName.value)]"
     },
     "AI_SERVICE_NAME": {
       "type": "string",
       "metadata": {
         "description": "Azure AI Services resource name"
       },
-      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiServicesAccountName.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value)]"
+      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value)]"
     },
     "FOUNDRY_PROJECT_PID": {
       "type": "string",
       "metadata": {
         "description": "Azure AI Foundry project managed identity principal ID"
       },
-      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiServiceSubscription'), variables('aiServiceResourceGroup')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.aiProjectPrincipalId.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectIdentityPrincipalId.value)]"
+      "value": "[if(variables('useExistingAIProject'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectIdentityPrincipalId.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectIdentityPrincipalId.value)]"
     },
     "USE_CHAT_HISTORY_ENABLED": {
       "type": "string",
