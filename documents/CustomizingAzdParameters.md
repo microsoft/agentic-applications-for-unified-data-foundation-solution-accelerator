@@ -26,7 +26,7 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_CONTAINER_REGISTRY_NAME`       | string  | `dataagentscontainerregworkshop` | Name of the Azure Container Registry to pull images from.           |
 | `AZURE_ENV_SEARCH_SERVICE_LOCATION`       | string  | *(resource group location)* | Location for Azure AI Search service deployment.                        |
 | `AZURE_ENV_DEPLOY_APP`                    | bool    | `true`                   | Deploy application components (API, Frontend, Cosmos DB).                  |
-| `IS_WORKSHOP`                             | bool    | `true`                   | Enable workshop mode with sample data and simplified configuration.        |
+| `IS_WORKSHOP`                             | bool    | `false`                   | Enable workshop mode with sample data and simplified configuration.        |
 | `AZURE_ENV_ONLY`                          | bool    | `false`                  | Deploy Azure SQL Server instead of Fabric SQL.                             |
 | `DEPLOYING_USER_PRINCIPAL_TYPE`           | string  | `User`                   | Principal type of deployer (allowed: `User`, `ServicePrincipal`).          |
 
