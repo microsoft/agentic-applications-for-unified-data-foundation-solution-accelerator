@@ -612,7 +612,6 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
       ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
       : ''
     cosmosDbAccountName: shouldDeployApp ? cosmosDBModule!.outputs.name : ''
-    existingAiProjectPrincipalId: !empty(existingFoundryProjectResourceId) ? existing_project_setup!.outputs.projectIdentityPrincipalId : ''
   }
   scope: resourceGroup(resourceGroup().name)
 }

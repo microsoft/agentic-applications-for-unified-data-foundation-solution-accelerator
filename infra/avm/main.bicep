@@ -910,7 +910,7 @@ module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployA
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
     appSettings: {
-      APP_API_BASE_URL: shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl) : ''
+      APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
       CHAT_LANDING_TEXT: ''
       APP_TITLE_PRIMARY: appTitlePrimary
       APP_TITLE_SECONDARY: appTitleSecondary
@@ -938,7 +938,6 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     aiFoundryResourceId: aiFoundryResourceId
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
-    existingAiProjectPrincipalId: useExistingAIProject ? aiProjectPrincipalId : ''
   }
 }
 
