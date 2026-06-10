@@ -85,7 +85,7 @@ param imageTag string = 'latest_v2'
 param deployApp bool = true
 
 @description('Set to true for workshop deployment with sample data and simplified configuration.')
-param isWorkshop bool = true
+param isWorkshop bool = false
 
 @description('Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used.')
 param azureEnvOnly bool = false

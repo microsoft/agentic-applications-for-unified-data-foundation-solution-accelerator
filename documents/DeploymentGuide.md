@@ -206,10 +206,10 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     azd auth login --tenant-id <tenant-id>
     ```
 
-    > **Note**: This solution accelerator now supports two modes (standard and workshop). By default it will run in workshop mode. If you do not want to run the workshop please set IS_WORKSHOP run the below azd command to set the workshop to false. 
+    > **Note**: This solution accelerator now supports two modes (standard and workshop). By default it runs in standard mode. To enable workshop mode, set `IS_WORKSHOP` to `true` before deploying:
 
       ```sh
-      azd env set IS_WORKSHOP false
+      azd env set IS_WORKSHOP true
       ```
     
       In standard mode, by default the backend API is configured to Python.
