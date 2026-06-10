@@ -387,12 +387,12 @@ module ai_search './modules/ai/ai-search.bicep' = {
 }
 
 // ========== AI outputs (ternary: existing vs new) ========== //
-var aiFoundryEndpoint = useExistingAIProject ? existing_project_setup!.outputs.aiFoundryEndpoint : ai_foundry_project!.outputs.endpoint
+var aiFoundryEndpoint = useExistingAIProject ? existing_project_setup!.outputs.endpoint : ai_foundry_project!.outputs.endpoint
 var projectEndpoint = useExistingAIProject ? existing_project_setup!.outputs.projectEndpoint : ai_foundry_project!.outputs.projectEndpoint
-var aiFoundryName = useExistingAIProject ? existing_project_setup!.outputs.aiServicesAccountName : ai_foundry_project!.outputs.name
-var aiProjectName = useExistingAIProject ? existing_project_setup!.outputs.aiProjectName : ai_foundry_project!.outputs.projectName
-var aiFoundryResourceId = useExistingAIProject ? existing_project_setup!.outputs.aiFoundryResourceId : ai_foundry_project!.outputs.resourceId
-var aiProjectPrincipalId = useExistingAIProject ? existing_project_setup!.outputs.aiProjectPrincipalId : ai_foundry_project!.outputs.projectIdentityPrincipalId
+var aiFoundryName = useExistingAIProject ? existing_project_setup!.outputs.name : ai_foundry_project!.outputs.name
+var aiProjectName = useExistingAIProject ? existing_project_setup!.outputs.projectName : ai_foundry_project!.outputs.projectName
+var aiFoundryResourceId = useExistingAIProject ? existing_project_setup!.outputs.resourceId : ai_foundry_project!.outputs.resourceId
+var aiProjectPrincipalId = useExistingAIProject ? existing_project_setup!.outputs.projectIdentityPrincipalId : ai_foundry_project!.outputs.projectIdentityPrincipalId
 var aiSearchConnectionId = foundry_search_connection.outputs.connectionId
 
 // ========== Storage Account module ========== //
@@ -584,7 +584,7 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
       ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
       : ''
     cosmosDbAccountName: shouldDeployApp ? cosmosDBModule!.outputs.name : ''
-    existingAiProjectPrincipalId: !empty(existingFoundryProjectResourceId) ? existing_project_setup!.outputs.aiProjectPrincipalId : ''
+    existingAiProjectPrincipalId: !empty(existingFoundryProjectResourceId) ? existing_project_setup!.outputs.projectIdentityPrincipalId : ''
   }
   scope: resourceGroup(resourceGroup().name)
 }

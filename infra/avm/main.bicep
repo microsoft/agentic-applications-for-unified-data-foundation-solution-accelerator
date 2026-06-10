@@ -552,18 +552,7 @@ var aiProjectResourceName = useExistingAIProject
   ? (length(split(existingFoundryProjectResourceId, '/')) > 10 ? split(existingFoundryProjectResourceId, '/')[10] : '')
   : ai_foundry_project!.outputs.projectName
 
-// Construct endpoints from existing resource ID
-// Expected format: /subscriptions/.../providers/Microsoft.CognitiveServices/accounts/{account}/projects/{project}
-var existingHasProjectSegment = useExistingAIProject && length(split(existingFoundryProjectResourceId, '/')) > 10
-var existingOpenAIEndpoint = useExistingAIProject
-  ? format('https://{0}.openai.azure.com/', split(existingFoundryProjectResourceId, '/')[8])
-  : ''
-var existingProjectEndpoint = existingHasProjectSegment
-  ? format('https://{0}.services.ai.azure.com/api/projects/{1}', split(existingFoundryProjectResourceId, '/')[8], split(existingFoundryProjectResourceId, '/')[10])
-  : ''
-
-
-// Reference existing AI Foundry project (identity only)
+// Reference existing AI Foundry project (reads runtime properties: endpoints, identities)
 module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (useExistingAIProject) {
   name: take('module.existing-project-setup.${solutionName}', 64)
   scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
@@ -825,10 +814,10 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
-      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : ai_foundry_project!.outputs.endpoint
+      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existing_project_setup!.outputs.endpoint : ai_foundry_project!.outputs.endpoint
       AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
-      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiFoundryResourceName : ai_foundry_project!.outputs.name
-      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : ai_foundry_project!.outputs.projectEndpoint
+      AZURE_OPENAI_RESOURCE: useExistingAIProject ? existing_project_setup!.outputs.name : ai_foundry_project!.outputs.name
+      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existing_project_setup!.outputs.projectEndpoint : ai_foundry_project!.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
@@ -875,10 +864,10 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
-      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : ai_foundry_project!.outputs.endpoint
+      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existing_project_setup!.outputs.endpoint : ai_foundry_project!.outputs.endpoint
       AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
-      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiFoundryResourceName : ai_foundry_project!.outputs.name
-      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : ai_foundry_project!.outputs.projectEndpoint
+      AZURE_OPENAI_RESOURCE: useExistingAIProject ? existing_project_setup!.outputs.name : ai_foundry_project!.outputs.name
+      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existing_project_setup!.outputs.projectEndpoint : ai_foundry_project!.outputs.projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
@@ -946,7 +935,7 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     aiFoundryResourceId: !useExistingAIProject ? ai_foundry_project!.outputs.resourceId : ''
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
-    existingAiProjectPrincipalId: useExistingAIProject ? existing_project_setup!.outputs.aiProjectPrincipalId : ''
+    existingAiProjectPrincipalId: useExistingAIProject ? existing_project_setup!.outputs.projectIdentityPrincipalId : ''
   }
 }
 
@@ -976,7 +965,7 @@ output AZURE_COSMOSDB_DATABASE string = 'db_conversation_history'
 output AZURE_ENV_GPT_MODEL_NAME string = gptModelName
 
 @description('Azure OpenAI service endpoint URL.')
-output AZURE_OPENAI_ENDPOINT string = !useExistingAIProject ? ai_foundry_project!.outputs.endpoint : existingOpenAIEndpoint
+output AZURE_OPENAI_ENDPOINT string = !useExistingAIProject ? ai_foundry_project!.outputs.endpoint : existing_project_setup!.outputs.endpoint
 
 @description('Embedding model deployment name.')
 output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = embeddingModel
@@ -988,7 +977,7 @@ output AZURE_SQLDB_USER_MID string = ''
 output API_UID string = ''
 
 @description('Azure AI Agent endpoint.')
-output AZURE_AI_AGENT_ENDPOINT string = !useExistingAIProject ? ai_foundry_project!.outputs.projectEndpoint : existingProjectEndpoint
+output AZURE_AI_AGENT_ENDPOINT string = !useExistingAIProject ? ai_foundry_project!.outputs.projectEndpoint : existing_project_setup!.outputs.projectEndpoint
 
 @description('Model deployment name for AI Agent.')
 output AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME string = gptModelName
@@ -1031,16 +1020,16 @@ output AZURE_AI_SEARCH_CONNECTION_NAME string = foundry_search_connection.output
 output AZURE_AI_SEARCH_CONNECTION_ID string = foundry_search_connection.outputs.connectionId
 
 @description('AI Foundry project endpoint.')
-output AZURE_AI_PROJECT_ENDPOINT string = !useExistingAIProject ? ai_foundry_project!.outputs.projectEndpoint : existingProjectEndpoint
+output AZURE_AI_PROJECT_ENDPOINT string = !useExistingAIProject ? ai_foundry_project!.outputs.projectEndpoint : existing_project_setup!.outputs.projectEndpoint
 
 @description('AI Foundry resource ID.')
 output AI_FOUNDRY_RESOURCE_ID string = !useExistingAIProject ? ai_foundry_project!.outputs.resourceId : existingFoundryProjectResourceId
 
 @description('AI Foundry project name.')
-output AZURE_AI_PROJECT_NAME string = !useExistingAIProject ? ai_foundry_project!.outputs.projectName : (existingHasProjectSegment ? split(existingFoundryProjectResourceId, '/')[10] : '')
+output AZURE_AI_PROJECT_NAME string = !useExistingAIProject ? ai_foundry_project!.outputs.projectName : existing_project_setup!.outputs.projectName
 
 @description('AI Services resource name.')
-output AI_SERVICE_NAME string = !useExistingAIProject ? ai_foundry_project!.outputs.name : aiFoundryResourceName
+output AI_SERVICE_NAME string = !useExistingAIProject ? ai_foundry_project!.outputs.name : existing_project_setup!.outputs.name
 
 @description('AI Project identity principal ID.')
 output FOUNDRY_PROJECT_PID string = !useExistingAIProject ? ai_foundry_project!.outputs.projectIdentityPrincipalId : ''
