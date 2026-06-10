@@ -23,9 +23,6 @@ param solutionUniqueText string = substring(uniqueString(subscription().id, reso
 @description('Optional. Primary Azure region for resource deployment.')
 param location string = resourceGroup().location
 
-@description('Optional. Secondary location for database resources.')
-param secondaryLocation string = 'eastus2'
-
 @description('Optional. Tags to apply to all resources.')
 param tags object = {}
 
@@ -89,9 +86,6 @@ param vmSize string = 'Standard_D2s_v5'
 })
 @description('Required. Location for AI Services and model deployments.')
 param azureAiServiceLocation string
-
-@description('Optional. Location for AI Search service deployment.')
-param searchServiceLocation string = location
 
 @allowed(['Standard', 'GlobalStandard'])
 @description('Optional. GPT model deployment type.')
@@ -552,18 +546,7 @@ var aiProjectResourceName = useExistingAIProject
   ? (length(split(existingFoundryProjectResourceId, '/')) > 10 ? split(existingFoundryProjectResourceId, '/')[10] : '')
   : ai_foundry_project!.outputs.projectName
 
-// Construct endpoints from existing resource ID
-// Expected format: /subscriptions/.../providers/Microsoft.CognitiveServices/accounts/{account}/projects/{project}
-var existingHasProjectSegment = useExistingAIProject && length(split(existingFoundryProjectResourceId, '/')) > 10
-var existingOpenAIEndpoint = useExistingAIProject
-  ? format('https://{0}.openai.azure.com/', split(existingFoundryProjectResourceId, '/')[8])
-  : ''
-var existingProjectEndpoint = existingHasProjectSegment
-  ? format('https://{0}.services.ai.azure.com/api/projects/{1}', split(existingFoundryProjectResourceId, '/')[8], split(existingFoundryProjectResourceId, '/')[10])
-  : ''
-
-
-// Reference existing AI Foundry project (identity only)
+// Reference existing AI Foundry project (reads runtime properties: endpoints, identities)
 module existing_project_setup './modules/ai/existing-project-setup.bicep' = if (useExistingAIProject) {
   name: take('module.existing-project-setup.${solutionName}', 64)
   scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
@@ -673,47 +656,56 @@ module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for
 }]
 
 // Separate PE for AI Foundry to avoid AccountProvisioningStateInvalid race condition
-module aifoundry_private_endpoint './modules/networking/private-endpoint.bicep' = if (!useExistingAIProject && enablePrivateNetworking) {
-  name: take('module.pe-ai-foundry.${solutionName}', 64)
-  dependsOn: [privateDnsZoneDeployments]
-  params: {
-    name: 'pep-aif-${solutionSuffix}'
-    location: location
-    tags: tags
-    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
-    privateLinkServiceConnections: [
-      {
-        name: 'pep-aif-${solutionSuffix}'
-        properties: {
-          privateLinkServiceId: ai_foundry_project!.outputs.resourceId
-          groupIds: ['account']
-        }
-      }
-    ]
-    privateDnsZoneGroup: {
-      privateDnsZoneGroupConfigs: [
-        {
-          name: 'dns-zone-cognitiveservices'
-          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-        }
-        {
-          name: 'dns-zone-openai'
-          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
-        }
-        {
-          name: 'dns-zone-aifoundry'
-          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.aiFoundry]!.outputs.resourceId
-        }
-      ]
-    }
-  }
-}
+// module aifoundry_private_endpoint './modules/networking/private-endpoint.bicep' = if (!useExistingAIProject && enablePrivateNetworking) {
+//   name: take('module.pe-ai-foundry.${solutionName}', 64)
+//   dependsOn: [privateDnsZoneDeployments]
+//   params: {
+//     name: 'pep-aif-${solutionSuffix}'
+//     location: location
+//     tags: tags
+//     subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+//     privateLinkServiceConnections: [
+//       {
+//         name: 'pep-aif-${solutionSuffix}'
+//         properties: {
+//           privateLinkServiceId: ai_foundry_project!.outputs.resourceId
+//           groupIds: ['account']
+//         }
+//       }
+//     ]
+//     privateDnsZoneGroup: {
+//       privateDnsZoneGroupConfigs: [
+//         {
+//           name: 'dns-zone-cognitiveservices'
+//           privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+//         }
+//         {
+//           name: 'dns-zone-openai'
+//           privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
+//         }
+//         {
+//           name: 'dns-zone-aifoundry'
+//           privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.aiFoundry]!.outputs.resourceId
+//         }
+//       ]
+//     }
+//   }
+// }
+
+// ========== AI outputs (ternary: existing vs new) ========== //
+var aiFoundryEndpoint = useExistingAIProject ? existing_project_setup!.outputs.endpoint : ai_foundry_project!.outputs.endpoint
+var projectEndpoint = useExistingAIProject ? existing_project_setup!.outputs.projectEndpoint : ai_foundry_project!.outputs.projectEndpoint
+var aiFoundryName = useExistingAIProject ? existing_project_setup!.outputs.name : ai_foundry_project!.outputs.name
+var aiProjectName = useExistingAIProject ? existing_project_setup!.outputs.projectName : ai_foundry_project!.outputs.projectName
+var aiFoundryResourceId = useExistingAIProject ? existing_project_setup!.outputs.resourceId : ai_foundry_project!.outputs.resourceId
+var aiProjectPrincipalId = useExistingAIProject ? existing_project_setup!.outputs.projectIdentityPrincipalId : ai_foundry_project!.outputs.projectIdentityPrincipalId
+var aiSearchConnectionId = foundry_search_connection.outputs.connectionId
 
 module ai_search './modules/ai/ai-search.bicep' = {
   name: take('module.ai-search.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
-    location: searchServiceLocation
+    location: location
     tags: tags
     enableTelemetry: enableTelemetry
     // Temporarily public — Foundry Agent runtime runs outside the VNET and cannot resolve private DNS for AI Search.
@@ -825,10 +817,10 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
-      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : ai_foundry_project!.outputs.endpoint
+      AZURE_OPENAI_ENDPOINT: aiFoundryEndpoint
       AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
-      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiFoundryResourceName : ai_foundry_project!.outputs.name
-      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : ai_foundry_project!.outputs.projectEndpoint
+      AZURE_OPENAI_RESOURCE: aiFoundryName
+      AZURE_AI_AGENT_ENDPOINT: projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
@@ -875,10 +867,10 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
       AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME: embeddingModel
-      AZURE_OPENAI_ENDPOINT: useExistingAIProject ? existingOpenAIEndpoint : ai_foundry_project!.outputs.endpoint
+      AZURE_OPENAI_ENDPOINT: aiFoundryEndpoint
       AZURE_ENV_OPENAI_API_VERSION: azureOpenaiAPIVersion
-      AZURE_OPENAI_RESOURCE: useExistingAIProject ? aiFoundryResourceName : ai_foundry_project!.outputs.name
-      AZURE_AI_AGENT_ENDPOINT: useExistingAIProject ? existingProjectEndpoint : ai_foundry_project!.outputs.projectEndpoint
+      AZURE_OPENAI_RESOURCE: aiFoundryName
+      AZURE_AI_AGENT_ENDPOINT: projectEndpoint
       AZURE_AI_AGENT_API_VERSION: azureAiAgentApiVersion
       AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME: gptModelName
       USE_CHAT_HISTORY_ENABLED: useChatHistoryEnabledSetting
@@ -918,7 +910,7 @@ module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployA
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
     appSettings: {
-      APP_API_BASE_URL: shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl) : ''
+      APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
       CHAT_LANDING_TEXT: ''
       APP_TITLE_PRIMARY: appTitlePrimary
       APP_TITLE_SECONDARY: appTitleSecondary
@@ -935,7 +927,7 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
   name: take('module.role-assignments.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
-    aiProjectPrincipalId: (!useExistingAIProject) ? ai_foundry_project!.outputs.projectIdentityPrincipalId : ''
+    aiProjectPrincipalId: aiProjectPrincipalId
     aiSearchPrincipalId: ai_search.outputs.identityPrincipalId
     aiSearchResourceId: ai_search.outputs.resourceId
     storageAccountResourceId: storage_account.outputs.resourceId
@@ -943,10 +935,9 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     backendAppServicePrincipalId: shouldDeployApp
       ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
       : ''
-    aiFoundryResourceId: !useExistingAIProject ? ai_foundry_project!.outputs.resourceId : ''
+    aiFoundryResourceId: aiFoundryResourceId
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
-    existingAiProjectPrincipalId: useExistingAIProject ? existing_project_setup!.outputs.aiProjectPrincipalId : ''
   }
 }
 
@@ -976,7 +967,7 @@ output AZURE_COSMOSDB_DATABASE string = 'db_conversation_history'
 output AZURE_ENV_GPT_MODEL_NAME string = gptModelName
 
 @description('Azure OpenAI service endpoint URL.')
-output AZURE_OPENAI_ENDPOINT string = !useExistingAIProject ? ai_foundry_project!.outputs.endpoint : existingOpenAIEndpoint
+output AZURE_OPENAI_ENDPOINT string = aiFoundryEndpoint
 
 @description('Embedding model deployment name.')
 output AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME string = embeddingModel
@@ -988,7 +979,7 @@ output AZURE_SQLDB_USER_MID string = ''
 output API_UID string = ''
 
 @description('Azure AI Agent endpoint.')
-output AZURE_AI_AGENT_ENDPOINT string = !useExistingAIProject ? ai_foundry_project!.outputs.projectEndpoint : existingProjectEndpoint
+output AZURE_AI_AGENT_ENDPOINT string = projectEndpoint
 
 @description('Model deployment name for AI Agent.')
 output AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME string = gptModelName
@@ -1028,22 +1019,22 @@ output SEARCH_DATA_FOLDER string = 'data/default/documents'
 output AZURE_AI_SEARCH_CONNECTION_NAME string = foundry_search_connection.outputs.connectionName
 
 @description('AI Search connection ID.')
-output AZURE_AI_SEARCH_CONNECTION_ID string = foundry_search_connection.outputs.connectionId
+output AZURE_AI_SEARCH_CONNECTION_ID string = aiSearchConnectionId
 
 @description('AI Foundry project endpoint.')
-output AZURE_AI_PROJECT_ENDPOINT string = !useExistingAIProject ? ai_foundry_project!.outputs.projectEndpoint : existingProjectEndpoint
+output AZURE_AI_PROJECT_ENDPOINT string = projectEndpoint
 
 @description('AI Foundry resource ID.')
-output AI_FOUNDRY_RESOURCE_ID string = !useExistingAIProject ? ai_foundry_project!.outputs.resourceId : existingFoundryProjectResourceId
+output AI_FOUNDRY_RESOURCE_ID string = aiFoundryResourceId
 
 @description('AI Foundry project name.')
-output AZURE_AI_PROJECT_NAME string = !useExistingAIProject ? ai_foundry_project!.outputs.projectName : (existingHasProjectSegment ? split(existingFoundryProjectResourceId, '/')[10] : '')
+output AZURE_AI_PROJECT_NAME string = aiProjectName
 
 @description('AI Services resource name.')
-output AI_SERVICE_NAME string = !useExistingAIProject ? ai_foundry_project!.outputs.name : aiFoundryResourceName
+output AI_SERVICE_NAME string = aiFoundryName
 
 @description('AI Project identity principal ID.')
-output FOUNDRY_PROJECT_PID string = !useExistingAIProject ? ai_foundry_project!.outputs.projectIdentityPrincipalId : ''
+output FOUNDRY_PROJECT_PID string = aiProjectPrincipalId
 
 @description('Chat history enabled flag.')
 output USE_CHAT_HISTORY_ENABLED string = useChatHistoryEnabledSetting
