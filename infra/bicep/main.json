@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "13957684609716935339"
+      "templateHash": "873358138882154327"
     }
   },
   "parameters": {
@@ -1134,7 +1134,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "3168957021848397230"
+              "templateHash": "14126031085782385090"
             }
           },
           "parameters": {
@@ -1202,6 +1202,13 @@
                 "description": "Optional. Connection metadata object."
               }
             },
+            "useWorkspaceManagedIdentity": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Whether to use workspace-managed identity for authentication."
+              }
+            },
             "credentialsKey": {
               "type": "securestring",
               "defaultValue": "",
@@ -1216,7 +1223,8 @@
               "target": "[parameters('target')]",
               "authType": "[parameters('authType')]",
               "isSharedToAll": "[parameters('isSharedToAll')]",
-              "metadata": "[parameters('metadata')]"
+              "metadata": "[parameters('metadata')]",
+              "useWorkspaceManagedIdentity": "[parameters('useWorkspaceManagedIdentity')]"
             },
             "optionalDefault": "[if(parameters('isDefault'), createObject('isDefault', true()), createObject())]",
             "optionalCredentials": "[if(not(empty(parameters('credentialsKey'))), createObject('credentials', createObject('key', parameters('credentialsKey'))), createObject())]"
@@ -1293,7 +1301,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "3168957021848397230"
+              "templateHash": "14126031085782385090"
             }
           },
           "parameters": {
@@ -1361,6 +1369,13 @@
                 "description": "Optional. Connection metadata object."
               }
             },
+            "useWorkspaceManagedIdentity": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Whether to use workspace-managed identity for authentication."
+              }
+            },
             "credentialsKey": {
               "type": "securestring",
               "defaultValue": "",
@@ -1375,7 +1390,8 @@
               "target": "[parameters('target')]",
               "authType": "[parameters('authType')]",
               "isSharedToAll": "[parameters('isSharedToAll')]",
-              "metadata": "[parameters('metadata')]"
+              "metadata": "[parameters('metadata')]",
+              "useWorkspaceManagedIdentity": "[parameters('useWorkspaceManagedIdentity')]"
             },
             "optionalDefault": "[if(parameters('isDefault'), createObject('isDefault', true()), createObject())]",
             "optionalCredentials": "[if(not(empty(parameters('credentialsKey'))), createObject('credentials', createObject('key', parameters('credentialsKey'))), createObject())]"
@@ -1458,7 +1474,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "3168957021848397230"
+              "templateHash": "14126031085782385090"
             }
           },
           "parameters": {
@@ -1526,6 +1542,13 @@
                 "description": "Optional. Connection metadata object."
               }
             },
+            "useWorkspaceManagedIdentity": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Whether to use workspace-managed identity for authentication."
+              }
+            },
             "credentialsKey": {
               "type": "securestring",
               "defaultValue": "",
@@ -1540,7 +1563,8 @@
               "target": "[parameters('target')]",
               "authType": "[parameters('authType')]",
               "isSharedToAll": "[parameters('isSharedToAll')]",
-              "metadata": "[parameters('metadata')]"
+              "metadata": "[parameters('metadata')]",
+              "useWorkspaceManagedIdentity": "[parameters('useWorkspaceManagedIdentity')]"
             },
             "optionalDefault": "[if(parameters('isDefault'), createObject('isDefault', true()), createObject())]",
             "optionalCredentials": "[if(not(empty(parameters('credentialsKey'))), createObject('credentials', createObject('key', parameters('credentialsKey'))), createObject())]"
