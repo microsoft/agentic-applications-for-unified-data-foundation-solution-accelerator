@@ -567,6 +567,7 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (backendR
   scope: resourceGroup(resourceGroup().name)
 }
 
+var apiBaseUrl = backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
 
 module frontend_docker './modules/compute/app-service.bicep' = {
   name: take('module.app-service-frontend.${solutionName}', 64)
@@ -578,7 +579,7 @@ module frontend_docker './modules/compute/app-service.bicep' = {
     linuxFxVersion: frontendImageName
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
-      APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
+      APP_API_BASE_URL: apiBaseUrl
       CHAT_LANDING_TEXT: ''
       APP_TITLE_PRIMARY: appTitlePrimary
       APP_TITLE_SECONDARY: appTitleSecondary

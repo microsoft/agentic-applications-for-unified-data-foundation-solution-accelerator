@@ -799,6 +799,8 @@ module hostingplan './modules/compute/app-service-plan.bicep' = {
   }
 }
 
+var applicationInsightsConnectionString = enableMonitoring ? app_insights!.outputs.connectionString : ''
+
 // Backend API (Python)
 module backend_docker './modules/compute/app-service.bicep' = if (backendRuntimeStack == 'python') {
   name: take('module.app-service-pybackend.${solutionName}', 64)
@@ -833,7 +835,7 @@ module backend_docker './modules/compute/app-service.bicep' = if (backendRuntime
       AZURE_AI_SEARCH_CONNECTION_NAME: foundry_search_connection.outputs.connectionName
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? app_insights!.outputs.connectionString : ''
+      APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsightsConnectionString
       SOLUTION_NAME: solutionSuffix
       USE_USER_ACCESS_TOKEN: useUserAccessTokenSetting
       APP_ENV: 'Prod'
@@ -882,7 +884,7 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (backendR
       AZURE_AI_SEARCH_CONNECTION_NAME: foundry_search_connection.outputs.connectionName
       USE_AI_PROJECT_CLIENT: 'True'
       DISPLAY_CHART_DEFAULT: 'False'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: enableMonitoring ? app_insights!.outputs.connectionString : ''
+      APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsightsConnectionString
       SOLUTION_NAME: solutionSuffix
       APP_ENV: 'Prod'
       AGENT_NAME_CHAT: ''
@@ -895,6 +897,8 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (backendR
 }
 
 // Frontend
+var apiBaseUrl = backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
+
 module frontend_docker './modules/compute/app-service.bicep' = {
   name: take('module.app-service-frontend.${solutionName}', 64)
   params: {
@@ -908,7 +912,7 @@ module frontend_docker './modules/compute/app-service.bicep' = {
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
     appSettings: {
-      APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
+      APP_API_BASE_URL: apiBaseUrl
       CHAT_LANDING_TEXT: ''
       APP_TITLE_PRIMARY: appTitlePrimary
       APP_TITLE_SECONDARY: appTitleSecondary
