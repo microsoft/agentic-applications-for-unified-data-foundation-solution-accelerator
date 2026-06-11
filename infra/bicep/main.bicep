@@ -110,9 +110,6 @@ param appServicePlanSku string = 'B2'
 // Parameters — Feature Flags
 // ============================================================================
 
-@description('Optional. Deploy the application components (Cosmos DB, API, Frontend).')
-param deployApp bool = true
-
 @description('Optional. Enable chat history storage.')
 param useChatHistoryEnabled bool = true
 
@@ -195,7 +192,6 @@ var deployingUserPrincipalId = deployerInfo.objectId
 var createdBy = contains(deployerInfo, 'userPrincipalName') ? split(deployerInfo.userPrincipalName, '@')[0] : deployerInfo.objectId
 var existingTags = resourceGroup().tags ?? {}
 
-var shouldDeployApp = deployApp
 var useExistingAIProject = !empty(existingFoundryProjectResourceId)
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
@@ -431,7 +427,7 @@ module storage_account './modules/data/storage-account.bicep' = {
 }
 
 
-module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = if (shouldDeployApp) {
+module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = {
   name: take('module.cosmos-db-nosql.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -445,7 +441,7 @@ module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = if (shouldDeployA
   scope: resourceGroup(resourceGroup().name)
 }
 
-module hostingplan './modules/compute/app-service-plan.bicep' = if (shouldDeployApp) {
+module hostingplan './modules/compute/app-service-plan.bicep' = {
   name: take('module.app-service-plan.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -471,7 +467,7 @@ var reactAppLayoutConfig = '''{
 }'''
 
 
-module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
+module backend_docker './modules/compute/app-service.bicep' = if (backendRuntimeStack == 'python') {
   name: take('module.app-service-pybackend.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -524,7 +520,7 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
 }
 
 
-module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
+module backend_csapi_docker './modules/compute/app-service.bicep' = if (backendRuntimeStack == 'dotnet') {
   name: take('module.app-service-csbackend.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -572,7 +568,7 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
 }
 
 
-module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployApp) {
+module frontend_docker './modules/compute/app-service.bicep' = {
   name: take('module.app-service-frontend.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -608,10 +604,8 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     aiSearchPrincipalId: ai_search.outputs.identityPrincipalId
     deployerPrincipalId: deployingUserPrincipalId
     deployerPrincipalType: deployingUserPrincipalType
-    backendAppServicePrincipalId: shouldDeployApp
-      ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
-      : ''
-    cosmosDbAccountName: shouldDeployApp ? cosmosDBModule!.outputs.name : ''
+    backendAppServicePrincipalId: backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId
+    cosmosDbAccountName: cosmosDBModule.outputs.name
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -627,7 +621,7 @@ output SOLUTION_NAME string = solutionSuffix
 output RESOURCE_GROUP_NAME string = resourceGroup().name
 
 @description('Cosmos DB account name for conversation history storage')
-output AZURE_COSMOSDB_ACCOUNT string = shouldDeployApp ? cosmosDBModule!.outputs.name : ''
+output AZURE_COSMOSDB_ACCOUNT string = cosmosDBModule.outputs.name
 
 @description('Cosmos DB container name for storing conversations')
 output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = 'conversations'
@@ -657,19 +651,19 @@ output AZURE_AI_AGENT_ENDPOINT string = projectEndpoint
 output AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME string = gptModelName
 
 @description('Backend API App Service name')
-output API_APP_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? 'api-${solutionSuffix}' : 'api-cs-${solutionSuffix}') : ''
+output API_APP_NAME string = backendRuntimeStack == 'python' ? 'api-${solutionSuffix}' : 'api-cs-${solutionSuffix}'
 
 @description('Backend API managed identity object/principal ID (system-assigned)')
-output API_PID string = shouldDeployApp ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId) : ''
+output API_PID string = backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId
 
 @description('Backend API App Service name')
-output MID_DISPLAY_NAME string = shouldDeployApp ? (backendRuntimeStack == 'python' ? 'api-${solutionSuffix}' : 'api-cs-${solutionSuffix}') : ''
+output MID_DISPLAY_NAME string = backendRuntimeStack == 'python' ? 'api-${solutionSuffix}' : 'api-cs-${solutionSuffix}'
 
 @description('Frontend web app resource name')
-output WEB_APP_NAME string = shouldDeployApp ? 'app-${solutionSuffix}' : ''
+output WEB_APP_NAME string = 'app-${solutionSuffix}'
 
 @description('Frontend web application URL')
-output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : ''
+output WEB_APP_URL string = frontend_docker.outputs.appUrl
 
 @description('Azure AI Search service endpoint URL')
 output AZURE_AI_SEARCH_ENDPOINT string = ai_search.outputs.endpoint
@@ -714,7 +708,7 @@ output BACKEND_RUNTIME_STACK string = backendRuntimeStack
 output USE_USER_ACCESS_TOKEN string = useUserAccessTokenSetting
 
 @description('The resource ID of the Fabric capacity.')
-output AZURE_FABRIC_CAPACITY_RESOURCE_ID string = createFabricWorkspace ? fabricCapacity.outputs.resourceId : ''
+output AZURE_FABRIC_CAPACITY_RESOURCE_ID string = createFabricWorkspace ? fabricCapacity!.outputs.resourceId : ''
 
 @description('The name of the Fabric capacity resource.')
 output AZURE_FABRIC_CAPACITY_NAME string = createFabricWorkspace ? fabricCapacityResourceName : ''
@@ -722,5 +716,3 @@ output AZURE_FABRIC_CAPACITY_NAME string = createFabricWorkspace ? fabricCapacit
 @description('The identities assigned as Fabric Capacity Admin members.')
 output FABRIC_ADMIN_MEMBERS array = shouldCreateFabricCapacity ? fabricTotalAdminMembers : []
 
-@description('The unique solution suffix of the deployed resources.')
-output SOLUTION_SUFFIX string = solutionSuffix

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "16108736706015542607"
+      "templateHash": "8716809187983412044"
     }
   },
   "parameters": {
@@ -176,13 +176,6 @@
         "description": "Optional. App Service Plan SKU."
       }
     },
-    "deployApp": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Optional. Deploy the application components (Cosmos DB, API, Frontend)."
-      }
-    },
     "useChatHistoryEnabled": {
       "type": "bool",
       "defaultValue": true,
@@ -284,7 +277,6 @@
     "deployingUserPrincipalId": "[variables('deployerInfo').objectId]",
     "createdBy": "[if(contains(variables('deployerInfo'), 'userPrincipalName'), split(variables('deployerInfo').userPrincipalName, '@')[0], variables('deployerInfo').objectId)]",
     "existingTags": "[coalesce(resourceGroup().tags, createObject())]",
-    "shouldDeployApp": "[parameters('deployApp')]",
     "useExistingAIProject": "[not(empty(parameters('existingFoundryProjectResourceId')))]",
     "useChatHistoryEnabledSetting": "[if(parameters('useChatHistoryEnabled'), 'True', 'False')]",
     "useUserAccessTokenSetting": "[if(parameters('useUserAccessToken'), 'True', 'False')]",
@@ -2297,7 +2289,6 @@
       }
     },
     {
-      "condition": "[variables('shouldDeployApp')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)]",
@@ -2494,7 +2485,6 @@
       }
     },
     {
-      "condition": "[variables('shouldDeployApp')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.app-service-plan.{0}', parameters('solutionName')), 64)]",
@@ -2645,7 +2635,7 @@
       }
     },
     {
-      "condition": "[and(variables('shouldDeployApp'), equals(parameters('backendRuntimeStack'), 'python'))]",
+      "condition": "[equals(parameters('backendRuntimeStack'), 'python')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)]",
@@ -2930,7 +2920,7 @@
       ]
     },
     {
-      "condition": "[and(variables('shouldDeployApp'), equals(parameters('backendRuntimeStack'), 'dotnet'))]",
+      "condition": "[equals(parameters('backendRuntimeStack'), 'dotnet')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)]",
@@ -3210,7 +3200,6 @@
       ]
     },
     {
-      "condition": "[variables('shouldDeployApp')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.app-service-frontend.{0}', parameters('solutionName')), 64)]",
@@ -3498,8 +3487,10 @@
           "deployerPrincipalType": {
             "value": "[parameters('deployingUserPrincipalType')]"
           },
-          "backendAppServicePrincipalId": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value)), createObject('value', ''))]",
-          "cosmosDbAccountName": "[if(variables('shouldDeployApp'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value), createObject('value', ''))]"
+          "backendAppServicePrincipalId": "[if(equals(parameters('backendRuntimeStack'), 'python'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value))]",
+          "cosmosDbAccountName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]"
+          }
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -3996,7 +3987,7 @@
       "metadata": {
         "description": "Cosmos DB account name for conversation history storage"
       },
-      "value": "[if(variables('shouldDeployApp'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value, '')]"
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]"
     },
     "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER": {
       "type": "string",
@@ -4066,35 +4057,35 @@
       "metadata": {
         "description": "Backend API App Service name"
       },
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), format('api-{0}', variables('solutionSuffix')), format('api-cs-{0}', variables('solutionSuffix'))), '')]"
+      "value": "[if(equals(parameters('backendRuntimeStack'), 'python'), format('api-{0}', variables('solutionSuffix')), format('api-cs-{0}', variables('solutionSuffix')))]"
     },
     "API_PID": {
       "type": "string",
       "metadata": {
         "description": "Backend API managed identity object/principal ID (system-assigned)"
       },
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value), '')]"
+      "value": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value)]"
     },
     "MID_DISPLAY_NAME": {
       "type": "string",
       "metadata": {
         "description": "Backend API App Service name"
       },
-      "value": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), format('api-{0}', variables('solutionSuffix')), format('api-cs-{0}', variables('solutionSuffix'))), '')]"
+      "value": "[if(equals(parameters('backendRuntimeStack'), 'python'), format('api-{0}', variables('solutionSuffix')), format('api-cs-{0}', variables('solutionSuffix')))]"
     },
     "WEB_APP_NAME": {
       "type": "string",
       "metadata": {
         "description": "Frontend web app resource name"
       },
-      "value": "[if(variables('shouldDeployApp'), format('app-{0}', variables('solutionSuffix')), '')]"
+      "value": "[format('app-{0}', variables('solutionSuffix'))]"
     },
     "WEB_APP_URL": {
       "type": "string",
       "metadata": {
         "description": "Frontend web application URL"
       },
-      "value": "[if(variables('shouldDeployApp'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-frontend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.appUrl.value, '')]"
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-frontend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.appUrl.value]"
     },
     "AZURE_AI_SEARCH_ENDPOINT": {
       "type": "string",
@@ -4214,13 +4205,6 @@
         "description": "The identities assigned as Fabric Capacity Admin members."
       },
       "value": "[if(variables('shouldCreateFabricCapacity'), variables('fabricTotalAdminMembers'), createArray())]"
-    },
-    "SOLUTION_SUFFIX": {
-      "type": "string",
-      "metadata": {
-        "description": "The unique solution suffix of the deployed resources."
-      },
-      "value": "[variables('solutionSuffix')]"
     }
   }
 }

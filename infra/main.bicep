@@ -393,9 +393,6 @@ output AZURE_FABRIC_CAPACITY_NAME string = isAvm ? avmDeployment!.outputs.AZURE_
 @description('The identities assigned as Fabric Capacity Admin members.')
 output FABRIC_ADMIN_MEMBERS array = isAvm ? avmDeployment!.outputs.FABRIC_ADMIN_MEMBERS : bicepDeployment!.outputs.FABRIC_ADMIN_MEMBERS
 
-@description('The unique solution suffix of the deployed resources.')
-output SOLUTION_SUFFIX string = isAvm ? avmDeployment!.outputs.SOLUTION_SUFFIX : bicepDeployment!.outputs.SOLUTION_SUFFIX
-
 @description('Whether Fabric workspace creation is enabled.')
 output CREATE_FABRIC_WORKSPACE bool = createFabricWorkspace
 
