@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "8716809187983412044"
+      "templateHash": "11451294280824654928"
     }
   },
   "parameters": {
@@ -2118,7 +2118,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "1975611088752225629"
+              "templateHash": "2631611108118541891"
             }
           },
           "parameters": {
@@ -2187,6 +2187,13 @@
                 "description": "Allow shared key access."
               }
             },
+            "enableHierarchicalNamespace": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable hierarchical namespace (Data Lake Storage Gen2)."
+              }
+            },
             "containers": {
               "type": "array",
               "defaultValue": [
@@ -2217,6 +2224,7 @@
                 "allowSharedKeyAccess": "[parameters('allowSharedKeyAccess')]",
                 "minimumTlsVersion": "TLS1_2",
                 "supportsHttpsTrafficOnly": true,
+                "isHnsEnabled": "[parameters('enableHierarchicalNamespace')]",
                 "encryption": {
                   "services": {
                     "blob": {
