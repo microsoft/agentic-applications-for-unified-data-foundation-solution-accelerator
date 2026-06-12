@@ -280,15 +280,28 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     python -m venv .venv
     ```
 
+    For Windows (PowerShell):
     ```shell
-    .venv\Scripts\activate   # or: source .venv/bin/activate
+    .venv\Scripts\Activate.ps1
     ```
+
+    For Windows (Bash):
+    ```shell
+    source .venv/Scripts/activate
+    ```
+
+    For Linux/macOS/VS Code Web (Bash):
+    ```shell
+    source .venv/bin/activate
+    ```
+
+6. Install dependencies:
 
     ```shell
     pip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt
     ```
 
-6. Login to Azure:
+7. Login to Azure:
 
     ```shell
     az login
@@ -296,7 +309,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
     > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
-7. Build the solution:
+8. Build the solution:
 
     ```shell
     python infra/scripts/post-provision/00_build_solution.py --from 02
@@ -317,7 +330,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     > **Note:** Scenario packs skip data generation (step 01) and document upload (step 05) automatically.
     > Press **Enter** to start or **Ctrl+C** to cancel the process.
 
-8. Test the agent:
+9. Test the agent:
 
     ```shell
     python infra/scripts/post-provision/07_test_agent.py
@@ -331,9 +344,9 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     | **Retail** | "Show the top 5 products by total quantity sold last month?" · "Show total revenue by year for last 5 years" · "Show top 10 products by Revenue in the last year" |
     | **Insurance** | "I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?" · "Can you provide details of her communications?" · "Based on Ida's policy data has she ever missed a payment?" |
 
-9. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
+10. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
-10. If you are done trying out the application, you can delete the resources by running `azd down`.
+11. If you are done trying out the application, you can delete the resources by running `azd down`.
 
 
 ## Post Deployment Steps
