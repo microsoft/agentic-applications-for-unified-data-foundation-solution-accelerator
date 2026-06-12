@@ -63,7 +63,7 @@ param azureAiAgentApiVersion string = '2025-05-01'
 @description('Capacity of the GPT deployment:')
 // You can increase this, but capacity is limited per model/region, so you will get errors if you go over
 // https://learn.microsoft.com/en-us/azure/ai-services/openai/quotas-limits
-param gptDeploymentCapacity int = 150
+param gptDeploymentCapacity int = 20
 
 // @description('Optional. The tags to apply to all deployed Azure resources.')
 // param tags resourceInput<'Microsoft.Resources/resourceGroups@2025-04-01'>.tags = {}
@@ -139,7 +139,7 @@ var solutionSuffix = toLower(trim(replace(
   azd:{
     type: 'location'
     usageName: [
-      'OpenAI.GlobalStandard.gpt4.1-mini,100'
+      'OpenAI.GlobalStandard.gpt4.1-mini,20'
       'OpenAI.GlobalStandard.text-embedding-3-small,80'
     ]
   }
