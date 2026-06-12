@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Azure;
 using System.Data.Common;
+using System.Net.Http;
 
 namespace CsApi.Controllers;
 
@@ -254,7 +255,7 @@ public class HistoryFabController : ControllerBase
                     _logger.LogError(ex, "Unexpected error generating title for conversation {ConversationId}", sanitizedConvId);
                     await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
                 }
-                catch (Exception ex)
+                catch (HttpRequestException ex)
                 {
                     _logger.LogError(ex, "Unexpected error during title generation for conversation {ConversationId}", sanitizedConvId);
                     await _repo.UpdateConversationTitleAsync(user, convId, "New Conversation", ct);
@@ -319,7 +320,12 @@ public class HistoryFabController : ControllerBase
             _logger.LogError(ex, "Error updating conversation {ConversationId}", sanitizedConversationId);
             return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");
         }
-        catch (Exception ex)
+        catch (RequestFailedException ex)
+        {
+            _logger.LogError(ex, "Azure request failed while updating conversation {ConversationId}", sanitizedConversationId);
+            return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");
+        }
+        catch (JsonException ex)
         {
             _logger.LogError(ex, "Unexpected error updating conversation {ConversationId}", sanitizedConversationId);
             return Problem(statusCode:500, title:"Internal Server Error", detail:"Failed to update conversation");
