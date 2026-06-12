@@ -72,7 +72,7 @@ param azureAiAgentApiVersion string = '2025-05-01'
 
 @minValue(10)
 @description('Capacity of the GPT deployment:')
-param gptDeploymentCapacity int = 150
+param gptDeploymentCapacity int = 20
 
 @minLength(1)
 @description('Name of the Text Embedding model to deploy:')
@@ -128,7 +128,7 @@ var solutionSuffix = toLower(trim(replace(
   azd: {
     type: 'location'
     usageName: [
-      'OpenAI.GlobalStandard.gpt4.1-mini,100'
+      'OpenAI.GlobalStandard.gpt4.1-mini,20'
       'OpenAI.GlobalStandard.text-embedding-3-small,80'
     ]
   }
