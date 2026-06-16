@@ -10,7 +10,7 @@ azd auth login
 
 ### 📌 Default Models & Capacities:
 ```
-gpt-4o:150, gpt-4o-mini:150, gpt-4:150
+gpt4.1-mini:20,text-embedding-3-small:80
 ```
 ### 📌 Default Regions:
 ```
@@ -36,7 +36,7 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
    ```
 ✔️ Check specific model(s) in default regions:
   ```
-  ./quota_check_params.sh --models gpt-4o:150
+  ./quota_check_params.sh --models gpt4.1-mini:20
   ```
 ✔️ Check default models in specific region(s):
   ```
@@ -44,11 +44,11 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
   ```
 ✔️ Passing Both models and regions:  
   ```
-  ./quota_check_params.sh --models gpt-4o:150 --regions eastus,westus2
+  ./quota_check_params.sh --models gpt4.1-mini:20 --regions eastus,westus2
   ```
 ✔️ All parameters combined:
   ```
- ./quota_check_params.sh --models gpt-4:150,gpt-4o-mini:150 --regions eastus,westus --verbose
+ ./quota_check_params.sh --models text-embedding-3-small:80,gpt-4o-mini:150 --regions eastus,westus --verbose
   ```
 
 ### **Sample Output**
