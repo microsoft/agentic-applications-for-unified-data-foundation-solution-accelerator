@@ -48,7 +48,7 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
   ```
 ✔️ All parameters combined:
   ```
- ./quota_check_params.sh --models text-embedding-3-small:80,gpt-4o-mini:150 --regions eastus,westus --verbose
+ ./quota_check_params.sh --models text-embedding-3-small:80,gpt4.1-mini:20 --regions eastus,westus --verbose
   ```
 
 ### **Sample Output**
