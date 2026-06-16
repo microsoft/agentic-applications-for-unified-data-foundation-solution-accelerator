@@ -1,7 +1,7 @@
 ## Check Quota Availability Before Deployment
 
 Before deploying the accelerator, **ensure sufficient quota availability** for the required model.
-> **We recommend increasing the capacity to 100k tokens for optimal performance.**
+> **We recommend increasing the capacity to 20k tokens for optimal performance.**
 
 ### Login if you have not done so already
 ```

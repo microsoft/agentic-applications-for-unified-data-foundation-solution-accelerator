@@ -68,7 +68,7 @@ on:
         type: string
 
 env:
-  GPT_MIN_CAPACITY: 100
+  GPT_MIN_CAPACITY: 20
   BRANCH_NAME: ${{ github.event.workflow_run.head_branch || github.head_ref || github.ref_name }}
   BACKEND_RUNTIME_STACK: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.BACKEND_RUNTIME_STACK || 'python') || 'python' }}
   EXP: ${{ inputs.trigger_type == 'workflow_dispatch' && (inputs.EXP || false) || false }}
