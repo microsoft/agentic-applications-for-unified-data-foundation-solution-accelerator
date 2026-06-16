@@ -17,7 +17,7 @@ param tags object = {}
 
 @description('SKU for the container registry.')
 @allowed(['Basic', 'Standard', 'Premium'])
-param sku string = 'Premium'
+param sku string = 'Standard'
 
 @description('Enable admin user for the registry.')
 param adminUserEnabled bool = false
