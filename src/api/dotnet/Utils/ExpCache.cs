@@ -70,9 +70,14 @@ namespace CsApi.Utils
                 var now = DateTime.UtcNow;
                 
                 // First, try to remove expired items
-                foreach (var kvp in _cache.Where(kvp => kvp.Value.ExpiresAt <= now))
+                var expiredKeys = _cache
+                    .Where(kvp => kvp.Value.ExpiresAt <= now)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var expiredKey in expiredKeys)
                 {
-                    if (_cache.TryRemove(kvp.Key, out var removedItem))
+                    if (_cache.TryRemove(expiredKey, out var removedItem))
                     {
                         Task.Run(() => DeleteThreadAsync(removedItem.Value));
                     }
@@ -83,12 +88,15 @@ namespace CsApi.Utils
                 {
                     var excessCount = _cache.Count - _maxSize;
                     var oldestItems = _cache
+                        .Where(kvp => kvp.Value.ExpiresAt > now)
                         .OrderBy(kvp => kvp.Value.CreatedAt)
-                        .Take(excessCount);
+                        .Take(excessCount)
+                        .Select(kvp => kvp.Key)
+                        .ToList();
 
-                    foreach (var kvp in oldestItems)
+                    foreach (var evictedKey in oldestItems)
                     {
-                        if (_cache.TryRemove(kvp.Key, out var removedItem))
+                        if (_cache.TryRemove(evictedKey, out var removedItem))
                         {
                             // Delete thread immediately when LRU evicted
                             Task.Run(() => DeleteThreadAsync(removedItem.Value));
@@ -122,9 +130,14 @@ namespace CsApi.Utils
         public async Task ForceCleanupAsync()
         {
             var now = DateTime.UtcNow;
-            foreach (var kvp in _cache.Where(kvp => kvp.Value.ExpiresAt <= now))
+            var expiredKeys = _cache
+                .Where(kvp => kvp.Value.ExpiresAt <= now)
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            foreach (var expiredKey in expiredKeys)
             {
-                if (_cache.TryRemove(kvp.Key, out var removedItem))
+                if (_cache.TryRemove(expiredKey, out var removedItem))
                 {
                     // Delete thread immediately like other cleanup operations
                     await DeleteThreadAsync(removedItem.Value);
@@ -175,7 +188,11 @@ namespace CsApi.Utils
                 {
                     _logger.LogError(ex, "ExpCache: Invalid argument while deleting thread");
                 }
-                catch (Exception ex)
+                catch (TaskCanceledException ex)
+                {
+                    _logger.LogWarning(ex, "ExpCache: Thread deletion timed out or was canceled");
+                }
+                catch (HttpRequestException ex)
                 {
                     _logger.LogError(ex, "ExpCache: Unexpected error while deleting thread");
                 }

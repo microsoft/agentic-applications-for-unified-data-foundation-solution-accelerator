@@ -714,7 +714,7 @@ public class HistoryFabControllerTests
     }
 
     [Fact]
-    public async Task Update_GeneralException_ReturnsProblem()
+    public async Task Update_GeneralException_Throws()
     {
         // Arrange
         _mockRepo.Setup(r => r.EnsureConversationAsync(It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -730,12 +730,10 @@ public class HistoryFabControllerTests
         };
 
         // Act
-        var result = await _controller.Update(request);
+        var ex = await Assert.ThrowsAsync<Exception>(() => _controller.Update(request));
 
         // Assert
-        Assert.IsType<ObjectResult>(result);
-        var objectResult = (ObjectResult)result;
-        Assert.Equal(500, objectResult.StatusCode);
+        Assert.Equal("Database error", ex.Message);
     }
 
     [Fact]
@@ -767,7 +765,7 @@ public class HistoryFabControllerTests
     }
 
     [Fact]
-    public async Task Update_TitleGenerationFails_UsesFallbackTitle()
+    public async Task Update_TitleGenerationGeneralException_Throws()
     {
         // Arrange
         _mockRepo.Setup(r => r.EnsureConversationAsync("test-user-123", "conv-123", "", It.IsAny<CancellationToken>()))
@@ -793,14 +791,13 @@ public class HistoryFabControllerTests
         };
 
         // Act
-        var result = await _controller.Update(request);
+        var ex = await Assert.ThrowsAsync<Exception>(() => _controller.Update(request));
 
-        // Assert - Should still return Ok with fallback title
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.NotNull(okResult.Value);
-        
-        // Verify fallback title was set
-        _mockRepo.Verify(r => r.UpdateConversationTitleAsync("test-user-123", "conv-123", "New Conversation", It.IsAny<CancellationToken>()), Times.Once);
+        // Assert
+        Assert.Equal("Title generation failed", ex.Message);
+
+        // Verify fallback title was not set for unexpected exception type
+        _mockRepo.Verify(r => r.UpdateConversationTitleAsync("test-user-123", "conv-123", "New Conversation", It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
