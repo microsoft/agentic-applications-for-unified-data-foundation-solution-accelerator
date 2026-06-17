@@ -272,6 +272,7 @@ var privateDnsZones = [
   'privatelink.search.windows.net'
   #disable-next-line no-hardcoded-env-urls
   'privatelink.database.windows.net'
+  'privatelink.azurewebsites.net'
 ]
 var dnsZoneIndex = {
   cognitiveServices: 0
@@ -281,6 +282,7 @@ var dnsZoneIndex = {
   blob: 4
   search: 5
   sqlServer: 6
+  webApp : 7
 }
 
 // Resource naming (parameterized — no abbreviations.json dependency)
@@ -812,7 +814,23 @@ module backend_docker './modules/compute/app-service.bicep' = if (backendRuntime
     serverFarmResourceId: hostingplan!.outputs.resourceId
     linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api:${imageTag}'
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    vnetRouteAllEnabled: enablePrivateNetworking ? true : false
+    imagePullTraffic: enablePrivateNetworking ? true : false
+    contentShareTraffic: enablePrivateNetworking ? true : false
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-apipy-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-api-${solutionSuffix}'
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+        service: 'sites'
+        privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                { privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.webApp]!.outputs.resourceId }
+              ]
+            }
+      }
+    ] : []
     diagnosticSettings: monitoringDiagnosticSettings
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
@@ -862,7 +880,23 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (backendR
     serverFarmResourceId: hostingplan!.outputs.resourceId
     linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api-dotnet:${imageTag}'
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    vnetRouteAllEnabled: enablePrivateNetworking ? true : false
+    imagePullTraffic: enablePrivateNetworking ? true : false
+    contentShareTraffic: enablePrivateNetworking ? true : false
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-apics-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-api-${solutionSuffix}'
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+        service: 'sites'
+        privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                { privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.webApp]!.outputs.resourceId }
+              ]
+            }
+      }
+    ] : []
     diagnosticSettings: monitoringDiagnosticSettings
     appSettings: {
       AZURE_ENV_GPT_MODEL_NAME: gptModelName
@@ -912,7 +946,8 @@ module frontend_docker './modules/compute/app-service.bicep' = {
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
     appSettings: {
-      APP_API_BASE_URL: apiBaseUrl
+      APP_API_BASE_URL: enablePrivateNetworking ? '' : apiBaseUrl
+      BACKEND_API_HOST: enablePrivateNetworking ? 'api-${solutionSuffix}.azurewebsites.net' : ''
       CHAT_LANDING_TEXT: ''
       APP_TITLE_PRIMARY: appTitlePrimary
       APP_TITLE_SECONDARY: appTitleSecondary
