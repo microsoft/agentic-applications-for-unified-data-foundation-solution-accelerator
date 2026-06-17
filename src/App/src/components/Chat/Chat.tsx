@@ -66,7 +66,7 @@ const Chat: React.FC<ChatProps> = ({
   const conversationHistory = useAppSelector((state) => state.chatHistory.list);
   const { isFetchingConvMessages, isHistoryUpdateAPIPending } = useAppSelector((state) => state.chatHistory);
   const questionInputRef = useRef<HTMLTextAreaElement>(null);
-  const [isChartLoading, setIsChartLoading] = useState(false);
+  const [isChartLoading] = useState(false);
   const abortFuncs = useRef([] as AbortController[]);
   const chatMessageStreamEnd = useRef<HTMLDivElement | null>(null);
   

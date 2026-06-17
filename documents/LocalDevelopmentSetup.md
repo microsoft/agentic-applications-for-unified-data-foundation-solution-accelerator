@@ -233,7 +233,7 @@ The startup scripts automate environment configuration, Azure authentication, ro
 
 ### Script Behavior by Deployment Scenario
 
-The scripts auto-detect configuration from the `.env` file. Key flags: `BACKEND_RUNTIME_STACK` (`python`|`dotnet`) and `IS_WORKSHOP` (`true`|`false`). Defaults to Python backend if not set.
+The scripts auto-detect configuration from the `.env` file. Key flags: `BACKEND_RUNTIME_STACK` (`python`|`dotnet`) and `IS_WORKSHOP` (`true`|`false`). Defaults to Python backend if not set. By default, `IS_WORKSHOP` is `false`; set `IS_WORKSHOP=true` if you want workshop mode.
 
 | Scenario | Python Backend | .NET Backend |
 |----------|---------------|--------------|

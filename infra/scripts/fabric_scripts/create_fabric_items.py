@@ -5,6 +5,7 @@ from azure.identity import AzureCliCredential
 import shlex
 import argparse
 import os
+import sys
 import pandas as pd
 
 p = argparse.ArgumentParser()
@@ -487,7 +488,7 @@ if roleassignment_res.status_code == 201:
 else:
     print(f"⚠ Failed to create role assignment. Status: {roleassignment_res.status_code}")
     print(f"Response: {roleassignment_res.text}")
-    exit(1)
+    sys.exit(1)
 
 odbc_driver_18 = "{ODBC Driver 18 for SQL Server}"
 FABRIC_SQL_CONNECTION_STRING_18 = f"DRIVER={odbc_driver_18};SERVER={FABRIC_SQL_SERVER};DATABASE={FABRIC_SQL_DATABASE};UID={backend_app_uid};Authentication=ActiveDirectoryMSI"

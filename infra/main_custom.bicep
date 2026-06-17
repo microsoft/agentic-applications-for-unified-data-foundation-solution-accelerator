@@ -89,7 +89,7 @@ param embeddingDeploymentCapacity int = 80
 param deployApp bool = true
 
 @description('Set to true for workshop deployment with sample data and simplified configuration.')
-param isWorkshop bool = true
+param isWorkshop bool = false
 
 @description('Set to true to deploy Azure SQL Server, otherwise Fabric SQL is used.')
 param azureEnvOnly bool = false
@@ -128,7 +128,7 @@ var solutionSuffix = toLower(trim(replace(
   azd: {
     type: 'location'
     usageName: [
-      'OpenAI.GlobalStandard.gpt4.1-mini,100'
+      'OpenAI.GlobalStandard.gpt4.1-mini,20'
       'OpenAI.GlobalStandard.text-embedding-3-small,80'
     ]
   }
