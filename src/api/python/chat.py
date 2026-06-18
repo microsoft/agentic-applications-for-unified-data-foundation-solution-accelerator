@@ -28,6 +28,10 @@ from agent_framework_foundry import FoundryAgent
 from auth.auth_utils import get_authenticated_user_details
 from auth.azure_credential_utils import get_azure_credential_async
 
+# Token usage telemetry
+from telemetry import token_emitter
+from llm_token_telemetry import TokenUsageScope, extract_usage
+
 load_dotenv()
 
 # Constants
@@ -262,6 +266,21 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                 logger.warning("Max iterations reached for conversation %s", conversation_id)
                 yield "\n\n(Response processing reached maximum iterations)"
 
+            # Emit token usage telemetry (best-effort, never breaks the response)
+            try:
+                agent_name = os.getenv("AGENT_NAME_CHAT", "")
+                usage = extract_usage(response)
+                if usage and usage.has_any:
+                    token_emitter.emit_all(
+                        agent_name=agent_name,
+                        model_deployment_name=getattr(response, "model", "") or agent_name,
+                        usage=usage,
+                        conversation_id=conversation_id,
+                        user_id=user_id,
+                    )
+            except Exception:
+                logger.debug("Token usage telemetry failed", exc_info=True)
+
             logger.info("Streaming complete for conversation %s: response_length=%d",
                         conversation_id, len(complete_response))
             track_event_if_configured("ChatResponseCompleted", {
@@ -413,12 +432,24 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
             citation_idx = 0  # Sequential citation counter
             marker_re = _MARKER_RE
 
+            # Token usage scope accumulates usage from streaming chunks (best-effort)
+            scope = TokenUsageScope(
+                token_emitter,
+                agent_name=agent_name or "",
+                model_deployment_name=agent_name or "",
+                conversation_id=conversation_id,
+                user_id=user_id,
+            )
+
             # Stream response — incrementally process complete markers, buffer incomplete ones
             async for chunk in agent.run(query, stream=True, options={"conversation_id": conv_id}):
                 for content in getattr(chunk, "contents", []) or []:
                     raw_repr = getattr(content, "raw_representation", None)
                     if raw_repr:
                         _extract_mcp_from_raw(raw_repr, mcp_docs)
+
+                # Accumulate token usage from streaming chunks
+                scope.add(chunk)
 
                 chunk_text = str(chunk.text) if chunk.text else ""
                 if not chunk_text:
@@ -457,6 +488,12 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
                 yield ("assistant", marker_buf)
 
             cache[conversation_id] = conv_id
+
+            # Emit accumulated token usage telemetry (best-effort)
+            try:
+                scope.__exit__(None, None, None)
+            except Exception:
+                logger.debug("Token usage telemetry failed", exc_info=True)
 
             # Collect original markers from complete_response for citation building
             original_markers = [
