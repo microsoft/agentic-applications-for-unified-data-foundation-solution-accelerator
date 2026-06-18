@@ -266,7 +266,7 @@ class TestTrackEventIfConfigured:
         
         monkeypatch.setenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "InstrumentationKey=test")
         
-        with patch('history_sql.track_event') as mock_track:
+        with patch('token_usage.track_event') as mock_track:
             track_event_if_configured("TestEvent", {"key": "value"})
             mock_track.assert_called_once_with("TestEvent", {"key": "value"})
 
@@ -276,7 +276,7 @@ class TestTrackEventIfConfigured:
         
         monkeypatch.setenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "")
         
-        with patch('history_sql.track_event') as mock_track:
+        with patch('token_usage.track_event') as mock_track:
             track_event_if_configured("TestEvent", {"key": "value"})
             mock_track.assert_not_called()
 
@@ -709,6 +709,73 @@ class TestGenerateTitleFunction:
             result = await generate_title(messages)
             assert isinstance(result, str)
             assert result == "AI Generated Title"
+
+    @pytest.mark.asyncio
+    async def test_generate_title_emits_token_telemetry(self, monkeypatch):
+        """generate_title should emit the three LLM_* telemetry events with the
+        supplied user_id/conversation_id when response.usage is present."""
+        from history_sql import generate_title
+
+        messages = [{"role": "user", "content": "Hello"}]
+        monkeypatch.setenv('APPLICATIONINSIGHTS_CONNECTION_STRING', 'test-conn-str')
+        monkeypatch.setenv('AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME', 'gpt-4.1-mini')
+
+        with patch('history_sql.AZURE_AI_AGENT_ENDPOINT', 'http://test'), \
+             patch('history_sql.AGENT_NAME_TITLE', 'title-agent'), \
+             patch('history_sql.AIProjectClient') as mock_client, \
+             patch('history_sql.get_azure_credential_async') as mock_cred, \
+             patch('token_usage.track_event') as mock_track:
+
+            mock_cred.return_value = AsyncMock()
+
+            mock_project = AsyncMock()
+            mock_openai = AsyncMock()
+            mock_conv = Mock(id="title_thread")
+            mock_openai.conversations.create = AsyncMock(return_value=mock_conv)
+
+            mock_response = Mock()
+            mock_message_item = Mock()
+            mock_message_item.type = 'message'
+            mock_content = Mock()
+            mock_content.text = "AI Generated Title"
+            mock_message_item.content = [mock_content]
+            mock_response.output = [mock_message_item]
+            mock_response.usage = {
+                "input_tokens": 12,
+                "output_tokens": 7,
+                "total_tokens": 19,
+            }
+            mock_openai.responses.create = AsyncMock(return_value=mock_response)
+
+            mock_project.get_openai_client = Mock(return_value=mock_openai)
+            mock_client.return_value.__aenter__ = AsyncMock(return_value=mock_project)
+            mock_client.return_value.__aexit__ = AsyncMock()
+
+            result = await generate_title(
+                messages, user_id="user-42", conversation_id="conv-99"
+            )
+
+        assert result == "AI Generated Title"
+        event_names = [call.args[0] for call in mock_track.call_args_list]
+        assert "LLM_Token_Usage_Summary" in event_names
+        assert "LLM_Agent_Token_Usage" in event_names
+        assert "LLM_Model_Token_Usage" in event_names
+
+        events_by_name = {call.args[0]: call.args[1] for call in mock_track.call_args_list}
+        summary = events_by_name["LLM_Token_Usage_Summary"]
+        assert summary.get("user_id") == "user-42"
+        assert summary.get("conversation_id") == "conv-99"
+        assert int(summary.get("total_tokens") or 0) == 19
+
+        agent_evt = events_by_name["LLM_Agent_Token_Usage"]
+        assert agent_evt.get("agent_name") == "title-agent"
+        assert agent_evt.get("user_id") == "user-42"
+        assert agent_evt.get("conversation_id") == "conv-99"
+
+        model_evt = events_by_name["LLM_Model_Token_Usage"]
+        assert model_evt.get("model_deployment_name") == "gpt-4.1-mini"
+        assert model_evt.get("user_id") == "user-42"
+        assert model_evt.get("conversation_id") == "conv-99"
 
 
 class TestGenerateFallbackTitleFunction:
