@@ -1,4 +1,8 @@
 #!/bin/sh
+
+echo "Running env.sh..."
+/docker-entrypoint.d/env.sh
+
 echo "Injecting environment variables into runtime-config.js..."
 
 if [ -f /usr/share/nginx/html/runtime-config.js ]; then
@@ -9,4 +13,5 @@ else
   echo "runtime-config.js not found!"
 fi
 
+echo "Starting nginx..."
 nginx -g "daemon off;"

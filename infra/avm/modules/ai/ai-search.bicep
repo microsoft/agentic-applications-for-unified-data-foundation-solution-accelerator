@@ -43,8 +43,14 @@ param semanticSearch string = 'free'
 @description('Whether to disable local authentication.')
 param disableLocalAuth bool = true
 
-@description('Managed identity type for the search service.')
-param managedIdentityType string = 'SystemAssigned'
+@description('Optional. Authentication options for the search service (e.g., aadOrApiKey).')
+param authOptions object = {}
+
+@description('Optional. Network rule set for the search service (e.g., bypass: AzureServices).')
+param networkRuleSet object = {}
+
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
 
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
@@ -91,11 +97,11 @@ module searchServiceUpdate 'br/public:avm/res/search/search-service:0.12.0' = {
     partitionCount: partitionCount
     hostingMode: hostingMode
     semanticSearch: semanticSearch
+    authOptions: !empty(authOptions) ? authOptions : null
     disableLocalAuth: disableLocalAuth
+    networkRuleSet: !empty(networkRuleSet) ? networkRuleSet : null
     publicNetworkAccess: publicNetworkAccess
-    managedIdentities: {
-      systemAssigned: managedIdentityType == 'SystemAssigned'
-    }
+    managedIdentities: managedIdentities
     diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []
     privateEndpoints: privateEndpoints
     roleAssignments: !empty(roleAssignments) ? roleAssignments : []
