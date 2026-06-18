@@ -289,10 +289,35 @@ def extract_usage_from_dict(data: Any) -> Optional[TokenUsage]:
 
 
 def extract_usage_from_stream_chunk(chunk: Any) -> Optional[TokenUsage]:
-    """Streaming chunks: try the top-level shape, then ``chunk.metadata.usage``."""
+    """Streaming chunks: try the top-level shape, then ``chunk.contents``,
+    then ``chunk.metadata.usage``.
+
+    ``agent-framework-foundry`` ``AgentResponseUpdate`` objects carry token
+    usage inside ``contents`` items of type ``"usage"`` with a
+    ``usage_details`` dict (keys: ``input_token_count``,
+    ``output_token_count``, ``total_token_count``).  The original
+    ``extract_usage`` only walks ``messages[*].contents[*]`` which misses
+    this shape because ``AgentResponseUpdate`` has ``contents`` directly
+    (no wrapping ``messages`` list).
+    """
     found = extract_usage(chunk)
     if found:
         return found
+
+    # AgentResponseUpdate: usage lives in chunk.contents[*].usage_details
+    contents = _get(chunk, "contents")
+    if _is_iterable(contents):
+        aggregated = TokenUsage()
+        found_any = False
+        for content in contents:
+            usage = _get(content, "usage_details") or _get(content, "usage")
+            piece = _read_counts(usage)
+            if piece:
+                aggregated = aggregated + piece
+                found_any = True
+        if found_any:
+            return aggregated
+
     metadata = _get(chunk, "metadata")
     if metadata is not None:
         return _read_counts(_get(metadata, "usage"))
