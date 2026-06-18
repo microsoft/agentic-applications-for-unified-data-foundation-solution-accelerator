@@ -947,7 +947,7 @@ module frontend_docker './modules/compute/app-service.bicep' = {
     diagnosticSettings: monitoringDiagnosticSettings
     appSettings: {
       APP_API_BASE_URL: enablePrivateNetworking ? '' : apiBaseUrl
-      BACKEND_API_HOST: enablePrivateNetworking ? 'api-${solutionSuffix}.azurewebsites.net' : ''
+      BACKEND_API_HOST: enablePrivateNetworking ? backendRuntimeStack == 'python' ? 'api-${solutionSuffix}.azurewebsites.net' : 'api-cs-${solutionSuffix}.azurewebsites.net' : ''
       CHAT_LANDING_TEXT: ''
       APP_TITLE_PRIMARY: appTitlePrimary
       APP_TITLE_SECONDARY: appTitleSecondary
