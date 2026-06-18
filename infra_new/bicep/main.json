@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "16108736706015542607"
+      "templateHash": "17752466085733394892"
     }
   },
   "parameters": {
@@ -504,7 +504,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "12095091241389333540"
+              "templateHash": "3041778378814011469"
             }
           },
           "parameters": {
@@ -547,6 +547,15 @@
               "metadata": {
                 "description": "SKU name for the workspace."
               }
+            },
+            "identity": {
+              "type": "object",
+              "defaultValue": {
+                "systemAssigned": true
+              },
+              "metadata": {
+                "description": "Optional. Managed identities for the resource."
+              }
             }
           },
           "resources": [
@@ -556,6 +565,7 @@
               "name": "[parameters('name')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
+              "identity": "[parameters('identity')]",
               "properties": {
                 "retentionInDays": "[parameters('retentionInDays')]",
                 "sku": {
@@ -780,7 +790,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "16532361737803235909"
+              "templateHash": "11426307275851055409"
             }
           },
           "parameters": {
@@ -819,6 +829,13 @@
                 "description": "Endpoint of the AI Services account (OpenAI Language Model Instance API)."
               },
               "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01').endpoints['OpenAI Language Model Instance API']]"
+            },
+            "cognitiveServicesEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Endpoint of the AI Services account (Cognitive Services)."
+              },
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01').endpoint]"
             },
             "azureOpenAiCuEndpoint": {
               "type": "string",
@@ -895,7 +912,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "11485436297336856285"
+              "templateHash": "18246185807871991410"
             }
           },
           "parameters": {
@@ -960,17 +977,13 @@
                 "description": "Optional. Public network access setting."
               }
             },
-            "identityType": {
-              "type": "string",
-              "defaultValue": "SystemAssigned",
-              "allowedValues": [
-                "SystemAssigned",
-                "UserAssigned",
-                "SystemAssigned, UserAssigned",
-                "None"
-              ],
+            "identity": {
+              "type": "object",
+              "defaultValue": {
+                "type": "SystemAssigned"
+              },
               "metadata": {
-                "description": "Optional. Managed identity type for the resources."
+                "description": "Optional. Managed identity configuration for the resources."
               }
             },
             "networkAclsDefaultAction": {
@@ -996,9 +1009,7 @@
                 "name": "[parameters('skuName')]"
               },
               "kind": "AIServices",
-              "identity": {
-                "type": "[parameters('identityType')]"
-              },
+              "identity": "[parameters('identity')]",
               "properties": {
                 "allowProjectManagement": "[parameters('allowProjectManagement')]",
                 "customSubDomainName": "[parameters('name')]",
@@ -1017,9 +1028,7 @@
               "name": "[format('{0}/{1}', parameters('name'), parameters('projectName'))]",
               "location": "[parameters('location')]",
               "kind": "AIServices",
-              "identity": {
-                "type": "[parameters('identityType')]"
-              },
+              "identity": "[parameters('identity')]",
               "properties": {},
               "dependsOn": [
                 "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
@@ -1047,6 +1056,13 @@
                 "description": "Endpoint of the AI Services account (OpenAI Language Model Instance API)."
               },
               "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01').endpoints['OpenAI Language Model Instance API']]"
+            },
+            "cognitiveServicesEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Endpoint of the AI Services account (Cognitive Services)."
+              },
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01').endpoint]"
             },
             "azureOpenAiCuEndpoint": {
               "type": "string",
@@ -1767,7 +1783,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "6257848814063201814"
+              "templateHash": "5979892336048972781"
             }
           },
           "parameters": {
@@ -1858,11 +1874,27 @@
                 "description": "Whether to disable local authentication."
               }
             },
-            "managedIdentityType": {
-              "type": "string",
-              "defaultValue": "SystemAssigned",
+            "authOptions": {
+              "type": "object",
+              "defaultValue": {},
               "metadata": {
-                "description": "Managed identity type for the search service."
+                "description": "Optional. Authentication options for the search service."
+              }
+            },
+            "networkRuleSet": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Optional. Network rule set for the search service."
+              }
+            },
+            "identity": {
+              "type": "object",
+              "defaultValue": {
+                "type": "SystemAssigned"
+              },
+              "metadata": {
+                "description": "Optional. Managed identity configuration for the resource."
               }
             },
             "publicNetworkAccess": {
@@ -1920,8 +1952,14 @@
                   "disableLocalAuth": {
                     "value": "[parameters('disableLocalAuth')]"
                   },
-                  "managedIdentityType": {
-                    "value": "[parameters('managedIdentityType')]"
+                  "authOptions": {
+                    "value": "[parameters('authOptions')]"
+                  },
+                  "networkRuleSet": {
+                    "value": "[parameters('networkRuleSet')]"
+                  },
+                  "identity": {
+                    "value": "[parameters('identity')]"
                   },
                   "publicNetworkAccess": {
                     "value": "[parameters('publicNetworkAccess')]"
@@ -1934,7 +1972,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.44.1.10279",
-                      "templateHash": "11018325800773519753"
+                      "templateHash": "2672261376096761553"
                     }
                   },
                   "parameters": {
@@ -2003,11 +2041,27 @@
                         "description": "Whether to disable local authentication."
                       }
                     },
-                    "managedIdentityType": {
-                      "type": "string",
-                      "defaultValue": "SystemAssigned",
+                    "authOptions": {
+                      "type": "object",
+                      "defaultValue": {},
                       "metadata": {
-                        "description": "Managed identity type for the search service."
+                        "description": "Optional. Authentication options for the search service."
+                      }
+                    },
+                    "networkRuleSet": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "Optional. Network rule set for the search service."
+                      }
+                    },
+                    "identity": {
+                      "type": "object",
+                      "defaultValue": {
+                        "type": "SystemAssigned"
+                      },
+                      "metadata": {
+                        "description": "Optional. Managed identity configuration for the resource."
                       }
                     },
                     "publicNetworkAccess": {
@@ -2028,16 +2082,16 @@
                       "sku": {
                         "name": "[parameters('skuName')]"
                       },
-                      "identity": {
-                        "type": "[parameters('managedIdentityType')]"
-                      },
+                      "identity": "[parameters('identity')]",
                       "properties": {
                         "replicaCount": "[parameters('replicaCount')]",
                         "partitionCount": "[parameters('partitionCount')]",
                         "hostingMode": "[parameters('hostingMode')]",
                         "semanticSearch": "[parameters('semanticSearch')]",
                         "disableLocalAuth": "[parameters('disableLocalAuth')]",
-                        "publicNetworkAccess": "[parameters('publicNetworkAccess')]"
+                        "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
+                        "authOptions": "[if(not(empty(parameters('authOptions'))), parameters('authOptions'), null())]",
+                        "networkRuleSet": "[if(not(empty(parameters('networkRuleSet'))), parameters('networkRuleSet'), null())]"
                       }
                     }
                   ],
@@ -2126,7 +2180,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "1975611088752225629"
+              "templateHash": "17656900860519556442"
             }
           },
           "parameters": {
@@ -2195,6 +2249,13 @@
                 "description": "Allow shared key access."
               }
             },
+            "enableHierarchicalNamespace": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable hierarchical namespace (Data Lake Storage Gen2)."
+              }
+            },
             "containers": {
               "type": "array",
               "defaultValue": [
@@ -2205,6 +2266,15 @@
               ],
               "metadata": {
                 "description": "Blob containers to create."
+              }
+            },
+            "identity": {
+              "type": "object",
+              "defaultValue": {
+                "type": "SystemAssigned"
+              },
+              "metadata": {
+                "description": "Optional. Managed identity configuration for the resource."
               }
             }
           },
@@ -2219,12 +2289,14 @@
               "sku": {
                 "name": "[parameters('skuName')]"
               },
+              "identity": "[parameters('identity')]",
               "properties": {
                 "accessTier": "[parameters('accessTier')]",
                 "allowBlobPublicAccess": "[parameters('allowBlobPublicAccess')]",
                 "allowSharedKeyAccess": "[parameters('allowSharedKeyAccess')]",
                 "minimumTlsVersion": "TLS1_2",
                 "supportsHttpsTrafficOnly": true,
+                "isHnsEnabled": "[parameters('enableHierarchicalNamespace')]",
                 "encryption": {
                   "services": {
                     "blob": {
@@ -2336,7 +2408,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "1776329168736674430"
+              "templateHash": "18081889173683611818"
             }
           },
           "parameters": {
@@ -2384,6 +2456,15 @@
               "metadata": {
                 "description": "Container definitions."
               }
+            },
+            "identity": {
+              "type": "object",
+              "defaultValue": {
+                "type": "SystemAssigned"
+              },
+              "metadata": {
+                "description": "Optional. Managed identity configuration for the resource."
+              }
             }
           },
           "resources": [
@@ -2417,6 +2498,7 @@
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "kind": "GlobalDocumentDB",
+              "identity": "[parameters('identity')]",
               "properties": {
                 "consistencyPolicy": {
                   "defaultConsistencyLevel": "Session"
@@ -2521,7 +2603,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "9486671591976114621"
+              "templateHash": "1861089295090517865"
             }
           },
           "parameters": {
@@ -2605,6 +2687,15 @@
               "metadata": {
                 "description": "Enable zone redundancy. Requires Premium SKU (P1v3+)."
               }
+            },
+            "identity": {
+              "type": "object",
+              "defaultValue": {
+                "systemAssigned": true
+              },
+              "metadata": {
+                "description": "Optional. Managed identities for the resource."
+              }
             }
           },
           "resources": [
@@ -2622,7 +2713,8 @@
               "properties": {
                 "reserved": "[parameters('reserved')]",
                 "zoneRedundant": "[parameters('zoneRedundant')]"
-              }
+              },
+              "identity": "[parameters('identity')]"
             }
           ],
           "outputs": {
@@ -2718,7 +2810,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "13974117254762023166"
+              "templateHash": "9185565370457912659"
             }
           },
           "parameters": {
@@ -2774,18 +2866,46 @@
                 "description": "Whether to enable Always On."
               }
             },
-            "kind": {
-              "type": "string",
-              "defaultValue": "app,linux",
-              "metadata": {
-                "description": "Kind of web app."
-              }
-            },
-            "virtualNetworkSubnetId": {
+            "healthCheckPath": {
               "type": "string",
               "defaultValue": "",
               "metadata": {
-                "description": "Subnet resource ID for VNet integration."
+                "description": "Optional. Health check path for the app."
+              }
+            },
+            "webSocketsEnabled": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Whether to enable WebSockets."
+              }
+            },
+            "appCommandLine": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional. Command line for the application."
+              }
+            },
+            "kind": {
+              "type": "string",
+              "defaultValue": "app,linux",
+              "allowedValues": [
+                "functionapp",
+                "functionapp,linux",
+                "functionapp,workflowapp",
+                "functionapp,workflowapp,linux",
+                "functionapp,linux,container",
+                "functionapp,linux,container,azurecontainerapps",
+                "app,linux",
+                "app",
+                "linux,api",
+                "api",
+                "app,linux,container",
+                "app,container,windows"
+              ],
+              "metadata": {
+                "description": "Required. Type of site to deploy."
               }
             },
             "publicNetworkAccess": {
@@ -2793,6 +2913,15 @@
               "defaultValue": "Enabled",
               "metadata": {
                 "description": "Public network access setting."
+              }
+            },
+            "identity": {
+              "type": "object",
+              "defaultValue": {
+                "type": "SystemAssigned"
+              },
+              "metadata": {
+                "description": "Optional. Managed identity configuration for the resource."
               }
             }
           },
@@ -2826,17 +2955,18 @@
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "kind": "[parameters('kind')]",
-              "identity": {
-                "type": "SystemAssigned"
-              },
+              "identity": "[parameters('identity')]",
               "properties": {
                 "serverFarmId": "[parameters('serverFarmResourceId')]",
                 "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
-                "virtualNetworkSubnetId": "[if(not(empty(parameters('virtualNetworkSubnetId'))), parameters('virtualNetworkSubnetId'), null())]",
                 "siteConfig": {
                   "alwaysOn": "[parameters('alwaysOn')]",
                   "ftpsState": "Disabled",
-                  "linuxFxVersion": "[parameters('linuxFxVersion')]"
+                  "linuxFxVersion": "[parameters('linuxFxVersion')]",
+                  "minTlsVersion": "1.2",
+                  "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
+                  "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
+                  "appCommandLine": "[parameters('appCommandLine')]"
                 },
                 "endToEndEncryptionEnabled": true
               }
@@ -2998,7 +3128,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "13974117254762023166"
+              "templateHash": "9185565370457912659"
             }
           },
           "parameters": {
@@ -3054,18 +3184,46 @@
                 "description": "Whether to enable Always On."
               }
             },
-            "kind": {
-              "type": "string",
-              "defaultValue": "app,linux",
-              "metadata": {
-                "description": "Kind of web app."
-              }
-            },
-            "virtualNetworkSubnetId": {
+            "healthCheckPath": {
               "type": "string",
               "defaultValue": "",
               "metadata": {
-                "description": "Subnet resource ID for VNet integration."
+                "description": "Optional. Health check path for the app."
+              }
+            },
+            "webSocketsEnabled": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Whether to enable WebSockets."
+              }
+            },
+            "appCommandLine": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional. Command line for the application."
+              }
+            },
+            "kind": {
+              "type": "string",
+              "defaultValue": "app,linux",
+              "allowedValues": [
+                "functionapp",
+                "functionapp,linux",
+                "functionapp,workflowapp",
+                "functionapp,workflowapp,linux",
+                "functionapp,linux,container",
+                "functionapp,linux,container,azurecontainerapps",
+                "app,linux",
+                "app",
+                "linux,api",
+                "api",
+                "app,linux,container",
+                "app,container,windows"
+              ],
+              "metadata": {
+                "description": "Required. Type of site to deploy."
               }
             },
             "publicNetworkAccess": {
@@ -3073,6 +3231,15 @@
               "defaultValue": "Enabled",
               "metadata": {
                 "description": "Public network access setting."
+              }
+            },
+            "identity": {
+              "type": "object",
+              "defaultValue": {
+                "type": "SystemAssigned"
+              },
+              "metadata": {
+                "description": "Optional. Managed identity configuration for the resource."
               }
             }
           },
@@ -3106,17 +3273,18 @@
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "kind": "[parameters('kind')]",
-              "identity": {
-                "type": "SystemAssigned"
-              },
+              "identity": "[parameters('identity')]",
               "properties": {
                 "serverFarmId": "[parameters('serverFarmResourceId')]",
                 "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
-                "virtualNetworkSubnetId": "[if(not(empty(parameters('virtualNetworkSubnetId'))), parameters('virtualNetworkSubnetId'), null())]",
                 "siteConfig": {
                   "alwaysOn": "[parameters('alwaysOn')]",
                   "ftpsState": "Disabled",
-                  "linuxFxVersion": "[parameters('linuxFxVersion')]"
+                  "linuxFxVersion": "[parameters('linuxFxVersion')]",
+                  "minTlsVersion": "1.2",
+                  "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
+                  "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
+                  "appCommandLine": "[parameters('appCommandLine')]"
                 },
                 "endToEndEncryptionEnabled": true
               }
@@ -3253,7 +3421,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "13974117254762023166"
+              "templateHash": "9185565370457912659"
             }
           },
           "parameters": {
@@ -3309,18 +3477,46 @@
                 "description": "Whether to enable Always On."
               }
             },
-            "kind": {
-              "type": "string",
-              "defaultValue": "app,linux",
-              "metadata": {
-                "description": "Kind of web app."
-              }
-            },
-            "virtualNetworkSubnetId": {
+            "healthCheckPath": {
               "type": "string",
               "defaultValue": "",
               "metadata": {
-                "description": "Subnet resource ID for VNet integration."
+                "description": "Optional. Health check path for the app."
+              }
+            },
+            "webSocketsEnabled": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Whether to enable WebSockets."
+              }
+            },
+            "appCommandLine": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional. Command line for the application."
+              }
+            },
+            "kind": {
+              "type": "string",
+              "defaultValue": "app,linux",
+              "allowedValues": [
+                "functionapp",
+                "functionapp,linux",
+                "functionapp,workflowapp",
+                "functionapp,workflowapp,linux",
+                "functionapp,linux,container",
+                "functionapp,linux,container,azurecontainerapps",
+                "app,linux",
+                "app",
+                "linux,api",
+                "api",
+                "app,linux,container",
+                "app,container,windows"
+              ],
+              "metadata": {
+                "description": "Required. Type of site to deploy."
               }
             },
             "publicNetworkAccess": {
@@ -3328,6 +3524,15 @@
               "defaultValue": "Enabled",
               "metadata": {
                 "description": "Public network access setting."
+              }
+            },
+            "identity": {
+              "type": "object",
+              "defaultValue": {
+                "type": "SystemAssigned"
+              },
+              "metadata": {
+                "description": "Optional. Managed identity configuration for the resource."
               }
             }
           },
@@ -3361,17 +3566,18 @@
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "kind": "[parameters('kind')]",
-              "identity": {
-                "type": "SystemAssigned"
-              },
+              "identity": "[parameters('identity')]",
               "properties": {
                 "serverFarmId": "[parameters('serverFarmResourceId')]",
                 "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
-                "virtualNetworkSubnetId": "[if(not(empty(parameters('virtualNetworkSubnetId'))), parameters('virtualNetworkSubnetId'), null())]",
                 "siteConfig": {
                   "alwaysOn": "[parameters('alwaysOn')]",
                   "ftpsState": "Disabled",
-                  "linuxFxVersion": "[parameters('linuxFxVersion')]"
+                  "linuxFxVersion": "[parameters('linuxFxVersion')]",
+                  "minTlsVersion": "1.2",
+                  "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
+                  "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
+                  "appCommandLine": "[parameters('appCommandLine')]"
                 },
                 "endToEndEncryptionEnabled": true
               }
