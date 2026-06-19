@@ -39,6 +39,20 @@ agentic-applications-for-unified-data-foundation-solution-accelerator/    ← Re
 │   └── App/                           
 │       ├── node_modules/                    
 │       └── .env                     ← Frontend config file
+├── infra/                           ← Azure infrastructure (modular Bicep)
+│   ├── avm/                         ← Azure Verified Modules (production/WAF)
+│   │   ├── main.bicep               ← AVM orchestrator template
+│   │   └── modules/                 ← AVM service modules (ai, compute, data, networking, etc.)
+│   ├── bicep/                       ← Vanilla Bicep modules (dev/test)
+│   │   └── modules/                 ← Simplified service modules
+│   ├── scripts/                     ← Deployment scripts
+│   │   ├── post-provision/          ← Post-deployment data and setup scripts
+│   │   ├── pre-provision/           ← Pre-deployment preparation (quota checks)
+│   │   └── utilities/               ← Helper scripts and utilities
+│   ├── main.bicep                   ← Main orchestrator (references avm or bicep modules)
+│   ├── main_custom.bicep            ← Custom orchestrator (direct module references)
+│   ├── main.parameters.json         ← Default deployment configuration (bicep mode)
+│   └── main.waf.parameters.json     ← WAF deployment configuration (avm-waf mode)
 └── documents/                       ← Documentation (you are here)
 ```
 

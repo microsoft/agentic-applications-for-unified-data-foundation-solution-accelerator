@@ -224,6 +224,44 @@ Depending on your subscription quota and capacity, you can [adjust quota setting
 
 </details>
 
+<details>
+  <summary><b>Choose Deployment Mode (Optional)</b></summary>
+
+### Deployment Modes
+
+This solution supports three deployment modes to fit different use cases:
+
+| **Aspect** | **Development/Testing (bicep)** | **Production (avm)** | **Production WAF-Aligned (avm-waf)** |
+|------------|-----------------------------------|----------------------|--------------------------------------|
+| **Deployment Flavor** | `bicep` (Vanilla Bicep) | `avm` (AVM modules) | `avm-waf` (AVM + WAF features) |
+| **Configuration File** | `main.parameters.json` (default) | `main.parameters.json` | Copy `main.waf.parameters.json` to `main.parameters.json` |
+| **Security Controls** | Minimal (for rapid iteration) | Production-ready | Enhanced (WAF best practices) |
+| **Networking** | Public endpoints | Public endpoints | Private endpoints, VNet isolation |
+| **Cost** | Lower costs | Moderate costs | Higher costs (VMs, private networking) |
+| **Use Case** | POCs, development, testing | Production workloads | Production with compliance requirements |
+| **Framework** | Basic configuration | AVM-compliant | [Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) |
+
+**How to switch deployment flavors:**
+```bash
+# For AVM production without private networking
+azd env set DEPLOYMENT_FLAVOR avm
+```
+
+**To use production(WAF-aligned) configuration:**
+
+Copy the contents from the production configuration file to your main parameters file:
+
+1. Navigate to the `infra` folder in your project
+2. Open `main.waf.parameters.json` in a text editor (like Notepad, VS Code, etc.)
+3. Select all content (Ctrl+A) and copy it (Ctrl+C)
+4. Open `main.parameters.json` in the same text editor
+5. Select all existing content (Ctrl+A) and paste the copied content (Ctrl+V)
+6. Save the file (Ctrl+S)
+
+> **Note:** The `deploymentFlavor` parameter in `main.parameters.json` controls which modules are used. Set to `bicep` (default), `avm`, or `avm-waf` depending on your requirements. See [Parameter Customization Guide](./CustomizingAzdParameters.md) for details.
+
+</details>
+
 ### Deploying with AZD
 
 Once you've opened the project in [Codespaces](#github-codespaces), [Dev Containers](#vs-code-dev-containers), [Visual Studio Code (WEB)](#visual-studio-code-web), or [locally](#local-environment), you can deploy it to Azure by following these steps:
