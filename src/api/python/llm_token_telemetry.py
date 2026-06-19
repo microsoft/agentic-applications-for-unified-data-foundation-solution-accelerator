@@ -839,7 +839,7 @@ class TokenUsageEmitter:
             **dimensions,
         )
 
-        self._log.info(
+        self._log.debug(
             "[TOKEN USAGE] agent=%s model=%s input=%d output=%d total=%d %s",
             agent_name,
             model_deployment_name,
@@ -911,7 +911,7 @@ class TokenUsageScope(AbstractContextManager):
         """
         start_ns = time.perf_counter_ns()
         try:
-            found = extract_usage(source) or extract_usage_from_stream_chunk(source)
+            found = extract_usage_from_stream_chunk(source) or extract_usage(source)
         except Exception as exc:  # belt + braces; extractors are already safe
             logger.debug("TokenUsageScope.add failed: %s", exc, exc_info=True)
             return None

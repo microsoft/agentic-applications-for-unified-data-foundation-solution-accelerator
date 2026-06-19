@@ -28,11 +28,10 @@ from agent_framework_foundry import FoundryAgent
 from auth.auth_utils import get_authenticated_user_details
 from auth.azure_credential_utils import get_azure_credential_async
 
-# Token usage telemetry
-from telemetry import token_emitter
-from llm_token_telemetry import TokenUsageScope, extract_usage
-
 load_dotenv()
+
+from telemetry import token_emitter  # noqa: E402
+from llm_token_telemetry import TokenUsageScope, extract_usage  # noqa: E402
 
 # Constants
 HOST_NAME = "Agentic Applications for Unified Data Foundation"
@@ -182,11 +181,16 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                 cache[conversation_id] = thread_conversation_id
 
             # Initial request to the agent
+            agent_name = os.getenv("AGENT_NAME_CHAT", "")
+            model_deployment_name = os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "")
+
             response = await openai_client.responses.create(
                 conversation=thread_conversation_id,
                 input=query,
-                extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
+                extra_body={"agent_reference": {"name": agent_name, "type": "agent_reference"}}
             )
+
+            accumulated_usage = extract_usage(response)
 
             # Process response - handle function calls iteratively
             max_iterations = 10
@@ -259,22 +263,24 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                 response = await openai_client.responses.create(
                     conversation=thread_conversation_id,
                     input=tool_outputs,
-                    extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
+                    extra_body={"agent_reference": {"name": agent_name, "type": "agent_reference"}}
                 )
+
+                iter_usage = extract_usage(response)
+                if iter_usage:
+                    accumulated_usage = (accumulated_usage + iter_usage) if accumulated_usage else iter_usage
 
             if iteration >= max_iterations:
                 logger.warning("Max iterations reached for conversation %s", conversation_id)
                 yield "\n\n(Response processing reached maximum iterations)"
 
-            # Emit token usage telemetry (best-effort, never breaks the response)
             try:
-                agent_name = os.getenv("AGENT_NAME_CHAT", "")
-                usage = extract_usage(response)
-                if usage and usage.has_any:
+                if accumulated_usage and accumulated_usage.has_any:
+                    resolved_model = getattr(response, "model", "") or model_deployment_name
                     token_emitter.emit_all(
                         agent_name=agent_name,
-                        model_deployment_name=getattr(response, "model", "") or agent_name,
-                        usage=usage,
+                        model_deployment_name=resolved_model,
+                        usage=accumulated_usage,
                         conversation_id=conversation_id,
                         user_id=user_id,
                     )
@@ -432,68 +438,66 @@ async def stream_openai_text_workshop(conversation_id: str, query: str, user_id:
             citation_idx = 0  # Sequential citation counter
             marker_re = _MARKER_RE
 
-            # Token usage scope accumulates usage from streaming chunks (best-effort)
+            model_deployment_name = os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "")
+
             scope = TokenUsageScope(
                 token_emitter,
                 agent_name=agent_name or "",
-                model_deployment_name=agent_name or "",
+                model_deployment_name=model_deployment_name or agent_name or "",
                 conversation_id=conversation_id,
                 user_id=user_id,
             )
+            try:
+                async for chunk in agent.run(query, stream=True, options={"conversation_id": conv_id}):
+                    for content in getattr(chunk, "contents", []) or []:
+                        raw_repr = getattr(content, "raw_representation", None)
+                        if raw_repr:
+                            _extract_mcp_from_raw(raw_repr, mcp_docs)
 
-            # Stream response — incrementally process complete markers, buffer incomplete ones
-            async for chunk in agent.run(query, stream=True, options={"conversation_id": conv_id}):
-                for content in getattr(chunk, "contents", []) or []:
-                    raw_repr = getattr(content, "raw_representation", None)
-                    if raw_repr:
-                        _extract_mcp_from_raw(raw_repr, mcp_docs)
+                    scope.add(chunk)
 
-                # Accumulate token usage from streaming chunks
-                scope.add(chunk)
+                    chunk_text = str(chunk.text) if chunk.text else ""
+                    if not chunk_text:
+                        continue
+                    complete_response += chunk_text
+                    marker_buf += chunk_text
 
-                chunk_text = str(chunk.text) if chunk.text else ""
-                if not chunk_text:
-                    continue
-                complete_response += chunk_text
-                marker_buf += chunk_text
+                    # Process all complete markers in buffer; keep trailing incomplete fragment
+                    while True:
+                        m = marker_re.search(marker_buf)
+                        if not m:
+                            open_pos = marker_buf.rfind('【')
+                            if open_pos == -1:
+                                if marker_buf:
+                                    yield ("assistant", marker_buf)
+                                marker_buf = ""
+                            elif open_pos > 0:
+                                yield ("assistant", marker_buf[:open_pos])
+                                marker_buf = marker_buf[open_pos:]
+                            break
 
-                # Process all complete markers in buffer; keep trailing incomplete fragment
-                while True:
-                    m = marker_re.search(marker_buf)
-                    if not m:
-                        open_pos = marker_buf.rfind('【')
-                        if open_pos == -1:
-                            if marker_buf:
-                                yield ("assistant", marker_buf)
-                            marker_buf = ""
-                        elif open_pos > 0:
-                            yield ("assistant", marker_buf[:open_pos])
-                            marker_buf = marker_buf[open_pos:]
-                        break
+                        # Flush text before this marker
+                        if m.start() > 0:
+                            yield ("assistant", marker_buf[:m.start()])
 
-                    # Flush text before this marker
-                    if m.start() > 0:
-                        yield ("assistant", marker_buf[:m.start()])
+                        # Replace marker: drop section 0, renumber rest (consolidate same source)
+                        sec_idx = m.group(1)
+                        if sec_idx != "0":
+                            citation_idx += 1
+                            yield ("assistant", f"[{citation_idx}]")
 
-                    # Replace marker: drop section 0, renumber rest (consolidate same source)
-                    sec_idx = m.group(1)
-                    if sec_idx != "0":
-                        citation_idx += 1
-                        yield ("assistant", f"[{citation_idx}]")
+                        marker_buf = marker_buf[m.end():]
 
-                    marker_buf = marker_buf[m.end():]
-
-            # Flush any remaining buffer
-            if marker_buf:
-                yield ("assistant", marker_buf)
+                # Flush any remaining buffer
+                if marker_buf:
+                    yield ("assistant", marker_buf)
+            finally:
+                try:
+                    scope.__exit__(None, None, None)
+                except Exception:
+                    logger.debug("Token usage telemetry failed", exc_info=True)
 
             cache[conversation_id] = conv_id
-
-            # Emit accumulated token usage telemetry (best-effort)
-            try:
-                scope.__exit__(None, None, None)
-            except Exception:
-                logger.debug("Token usage telemetry failed", exc_info=True)
 
             # Collect original markers from complete_response for citation building
             original_markers = [
