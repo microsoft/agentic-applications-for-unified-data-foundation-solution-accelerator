@@ -187,7 +187,7 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
             response = await openai_client.responses.create(
                 conversation=thread_conversation_id,
                 input=query,
-                extra_body={"agent_reference": {"name": agent_name, "type": "agent_reference"}}
+                extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
             )
 
             accumulated_usage = extract_usage(response)
@@ -263,7 +263,7 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                 response = await openai_client.responses.create(
                     conversation=thread_conversation_id,
                     input=tool_outputs,
-                    extra_body={"agent_reference": {"name": agent_name, "type": "agent_reference"}}
+                    extra_body={"agent_reference": {"name": os.getenv("AGENT_NAME_CHAT"), "type": "agent_reference"}}
                 )
 
                 iter_usage = extract_usage(response)
