@@ -24,6 +24,14 @@ on:
       EXP:
         required: true
         type: string
+      DEPLOYMENT_FLAVOR:
+        required: false
+        type: string
+        default: 'bicep'
+      ENABLE_SCALABILITY:
+        required: false
+        type: string
+        default: 'true'
       BACKEND_RUNTIME_STACK:
         required: false
         type: string
@@ -73,6 +81,7 @@ jobs:
           INPUT_IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
           INPUT_BUILD_DOCKER_IMAGE: ${{ inputs.BUILD_DOCKER_IMAGE }}
           INPUT_EXP: ${{ inputs.EXP }}
+          INPUT_DEPLOYMENT_FLAVOR: ${{ inputs.DEPLOYMENT_FLAVOR }}
           INPUT_BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
           INPUT_USE_CASE: ${{ inputs.USE_CASE }}
           INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
@@ -155,6 +164,14 @@ jobs:
             echo "✅ EXP: '$INPUT_EXP' is valid"
           fi
           
+          # Validate DEPLOYMENT_FLAVOR (must be bicep | avm | avm-waf)
+          if [[ "$INPUT_DEPLOYMENT_FLAVOR" != "bicep" && "$INPUT_DEPLOYMENT_FLAVOR" != "avm" && "$INPUT_DEPLOYMENT_FLAVOR" != "avm-waf" ]]; then
+            echo "❌ ERROR: DEPLOYMENT_FLAVOR must be one of: bicep, avm, avm-waf, got: '$INPUT_DEPLOYMENT_FLAVOR'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ DEPLOYMENT_FLAVOR: '$INPUT_DEPLOYMENT_FLAVOR' is valid"
+          fi
+          
           # Validate BACKEND_RUNTIME_STACK (optional, must be 'python' or 'dotnet' if provided)
           if [[ -n "$INPUT_BACKEND_RUNTIME_STACK" ]]; then
             if [[ "$INPUT_BACKEND_RUNTIME_STACK" != "python" && "$INPUT_BACKEND_RUNTIME_STACK" != "dotnet" ]]; then
@@ -209,6 +226,35 @@ jobs:
           echo ""
           echo "✅ All input parameters validated successfully!"
       
+      - name: Configure Parameters Based on Deployment Flavour
+        shell: bash
+        env:
+          INPUT_DEPLOYMENT_FLAVOR: ${{ inputs.DEPLOYMENT_FLAVOR }}
+          INPUT_ENABLE_SCALABILITY: ${{ inputs.ENABLE_SCALABILITY }}
+        run: |
+          set -euo pipefail
+          DEPLOYMENT_FLAVOR="${INPUT_DEPLOYMENT_FLAVOR:-bicep}"
+          if [[ "$DEPLOYMENT_FLAVOR" == "avm-waf" ]]; then
+            cp infra/main.waf.parameters.json infra/main.parameters.json
+            echo "✅ Deployment flavour 'avm-waf' - copied WAF parameters to main parameters file"
+            SCALABILITY_VALUE="${INPUT_ENABLE_SCALABILITY:-true}"
+            if [[ "$SCALABILITY_VALUE" != "true" && "$SCALABILITY_VALUE" != "false" ]]; then
+              echo "❌ ERROR: ENABLE_SCALABILITY must be 'true' or 'false', got: '$SCALABILITY_VALUE'"
+              exit 1
+            fi
+            echo "🔧 Setting enableScalability=${SCALABILITY_VALUE}"
+            tmpfile=$(mktemp)
+            if ! jq --argjson v "$SCALABILITY_VALUE" '.parameters.enableScalability.value = $v' infra/main.parameters.json > "$tmpfile"; then
+              echo "❌ ERROR: jq failed to update enableScalability in infra/main.parameters.json"
+              rm -f "$tmpfile"
+              exit 1
+            fi
+            mv "$tmpfile" infra/main.parameters.json
+            echo "✅ enableScalability set to ${SCALABILITY_VALUE}"
+          else
+            echo "🔧 Deployment flavour '${DEPLOYMENT_FLAVOR}' - using default main.parameters.json (deploymentFlavor resolved from DEPLOYMENT_FLAVOR env var)..."
+          fi
+      
       - name: Install ODBC Driver 18 for SQL Server
         shell: bash
         run: |
@@ -257,6 +303,7 @@ jobs:
           USE_CASE: ${{ inputs.USE_CASE }}
           BUILD_DOCKER_IMAGE: ${{ inputs.BUILD_DOCKER_IMAGE }}
           EXP: ${{ inputs.EXP }}
+          DEPLOYMENT_FLAVOR: ${{ inputs.DEPLOYMENT_FLAVOR }}
           AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
           AZURE_EXISTING_AIPROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AIPROJECT_RESOURCE_ID }}
         run: |
@@ -277,6 +324,7 @@ jobs:
           azd env set AZURE_ENV_IMAGE_TAG="$IMAGE_TAG"
           azd env set BACKEND_RUNTIME_STACK="$BACKEND_RUNTIME_STACK"
           azd env set USE_CASE="$USE_CASE"
+          azd env set DEPLOYMENT_FLAVOR="${DEPLOYMENT_FLAVOR:-bicep}"
           azd env set DEPLOYING_USER_PRINCIPAL_TYPE="ServicePrincipal"
           
           # Set ACR name only when building Docker image
@@ -330,24 +378,6 @@ jobs:
           echo "API_PID=${API_PID}" >> $GITHUB_ENV
           echo "API_PID=${API_PID}" >> $GITHUB_OUTPUT
 
-      - name: Re-authenticate with Azure (refresh OIDC token)
-        uses: azure/login@v3
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          
-      - name: Run Post-Deployment Scripts
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        run: |
-          set -e
-
-          bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
-
-          bash infra/scripts/fabric_scripts/run_fabric_items_scripts.sh \
-            "${{ secrets.FABRIC_WORKSPACE_ID }}"
-            
       - name: Generate Deploy Job Summary
         if: always()
         env:
@@ -355,6 +385,7 @@ jobs:
           RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
           BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
           EXP: ${{ inputs.EXP }}
+          DEPLOYMENT_FLAVOR: ${{ inputs.DEPLOYMENT_FLAVOR }}
           AZURE_LOCATION: ${{ inputs.AZURE_LOCATION }}
           AZURE_ENV_OPENAI_LOCATION: ${{ inputs.AZURE_ENV_OPENAI_LOCATION }}
           IMAGE_TAG: ${{ inputs.IMAGE_TAG }}
@@ -367,6 +398,7 @@ jobs:
           echo "| **Job Status** | $([ "$JOB_STATUS" == "success" ] && echo "✅ Success" || echo "❌ Failed") |" >> $GITHUB_STEP_SUMMARY
           echo "| **Resource Group** | \`$RESOURCE_GROUP_NAME\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Backend Runtime** | \`$BACKEND_RUNTIME_STACK\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deployment Flavour** | \`${DEPLOYMENT_FLAVOR:-bicep}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Configuration Type** | \`$([ "$EXP" == "true" ] && echo "EXP" || echo "Non-EXP")\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Azure Region (Infrastructure)** | \`$AZURE_LOCATION\` |" >> $GITHUB_STEP_SUMMARY
           echo "| **Azure OpenAI Region** | \`$AZURE_ENV_OPENAI_LOCATION\` |" >> $GITHUB_STEP_SUMMARY

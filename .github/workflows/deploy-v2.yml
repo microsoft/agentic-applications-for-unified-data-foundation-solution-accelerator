@@ -67,6 +67,15 @@ on:
           - 'Insurance-improve-customer-meetings'
         required: false
         default: 'Retail-sales-analysis'
+      deployment_flavor:
+        description: 'Deployment Type'
+        required: false
+        default: 'bicep'
+        type: choice
+        options:
+          - 'bicep'
+          - 'avm'
+          - 'avm-waf'
       EXP:
         description: 'Enable EXP'
         required: false
@@ -77,7 +86,13 @@ on:
         required: false
         default: false
         type: boolean
-      
+
+      enable_scalability:
+        description: 'Enable Scalability (avm-waf only)'
+        required: false
+        default: true
+        type: boolean
+
       cleanup_resources:
         description: 'Cleanup Deployed Resources'
         required: false
@@ -128,6 +143,8 @@ jobs:
       resource_group_name: ${{ steps.validate.outputs.resource_group_name }}
       backend_runtime_stack: ${{ steps.validate.outputs.backend_runtime_stack }}
       use_case: ${{ steps.validate.outputs.use_case }}
+      deployment_flavor: ${{ steps.validate.outputs.deployment_flavor }}
+      enable_scalability: ${{ steps.validate.outputs.enable_scalability }}
       exp: ${{ steps.validate.outputs.exp }}
       build_docker_image: ${{ steps.validate.outputs.build_docker_image }}
       cleanup_resources: ${{ steps.validate.outputs.cleanup_resources }}
@@ -145,6 +162,8 @@ jobs:
           INPUT_RESOURCE_GROUP_NAME: ${{ github.event.inputs.resource_group_name }}
           INPUT_BACKEND_RUNTIME_STACK: ${{ github.event.inputs.BACKEND_RUNTIME_STACK }}
           INPUT_USE_CASE: ${{ github.event.inputs.USE_CASE }}
+          INPUT_DEPLOYMENT_FLAVOR: ${{ github.event.inputs.deployment_flavor }}
+          INPUT_ENABLE_SCALABILITY: ${{ github.event.inputs.enable_scalability }}
           INPUT_EXP: ${{ github.event.inputs.EXP }}
           INPUT_BUILD_DOCKER_IMAGE: ${{ github.event.inputs.build_docker_image }}
           INPUT_CLEANUP_RESOURCES: ${{ github.event.inputs.cleanup_resources }}
@@ -211,6 +230,24 @@ jobs:
             VALIDATION_FAILED=true
           else
             echo "✅ USE_CASE: '$USE_CASE' is valid"
+          fi
+          
+          # Resolve deployment flavour (choice input is already constrained to bicep | avm | avm-waf)
+          DEPLOYMENT_FLAVOR="${INPUT_DEPLOYMENT_FLAVOR:-bicep}"
+          if [[ "$DEPLOYMENT_FLAVOR" != "bicep" && "$DEPLOYMENT_FLAVOR" != "avm" && "$DEPLOYMENT_FLAVOR" != "avm-waf" ]]; then
+            echo "❌ ERROR: deployment_flavor must be one of: bicep, avm, avm-waf, got: '$DEPLOYMENT_FLAVOR'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ deployment_flavor: '$DEPLOYMENT_FLAVOR' is valid"
+          fi
+          
+          # Validate enable_scalability (boolean)
+          ENABLE_SCALABILITY="${INPUT_ENABLE_SCALABILITY:-true}"
+          if [[ "$ENABLE_SCALABILITY" != "true" && "$ENABLE_SCALABILITY" != "false" ]]; then
+            echo "❌ ERROR: enable_scalability must be 'true' or 'false', got: '$ENABLE_SCALABILITY'"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ enable_scalability: '$ENABLE_SCALABILITY' is valid"
           fi
           
           # Validate EXP (boolean)
@@ -306,6 +343,8 @@ jobs:
           echo "resource_group_name=$INPUT_RESOURCE_GROUP_NAME" >> $GITHUB_OUTPUT
           echo "backend_runtime_stack=$RUNTIME_STACK" >> $GITHUB_OUTPUT
           echo "use_case=$USE_CASE" >> $GITHUB_OUTPUT
+          echo "deployment_flavor=$DEPLOYMENT_FLAVOR" >> $GITHUB_OUTPUT
+          echo "enable_scalability=$ENABLE_SCALABILITY" >> $GITHUB_OUTPUT
           echo "exp=$EXP_ENABLED" >> $GITHUB_OUTPUT
           echo "build_docker_image=$BUILD_DOCKER" >> $GITHUB_OUTPUT
           echo "cleanup_resources=$CLEANUP_RESOURCES" >> $GITHUB_OUTPUT
@@ -324,6 +363,8 @@ jobs:
       resource_group_name: ${{ needs.validate-inputs.outputs.resource_group_name || '' }}
       BACKEND_RUNTIME_STACK: ${{ needs.validate-inputs.outputs.backend_runtime_stack || 'python' }}
       USE_CASE: ${{ needs.validate-inputs.outputs.use_case || 'Retail-sales-analysis' }}
+      deployment_flavor: ${{ needs.validate-inputs.outputs.deployment_flavor || 'bicep' }}
+      enable_scalability: ${{ needs.validate-inputs.outputs.enable_scalability == 'true' }}
       EXP: ${{ needs.validate-inputs.outputs.exp == 'true' }}
       build_docker_image: ${{ needs.validate-inputs.outputs.build_docker_image == 'true' }}
       cleanup_resources: ${{ needs.validate-inputs.outputs.cleanup_resources == 'true' }}

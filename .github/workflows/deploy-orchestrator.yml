@@ -27,6 +27,16 @@ on:
         type: 'string'
         required: false
         default: 'Retail-sales-analysis'
+      deployment_flavor:
+        description: 'Deployment Flavour (bicep | avm | avm-waf)'
+        required: false
+        default: 'bicep'
+        type: string
+      enable_scalability:
+        description: 'Enable Scalability (only used when avm-waf is selected)'
+        required: false
+        default: true
+        type: boolean
       EXP:
         description: 'Enable EXP'
         required: false
@@ -90,6 +100,8 @@ jobs:
       resource_group_name: ${{ inputs.resource_group_name }}
       BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
       USE_CASE: ${{ inputs.USE_CASE }}
+      deployment_flavor: ${{ inputs.deployment_flavor }}
+      enable_scalability: ${{ inputs.enable_scalability }}
       EXP: ${{ inputs.EXP }}
       build_docker_image: ${{ inputs.build_docker_image }}
       existing_webapp_url: ${{ inputs.existing_webapp_url }}
@@ -136,6 +148,7 @@ jobs:
     with:
       trigger_type: ${{ inputs.trigger_type }}
       BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
+      deployment_flavor: ${{ inputs.deployment_flavor }}
       EXP: ${{ inputs.EXP }}
       run_e2e_tests: ${{ inputs.run_e2e_tests }}
       existing_webapp_url: ${{ inputs.existing_webapp_url }}
