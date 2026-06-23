@@ -731,18 +731,3 @@ jobs:
       AZURE_EXISTING_AIPROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AIPROJECT_RESOURCE_ID }}
       FABRIC_WORKSPACE_ID: ${{ inputs.FABRIC_WORKSPACE_ID }}
     secrets: inherit
-
-  post-deploy:
-    name: Post-Deployment Scripts
-    needs: [azure-setup, deploy-linux, deploy-windows]
-    if: ${{ !cancelled() && (needs.deploy-linux.result == 'success' || needs.deploy-windows.result == 'success') }}
-    uses: ./.github/workflows/job-post-deploy.yml
-    with:
-      ENV_NAME: ${{ needs.azure-setup.outputs.ENV_NAME }}
-      RESOURCE_GROUP_NAME: ${{ needs.azure-setup.outputs.RESOURCE_GROUP_NAME }}
-      AZURE_LOCATION: ${{ needs.azure-setup.outputs.AZURE_LOCATION }}
-      AZURE_ENV_OPENAI_LOCATION: ${{ needs.azure-setup.outputs.AZURE_ENV_OPENAI_LOCATION }}
-      BACKEND_RUNTIME_STACK: ${{ needs.azure-setup.outputs.BACKEND_RUNTIME_STACK }}
-      USE_CASE: ${{ inputs.USE_CASE }}
-      FABRIC_WORKSPACE_ID: ${{ inputs.FABRIC_WORKSPACE_ID }}
-    secrets: inherit
