@@ -157,19 +157,6 @@ jobs:
           echo "Resolved environment values:"
           azd env get-values
 
-      - name: Run Post-Deployment Scripts
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          PYTHONIOENCODING: utf-8
-        shell: bash
-        run: |
-          set -e
-
-          bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
-
-          bash infra/scripts/fabric_scripts/run_fabric_items_scripts.sh \
-            "${{ secrets.FABRIC_WORKSPACE_ID }}"
-
       - name: Generate Post-Deployment Job Summary
         if: always()
         shell: bash
