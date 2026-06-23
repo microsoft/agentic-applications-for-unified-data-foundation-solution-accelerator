@@ -101,6 +101,8 @@ parser.add_argument("--continue-on-error", action="store_true",
                     help="Continue running steps even if one fails")
 parser.add_argument("-v", "--verbose", action="store_true",
                     help="Show full output from all scripts")
+parser.add_argument("-y", "--yes", action="store_true",
+                    help="Skip confirmation prompt (for non-interactive/CI use)")
 
 args = parser.parse_args()
 
@@ -511,7 +513,8 @@ if args.dry_run:
     sys.exit(0)
 
 print("\n" + "-"*60)
-input("Press Enter to start (Ctrl+C to cancel)...")
+if not args.yes:
+    input("Press Enter to start (Ctrl+C to cancel)...")
 print()
 
 # ============================================================================

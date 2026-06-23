@@ -393,11 +393,11 @@ jobs:
 
           echo "🚀 Running post-provision build solution for USE_CASE: $USE_CASE"
           if [[ "$USE_CASE" == "default" || "$USE_CASE" == "default_large" ]]; then
-            python infra/scripts/post-provision/00_build_solution.py --from 02
+            python infra/scripts/post-provision/00_build_solution.py --from 02 --yes
           elif [[ "$USE_CASE" == "retail" ]]; then
-            python infra/scripts/post-provision/00_build_solution.py --scenario retail
+            python infra/scripts/post-provision/00_build_solution.py --scenario retail --yes
           elif [[ "$USE_CASE" == "insurance" ]]; then
-            python infra/scripts/post-provision/00_build_solution.py --scenario insurance
+            python infra/scripts/post-provision/00_build_solution.py --scenario insurance --yes
           else
             echo "❌ ERROR: Unknown USE_CASE '$USE_CASE'"
             exit 1
