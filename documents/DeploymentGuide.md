@@ -303,6 +303,15 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     ```
 
     **Using a Scenario Pack** (pre-built datasets — no AI generation needed):
+    > **Note:** If you have already deployed with default scenario or any other scenario, run the command with the `--clean` flag appended at the end:
+    >
+    > ```shell
+    > # Retail scenario:
+    > python infra/scripts/post-provision/00_build_solution.py --scenario retail --clean
+    >
+    > # Insurance scenario:
+    > python infra/scripts/post-provision/00_build_solution.py --scenario insurance --clean
+    > ```
 
     ```shell
     # Retail scenario:
@@ -312,15 +321,6 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     python infra/scripts/post-provision/00_build_solution.py --scenario insurance
     ```
 
-    > **Note:** If these scenario scripts fail on the first attempt, re-run the command with the `--clean` flag appended at the end:
-    >
-    > ```shell
-    > # Retail scenario:
-    > python infra/scripts/post-provision/00_build_solution.py --scenario retail --clean
-    >
-    > # Insurance scenario:
-    > python infra/scripts/post-provision/00_build_solution.py --scenario insurance --clean
-    > ```
 
     > **Tip:** To reuse an existing Fabric workspace, run `azd env set FABRIC_WORKSPACE_ID <your-workspace-id>` before building.
 
