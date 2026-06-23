@@ -81,6 +81,11 @@ on:
         required: false
         default: ''
         type: string
+      FABRIC_WORKSPACE_ID:
+        description: 'Fabric Workspace ID (Optional, reuses existing workspace)'
+        required: false
+        default: ''
+        type: string
     outputs:
       RESOURCE_GROUP_NAME:
         description: "Resource Group Name"
@@ -702,6 +707,7 @@ jobs:
       USE_CASE: ${{ inputs.USE_CASE }}
       AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
       AZURE_EXISTING_AIPROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AIPROJECT_RESOURCE_ID }}
+      FABRIC_WORKSPACE_ID: ${{ inputs.FABRIC_WORKSPACE_ID }}
     secrets: inherit
 
   deploy-windows:
@@ -723,6 +729,7 @@ jobs:
       USE_CASE: ${{ inputs.USE_CASE }}
       AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
       AZURE_EXISTING_AIPROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AIPROJECT_RESOURCE_ID }}
+      FABRIC_WORKSPACE_ID: ${{ inputs.FABRIC_WORKSPACE_ID }}
     secrets: inherit
 
   post-deploy:
@@ -737,4 +744,5 @@ jobs:
       AZURE_ENV_OPENAI_LOCATION: ${{ needs.azure-setup.outputs.AZURE_ENV_OPENAI_LOCATION }}
       BACKEND_RUNTIME_STACK: ${{ needs.azure-setup.outputs.BACKEND_RUNTIME_STACK }}
       USE_CASE: ${{ inputs.USE_CASE }}
+      FABRIC_WORKSPACE_ID: ${{ inputs.FABRIC_WORKSPACE_ID }}
     secrets: inherit

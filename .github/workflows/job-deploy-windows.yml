@@ -46,6 +46,10 @@ on:
       AZURE_EXISTING_AIPROJECT_RESOURCE_ID:
         required: false
         type: string
+      FABRIC_WORKSPACE_ID:
+        required: false
+        type: string
+        default: ''
     outputs:
       WEB_APPURL:
         description: "Container Web App URL"
@@ -306,6 +310,7 @@ jobs:
           DEPLOYMENT_FLAVOR: ${{ inputs.DEPLOYMENT_FLAVOR }}
           AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID_INPUT: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
           AZURE_EXISTING_AIPROJECT_RESOURCE_ID_INPUT: ${{ inputs.AZURE_EXISTING_AIPROJECT_RESOURCE_ID }}
+          FABRIC_WORKSPACE_ID: ${{ inputs.FABRIC_WORKSPACE_ID }}
         run: |
           $ErrorActionPreference = "Stop"
 
@@ -327,6 +332,10 @@ jobs:
           $deploymentFlavor = if ($env:DEPLOYMENT_FLAVOR) { $env:DEPLOYMENT_FLAVOR } else { 'bicep' }
           azd env set DEPLOYMENT_FLAVOR="$deploymentFlavor"
           azd env set DEPLOYING_USER_PRINCIPAL_TYPE="ServicePrincipal"
+          if ($env:FABRIC_WORKSPACE_ID -ne "") {
+            azd env set FABRIC_WORKSPACE_ID="$env:FABRIC_WORKSPACE_ID"
+            Write-Host "✅ FABRIC_WORKSPACE_ID set (reusing existing workspace)"
+          }
           
           # Set ACR name only when building Docker image
           if ($env:BUILD_DOCKER_IMAGE -eq "true") {

@@ -72,6 +72,11 @@ on:
         required: false
         default: ''
         type: string
+      FABRIC_WORKSPACE_ID:
+        description: 'Fabric Workspace ID (Optional, reuses existing workspace)'
+        required: false
+        default: ''
+        type: string
       trigger_type:
         description: 'Trigger type (workflow_dispatch, pull_request, schedule)'
         required: true
@@ -107,6 +112,7 @@ jobs:
       existing_webapp_url: ${{ inputs.existing_webapp_url }}
       AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
       AZURE_EXISTING_AIPROJECT_RESOURCE_ID: ${{ inputs.AZURE_EXISTING_AIPROJECT_RESOURCE_ID }}
+      FABRIC_WORKSPACE_ID: ${{ inputs.FABRIC_WORKSPACE_ID }}
       docker_image_tag: ${{ needs.docker-build.outputs.IMAGE_TAG }}
       run_e2e_tests: ${{ inputs.run_e2e_tests }}
       cleanup_resources: ${{ inputs.cleanup_resources }}

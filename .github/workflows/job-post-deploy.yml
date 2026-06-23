@@ -23,7 +23,11 @@ on:
       USE_CASE:
         required: false
         type: string
-        default: 'Retail-sales-analysis'
+        default: 'default'
+      FABRIC_WORKSPACE_ID:
+        required: false
+        type: string
+        default: ''
 
 jobs:
   post-deploy:
@@ -129,6 +133,7 @@ jobs:
           AZURE_ENV_OPENAI_LOCATION: ${{ inputs.AZURE_ENV_OPENAI_LOCATION }}
           BACKEND_RUNTIME_STACK: ${{ inputs.BACKEND_RUNTIME_STACK }}
           USE_CASE: ${{ inputs.USE_CASE }}
+          FABRIC_WORKSPACE_ID: ${{ inputs.FABRIC_WORKSPACE_ID }}
         run: |
           set -e
 
@@ -147,6 +152,10 @@ jobs:
           fi
           azd env set BACKEND_RUNTIME_STACK="$BACKEND_RUNTIME_STACK"
           azd env set USE_CASE="$USE_CASE"
+          if [[ -n "$FABRIC_WORKSPACE_ID" ]]; then
+            azd env set FABRIC_WORKSPACE_ID="$FABRIC_WORKSPACE_ID"
+            echo "✅ FABRIC_WORKSPACE_ID set (reusing existing workspace)"
+          fi
           azd env set DEPLOYING_USER_PRINCIPAL_TYPE="ServicePrincipal"
 
           # Fetch deployment outputs (endpoints, FABRIC_WORKSPACE_ID, SOLUTION_NAME, etc.)

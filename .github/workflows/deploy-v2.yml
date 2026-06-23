@@ -126,6 +126,11 @@ on:
         required: false
         default: ''
         type: string
+      FABRIC_WORKSPACE_ID:
+        description: 'Fabric Workspace ID (Optional, reuses existing workspace)'
+        required: false
+        default: ''
+        type: string
         
   schedule:
     - cron: "0 5,17 * * *" # Runs at 5:00 AM and 5:00 PM GMT
@@ -154,6 +159,7 @@ jobs:
       azure_env_existing_log_analytics_workspace_rid: ${{ steps.validate.outputs.azure_env_existing_log_analytics_workspace_rid }}
       azure_existing_aiproject_resource_id: ${{ steps.validate.outputs.azure_existing_aiproject_resource_id }}
       existing_webapp_url: ${{ steps.validate.outputs.existing_webapp_url }}
+      fabric_workspace_id: ${{ steps.validate.outputs.fabric_workspace_id }}
     steps:
       - name: Validate Workflow Input Parameters
         id: validate
@@ -173,6 +179,7 @@ jobs:
           INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ github.event.inputs.AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID }}
           INPUT_AZURE_EXISTING_AIPROJECT_RESOURCE_ID: ${{ github.event.inputs.AZURE_EXISTING_AIPROJECT_RESOURCE_ID }}
           INPUT_EXISTING_WEBAPP_URL: ${{ github.event.inputs.existing_webapp_url }}
+          INPUT_FABRIC_WORKSPACE_ID: ${{ github.event.inputs.FABRIC_WORKSPACE_ID }}
         run: |
           echo "🔍 Validating workflow input parameters..."
           VALIDATION_FAILED=false
@@ -354,6 +361,7 @@ jobs:
           echo "azure_env_existing_log_analytics_workspace_rid=$INPUT_AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID" >> $GITHUB_OUTPUT
           echo "azure_existing_aiproject_resource_id=$INPUT_AZURE_EXISTING_AIPROJECT_RESOURCE_ID" >> $GITHUB_OUTPUT
           echo "existing_webapp_url=$INPUT_EXISTING_WEBAPP_URL" >> $GITHUB_OUTPUT
+          echo "fabric_workspace_id=$INPUT_FABRIC_WORKSPACE_ID" >> $GITHUB_OUTPUT
 
   Run:
     needs: validate-inputs
@@ -374,5 +382,6 @@ jobs:
       AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID: ${{ needs.validate-inputs.outputs.azure_env_existing_log_analytics_workspace_rid || '' }}
       AZURE_EXISTING_AIPROJECT_RESOURCE_ID: ${{ needs.validate-inputs.outputs.azure_existing_aiproject_resource_id || '' }}
       existing_webapp_url: ${{ needs.validate-inputs.outputs.existing_webapp_url || '' }}
+      FABRIC_WORKSPACE_ID: ${{ needs.validate-inputs.outputs.fabric_workspace_id || '' }}
       trigger_type: ${{ github.event_name }}
     secrets: inherit
