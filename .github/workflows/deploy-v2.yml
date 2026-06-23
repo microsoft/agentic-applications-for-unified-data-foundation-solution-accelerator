@@ -63,10 +63,12 @@ on:
         description: 'Specify Use case to deploy'
         type: 'choice'
         options:
-          - 'Retail-sales-analysis'
-          - 'Insurance-improve-customer-meetings'
+          - 'retail'
+          - 'insurance'
+          - 'default'
+          - 'default_large'
         required: false
-        default: 'Retail-sales-analysis'
+        default: 'default'
       deployment_flavor:
         description: 'Deployment Type'
         required: false
@@ -224,9 +226,9 @@ jobs:
           fi
           
           # Validate USE_CASE (specific allowed values)
-          USE_CASE="${INPUT_USE_CASE:-Retail-sales-analysis}"
-          if [[ "$USE_CASE" != "Retail-sales-analysis" && "$USE_CASE" != "Insurance-improve-customer-meetings" ]]; then
-            echo "❌ ERROR: USE_CASE must be one of: Retail-sales-analysis, Insurance-improve-customer-meetings, got: '$USE_CASE'"
+          USE_CASE="${INPUT_USE_CASE:-default}"
+          if [[ "$USE_CASE" != "retail" && "$USE_CASE" != "insurance" && "$USE_CASE" != "default" && "$USE_CASE" != "default_large" ]]; then
+            echo "❌ ERROR: USE_CASE must be one of: retail, insurance, default, default_large, got: '$USE_CASE'"
             VALIDATION_FAILED=true
           else
             echo "✅ USE_CASE: '$USE_CASE' is valid"
@@ -362,7 +364,7 @@ jobs:
       azure_location: ${{ needs.validate-inputs.outputs.azure_location || 'australiaeast' }}
       resource_group_name: ${{ needs.validate-inputs.outputs.resource_group_name || '' }}
       BACKEND_RUNTIME_STACK: ${{ needs.validate-inputs.outputs.backend_runtime_stack || 'python' }}
-      USE_CASE: ${{ needs.validate-inputs.outputs.use_case || 'Retail-sales-analysis' }}
+      USE_CASE: ${{ needs.validate-inputs.outputs.use_case || 'default' }}
       deployment_flavor: ${{ needs.validate-inputs.outputs.deployment_flavor || 'bicep' }}
       enable_scalability: ${{ needs.validate-inputs.outputs.enable_scalability == 'true' }}
       EXP: ${{ needs.validate-inputs.outputs.exp == 'true' }}

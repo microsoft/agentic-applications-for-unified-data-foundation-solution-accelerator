@@ -26,7 +26,7 @@ on:
         description: 'Specify use cases to deploy'
         type: 'string'
         required: false
-        default: 'Retail-sales-analysis'
+        default: 'default'
       deployment_flavor:
         description: 'Deployment Flavour (bicep | avm | avm-waf)'
         required: false
