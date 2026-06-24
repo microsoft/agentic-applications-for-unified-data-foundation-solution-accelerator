@@ -27,6 +27,9 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('Use this parameter to use an existing AI project resource ID')
 param azureExistingAIProjectResourceId string = ''
 
+@description('When using an existing AI project, set true only if you explicitly need this template to update the AI Services account identity/configuration.')
+param updateExistingAiResources bool = false
+
 @description('Optional. created by user name')
 param createdBy string = !empty(deployer().?userPrincipalName ?? '') ? split(deployer().userPrincipalName, '@')[0] : !empty(deployer().?objectId ?? '') ? deployer().objectId : 'unknown-deployer'
 
@@ -188,6 +191,7 @@ module aifoundry 'deploy_ai_foundry.bicep' = {
     managedIdentityObjectId: managedIdentityModule.outputs.managedIdentityOutput.objectId
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     azureExistingAIProjectResourceId: azureExistingAIProjectResourceId
+    updateExistingAiResources: updateExistingAiResources
     deployingUserPrincipalId: deployingUserPrincipalId
     deployingUserPrincipalType: deployingUserPrincipalType
     isWorkshop: isWorkshop

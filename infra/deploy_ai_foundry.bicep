@@ -36,6 +36,9 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('The resource ID of an existing Azure AI Foundry project. If provided, the existing project will be used instead of creating a new one.')
 param azureExistingAIProjectResourceId string = ''
 
+@description('When using an existing AI project, set true only if you explicitly need this template to update the AI Services account identity/configuration.')
+param updateExistingAiResources bool = false
+
 @description('The principal ID of the user deploying the solution, used for role assignments.')
 param deployingUserPrincipalId string = ''
 
@@ -339,7 +342,7 @@ module assignFoundryRoleToMIExisting 'deploy_foundry_role_assignment.bicep' = if
     aiSkuName: existing_aiServicesModule.outputs.skuName
     customSubDomainName: existing_aiServicesModule.outputs.customSubDomainName
     publicNetworkAccess: existing_aiServicesModule.outputs.publicNetworkAccess
-    enableSystemAssignedIdentity: true
+    enableSystemAssignedIdentity: updateExistingAiResources
     defaultNetworkAction: existing_aiServicesModule.outputs.defaultNetworkAction
     vnetRules: existing_aiServicesModule.outputs.vnetRules
     ipRules: existing_aiServicesModule.outputs.ipRules
@@ -366,7 +369,7 @@ module existingOpenAiProject 'deploy_foundry_role_assignment.bicep' = if (!empty
     aiServicesName: existingAIServicesName
     aiProjectName: existingAIProjectName
     principalId: searchServiceEnableIdentity.outputs.principalId
-    enableSystemAssignedIdentity: true
+    enableSystemAssignedIdentity: updateExistingAiResources
   }
 }
 
