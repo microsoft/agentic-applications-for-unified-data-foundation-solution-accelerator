@@ -411,7 +411,7 @@ jobs:
           pip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt
 
           echo "🚀 Running post-provision build solution for USE_CASE: $USE_CASE"
-          if [[ "$USE_CASE" == "default" || "$USE_CASE" == "default_large" ]]; then
+          if [[ "$USE_CASE" == "default" ]]; then
             python infra/scripts/post-provision/00_build_solution.py --from 02 --yes
           elif [[ "$USE_CASE" == "retail" ]]; then
             python infra/scripts/post-provision/00_build_solution.py --scenario retail --yes
