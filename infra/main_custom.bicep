@@ -120,8 +120,10 @@ param useUserAccessToken bool = false
 // Parameters — Fabric Capacity
 // ============================================================================
 
-@description('Optional. Set to true to auto-create a Fabric workspace during post-provision.')
-param createFabricWorkspace bool = false
+@description('Optional. Existing Fabric Workspace ID to reuse. If empty, a new workspace will be created during post-provision.')
+param fabricWorkspaceId string = ''
+
+var createFabricWorkspace = empty(fabricWorkspaceId)
 
 @description('Optional. Name of an existing Fabric capacity to reuse. Empty auto-creates when conditions are met.')
 param azureFabricCapacityName string = ''
@@ -718,3 +720,9 @@ output AZURE_FABRIC_CAPACITY_NAME string = createFabricWorkspace ? fabricCapacit
 @description('The identities assigned as Fabric Capacity Admin members.')
 output FABRIC_ADMIN_MEMBERS array = shouldCreateFabricCapacity ? fabricTotalAdminMembers : []
 
+
+@description('Whether Fabric workspace creation is enabled.')
+output CREATE_FABRIC_WORKSPACE bool = createFabricWorkspace
+
+@description('The Fabric Workspace ID (passed through or empty if auto-creating).')
+output FABRIC_WORKSPACE_ID string = fabricWorkspaceId
