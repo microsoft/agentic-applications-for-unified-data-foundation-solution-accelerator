@@ -125,7 +125,6 @@ azd up
 | [Prerequisites & Costs](./documents/PrerequisitesCosts.md) | Access requirements, regional availability, and cost considerations |
 | [Deployment Guide](./documents/DeploymentGuide.md) | Step-by-step deployment instructions |
 | [Demonstrator Guide](./documents/DeploymentGuide.md) | Details on how to use and showcase the solution accelerator |
-| [Workshop Guide](https://microsoft.github.io/agentic-applications-for-unified-data-foundation-solution-accelerator/quick-deploy/deployment-guide-optionA/) | Hands-on walkthrough for building AI agents |
 | [Troubleshooting](./documents/TroubleShootingSteps.md) | Common issues and solutions |
 
 ---

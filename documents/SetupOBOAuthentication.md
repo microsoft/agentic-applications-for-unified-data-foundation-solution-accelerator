@@ -1,6 +1,6 @@
 # Set Up OBO (On-Behalf-Of) Authentication
 
-When `USE_USER_ACCESS_TOKEN` is enabled, the API uses the **On-Behalf-Of (OBO)** flow to call downstream services (e.g., Azure AI Foundry, Fabric Data Agent) using the signed-in user's identity instead of a managed identity.
+`USE_USER_ACCESS_TOKEN` is enabled by default. When enabled the API uses the **On-Behalf-Of (OBO)** flow to call downstream services (e.g., Microsoft Foundry, Fabric Data Agent) using the signed-in user's identity instead of a managed identity.
 
 ## Prerequisites
 
@@ -22,15 +22,7 @@ The `setup_app_authentication.ps1` script automatically sets up:
 
 ## How to Enable
 
-1. Set the environment variable before deployment:
-
-    ```shell
-    azd env set USE_USER_ACCESS_TOKEN true
-    ```
-
-2. Run `azd up` to provision and deploy resources.
-
-3. After deployment completes, run the authentication setup script:
+1. After deployment completes, run the authentication setup script:
 
     ```powershell
     .\infra\scripts\post-provision\setup_app_authentication.ps1

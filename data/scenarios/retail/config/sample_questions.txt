@@ -2,3 +2,9 @@
 1. Show the top 5 products by total quantity sold last month?   
 2. Show total revenue by year for last 5 years.
 3. Show top 10 products by Revenue in the last year.
+
+=== DOCUMENT QUESTIONS (AI Search) ===  
+1. What are the key steps for handling order delays?
+2. What metrics should be prioritized in monthly sales reports?
+3. What are the guidelines on applying discounts during seasonal promotions?
+

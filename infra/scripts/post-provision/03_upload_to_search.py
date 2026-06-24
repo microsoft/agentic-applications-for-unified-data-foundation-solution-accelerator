@@ -1,0 +1,599 @@
+"""
+04 - Upload PDF Files to Azure AI Search
+Uploads PDF files from the data folder to Azure AI Search with page-aware chunking.
+
+Usage:
+    python 04_upload_to_search.py
+    python 04_upload_to_search.py --cleanup   # Delete existing index, KB, and KS
+
+Prerequisites:
+    - Run 01_generate_data.py (creates PDF files in data folder)
+    - Azure AI Search endpoint configured via azd or .env
+    - Embedding model deployed in Azure AI Foundry
+
+The script will:
+1. Create a search index with vector search and semantic configuration
+2. Extract text from PDF pages
+3. Chunk text by sentences (respecting boundaries)
+4. Generate embeddings using Azure OpenAI
+5. Upload documents to the search index
+"""
+
+import os
+import sys
+import json
+import re
+import argparse
+from pathlib import Path
+
+# Load environment from azd + project .env
+from load_env import load_all_env, get_data_folder
+load_all_env()
+
+from azure.identity import DefaultAzureCredential
+from azure.search.documents.indexes import SearchIndexClient
+
+# ============================================================================
+# Ensure deployer has required roles on AI Foundry (needed for embeddings)
+# ============================================================================
+
+def ensure_deployer_roles():
+    """
+    Ensure the deployer has Cognitive Services User and Foundry User roles
+    on the AI Foundry resource. Skips if already assigned.
+    """
+    import subprocess
+
+    foundry_resource_id = os.getenv("AI_FOUNDRY_RESOURCE_ID", "").strip()
+    if not foundry_resource_id:
+        return
+
+    parts = foundry_resource_id.split("/")
+    if len(parts) < 9:
+        return
+
+    subscription_id = parts[2]
+    resource_group = parts[4]
+    ai_service_name = parts[8]
+
+    roles = {
+        "Cognitive Services User": "a97b65f3-24c7-4388-baec-2e87135dc908",
+        "Foundry User": "53ca6127-db72-4b80-b1b0-d745d6d5456d",
+    }
+
+    scope = (
+        f"/subscriptions/{subscription_id}"
+        f"/resourceGroups/{resource_group}"
+        f"/providers/Microsoft.CognitiveServices/accounts/{ai_service_name}"
+    )
+    print(f"  Resource ID: {foundry_resource_id}")
+    print(f"  Scope: {scope}")
+
+    try:
+        result = subprocess.run(
+            "az ad signed-in-user show --query id -o tsv",
+            capture_output=True, text=True, shell=True
+        )
+        deployer_principal_id = result.stdout.strip() if result.returncode == 0 else ""
+        if not deployer_principal_id:
+            # Fallback: get UPN from az account show (works when Graph is blocked by CAE)
+            result = subprocess.run(
+                'az account show --query user.name -o tsv',
+                capture_output=True, text=True, shell=True
+            )
+            deployer_principal_id = result.stdout.strip() if result.returncode == 0 else ""
+        if not deployer_principal_id:
+            deployer_principal_id = os.getenv("AZURE_CLIENT_ID", "").strip()
+        if not deployer_principal_id:
+            return
+    except FileNotFoundError:
+        return
+
+    for role_name, role_id in roles.items():
+        check_cmd = (
+            f'az role assignment list --assignee "{deployer_principal_id}" '
+            f'--role "{role_id}" --scope "{scope}" --query "length(@)" -o tsv'
+        )
+        try:
+            result = subprocess.run(check_cmd, capture_output=True, text=True, shell=True, check=True)
+            count = int(result.stdout.strip() or "0")
+            if count > 0:
+                print(f"  [OK] '{role_name}' already assigned")
+                continue
+        except (subprocess.CalledProcessError, ValueError):
+            pass
+
+        assign_cmd = (
+            f'az role assignment create --assignee "{deployer_principal_id}" '
+            f'--role "{role_id}" --scope "{scope}"'
+        )
+        try:
+            subprocess.run(assign_cmd, capture_output=True, text=True, shell=True, check=True)
+            print(f"  [OK] Assigned '{role_name}' to deployer on '{ai_service_name}'")
+        except subprocess.CalledProcessError as e:
+            print(f"  [WARN] Could not assign '{role_name}': {e.stderr.strip()[:200]}")
+
+
+ensure_deployer_roles()
+
+# ============================================================================
+# Configuration
+# ============================================================================
+
+# Azure services - from azd environment
+AZURE_AI_ENDPOINT = os.getenv("AZURE_AI_ENDPOINT") or os.getenv("AZURE_AI_AGENT_ENDPOINT", "").split("/api/projects")[0]
+AZURE_AI_SEARCH_ENDPOINT = os.getenv("AZURE_AI_SEARCH_ENDPOINT")
+EMBEDDING_MODEL = os.getenv("AZURE_ENV_EMBEDDING_DEPLOYMENT_NAME") or os.getenv("AZURE_OPENAI_EMBEDDING_MODEL") or os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+
+# Project settings - from .env
+SOLUTION_NAME = os.getenv("SOLUTION_NAME") or os.getenv("SOLUTION_PREFIX") or os.getenv("AZURE_ENV_NAME", "demo")
+
+# Use AZURE_AI_SEARCH_INDEX from azd env, fallback to generated name
+INDEX_NAME = os.getenv("AZURE_AI_SEARCH_INDEX") or f"{SOLUTION_NAME}-documents"
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+
+if not AZURE_AI_SEARCH_ENDPOINT:
+    print("ERROR: AZURE_AI_SEARCH_ENDPOINT not set in .env")
+    sys.exit(1)
+
+# ============================================================================
+# CLI Arguments
+# ============================================================================
+
+_parser = argparse.ArgumentParser(description="Upload PDFs to Azure AI Search")
+_parser.add_argument("--cleanup", action="store_true",
+                     help="Delete existing search index, knowledge base, and knowledge source, then exit")
+_args = _parser.parse_args()
+
+# ============================================================================
+# Cleanup Mode — delete existing search resources and exit
+# ============================================================================
+
+if _args.cleanup:
+    print(f"\n{'='*60}")
+    print("Cleanup: Deleting Search Index, Knowledge Base & Knowledge Source")
+    print(f"{'='*60}")
+
+    credential = DefaultAzureCredential()
+    index_client = SearchIndexClient(AZURE_AI_SEARCH_ENDPOINT, credential)
+
+    kb_name = f"{SOLUTION_NAME}-kb"
+    ks_name = f"{SOLUTION_NAME}-ks"
+
+    # Check and delete knowledge base if it exists
+    try:
+        existing_kbs = [kb.name for kb in index_client.list_knowledge_bases()]
+        if kb_name in existing_kbs:
+            index_client.delete_knowledge_base(kb_name)
+            print(f"  [OK] Deleted knowledge base '{kb_name}'")
+    except Exception as e:
+        print(f"  [WARN] Could not check/delete knowledge base '{kb_name}': {e}")
+
+    # Check and delete knowledge source if it exists
+    try:
+        existing_kss = [ks.name for ks in index_client.list_knowledge_sources()]
+        if ks_name in existing_kss:
+            index_client.delete_knowledge_source(ks_name)
+            print(f"  [OK] Deleted knowledge source '{ks_name}'")
+    except Exception as e:
+        print(f"  [WARN] Could not check/delete knowledge source '{ks_name}': {e}")
+
+    # Check and delete search index if it exists
+    try:
+        existing_indexes = [idx.name for idx in index_client.list_indexes()]
+        if INDEX_NAME in existing_indexes:
+            index_client.delete_index(INDEX_NAME)
+            print(f"  [OK] Deleted search index '{INDEX_NAME}'")
+    except Exception as e:
+        print(f"  [WARN] Could not check/delete search index '{INDEX_NAME}': {e}")
+
+    print("\n[OK] Search cleanup complete")
+    sys.exit(0)
+
+# ============================================================================
+# Full Upload Mode — remaining imports
+# ============================================================================
+
+from openai import AzureOpenAI
+from azure.search.documents import SearchClient
+from azure.search.documents.indexes.models import (
+    SearchIndex,
+    SearchField,
+    SearchFieldDataType,
+    VectorSearch,
+    HnswAlgorithmConfiguration,
+    VectorSearchProfile,
+    AzureOpenAIVectorizer,
+    AzureOpenAIVectorizerParameters,
+    SemanticConfiguration,
+    SemanticField,
+    SemanticPrioritizedFields,
+    SemanticSearch,
+    # Foundry IQ - Knowledge Base models
+    KnowledgeBase,
+    KnowledgeBaseAzureOpenAIModel,
+    KnowledgeSourceReference,
+    KnowledgeRetrievalOutputMode,
+    KnowledgeRetrievalLowReasoningEffort,
+    SearchIndexKnowledgeSource,
+    SearchIndexKnowledgeSourceParameters,
+    SearchIndexFieldReference,
+)
+from pypdf import PdfReader
+
+# Get data folder with proper path resolution
+try:
+    data_dir = Path(get_data_folder())
+except ValueError:
+    print("ERROR: DATA_FOLDER not set in .env")
+    print("       Run 01_generate_data.py first")
+    sys.exit(1)
+
+if not data_dir.exists():
+    print(f"ERROR: Data folder not found: {data_dir}")
+    sys.exit(1)
+
+# Set up paths for new folder structure (config/, tables/, documents/)
+config_dir = data_dir / "config"
+docs_dir = data_dir / "documents"
+
+# Fallback to old structure if config dir doesn't exist
+if not config_dir.exists():
+    config_dir = data_dir
+if not docs_dir.exists():
+    docs_dir = data_dir  # Fallback to root data folder
+
+print(f"\n{'='*60}")
+print("Upload PDF Files to Azure AI Search")
+print(f"{'='*60}")
+print(f"Search Endpoint: {AZURE_AI_SEARCH_ENDPOINT}")
+print(f"AI Endpoint: {AZURE_AI_ENDPOINT}")
+print(f"Embedding Model: {EMBEDDING_MODEL}")
+print(f"Index Name: {INDEX_NAME}")
+print(f"Data Folder: {data_dir}")
+
+# ============================================================================
+# Azure OpenAI Client
+# ============================================================================
+
+def get_openai_client():
+    """Create Azure OpenAI client using AI endpoint."""
+    if not AZURE_AI_ENDPOINT:
+        raise ValueError("AZURE_AI_AGENT_ENDPOINT not set")
+    
+    credential = DefaultAzureCredential()
+    token = credential.get_token("https://cognitiveservices.azure.com/.default")
+    
+    return AzureOpenAI(
+        azure_endpoint=AZURE_AI_ENDPOINT,
+        api_key=token.token,
+        api_version="2024-10-21",
+    )
+
+# ============================================================================
+# Azure Search Clients
+# ============================================================================
+
+def get_search_clients():
+    """Create Azure Search clients."""
+    credential = DefaultAzureCredential()
+    index_client = SearchIndexClient(AZURE_AI_SEARCH_ENDPOINT, credential)
+    search_client = SearchClient(AZURE_AI_SEARCH_ENDPOINT, INDEX_NAME, credential)
+    
+    return index_client, search_client
+
+# ============================================================================
+# Create Search Index
+# ============================================================================
+
+def create_index(index_client: SearchIndexClient):
+    """Create or update the search index with integrated vectorizer."""
+    
+    # Embedding dimensions by model
+    EMBEDDING_DIMENSIONS = {
+        "text-embedding-ada-002": 1536,
+        "text-embedding-3-small": 1536,
+        "text-embedding-3-large": 3072,
+    }
+    dimensions = EMBEDDING_DIMENSIONS.get(EMBEDDING_MODEL, 1536)
+    
+    fields = [
+        SearchField(name="id", type=SearchFieldDataType.String, key=True),
+        SearchField(name="content", type=SearchFieldDataType.String, searchable=True),
+        SearchField(name="title", type=SearchFieldDataType.String, searchable=True, filterable=True),
+        SearchField(name="source", type=SearchFieldDataType.String, filterable=True),
+        SearchField(name="page_number", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+        SearchField(name="chunk_id", type=SearchFieldDataType.Int32, sortable=True),
+        SearchField(
+            name="embedding",
+            type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+            searchable=True,
+            vector_search_dimensions=dimensions,
+            vector_search_profile_name="default-profile"
+        ),
+    ]
+    
+    # Integrated vectorizer for query-time embedding
+    vectorizer = AzureOpenAIVectorizer(
+        vectorizer_name="openai-vectorizer",
+        parameters=AzureOpenAIVectorizerParameters(
+            resource_url=AZURE_AI_ENDPOINT,
+            deployment_name=EMBEDDING_MODEL,
+            model_name=EMBEDDING_MODEL,
+        )
+    )
+    
+    vector_search = VectorSearch(
+        algorithms=[HnswAlgorithmConfiguration(name="default-algorithm")],
+        profiles=[VectorSearchProfile(
+            name="default-profile",
+            algorithm_configuration_name="default-algorithm",
+            vectorizer_name="openai-vectorizer"
+        )],
+        vectorizers=[vectorizer]
+    )
+    
+    # Semantic configuration for hybrid search
+    semantic_config = SemanticConfiguration(
+        name="default-semantic",
+        prioritized_fields=SemanticPrioritizedFields(
+            content_fields=[SemanticField(field_name="content")],
+            title_field=SemanticField(field_name="title"),
+        )
+    )
+    semantic_search = SemanticSearch(configurations=[semantic_config])
+    
+    index = SearchIndex(
+        name=INDEX_NAME,
+        fields=fields,
+        vector_search=vector_search,
+        semantic_search=semantic_search
+    )
+    
+    index_client.create_or_update_index(index)
+    print(f"[OK] Index '{INDEX_NAME}' ready with integrated vectorizer")
+
+# ============================================================================
+# PDF Processing
+# ============================================================================
+
+def extract_pages_from_pdf(filepath: Path) -> list[tuple[int, str]]:
+    """Extract text content from each page of a PDF file.
+    
+    Returns list of (page_number, text) tuples (1-indexed page numbers).
+    """
+    reader = PdfReader(filepath)
+    pages = []
+    for i, page in enumerate(reader.pages):
+        text = page.extract_text()
+        if text and text.strip():
+            pages.append((i + 1, text.strip()))
+    return pages
+
+# ============================================================================
+# Text Chunking
+# ============================================================================
+
+def split_into_sentences(text: str) -> list[str]:
+    """Split text into sentences, preserving sentence boundaries."""
+    # Split on sentence-ending punctuation followed by space or newline
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    return [s.strip() for s in sentences if s.strip()]
+
+def chunk_text_by_sentences(text: str, max_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
+    """Split text into chunks that respect sentence boundaries.
+    
+    Chunks will not exceed max_size and will not cut mid-sentence.
+    Overlap is applied by including trailing sentences from previous chunk.
+    """
+    sentences = split_into_sentences(text)
+    
+    if not sentences:
+        return [text] if text.strip() else []
+    
+    chunks = []
+    current_chunk = []
+    current_length = 0
+    overlap_sentences = []
+    
+    for sentence in sentences:
+        sentence_len = len(sentence)
+        
+        # If single sentence exceeds max_size, include it anyway (don't break mid-sentence)
+        if sentence_len > max_size:
+            # Save current chunk if it has content
+            if current_chunk:
+                chunks.append(' '.join(current_chunk))
+            
+            chunks.append(sentence)
+            current_chunk = []
+            current_length = 0
+            overlap_sentences = []
+            continue
+        
+        # Check if adding this sentence would exceed max_size
+        potential_length = current_length + sentence_len + (1 if current_chunk else 0)
+        
+        if potential_length > max_size and current_chunk:
+            # Save current chunk
+            chunks.append(' '.join(current_chunk))
+            
+            # Start new chunk with overlap from previous
+            overlap_text_len = sum(len(s) for s in overlap_sentences) + len(overlap_sentences)
+            if overlap_text_len < overlap and overlap_sentences:
+                current_chunk = overlap_sentences[:]
+                current_length = overlap_text_len
+            else:
+                current_chunk = []
+                current_length = 0
+        
+        # Add sentence to current chunk
+        current_chunk.append(sentence)
+        current_length += sentence_len + (1 if len(current_chunk) > 1 else 0)
+        
+        # Track sentences for potential overlap
+        overlap_sentences = current_chunk[-2:] if len(current_chunk) >= 2 else current_chunk[:]
+    
+    # Don't forget the last chunk
+    if current_chunk:
+        chunks.append(' '.join(current_chunk))
+    
+    return chunks
+
+# ============================================================================
+# Embedding Generation
+# ============================================================================
+
+def get_embedding(client: AzureOpenAI, text: str) -> list[float]:
+    """Generate embedding for text using OpenAI client."""
+    response = client.embeddings.create(input=[text], model=EMBEDDING_MODEL)
+    return response.data[0].embedding
+
+# ============================================================================
+# Main
+# ============================================================================
+
+def main():
+    # Find PDF files in documents subfolder
+    pdf_files = list(docs_dir.glob("*.pdf"))
+    if not pdf_files:
+        print("\nNo PDF files found in data folder.")
+        print(f"Looked in: {docs_dir}")
+        print("Run 01_generate_sample_data.py to generate sample PDFs.")
+        return
+    
+    print(f"\nFound {len(pdf_files)} PDF file(s)")
+    for pdf in pdf_files:
+        print(f"  - {pdf.name}")
+    
+    # Initialize clients
+    print("\nInitializing clients...")
+    openai_client = get_openai_client()
+    print("[OK] OpenAI client initialized")
+    
+    index_client, search_client = get_search_clients()
+    print("[OK] Search clients initialized")
+    
+    # Create index
+    print("\nCreating search index...")
+    create_index(index_client)
+    
+    # Process each PDF
+    documents = []
+    for pdf_path in pdf_files:
+        print(f"\nProcessing: {pdf_path.name}")
+        
+        pages = extract_pages_from_pdf(pdf_path)
+        print(f"  Extracted {len(pages)} pages")
+        
+        for page_num, page_text in pages:
+            chunks = chunk_text_by_sentences(page_text)
+            
+            for chunk_idx, chunk in enumerate(chunks):
+                # ID format: filename_pagenumber_chunknumber
+                doc_id = f"{pdf_path.stem}_p{page_num}_c{chunk_idx}"
+                
+                print(f"  Generating embedding for {doc_id}...", end=" ", flush=True)
+                embedding = get_embedding(openai_client, chunk)
+                print("[OK]")
+                
+                doc = {
+                    "id": doc_id,
+                    "content": chunk,
+                    "title": pdf_path.stem.replace("_", " ").title(),
+                    "source": pdf_path.name,
+                    "page_number": page_num,
+                    "chunk_id": chunk_idx,
+                    "embedding": embedding
+                }
+                documents.append(doc)
+    
+    # Upload to search
+    print(f"\nUploading {len(documents)} chunks to search index...")
+    result = search_client.upload_documents(documents)
+    succeeded = sum(1 for r in result if r.succeeded)
+    print(f"[OK] Uploaded {succeeded}/{len(documents)} documents")
+    
+    # ================================================================
+    # Create Foundry IQ Knowledge Source + Knowledge Base
+    # ================================================================
+
+    KB_NAME = f"{SOLUTION_NAME}-kb"
+    KS_NAME = f"{SOLUTION_NAME}-ks"
+
+    print(f"\nCreating Foundry IQ Knowledge Source '{KS_NAME}'...")
+    try:
+        knowledge_source = SearchIndexKnowledgeSource(
+            name=KS_NAME,
+            description=f"Knowledge source for {SOLUTION_NAME} document search index.",
+            search_index_parameters=SearchIndexKnowledgeSourceParameters(
+                search_index_name=INDEX_NAME,
+                semantic_configuration_name="default-semantic",
+                source_data_fields=[
+                    SearchIndexFieldReference(name="title"),
+                    SearchIndexFieldReference(name="source"),
+                ],
+                search_fields=[
+                    SearchIndexFieldReference(name="content"),
+                ],
+            ),
+        )
+        index_client.create_or_update_knowledge_source(knowledge_source)
+        print(f"[OK] Knowledge source '{KS_NAME}' created")
+    except Exception as e:
+        print(f"[WARN] Could not create knowledge source: {e}")
+        print("       You can create it manually in the Azure portal.")
+
+    print(f"\nCreating Foundry IQ Knowledge Base '{KB_NAME}'...")
+    try:
+        aoai_params = AzureOpenAIVectorizerParameters(
+            resource_url=AZURE_AI_ENDPOINT,
+            deployment_name=os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4o-mini"),
+            model_name=os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4o-mini"),
+        )
+
+        knowledge_base = KnowledgeBase(
+            name=KB_NAME,
+            description=f"Knowledge base for {SOLUTION_NAME} document retrieval with agentic query planning.",
+            retrieval_instructions="Use this knowledge source for questions about policies, guidelines, thresholds, rules, and reference documents.",
+            answer_instructions="Provide a concise and informative answer based on the retrieved documents. Always cite the source document.",
+            output_mode=KnowledgeRetrievalOutputMode.ANSWER_SYNTHESIS,
+            knowledge_sources=[
+                KnowledgeSourceReference(name=KS_NAME),
+            ],
+            models=[KnowledgeBaseAzureOpenAIModel(azure_open_ai_parameters=aoai_params)],
+            retrieval_reasoning_effort=KnowledgeRetrievalLowReasoningEffort,
+        )
+        index_client.create_or_update_knowledge_base(knowledge_base)
+        print(f"[OK] Knowledge base '{KB_NAME}' created")
+    except Exception as e:
+        print(f"[WARN] Could not create knowledge base: {e}")
+        print("       You can create it manually in the Azure portal.")
+
+    # Save index and knowledge base info
+    search_ids_path = config_dir / "search_ids.json"
+    search_info = {
+        "index_name": INDEX_NAME,
+        "knowledge_base_name": KB_NAME,
+        "knowledge_source_name": KS_NAME,
+        "document_count": len(documents),
+        "pdf_files": [p.name for p in pdf_files]
+    }
+    with open(search_ids_path, "w") as f:
+        json.dump(search_info, f, indent=2)
+    print(f"[OK] Search info saved to: {search_ids_path}")
+    
+    print(f"\n{'='*60}")
+    print("Upload Complete!")
+    print(f"{'='*60}")
+    print(f"Index: {INDEX_NAME}")
+    print(f"Documents: {len(documents)}")
+    print(f"Knowledge Source: {KS_NAME}")
+    print(f"Knowledge Base: {KB_NAME}")
+    print(f"\nYou can now query the knowledge base using Foundry IQ.")
+
+if __name__ == "__main__":
+    main()
+
+

@@ -109,7 +109,7 @@ param appServicePlanSku string = 'B2'
 param useChatHistoryEnabled bool = true
 
 @description('Optional. Enable user access token forwarding.')
-param useUserAccessToken bool = false
+param useUserAccessToken bool = true
 
 // ============================================================================
 // Parameters — Existing Resources
