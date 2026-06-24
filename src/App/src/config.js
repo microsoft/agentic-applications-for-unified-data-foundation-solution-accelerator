@@ -11,7 +11,7 @@ function getRuntimeConfigValue(runtimeKey, envKey, defaultValue) {
   return defaultValue;
 }
 export function getApiBaseUrl() {
-  return getRuntimeConfigValue("APP_API_BASE_URL", "REACT_APP_API_BASE_URL", "http://127.0.0.1:8000");
+  return getRuntimeConfigValue("APP_API_BASE_URL", "REACT_APP_API_BASE_URL", "");
 }
 export function getChatLandingText() {
   return getRuntimeConfigValue(
