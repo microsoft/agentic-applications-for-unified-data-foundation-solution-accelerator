@@ -2,7 +2,9 @@ using CsApi.Auth;
 using CsApi.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Extensions.Logging;
 using Moq;
+using System.Text;
 using Xunit;
 
 namespace CsApi.Tests.Auth;
@@ -10,12 +12,14 @@ namespace CsApi.Tests.Auth;
 public class HeaderUserContextAccessorTests
 {
     private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
+    private readonly Mock<ILogger<HeaderUserContextAccessor>> _mockLogger;
     private readonly HeaderUserContextAccessor _accessor;
 
     public HeaderUserContextAccessorTests()
     {
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        _accessor = new HeaderUserContextAccessor(_mockHttpContextAccessor.Object);
+        _mockLogger = new Mock<ILogger<HeaderUserContextAccessor>>();
+        _accessor = new HeaderUserContextAccessor(_mockHttpContextAccessor.Object, _mockLogger.Object);
     }
 
     [Fact]
@@ -78,6 +82,7 @@ public class HeaderUserContextAccessorTests
         httpContext.Request.Headers["x-ms-client-principal-name"] = "complete@example.com";
         httpContext.Request.Headers["x-ms-client-principal-idp"] = "azure-ad";
         httpContext.Request.Headers["x-ms-token-aad-id-token"] = "token-xyz";
+        httpContext.Request.Headers["x-ms-token-aad-access-token"] = "access-token-abc";
         httpContext.Request.Headers["x-ms-client-principal"] = "base64-encoded-principal";
         _mockHttpContextAccessor.Setup(h => h.HttpContext).Returns(httpContext);
 
@@ -91,6 +96,74 @@ public class HeaderUserContextAccessorTests
         Assert.Equal("token-xyz", result.AuthToken);
         Assert.Equal("base64-encoded-principal", result.ClientPrincipalB64);
         Assert.Equal("token-xyz", result.AadIdToken);
+        Assert.Equal("access-token-abc", result.AadAccessToken);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WithOnlyZumoAuth_UsesZumoTokenAsAadAccessToken()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["x-ms-client-principal-id"] = "user-zumo";
+        httpContext.Request.Headers["x-zumo-auth"] = "zumo-token-123";
+        _mockHttpContextAccessor.Setup(h => h.HttpContext).Returns(httpContext);
+
+        // Act
+        var result = _accessor.GetCurrentUser();
+
+        // Assert
+        Assert.Equal("zumo-token-123", result.AadAccessToken);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WithOnlyZumoAuthAndJwt_DerivesUserFromTokenClaims()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        var jwt = BuildJwt("{\"oid\":\"token-user-oid\",\"preferred_username\":\"token.user@contoso.com\"}");
+        httpContext.Request.Headers["x-zumo-auth"] = jwt;
+        _mockHttpContextAccessor.Setup(h => h.HttpContext).Returns(httpContext);
+
+        // Act
+        var result = _accessor.GetCurrentUser();
+
+        // Assert
+        Assert.Equal("token-user-oid", result.UserPrincipalId);
+        Assert.Equal("token.user@contoso.com", result.UserName);
+        Assert.Equal(jwt, result.AadAccessToken);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WithEasyAuthAndZumo_PrefersEasyAuthToken()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["x-ms-client-principal-id"] = "user-token-priority";
+        httpContext.Request.Headers["x-ms-token-aad-access-token"] = "easy-auth-token";
+        httpContext.Request.Headers["x-zumo-auth"] = "zumo-token";
+        _mockHttpContextAccessor.Setup(h => h.HttpContext).Returns(httpContext);
+
+        // Act
+        var result = _accessor.GetCurrentUser();
+
+        // Assert
+        Assert.Equal("easy-auth-token", result.AadAccessToken);
+    }
+
+    private static string BuildJwt(string payloadJson)
+    {
+        var header = "{\"alg\":\"none\",\"typ\":\"JWT\"}";
+        var encodedHeader = Base64UrlEncode(Encoding.UTF8.GetBytes(header));
+        var encodedPayload = Base64UrlEncode(Encoding.UTF8.GetBytes(payloadJson));
+        return $"{encodedHeader}.{encodedPayload}.";
+    }
+
+    private static string Base64UrlEncode(byte[] bytes)
+    {
+        return Convert.ToBase64String(bytes)
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
     }
 
     [Fact]

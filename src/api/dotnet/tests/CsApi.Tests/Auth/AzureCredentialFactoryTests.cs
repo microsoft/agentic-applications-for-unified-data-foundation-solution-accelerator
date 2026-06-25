@@ -226,4 +226,38 @@ public class AzureCredentialFactoryTests
         // Assert
         Assert.IsAssignableFrom<TokenCredential>(result);
     }
+
+    [Fact]
+    public void Create_WithUserAssertionAndOboConfig_ReturnsOnBehalfOfCredential()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["APP_ENV"]).Returns("prod");
+        _mockConfiguration.Setup(c => c["OBO_CLIENT_ID"]).Returns("obo-client-id");
+        _mockConfiguration.Setup(c => c["OBO_CLIENT_SECRET"]).Returns("obo-client-secret");
+        _mockConfiguration.Setup(c => c["OBO_TENANT_ID"]).Returns("obo-tenant-id");
+        var factory = new AzureCredentialFactory(_mockConfiguration.Object);
+
+        // Act
+        var result = factory.Create(userAssertion: "user-assertion-token");
+
+        // Assert
+        Assert.IsType<OnBehalfOfCredential>(result);
+    }
+
+    [Fact]
+    public void Create_WithUserAssertionButMissingOboConfig_FallsBackToManagedIdentityCredential()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["APP_ENV"]).Returns("prod");
+        _mockConfiguration.Setup(c => c["OBO_CLIENT_ID"]).Returns("obo-client-id");
+        _mockConfiguration.Setup(c => c["OBO_CLIENT_SECRET"]).Returns((string?)null);
+        _mockConfiguration.Setup(c => c["OBO_TENANT_ID"]).Returns("obo-tenant-id");
+        var factory = new AzureCredentialFactory(_mockConfiguration.Object);
+
+        // Act
+        var result = factory.Create(userAssertion: "user-assertion-token");
+
+        // Assert
+        Assert.IsType<ManagedIdentityCredential>(result);
+    }
 }

@@ -13,4 +13,5 @@ public class UserContext
     public string? AuthToken { get; set; }
     public string? ClientPrincipalB64 { get; set; }
     public string? AadIdToken { get; set; }
+    public string? AadAccessToken { get; set; }
 }
