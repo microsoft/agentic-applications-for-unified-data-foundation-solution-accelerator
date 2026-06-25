@@ -310,6 +310,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     python infra/scripts/post-provision/00_build_solution.py --scenario insurance
     ```
 
+
     > **Tip:** To reuse an existing Fabric workspace, run `azd env set FABRIC_WORKSPACE_ID <your-workspace-id>` before building.
 
     > Press **Enter** to start or **Ctrl+C** to cancel the process.
