@@ -107,7 +107,7 @@ param deployApp bool = true
 param useChatHistoryEnabled bool = true
 
 @description('Optional. Enable user access token forwarding to the API.')
-param useUserAccessToken bool = false
+param useUserAccessToken bool = true
 
 // ── Existing Resources ──
 
