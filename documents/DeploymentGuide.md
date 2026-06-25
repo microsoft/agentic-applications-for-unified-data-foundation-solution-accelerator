@@ -29,7 +29,7 @@ This will allow the scripts to run for the current session without permanently c
 
 This solution deploys with Microsoft Fabric (Data Agent, Ontology, Lakehouse) + Azure AI Foundry.
 
-**Requirements:** Fabric capacity (F8+) + Azure subscription
+**Requirements:** Fabric capacity (F2+) + Azure subscription
 
 ---
 
@@ -41,16 +41,14 @@ Pre-built scenario packs provide ready-to-use datasets without requiring AI data
 |------|----------|----------|--------|-----------|
 | **retail** | Retail | Inventory and sales operations | 13 (customers, orders, products, invoices, payments, locations) | None (SQL-only) |
 | **insurance** | Insurance | Claims processing and customer management | 4 (customer, policy, claim, communicationshistory) | None (SQL-only) |
-| **default** | Telecommunications | Network operations with outage tracking and trouble ticket management | AI-generated | AI-generated |
-| **default_large** | Telecommunications | Network operations (large dataset) | AI-generated | AI-generated |
+| **default** | Retail | Inventory and sales operations | 13 (customers, orders, products, invoices, payments, locations) | None (SQL-only) |
 
-> **Note:** If you don't use `--scenario`, the `default` scenario is used automatically (Telecommunications - Network operations with outage tracking and trouble ticket management) which generates AI-based sample data.
+> **Note:** If you don't use `--scenario`, the `default` scenario is used automatically set to retail for the sample data.
 
 To use a scenario pack, add `--scenario <name>` to the build command (see step 7 below).
 
 **Additional data options:**
 - [Bring Your Own Data](../data/customdata/README.md) — Use your own CSV tables and PDF documents
-- [Generate Custom Data](./GenerateCustomData.md) — AI-generate datasets for any custom industry/use case (ideal for POCs)
 
 ---
 
@@ -350,19 +348,10 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 8. Build the solution:
 
     ```shell
-    python infra/scripts/post-provision/00_build_solution.py --from 02
+    python infra/scripts/post-provision/00_build_solution.py --from 01
     ```
 
-    **Using a Scenario Pack** (pre-built datasets — no AI generation needed):
-    > **Note:** If you have already deployed with default scenario or any other scenario, run the command with the `--clean` flag appended at the end:
-    >
-    > ```shell
-    > # Retail scenario:
-    > python infra/scripts/post-provision/00_build_solution.py --scenario retail --clean
-    >
-    > # Insurance scenario:
-    > python infra/scripts/post-provision/00_build_solution.py --scenario insurance --clean
-    > ```
+    **Using a Scenario Pack** (pre-built datasets):
 
     ```shell
     # Retail scenario:
@@ -375,21 +364,19 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
     > **Tip:** To reuse an existing Fabric workspace, run `azd env set FABRIC_WORKSPACE_ID <your-workspace-id>` before building.
 
-    > **Note:** Scenario packs skip data generation (step 01) and document upload (step 05) automatically.
     > Press **Enter** to start or **Ctrl+C** to cancel the process.
 
 9. Test the agent:
 
     ```shell
-    python infra/scripts/post-provision/07_test_agent.py
+    python infra/scripts/post-provision/06_test_agent.py
     ```
 
     **Sample questions by scenario:**
 
     | Scenario | Sample Questions |
     |----------|-----------------|
-    | **Default** | "How many tickets are high priority?" · "What is the average score from inspections?" · "What constitutes a failed inspection?" |
-    | **Retail** | "Show the top 5 products by total quantity sold last month?" · "Show total revenue by year for last 5 years" · "Show top 10 products by Revenue in the last year" |
+    | **Retail (Default)** | "Show the top 5 products by total quantity sold last month?" · "Show total revenue by year for last 5 years" · "Show top 10 products by Revenue in the last year" |
     | **Insurance** | "I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?" · "Can you provide details of her communications?" · "Based on Ida's policy data has she ever missed a payment?" |
 
 10. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
@@ -399,9 +386,9 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 ## Post Deployment Steps
 
-1. **Add App Authentication**
+1. **Add OBO Connection**
    
-    Follow steps in [App Authentication](./AppAuthentication.md) to configure authentication in app service. Note: Authentication changes can take up to 10 minutes 
+    Follow steps in [Set up OBO Authentication](./SetupOBOAuthentication.md) to configure authentication in app service. Note: Authentication changes can take up to 10 minutes 
 
 2. **Deleting Resources After a Failed Deployment**  
 
@@ -411,13 +398,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 To help you get started, here are some **Sample Questions** you can ask in the app:
 
-**Default scenario (Telecommunications - Network Operations):**
-
-1. How many tickets are high priority?
-2. What is the average score from inspections?
-3. What constitutes a failed inspection?
-
-**Retail scenario pack:**
+**Retail (Default) scenario pack:**
 - Show total revenue by year for last 5 years as a line chart.
 - Show top 10 products by Revenue in the last year in a table.
 - Show as a donut chart.

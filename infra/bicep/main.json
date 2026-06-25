@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "11451294280824654928"
+      "templateHash": "17095919032025759946"
     }
   },
   "parameters": {
@@ -185,7 +185,7 @@
     },
     "useUserAccessToken": {
       "type": "bool",
-      "defaultValue": false,
+      "defaultValue": true,
       "metadata": {
         "description": "Optional. Enable user access token forwarding to the API."
       }
@@ -887,7 +887,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "11485436297336856285"
+              "templateHash": "3352830307687170703"
             }
           },
           "parameters": {
@@ -1087,6 +1087,104 @@
       }
     },
     {
+      "condition": "[variables('useExistingAIProject')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64)]",
+      "subscriptionId": "[variables('aiServiceSubscription')]",
+      "resourceGroup": "[variables('aiServiceResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[8]), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value))]",
+          "projectName": "[if(variables('useExistingAIProject'), createObject('value', split(parameters('existingFoundryProjectResourceId'), '/')[10]), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.projectName.value))]"
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.44.1.10279",
+              "templateHash": "12433685250197645612"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "Required. The name of the existing Cognitive Services account."
+              }
+            },
+            "projectName": {
+              "type": "string",
+              "metadata": {
+                "description": "Required. The name of the existing AI project."
+              }
+            }
+          },
+          "resources": [],
+          "outputs": {
+            "aiFoundryPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "The principal ID of the AI Foundry system-assigned managed identity."
+              },
+              "value": "[if(and(contains(reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01', 'full'), 'identity'), contains(reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01', 'full').identity, 'principalId')), reference(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), '2025-12-01', 'full').identity.principalId, '')]"
+            },
+            "aiProjectPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "The principal ID of the AI Project system-assigned managed identity."
+              },
+              "value": "[if(and(contains(reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('name'), parameters('projectName')), '2025-12-01', 'full'), 'identity'), contains(reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('name'), parameters('projectName')), '2025-12-01', 'full').identity, 'principalId')), reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('name'), parameters('projectName')), '2025-12-01', 'full').identity.principalId, '')]"
+            },
+            "aiServicesAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the AI Services account."
+              },
+              "value": "[parameters('name')]"
+            },
+            "aiProjectName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the AI project."
+              },
+              "value": "[parameters('projectName')]"
+            },
+            "aiFoundryEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "The endpoint URL for the Azure OpenAI service."
+              },
+              "value": "[format('https://{0}.openai.azure.com/', parameters('name'))]"
+            },
+            "projectEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "The endpoint URL for the AI Foundry project."
+              },
+              "value": "[format('https://{0}.services.ai.azure.com/api/projects/{1}', parameters('name'), parameters('projectName'))]"
+            },
+            "aiFoundryResourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource ID of the AI Services account."
+              },
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-foundry-project.{0}', parameters('solutionName')), 64))]"
+      ]
+    },
+    {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.foundry-search-conn.{0}', parameters('solutionName')), 64)]",
@@ -1126,7 +1224,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "14126031085782385090"
+              "templateHash": "3168957021848397230"
             }
           },
           "parameters": {
@@ -1293,7 +1391,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "14126031085782385090"
+              "templateHash": "3168957021848397230"
             }
           },
           "parameters": {
@@ -1466,7 +1564,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "14126031085782385090"
+              "templateHash": "3168957021848397230"
             }
           },
           "parameters": {
@@ -2118,7 +2216,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "2631611108118541891"
+              "templateHash": "1975611088752225629"
             }
           },
           "parameters": {
@@ -3507,7 +3605,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "18394750597129424907"
+              "templateHash": "13302832521200483752"
             }
           },
           "parameters": {

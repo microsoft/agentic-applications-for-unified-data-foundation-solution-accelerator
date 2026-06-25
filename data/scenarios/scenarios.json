@@ -7,7 +7,7 @@
         "type": "prebuilt",
         "description": "Pre-built insurance scenario with claims, policies, customers and communications data.",
         "landing_text": "You can ask questions around customer policies, claims and communications.",
-        "app_title": "Contoso Insurance",
+        "app_title": "Contoso",
         "app_header": "| Claims Analysis Agents"
     },
     "retail": {
@@ -18,28 +18,17 @@
         "type": "prebuilt",
         "description": "Pre-built retail scenario with products, orders, customers, and inventory data.",
         "landing_text": "You can ask questions around sales, products and orders.",
-        "app_title": "Contoso Retail",
+        "app_title": "Contoso",
         "app_header": "| Unified Data Analysis Agents"
     },
     "default": {
         "folder": "data/scenarios/default",
-        "industry": "Telecommunications",
-        "usecase": "Network operations",
+        "industry": "Retail",
+        "usecase": "Inventory and sales operations",
         "data_size": "small",
         "type": "prebuilt",
-        "description": "Default telecommunications scenario with network operations data (small).",
-        "landing_text": "You can ask questions around network operations and outages.",
-        "app_title": "Contoso",
-        "app_header": "| Unified Data Analysis Agents"
-    },
-    "default_large": {
-        "folder": "data/scenarios/default_large",
-        "industry": "Telecommunications",
-        "usecase": "Network operations and outage tracking",
-        "data_size": "large",
-        "type": "prebuilt",
-        "description": "Default telecommunications scenario with expanded network operations data (large).",
-        "landing_text": "You can ask questions around network operations and outages.",
+        "description": "Pre-built retail scenario with products, orders, customers, and inventory data.",
+        "landing_text": "You can ask questions around sales, products and orders.",
         "app_title": "Contoso",
         "app_header": "| Unified Data Analysis Agents"
     }

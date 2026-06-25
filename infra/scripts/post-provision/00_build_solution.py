@@ -13,14 +13,14 @@ Usage:
     python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata
 
 Steps (Fabric SQL mode):
-    01  - Generate sample data
-    02  - Create Fabric Lakehouse & Load Data
-    03  - Generate agent prompt
-    05  - Upload documents to AI Search
-    06  - Create Foundry Agent (Fabric SQL + Search)
+    01  - Create Fabric Lakehouse & Load Data
+    02  - Generate agent prompt
+    03  - Upload documents to AI Search
+    04  - Create Foundry Agent (Fabric SQL + Search)
+    05  - App Deployment Config
 
 Custom Data mode (--custom-data):
-    Skips step 01 and uses your own data from the specified folder.
+    Uses your own data from the specified folder.
     The folder must contain:
         tables/*.csv                 - One CSV per table
         documents/*.pdf              - PDF documents for AI Search
@@ -43,16 +43,15 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 # ============================================================================
 
 STEPS = {
-    "01": {"script": "01_generate_data.py", "name": "Generate Sample Data", "time": "~2min"},
-    "02": {"script": "02_create_fabric_items.py", "name": "Create Fabric Lakehouse & Load Data", "time": "~1.5min", "fabric": True},
-    "03": {"script": "03_generate_agent_prompt.py", "name": "Generate Agent Prompt", "time": "~5s"},
-    "04": {"script": "04_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
-    "05": {"script": "05_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
-    "06": {"script": "06_app_deployment.py", "name": "App Deployment Config", "time": "~15s"},
+    "01": {"script": "01_create_fabric_items.py", "name": "Create Fabric Lakehouse & Load Data", "time": "~1.5min", "fabric": True},
+    "02": {"script": "02_generate_agent_prompt.py", "name": "Generate Agent Prompt", "time": "~5s"},
+    "03": {"script": "03_upload_to_search.py", "name": "Upload to AI Search", "time": "~1min"},
+    "04": {"script": "04_create_agent.py", "name": "Create Foundry Agent", "time": "~10s"},
+    "05": {"script": "05_app_deployment.py", "name": "App Deployment Config", "time": "~15s"},
 }
 
 # Pipeline order
-FABRIC_PIPELINE = ["01", "02", "03", "04", "05", "06"]
+FABRIC_PIPELINE = ["01", "02", "03", "04", "05"]
 
 # ============================================================================
 # Parse Arguments
@@ -64,8 +63,8 @@ parser = argparse.ArgumentParser(
     epilog="""
 Examples:
   python infra/scripts/post-provision/00_build_solution.py                # Full Fabric mode or SQL mode
-  python infra/scripts/post-provision/00_build_solution.py --from 05      # Start from step 05
-  python infra/scripts/post-provision/00_build_solution.py --only 06      # Run only specific steps
+  python infra/scripts/post-provision/00_build_solution.py --from 04      # Start from step 04
+  python infra/scripts/post-provision/00_build_solution.py --only 05      # Run only specific steps
   python infra/scripts/post-provision/00_build_solution.py --custom-data data/customdata  # Use your own data
   python infra/scripts/post-provision/00_build_solution.py --scenario insurance  # Use pre-built scenario
   python infra/scripts/post-provision/00_build_solution.py --list-scenarios      # Show available scenarios
@@ -82,8 +81,6 @@ parser.add_argument("--usecase", type=str,
                     help="Use case for data generation")
 parser.add_argument("--size", choices=["small", "medium", "large"],
                     help="Data size for generation (default: from scenarios.json or 'small')")
-parser.add_argument("--output-dir", type=str, dest="output_dir",
-                    help="Output directory for generated data (passed to step 01)")
 parser.add_argument("--custom-data", type=str,
                     help="Path to folder with tables/ (CSVs) and documents/ (PDFs). "
                          "Config is auto-generated from your CSV files.")
@@ -91,9 +88,9 @@ parser.add_argument("--clean", action="store_true",
                     help="Clean and recreate artifacts")
 
 parser.add_argument("--from", dest="from_step", type=str,
-                    help="Start from this step (e.g., --from 05)")
+                    help="Start from this step (e.g., --from 04)")
 parser.add_argument("--only", nargs="+", type=str,
-                    help="Run only these steps (e.g., --only 07)")
+                    help="Run only these steps (e.g., --only 05)")
 
 parser.add_argument("--dry-run", action="store_true",
                     help="Show what would be run without executing")
@@ -177,7 +174,7 @@ if args.scenario:
     os.environ["INDUSTRY"] = args.industry or scenario_meta.get("industry", "")
     os.environ["USECASE"] = args.usecase or scenario_meta.get("usecase", "")
     
-    # Set DATA_SIZE for custom-type scenarios (used by step 01)
+    # Set DATA_SIZE for custom-type scenarios
     if scenario_meta.get("data_size"):
         os.environ["DATA_SIZE"] = args.size or scenario_meta["data_size"]
     elif args.size:
@@ -241,7 +238,7 @@ if args.scenario:
     print(f"     Type: {'custom' if (args.industry or args.usecase) else scenario_meta.get('type', 'prebuilt')}")
     print(f"     Industry: {os.environ.get('INDUSTRY', '')}")
     print(f"     Use Case: {os.environ.get('USECASE', '')}")
-    print(f"     Documents: {'Yes' if has_documents else 'None (step 04 will be skipped)'}")
+    print(f"     Documents: {'Yes' if has_documents else 'None (step 03 will be skipped)'}")
     print(f"     DATA_FOLDER set to: {relative_data_dir}")
 
 # ============================================================================
@@ -374,29 +371,6 @@ if args.only:
 else:
     pipeline = FABRIC_PIPELINE.copy()
 
-# Skip data generation step when using BYOD data or prebuilt/scenario pack
-if custom_data_dir and "01" in pipeline:
-    pipeline = [s for s in pipeline if s != "01"]
-    print("  (Skipping step 01 — using BYOD data instead of AI generation)")
-
-if scenario_pack_dir and "01" in pipeline:
-    scenario_type = scenario_meta.get("type", "prebuilt") if scenario_meta else "prebuilt"
-    # If user explicitly provided --industry/--usecase that differ from the scenario defaults,
-    # treat as "custom" so step 01 runs with the custom industry/usecase
-    # (but never override "byod" scenarios — they always skip step 01)
-    if scenario_type not in ("custom", "byod") and (args.industry or args.usecase):
-        user_industry = args.industry or ""
-        user_usecase = args.usecase or ""
-        meta_industry = scenario_meta.get("industry", "") if scenario_meta else ""
-        meta_usecase = scenario_meta.get("usecase", "") if scenario_meta else ""
-        if user_industry.lower() != meta_industry.lower() or user_usecase.lower() != meta_usecase.lower():
-            scenario_type = "custom"
-    if scenario_type != "custom":
-        pipeline = [s for s in pipeline if s != "01"]
-        print("  (Skipping step 01 — using prebuilt/scenario pack data)")
-    else:
-        print("  (Running step 01 — generating AI data for custom industry/usecase)")
-
 # Skip document upload step if no documents available
 if scenario_pack_dir or custom_data_dir:
     active_data_dir = scenario_pack_dir or custom_data_dir
@@ -404,12 +378,12 @@ if scenario_pack_dir or custom_data_dir:
     has_pdfs = os.path.isdir(docs_path) and any(
         f.endswith(".pdf") for f in os.listdir(docs_path)
     )
-    if not has_pdfs and "04" in pipeline:
-        pipeline = [s for s in pipeline if s != "04"]
-        print("  (Skipping step 04 — no PDF documents found in data folder. Cleaning up search resources...)")
+    if not has_pdfs and "03" in pipeline:
+        pipeline = [s for s in pipeline if s != "03"]
+        print("  (Skipping step 03 — no PDF documents found in data folder. Cleaning up search resources...)")
 
         # Clean up existing search index, knowledge base, and knowledge source
-        cleanup_script = os.path.join(script_dir, "04_upload_to_search.py")
+        cleanup_script = os.path.join(script_dir, "03_upload_to_search.py")
         if os.path.exists(cleanup_script):
             result = subprocess.run(
                 [sys.executable, cleanup_script, "--cleanup"],
@@ -456,43 +430,6 @@ else:
     print("\n[OK] No FABRIC_WORKSPACE_ID set — a new workspace will be created.")
 
 # ============================================================================
-# Interactive Prompts for Data Generation
-# ============================================================================
-
-if "01" in pipeline:
-    args.industry = args.industry or os.getenv("INDUSTRY")
-    args.usecase = args.usecase or os.getenv("USECASE") or os.getenv("USE_CASE")
-    args.size = args.size or os.getenv("DATA_SIZE") or "small"
-    
-    if not args.industry or not args.usecase:
-        print("\n" + "="*60)
-        print("Data Generation Configuration")
-        print("="*60)
-        print("\nNo INDUSTRY/USECASE found. Sample scenarios:")
-        print("-" * 60)
-        samples = [
-            ("Telecommunications", "Network operations"),
-            ("Retail", "Inventory and sales"),
-            ("Manufacturing", "Production tracking"),
-            ("Insurance", "Claims processing"),
-            ("Finance", "Transaction monitoring"),
-        ]
-        for ind, uc in samples:
-            print(f"  {ind:<20} {uc}")
-        print("-" * 60)
-        
-        if not args.industry:
-            args.industry = input("\nIndustry: ").strip()
-            if not args.industry:
-                print("ERROR: Industry is required")
-                sys.exit(1)
-        if not args.usecase:
-            args.usecase = input("Use Case: ").strip()
-            if not args.usecase:
-                print("ERROR: Use case is required")
-                sys.exit(1)
-
-# ============================================================================
 # Print Plan
 # ============================================================================
 
@@ -536,17 +473,7 @@ def run_step(step_id):
     cmd = [sys.executable, script_path]
     
     # Add step-specific arguments
-    if step_id == "01":
-        if args.industry:
-            cmd.extend(["--industry", args.industry])
-        if args.usecase:
-            cmd.extend(["--usecase", args.usecase])
-        if args.size:
-            cmd.extend(["--size", args.size])
-        if args.output_dir:
-            cmd.extend(["--output-dir", args.output_dir])
-    
-    if step_id == "02" and args.clean:
+    if step_id == "01" and args.clean:
         cmd.append("--clean")
     
     # Run the script
@@ -612,7 +539,7 @@ web_app_url = os.getenv("WEB_APP_URL", "")
 if args.quiet:
     print(f"\n✓ Done! {successful}/{len(pipeline)} steps completed in {total_elapsed:.1f}s")
     if failed == 0:
-        print(f"  Next: python infra/scripts/post-provision/07_test_agent.py")
+        print(f"  Next: python infra/scripts/post-provision/06_test_agent.py")
     else:
         print(f"  Some steps failed. Check output above.")
         sys.exit(1)
@@ -627,7 +554,7 @@ else:
     if failed == 0:
         print(f"""
 Next step - Test the agent:
-  python infra/scripts/post-provision/07_test_agent.py
+  python infra/scripts/post-provision/06_test_agent.py
 
 Sample questions to try:
   - "How many outages occurred last month?"
@@ -638,5 +565,5 @@ Sample questions to try:
         print("\nSome steps failed. Check the output above for errors.")
         sys.exit(1)
 
-if web_app_url and "06" in pipeline:
+if web_app_url and "05" in pipeline:
     print(f"🚀 Your app is live! Open it here: {web_app_url}")

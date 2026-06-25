@@ -114,7 +114,7 @@ param appServicePlanSku string = 'B2'
 param useChatHistoryEnabled bool = true
 
 @description('Optional. Enable user access token forwarding to the API.')
-param useUserAccessToken bool = false
+param useUserAccessToken bool = true
 
 // ============================================================================
 // Parameters — Fabric Capacity

@@ -1,50 +1,514 @@
 {
-    "scenario": "telecommunications",
-    "name": "Network Operations",
-    "description": "Tracking outages and trouble tickets.",
+    "scenario": "retail",
+    "name": "Inventory and Sales",
+    "description": "Retail operations including customers, orders, products, invoices, and payments.",
     "tables": {
-        "tickets": {
+        "account": {
             "columns": [
-                "ticket_id",
-                "customer_name",
-                "issue_description",
-                "priority",
-                "status"
+                "AccountId",
+                "AccountNumber",
+                "CustomerId",
+                "AccountType",
+                "AccountStatus",
+                "CreatedDate",
+                "CreatedBy"
             ],
             "types": {
-                "ticket_id": "String",
-                "customer_name": "String",
-                "issue_description": "String",
-                "priority": "String",
-                "status": "String"
+                "AccountId": "String",
+                "AccountNumber": "String",
+                "CustomerId": "String",
+                "AccountType": "String",
+                "AccountStatus": "String",
+                "CreatedDate": "Date",
+                "CreatedBy": "String"
             },
-            "key": "ticket_id",
-            "source_table": "tickets"
+            "key": "AccountId",
+            "source_table": "account"
         },
-        "inspections": {
+        "customer": {
             "columns": [
-                "inspection_id",
-                "ticket_id",
-                "result",
-                "score"
+                "CustomerId",
+                "CustomerTypeId",
+                "CustomerRelationshipTypeId",
+                "DateOfBirth",
+                "CustomerEstablishedDate",
+                "IsActive",
+                "FirstName",
+                "LastName",
+                "Gender",
+                "PrimaryPhone",
+                "SecondaryPhone",
+                "PrimaryEmail",
+                "SecondaryEmail",
+                "CreatedBy",
+                "UpdatedBy"
             ],
             "types": {
-                "inspection_id": "String",
-                "ticket_id": "String",
-                "result": "String",
-                "score": "BigInt"
+                "CustomerId": "String",
+                "CustomerTypeId": "String",
+                "CustomerRelationshipTypeId": "String",
+                "DateOfBirth": "Date",
+                "CustomerEstablishedDate": "Date",
+                "IsActive": "Boolean",
+                "FirstName": "String",
+                "LastName": "String",
+                "Gender": "String",
+                "PrimaryPhone": "String",
+                "SecondaryPhone": "String",
+                "PrimaryEmail": "String",
+                "SecondaryEmail": "String",
+                "CreatedBy": "String",
+                "UpdatedBy": "String"
             },
-            "key": "inspection_id",
-            "source_table": "inspections"
+            "key": "CustomerId",
+            "source_table": "customer"
+        },
+        "customeraccount": {
+            "columns": [
+                "CustomerAccountId",
+                "ParentAccountId",
+                "CustomerAccountName",
+                "CustomerId",
+                "IsoCurrencyCode",
+                "UpdatedBy"
+            ],
+            "types": {
+                "CustomerAccountId": "String",
+                "ParentAccountId": "String",
+                "CustomerAccountName": "String",
+                "CustomerId": "String",
+                "IsoCurrencyCode": "String",
+                "UpdatedBy": "String"
+            },
+            "key": "CustomerAccountId",
+            "source_table": "customeraccount"
+        },
+        "customerrelationshiptype": {
+            "columns": [
+                "CustomerRelationshipTypeId",
+                "CustomerRelationshipTypeName",
+                "CustomerRelationshipTypeDescription"
+            ],
+            "types": {
+                "CustomerRelationshipTypeId": "String",
+                "CustomerRelationshipTypeName": "String",
+                "CustomerRelationshipTypeDescription": "String"
+            },
+            "key": "CustomerRelationshipTypeId",
+            "source_table": "customerrelationshiptype"
+        },
+        "customertradename": {
+            "columns": [
+                "CustomerId",
+                "CustomerTypeId",
+                "TradeNameId",
+                "TradeName",
+                "PeriodStartDate",
+                "PeriodEndDate",
+                "CustomerTradeNameNote",
+                "UpdatedBy"
+            ],
+            "types": {
+                "CustomerId": "String",
+                "CustomerTypeId": "String",
+                "TradeNameId": "String",
+                "TradeName": "String",
+                "PeriodStartDate": "Date",
+                "PeriodEndDate": "Date",
+                "CustomerTradeNameNote": "String",
+                "UpdatedBy": "String"
+            },
+            "key": "CustomerId",
+            "source_table": "customertradename"
+        },
+        "invoice": {
+            "columns": [
+                "InvoiceId",
+                "InvoiceNumber",
+                "CustomerId",
+                "OrderId",
+                "InvoiceDate",
+                "DueDate",
+                "SubTotal",
+                "TaxAmount",
+                "TotalAmount",
+                "InvoiceStatus",
+                "CreatedBy"
+            ],
+            "types": {
+                "InvoiceId": "String",
+                "InvoiceNumber": "String",
+                "CustomerId": "String",
+                "OrderId": "String",
+                "InvoiceDate": "Date",
+                "DueDate": "Date",
+                "SubTotal": "Float",
+                "TaxAmount": "Float",
+                "TotalAmount": "Float",
+                "InvoiceStatus": "String",
+                "CreatedBy": "String"
+            },
+            "key": "InvoiceId",
+            "source_table": "invoice"
+        },
+        "location": {
+            "columns": [
+                "LocationId",
+                "CustomerId",
+                "LocationName",
+                "IsActive",
+                "AddressLine1",
+                "AddressLine2",
+                "City",
+                "StateId",
+                "ZipCode",
+                "CountryId",
+                "SubdivisionName",
+                "Region",
+                "Latitude",
+                "Longitude",
+                "Note",
+                "UpdatedBy"
+            ],
+            "types": {
+                "LocationId": "String",
+                "CustomerId": "String",
+                "LocationName": "String",
+                "IsActive": "Boolean",
+                "AddressLine1": "String",
+                "AddressLine2": "String",
+                "City": "String",
+                "StateId": "String",
+                "ZipCode": "BigInt",
+                "CountryId": "String",
+                "SubdivisionName": "String",
+                "Region": "String",
+                "Latitude": "Float",
+                "Longitude": "Float",
+                "Note": "String",
+                "UpdatedBy": "String"
+            },
+            "key": "LocationId",
+            "source_table": "location"
+        },
+        "orderline": {
+            "columns": [
+                "OrderId",
+                "OrderLineNumber",
+                "ProductId",
+                "Quantity",
+                "UnitPrice",
+                "LineTotal",
+                "DiscountAmount",
+                "TaxAmount"
+            ],
+            "types": {
+                "OrderId": "String",
+                "OrderLineNumber": "BigInt",
+                "ProductId": "BigInt",
+                "Quantity": "Float",
+                "UnitPrice": "Float",
+                "LineTotal": "Float",
+                "DiscountAmount": "Float",
+                "TaxAmount": "Float"
+            },
+            "key": "OrderId",
+            "source_table": "orderline"
+        },
+        "orderpayment": {
+            "columns": [
+                "OrderId",
+                "PaymentMethod",
+                "TransactionId"
+            ],
+            "types": {
+                "OrderId": "String",
+                "PaymentMethod": "String",
+                "TransactionId": "String"
+            },
+            "key": "OrderId",
+            "source_table": "orderpayment"
+        },
+        "orders": {
+            "columns": [
+                "OrderId",
+                "SalesChannelId",
+                "OrderNumber",
+                "CustomerId",
+                "CustomerAccountId",
+                "OrderDate",
+                "OrderStatus",
+                "SubTotal",
+                "TaxAmount",
+                "OrderTotal",
+                "PaymentMethod",
+                "IsoCurrencyCode",
+                "CreatedBy"
+            ],
+            "types": {
+                "OrderId": "String",
+                "SalesChannelId": "String",
+                "OrderNumber": "String",
+                "CustomerId": "String",
+                "CustomerAccountId": "String",
+                "OrderDate": "Date",
+                "OrderStatus": "String",
+                "SubTotal": "Float",
+                "TaxAmount": "Float",
+                "OrderTotal": "Float",
+                "PaymentMethod": "String",
+                "IsoCurrencyCode": "String",
+                "CreatedBy": "String"
+            },
+            "key": "OrderId",
+            "source_table": "orders"
+        },
+        "payment": {
+            "columns": [
+                "PaymentId",
+                "PaymentNumber",
+                "InvoiceId",
+                "OrderId",
+                "PaymentDate",
+                "PaymentAmount",
+                "PaymentStatus",
+                "PaymentMethod",
+                "CreatedBy"
+            ],
+            "types": {
+                "PaymentId": "String",
+                "PaymentNumber": "String",
+                "InvoiceId": "String",
+                "OrderId": "String",
+                "PaymentDate": "Date",
+                "PaymentAmount": "Float",
+                "PaymentStatus": "String",
+                "PaymentMethod": "String",
+                "CreatedBy": "String"
+            },
+            "key": "PaymentId",
+            "source_table": "payment"
+        },
+        "product": {
+            "columns": [
+                "ProductId",
+                "ProductName",
+                "ProductDescription",
+                "BrandName",
+                "ProductNumber",
+                "Color",
+                "ProductModel",
+                "ProductCategoryId",
+                "CategoryName",
+                "ListPrice",
+                "StandardCost",
+                "Weight",
+                "WeightUom",
+                "ProductStatus",
+                "CreatedDate",
+                "SellStartDate",
+                "SellEndDate",
+                "IsoCurrencyCode",
+                "UpdatedDate",
+                "CreatedBy",
+                "UpdatedBy"
+            ],
+            "types": {
+                "ProductId": "BigInt",
+                "ProductName": "String",
+                "ProductDescription": "String",
+                "BrandName": "String",
+                "ProductNumber": "String",
+                "Color": "String",
+                "ProductModel": "String",
+                "ProductCategoryId": "BigInt",
+                "CategoryName": "String",
+                "ListPrice": "Float",
+                "StandardCost": "Float",
+                "Weight": "Float",
+                "WeightUom": "String",
+                "ProductStatus": "String",
+                "CreatedDate": "Date",
+                "SellStartDate": "Date",
+                "SellEndDate": "Date",
+                "IsoCurrencyCode": "String",
+                "UpdatedDate": "Date",
+                "CreatedBy": "String",
+                "UpdatedBy": "String"
+            },
+            "key": "ProductId",
+            "source_table": "product"
+        },
+        "productcategory": {
+            "columns": [
+                "ProductCategoryId",
+                "ParentCategoryId",
+                "CategoryName",
+                "CategoryDescription",
+                "BrandName",
+                "BrandLogoUrl",
+                "IsActive"
+            ],
+            "types": {
+                "ProductCategoryId": "BigInt",
+                "ParentCategoryId": "String",
+                "CategoryName": "String",
+                "CategoryDescription": "String",
+                "BrandName": "String",
+                "BrandLogoUrl": "String",
+                "IsActive": "Boolean"
+            },
+            "key": "ProductCategoryId",
+            "source_table": "productcategory"
         }
     },
     "relationships": [
         {
-            "name": "ticket_inspection",
-            "from": "inspections",
-            "to": "tickets",
-            "fromKey": "ticket_id",
-            "toKey": "ticket_id"
+            "name": "account_to_customer",
+            "from": "account",
+            "to": "customer",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "account_to_customertradename",
+            "from": "account",
+            "to": "customertradename",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "customer_to_customerrelationshiptype",
+            "from": "customer",
+            "to": "customerrelationshiptype",
+            "fromKey": "CustomerRelationshipTypeId",
+            "toKey": "CustomerRelationshipTypeId"
+        },
+        {
+            "name": "customeraccount_to_customer",
+            "from": "customeraccount",
+            "to": "customer",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "customeraccount_to_customertradename",
+            "from": "customeraccount",
+            "to": "customertradename",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "invoice_to_customer",
+            "from": "invoice",
+            "to": "customer",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "invoice_to_customertradename",
+            "from": "invoice",
+            "to": "customertradename",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "invoice_to_orderline",
+            "from": "invoice",
+            "to": "orderline",
+            "fromKey": "OrderId",
+            "toKey": "OrderId"
+        },
+        {
+            "name": "invoice_to_orderpayment",
+            "from": "invoice",
+            "to": "orderpayment",
+            "fromKey": "OrderId",
+            "toKey": "OrderId"
+        },
+        {
+            "name": "invoice_to_orders",
+            "from": "invoice",
+            "to": "orders",
+            "fromKey": "OrderId",
+            "toKey": "OrderId"
+        },
+        {
+            "name": "location_to_customer",
+            "from": "location",
+            "to": "customer",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "location_to_customertradename",
+            "from": "location",
+            "to": "customertradename",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "orderline_to_product",
+            "from": "orderline",
+            "to": "product",
+            "fromKey": "ProductId",
+            "toKey": "ProductId"
+        },
+        {
+            "name": "orders_to_customer",
+            "from": "orders",
+            "to": "customer",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "orders_to_customertradename",
+            "from": "orders",
+            "to": "customertradename",
+            "fromKey": "CustomerId",
+            "toKey": "CustomerId"
+        },
+        {
+            "name": "orders_to_customeraccount",
+            "from": "orders",
+            "to": "customeraccount",
+            "fromKey": "CustomerAccountId",
+            "toKey": "CustomerAccountId"
+        },
+        {
+            "name": "payment_to_invoice",
+            "from": "payment",
+            "to": "invoice",
+            "fromKey": "InvoiceId",
+            "toKey": "InvoiceId"
+        },
+        {
+            "name": "payment_to_orderline",
+            "from": "payment",
+            "to": "orderline",
+            "fromKey": "OrderId",
+            "toKey": "OrderId"
+        },
+        {
+            "name": "payment_to_orderpayment",
+            "from": "payment",
+            "to": "orderpayment",
+            "fromKey": "OrderId",
+            "toKey": "OrderId"
+        },
+        {
+            "name": "payment_to_orders",
+            "from": "payment",
+            "to": "orders",
+            "fromKey": "OrderId",
+            "toKey": "OrderId"
+        },
+        {
+            "name": "product_to_productcategory",
+            "from": "product",
+            "to": "productcategory",
+            "fromKey": "ProductCategoryId",
+            "toKey": "ProductCategoryId"
         }
     ]
 }

@@ -2,3 +2,8 @@
 1. I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?
 2. Can you provide details of her communications?
 3. Based on Ida's policy data has she ever missed a payment?
+
+=== DOCUMENT QUESTIONS (AI Search) ===  
+1. What protocols should be followed after a natural disaster causes damage?
+2. What is excluded for home insurance policies?
+3. What are the main steps for handling new claims?
