@@ -62,7 +62,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IUserContextAccessor, HeaderUserContextAccessor>();
 builder.Services.AddScoped<ISqlConversationRepository, SqlConversationRepository>();
 builder.Services.AddScoped<ITitleGenerationService, TitleGenerationService>();
-builder.Services.AddSingleton<IAgentFrameworkService, AgentFrameworkService>();
+builder.Services.AddScoped<IAgentFrameworkService, AgentFrameworkService>();
 builder.Services.AddSingleton<IAzureCredentialFactory, AzureCredentialFactory>();
 builder.Services.AddHttpClient();
 

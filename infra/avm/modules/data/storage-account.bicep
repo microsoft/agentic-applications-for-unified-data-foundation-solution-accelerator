@@ -33,6 +33,9 @@ param allowBlobPublicAccess bool = false
 @description('Allow shared key access.')
 param allowSharedKeyAccess bool = true
 
+@description('Enable hierarchical namespace (Data Lake Storage Gen2).')
+param enableHierarchicalNamespace bool = false
+
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
@@ -76,6 +79,9 @@ var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
 @description('Optional. Array of role assignments to create on the Storage Account.')
 param roleAssignments array = []
 
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
+
 // ============================================================================
 // AVM Module Deployment
 // ============================================================================
@@ -91,11 +97,13 @@ module storage 'br/public:avm/res/storage/storage-account:0.32.0' = {
     accessTier: accessTier
     allowBlobPublicAccess: allowBlobPublicAccess
     allowSharedKeyAccess: allowSharedKeyAccess
+    enableHierarchicalNamespace: enableHierarchicalNamespace
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
     requireInfrastructureEncryption: true
     publicNetworkAccess: publicNetworkAccess
     networkAcls: networkAcls
+    managedIdentities: managedIdentities
     blobServices: {
       containers: [for container in containers: {
         name: container.name
