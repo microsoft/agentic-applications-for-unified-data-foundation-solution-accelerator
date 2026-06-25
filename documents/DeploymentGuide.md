@@ -222,6 +222,44 @@ Depending on your subscription quota and capacity, you can [adjust quota setting
 
 </details>
 
+<details>
+  <summary><b>Choose Deployment Mode (Optional)</b></summary>
+
+### Deployment Modes
+
+This solution supports three deployment modes to fit different use cases:
+
+| **Aspect** | **Development/Testing (bicep)** | **Production (avm)** | **Production WAF-Aligned (avm-waf)** |
+|------------|-----------------------------------|----------------------|--------------------------------------|
+| **Deployment Flavor** | `bicep` (Vanilla Bicep) | `avm` (AVM modules) | `avm-waf` (AVM + WAF features) |
+| **Configuration File** | `main.parameters.json` (default) | `main.parameters.json` | Copy `main.waf.parameters.json` to `main.parameters.json` |
+| **Security Controls** | Minimal (for rapid iteration) | Production-ready | Enhanced (WAF best practices) |
+| **Networking** | Public endpoints | Public endpoints | Private endpoints, VNet isolation |
+| **Cost** | Lower costs | Moderate costs | Higher costs (VMs, private networking) |
+| **Use Case** | POCs, development, testing | Production workloads | Production with compliance requirements |
+| **Framework** | Basic configuration | AVM-compliant | [Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) |
+
+**How to switch deployment flavors:**
+```bash
+# For AVM production without private networking
+azd env set DEPLOYMENT_FLAVOR avm
+```
+
+**To use production(WAF-aligned) configuration:**
+
+Copy the contents from the production configuration file to your main parameters file:
+
+1. Navigate to the `infra` folder in your project
+2. Open `main.waf.parameters.json` in a text editor (like Notepad, VS Code, etc.)
+3. Select all content (Ctrl+A) and copy it (Ctrl+C)
+4. Open `main.parameters.json` in the same text editor
+5. Select all existing content (Ctrl+A) and paste the copied content (Ctrl+V)
+6. Save the file (Ctrl+S)
+
+> **Note:** The `deploymentFlavor` parameter in `main.parameters.json` controls which modules are used. Set to `bicep` (default), `avm`, or `avm-waf` depending on your requirements. See [Parameter Customization Guide](./CustomizingAzdParameters.md) for details.
+
+</details>
+
 ### Deploying with AZD
 
 Once you've opened the project in [Codespaces](#github-codespaces), [Dev Containers](#vs-code-dev-containers), [Visual Studio Code (WEB)](#visual-studio-code-web), or [locally](#local-environment), you can deploy it to Azure by following these steps:
@@ -278,15 +316,28 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     python -m venv .venv
     ```
 
+    For Windows (PowerShell):
     ```shell
-    .venv\Scripts\activate   # or: source .venv/bin/activate
+    .venv\Scripts\Activate.ps1
     ```
+
+    For Windows (Bash):
+    ```shell
+    source .venv/Scripts/activate
+    ```
+
+    For Linux/macOS/VS Code Web (Bash):
+    ```shell
+    source .venv/bin/activate
+    ```
+
+6. Install dependencies:
 
     ```shell
     pip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt
     ```
 
-6. Login to Azure:
+7. Login to Azure:
 
     ```shell
     az login
@@ -294,7 +345,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
     > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
-7. Build the solution:
+8. Build the solution:
 
     ```shell
     python infra/scripts/post-provision/00_build_solution.py --from 01
@@ -310,11 +361,12 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     python infra/scripts/post-provision/00_build_solution.py --scenario insurance
     ```
 
+
     > **Tip:** To reuse an existing Fabric workspace, run `azd env set FABRIC_WORKSPACE_ID <your-workspace-id>` before building.
 
     > Press **Enter** to start or **Ctrl+C** to cancel the process.
 
-8. Test the agent:
+9. Test the agent:
 
     ```shell
     python infra/scripts/post-provision/06_test_agent.py
@@ -327,9 +379,9 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     | **Retail (Default)** | "Show the top 5 products by total quantity sold last month?" · "Show total revenue by year for last 5 years" · "Show top 10 products by Revenue in the last year" |
     | **Insurance** | "I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?" · "Can you provide details of her communications?" · "Based on Ida's policy data has she ever missed a payment?" |
 
-9. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
+10. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
-10. If you are done trying out the application, you can delete the resources by running `azd down`.
+11. If you are done trying out the application, you can delete the resources by running `azd down`.
 
 
 ## Post Deployment Steps

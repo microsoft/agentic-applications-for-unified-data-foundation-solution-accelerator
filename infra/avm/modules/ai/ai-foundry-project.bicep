@@ -34,8 +34,7 @@ param allowProjectManagement bool = true
 param publicNetworkAccess string = 'Enabled'
 
 @description('Optional. Managed identity type for the resources.')
-@allowed(['SystemAssigned', 'UserAssigned', 'SystemAssigned, UserAssigned', 'None'])
-param identityType string = 'SystemAssigned'
+param identity object = { type: 'SystemAssigned' }
 
 @description('Optional. Network ACLs default action.')
 @allowed(['Allow', 'Deny'])
@@ -52,6 +51,9 @@ param enableTelemetry bool = true
 // --- Role Assignments ---
 @description('Optional. Array of role assignments to create on the AI Services account.')
 param roleAssignments array?
+
+@description('Optional. Managed identities for the resource.')
+param managedIdentities object = { systemAssigned: true }
 
 // ============================================================================
 // AI Services Account (AVM Module)
@@ -74,9 +76,7 @@ module aiServicesAccount 'br/public:avm/res/cognitive-services/account:0.14.2' =
       ipRules: []
     }
     publicNetworkAccess: publicNetworkAccess
-    managedIdentities: {
-      systemAssigned: true
-    }
+    managedIdentities: managedIdentities
     diagnosticSettings: diagnosticSettings
     deployments: []
     roleAssignments: roleAssignments
@@ -88,20 +88,18 @@ module aiServicesAccount 'br/public:avm/res/cognitive-services/account:0.14.2' =
 // ============================================================================
 // AI Foundry Project
 // ============================================================================
-resource aiServicesResource 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
+resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
   name: name
   dependsOn: [aiServicesAccount]
 }
 
 resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = {
-  parent: aiServicesResource
+  parent: aiServices
   name: projectName
   location: location
   tags: tags
   kind: 'AIServices'
-  identity: {
-    type: identityType
-  }
+  identity: identity
   properties: {}
   dependsOn: [aiServicesAccount]
 }
@@ -111,16 +109,22 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' = 
 // ============================================================================
 
 @description('Resource ID of the AI Services account.')
-output resourceId string = aiServicesAccount.outputs.resourceId
+output resourceId string = aiServices.id
 
 @description('Name of the AI Services account.')
-output name string = aiServicesAccount.outputs.name
+output name string = aiServices.name
 
-@description('Endpoint of the AI Services account.')
-output endpoint string = aiServicesAccount.outputs.endpoint
+@description('Endpoint of the AI Services account (OpenAI Language Model Instance API).')
+output endpoint string = aiServices.properties.endpoints['OpenAI Language Model Instance API']
+
+@description('Endpoint of the AI Services account (Cognitive Services).')
+output cognitiveServicesEndpoint string = aiServices.properties.endpoint
+
+@description('Azure OpenAI Content Understanding endpoint URL.')
+output azureOpenAiCuEndpoint string = aiServices.properties.endpoints['Content Understanding']
 
 @description('System-assigned identity principal ID of the AI Services account.')
-output principalId string = aiServicesAccount.outputs.systemAssignedMIPrincipalId
+output principalId string = aiServices.identity.principalId
 
 @description('Resource ID of the AI Foundry project.')
 output projectResourceId string = aiProject.id
