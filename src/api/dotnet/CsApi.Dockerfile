@@ -2,8 +2,9 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview-alpine AS runtime
 
 # Install essential dependencies and ODBC driver
-RUN apk add --no-cache curl unixodbc libgcc libstdc++ icu-libs krb5-libs && \
-    curl -O https://download.microsoft.com/download/fae28b9a-d880-42fd-9b98-d779f0fdd77f/msodbcsql18_18.5.1.1-1_amd64.apk && \
+RUN apk add --no-cache ca-certificates curl unixodbc libgcc libstdc++ icu-libs krb5-libs && \
+    update-ca-certificates && \
+    curl -kO https://download.microsoft.com/download/fae28b9a-d880-42fd-9b98-d779f0fdd77f/msodbcsql18_18.5.1.1-1_amd64.apk && \
     apk add --allow-untrusted msodbcsql18_18.5.1.1-1_amd64.apk && \
     rm msodbcsql18_18.5.1.1-1_amd64.apk
 

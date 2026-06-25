@@ -82,7 +82,7 @@ param embeddingDeploymentCapacity int = 80
 // ============================================================================
 
 @description('Optional. Docker image tag for app deployments.')
-param imageTag string = 'latest_v2'
+param imageTag string = 'latest_v3'
 
 @description('Optional. Name of the Azure Container Registry.')
 param containerRegistryName string = 'dataagentscontainerreg'
