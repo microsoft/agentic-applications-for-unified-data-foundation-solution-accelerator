@@ -139,18 +139,13 @@ module appService 'br/public:avm/res/web/site:0.23.1' = {
 
 // ============================================================================
 // Logs Configuration (deployed serially after appsettings)
-// ----------------------------------------------------------------------------
-// Deployed as a separate child resource that depends on the site module so it
-// can never write to Microsoft.Web/sites/config concurrently with the
-// 'appsettings' write. Concurrent config writes on the same site intermittently
-// drop app settings, so 'appsettings' is kept as the sole writer in the AVM
-// module and 'logs' is serialized here.
+// Deploy logs after app settings to prevent concurrent config writes.
 // ============================================================================
-resource site 'Microsoft.Web/sites@2024-04-01' existing = {
+resource site 'Microsoft.Web/sites@2025-03-01' existing = {
   name: name
 }
 
-resource logsConfig 'Microsoft.Web/sites/config@2024-04-01' = {
+resource logsConfig 'Microsoft.Web/sites/config@2025-03-01' = {
   parent: site
   name: 'logs'
   properties: {
