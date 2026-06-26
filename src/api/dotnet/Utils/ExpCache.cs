@@ -5,7 +5,7 @@ using Microsoft.Agents.AI;
 using CsApi.Auth;
 using Azure.AI.Projects;
 using Azure.AI.Projects.OpenAI;
-
+ 
 namespace CsApi.Utils
 {
     /// <summary>
@@ -22,7 +22,7 @@ namespace CsApi.Utils
         private readonly string _azureAIEndpoint;
         private readonly IConfiguration _configuration;
         private readonly ILogger _logger;
-
+ 
         public ExpCache(int maxSize, double ttlSeconds, IConfiguration configuration, ILogger logger, string azureAIEndpoint = "")
         {
             _cache = new ConcurrentDictionary<TKey, CacheItem>();
@@ -32,7 +32,7 @@ namespace CsApi.Utils
             _configuration = configuration;
             _logger = logger;
         }
-
+ 
         public bool TryGet(TKey key, out TValue value)
         {
             if (_cache.TryGetValue(key, out var item))
@@ -52,37 +52,40 @@ namespace CsApi.Utils
                     }
                 }
             }
-
+ 
             value = default(TValue)!;
             return false;
         }
-
+ 
         public void Set(TKey key, TValue value)
         {
             var expiresAt = DateTime.UtcNow.AddSeconds(_ttlSeconds);
             var item = new CacheItem(value, expiresAt);
-            
+           
             _cache.AddOrUpdate(key, item, (k, v) => item);
-            
+           
             // If we exceed max size, remove oldest items immediately and delete their threads
             if (_cache.Count > _maxSize)
             {
                 var now = DateTime.UtcNow;
-                
+               
                 // First, try to remove expired items
                 var expiredKeys = _cache
                     .Where(kvp => kvp.Value.ExpiresAt <= now)
                     .Select(kvp => kvp.Key)
                     .ToList();
-
-                foreach (var expiredKey in expiredKeys)
+ 
+                var removedItems = expiredKeys
+                    .Select(expiredKey => new { expiredKey, removed = _cache.TryRemove(expiredKey, out var removedItem), removedItem })
+                    .Where(x => x.removed)
+                    .Select(x => x.removedItem)
+                    .ToList();
+ 
+                foreach (var removedItem in removedItems)
                 {
-                    if (_cache.TryRemove(expiredKey, out var removedItem))
-                    {
-                        Task.Run(() => DeleteThreadAsync(removedItem.Value));
-                    }
+                    Task.Run(() => DeleteThreadAsync(removedItem.Value));
                 }
-                
+               
                 // If still over max size after removing expired items, remove oldest non-expired items
                 if (_cache.Count > _maxSize)
                 {
@@ -93,7 +96,7 @@ namespace CsApi.Utils
                         .Take(excessCount)
                         .Select(kvp => kvp.Key)
                         .ToList();
-
+ 
                     foreach (var evictedKey in oldestItems)
                     {
                         if (_cache.TryRemove(evictedKey, out var removedItem))
@@ -105,7 +108,7 @@ namespace CsApi.Utils
                 }
             }
         }
-
+ 
         public bool Remove(TKey key)
         {
             if (_cache.TryRemove(key, out var removedItem))
@@ -116,14 +119,14 @@ namespace CsApi.Utils
             }
             return false;
         }
-
+ 
         public void Clear()
         {
             _cache.Clear();
         }
-
+ 
         public int Count => _cache.Count;
-
+ 
         /// <summary>
         /// Force cleanup of expired items for testing - manually triggers cleanup
         /// </summary>
@@ -134,17 +137,19 @@ namespace CsApi.Utils
                 .Where(kvp => kvp.Value.ExpiresAt <= now)
                 .Select(kvp => kvp.Key)
                 .ToList();
-
-            foreach (var expiredKey in expiredKeys)
+ 
+            var removedItems = expiredKeys
+                .Select(expiredKey => new { expiredKey, removed = _cache.TryRemove(expiredKey, out var removedItem), removedItem })
+                .Where(x => x.removed)
+                .Select(x => x.removedItem)
+                .ToList();
+ 
+            foreach (var removedItem in removedItems)
             {
-                if (_cache.TryRemove(expiredKey, out var removedItem))
-                {
-                    // Delete thread immediately like other cleanup operations
-                    await DeleteThreadAsync(removedItem.Value);
-                }
+                await DeleteThreadAsync(removedItem.Value);
             }
         }
-
+ 
         /// <summary>
         /// Delete thread from Azure AI Foundry when removed from cache
         /// </summary>
@@ -162,7 +167,7 @@ namespace CsApi.Utils
                         var credentialFactory = new AzureCredentialFactory(_configuration);
                         var credential = credentialFactory.Create();
                         AIProjectClient projectClient = new AIProjectClient(new Uri(endpoint), credential);
-
+ 
                         await projectClient.GetProjectOpenAIClient()
                             .GetProjectConversationsClient()
                             .DeleteConversationAsync(chatThread.ConversationId);
@@ -198,18 +203,18 @@ namespace CsApi.Utils
                 }
             }
         }
-
+ 
         public void Dispose()
         {
             // No resources to dispose since we do immediate cleanup
         }
-
+ 
         private class CacheItem
         {
             public TValue Value { get; }
             public DateTime CreatedAt { get; }
             public DateTime ExpiresAt { get; }
-
+ 
             public CacheItem(TValue value, DateTime expiresAt)
             {
                 Value = value;
