@@ -76,12 +76,15 @@
     "brace-expansion": "1.1.13",
     "path-to-regexp": "0.1.13",
     "yaml": "2.8.3",
-    "webpack-dev-server": "5.2.4",
+    "webpack-dev-server": "5.2.5",
     "qs": "6.15.2",
     "follow-redirects": "1.16.0",
     "uuid": "14.0.0",
     "@babel/plugin-transform-modules-systemjs": "7.29.4",
     "fast-uri": "3.1.2",
+    "form-data": "3.0.5",
+    "launch-editor": "2.14.1",
+    "js-yaml": "4.2.0",
     "@fluentui/react-icons": "$@fluentui/react-icons"
   }
 }
