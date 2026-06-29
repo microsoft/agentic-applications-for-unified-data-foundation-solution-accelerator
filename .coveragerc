@@ -1,3 +1,4 @@
 [run]
 omit =
     */test_*.py
+    */llm_token_telemetry.py
