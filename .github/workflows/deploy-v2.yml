@@ -31,27 +31,34 @@ on:
           - 'Local'
         default: 'codespace'
       azure_location:
-        description: 'Azure Location For Deployment'
+        description: 'Azure Region (Non-AI Services)'
         required: false
         default: 'australiaeast'
         type: choice
         options:
           - 'australiaeast'
-          - 'centralus'
-          - 'eastasia'
+          - 'eastus'
           - 'eastus2'
+          - 'francecentral'
           - 'japaneast'
-          - 'northeurope'
-          - 'southeastasia'
+          - 'swedencentral'
           - 'uksouth'
+          - 'westus'
+          - 'westus3'
       resource_group_name:
         description: 'Resource Group Name (Optional)'
         required: false
         default: ''
         type: string
 
+      build_docker_image:
+        description: 'Build & Use Custom Images (Optional)'
+        required: false
+        default: false
+        type: boolean
+
       BACKEND_RUNTIME_STACK:
-        description: 'Specify runtime stack (Python/DotNet)'
+        description: 'Select Runtime (Python/DotNet)'
         type: 'choice'
         options:
           - 'python'
@@ -60,7 +67,7 @@ on:
         default: 'python'
 
       USE_CASE:
-        description: 'Specify Use case to deploy'
+        description: 'Select Use Case to deploy'
         type: 'choice'
         options:
           - 'retail'
@@ -78,12 +85,7 @@ on:
           - 'avm'
           - 'avm-waf'
       EXP:
-        description: 'Enable EXP'
-        required: false
-        default: false
-        type: boolean
-      build_docker_image:
-        description: 'Build & Push Docker Image (Optional)'
+        description: 'Deploy EXP'
         required: false
         default: false
         type: boolean
@@ -95,7 +97,7 @@ on:
         type: boolean
 
       cleanup_resources:
-        description: 'Cleanup Deployed Resources'
+        description: 'Auto Delete RG'
         required: false
         default: false
         type: boolean
@@ -111,17 +113,17 @@ on:
           - 'None'
       
       AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID:
-        description: 'Log Analytics Workspace ID (Optional)'
+        description: 'Existing Log Analytics Workspace Resource ID (Optional)'
         required: false
         default: ''
         type: string
       AZURE_EXISTING_AIPROJECT_RESOURCE_ID:
-        description: 'AI Project Resource ID (Optional)'
+        description: 'Existing AI Project Resource ID (Optional)'
         required: false
         default: ''
         type: string
       existing_webapp_url:
-        description: 'Existing WebApp URL (Skips Deployment)'
+        description: 'Run Tests Against Existing RG (Provide Web App URL)'
         required: false
         default: ''
         type: string
