@@ -1,0 +1,15 @@
+{
+  "_comment": "This file is populated when you run 06_create_agent.py",
+  "chat_agent_id": "",
+  "chat_agent_name": "",
+  "title_agent_id": "",
+  "title_agent_name": "",
+  "search_index": "",
+  "sql_mode": "",
+  "sql_server": "",
+  "sql_database": "",
+  "search_mode": "",
+  "knowledge_base_name": "",
+  "mcp_connection_name": "",
+  "search_endpoint": ""
+}

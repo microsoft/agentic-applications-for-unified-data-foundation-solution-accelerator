@@ -1,0 +1,71 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+name: agentic-applications-for-unified-data-foundation
+
+# Explicitly configure the Bicep provider so `azd provision` uses main_custom.bicep.
+# This pairs with the azd-service-name tags added to App Services in main_custom.bicep.
+infra:
+  provider: bicep
+  path: infra
+  module: main
+  parameters: infra/main.parameters.json
+
+# Service definitions enable `azd deploy` to build and push source code directly
+# to the App Services provisioned by main_custom.bicep.
+services:
+  api:
+    language: python
+    host: appservice
+    project: ./src/api/python
+
+  webapp:
+    language: js
+    host: appservice
+    project: ./src/App
+
+hooks:
+  postprovision:
+    windows:
+      run: |
+        $isWorkshop = $env:IS_WORKSHOP
+        $deployApp = $env:AZURE_ENV_DEPLOY_APP
+
+        if (-not ($isWorkshop -eq "true" -and $deployApp -ne "true")) {
+            Write-Host "Web app URL: "
+            Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
+        }
+        if ($isWorkshop -eq "true") {
+            Write-Host ""
+        } else {
+            Write-Host "`nRun the following commands in the bash terminal:"
+            Write-Host "1. Create agents:"
+            Write-Host "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
+
+            Write-Host "`n2. Create Fabric items:"
+            Write-Host "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
+        }
+
+      shell: pwsh
+      continueOnError: false
+      interactive: true
+    posix:
+      run: |
+        if [ "$IS_WORKSHOP" != "true" ] || [ "$AZURE_ENV_DEPLOY_APP" = "true" ]; then
+            echo "Web app URL: "
+            echo $WEB_APP_URL
+            echo ""
+        fi
+
+        if [ "$IS_WORKSHOP" = "true" ]; then
+            echo ""
+        else
+            echo "Run the following commands in the bash terminal:"
+            echo "1. Create agents:"
+            echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"
+            echo ""
+            echo "2. Create Fabric items:"
+            echo "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
+        fi
+
+      shell: sh
+      continueOnError: false
+      interactive: true

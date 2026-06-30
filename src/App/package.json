@@ -1,0 +1,90 @@
+{
+  "name": "km-chart-visualization",
+  "version": "0.1.0",
+  "private": true,
+  "proxy": "http://localhost:5000",
+  "dependencies": {
+    "@fluentui/react": "^8.123.0",
+    "@azure/msal-react": "^3.0.14",
+    "@azure/msal-browser": "^4.13.0",
+    "@reduxjs/toolkit": "^2.5.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@fluentui/react-icons": "2.0.323",
+    "@fluentui/react-components": "^9.66.5",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/d3": "^7.4.3",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.8",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "chart.js": "^4.5.0",
+    "d3": "^7.9.0",
+    "d3-cloud": "^1.2.7",
+    "react": "^18.3.1",
+    "react-chartjs-2": "^5.3.0",
+    "react-d3-cloud": "^1.0.6",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
+    "react-redux": "^9.2.0",
+    "rehype-raw": "^7.0.0",
+    "lodash-es": "^4.18.0",
+    "react-scripts": "5.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-supersub": "^1.0.0",
+    "typescript": "^4.9.5",
+    "web-vitals": "^3.5.2"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/chart.js": "^2.9.41",
+    "@types/lodash-es": "^4.17.12"
+  },
+  "overrides": {
+    "minimatch": "3.1.4",
+    "d3-color": "3.1.0",
+    "nth-check": "2.1.1",
+    "serialize-javascript": "7.0.5",
+    "underscore": "1.13.8",
+    "svgo": "3.3.3",
+    "css-select": "5.1.0",
+    "postcss": "8.5.12",
+    "@tootallnate/once": "3.0.1",
+    "brace-expansion": "1.1.13",
+    "path-to-regexp": "0.1.13",
+    "yaml": "2.8.3",
+    "webpack-dev-server": "5.2.5",
+    "qs": "6.15.2",
+    "follow-redirects": "1.16.0",
+    "uuid": "14.0.0",
+    "@babel/plugin-transform-modules-systemjs": "7.29.4",
+    "fast-uri": "3.1.2",
+    "form-data": "3.0.5",
+    "launch-editor": "2.14.1",
+    "js-yaml": "4.2.0",
+    "@fluentui/react-icons": "$@fluentui/react-icons"
+  }
+}

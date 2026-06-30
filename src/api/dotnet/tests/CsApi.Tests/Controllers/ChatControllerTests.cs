@@ -1,0 +1,282 @@
+using CsApi.Controllers;
+using CsApi.Interfaces;
+using CsApi.Models;
+using CsApi.Repositories;
+using CsApi.Services;
+using CsApi.Utils;
+using Microsoft.Agents.AI;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using System.Text.Json;
+using Xunit;
+
+namespace CsApi.Tests.Controllers;
+
+public class ChatControllerTests
+{
+    private readonly Mock<IUserContextAccessor> _mockUserContext;
+    private readonly Mock<ISqlConversationRepository> _mockRepo;
+    private readonly Mock<IConfiguration> _mockConfiguration;
+    private readonly ChatController _controller;
+
+    public ChatControllerTests()
+    {
+        _mockUserContext = new Mock<IUserContextAccessor>();
+        _mockRepo = new Mock<ISqlConversationRepository>();
+        _mockConfiguration = new Mock<IConfiguration>();
+
+        _mockUserContext.Setup(u => u.GetCurrentUser())
+            .Returns(new UserContext { UserPrincipalId = "test-user-123" });
+
+        _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"])
+            .Returns("https://test.azure.com");
+
+        var threadCache = new ExpCache<string, AgentThread>(
+            maxSize: 1000,
+            ttlSeconds: 3600.0,
+            _mockConfiguration.Object,
+            NullLogger<ExpCache<string, AgentThread>>.Instance,
+            azureAIEndpoint: "https://test.azure.com");
+
+        _controller = new ChatController(
+            _mockUserContext.Object,
+            _mockRepo.Object,
+            _mockConfiguration.Object,
+            NullLogger<ChatController>.Instance,
+            threadCache);
+
+        // Setup default HttpContext
+        var httpContext = new DefaultHttpContext();
+        httpContext.Response.Body = new MemoryStream();
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+    }
+
+    #region LayoutConfig Tests
+
+    [Fact]
+    public void LayoutConfig_ValidJson_ReturnsJsonResult()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["REACT_APP_LAYOUT_CONFIG"])
+            .Returns("{\"header\":\"test\",\"footer\":\"footer\"}");
+
+        // Act
+        var result = _controller.LayoutConfig(mockConfig.Object);
+
+        // Assert
+        Assert.IsType<JsonResult>(result);
+    }
+
+    [Fact]
+    public void LayoutConfig_EmptyConfig_ReturnsBadRequest()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["REACT_APP_LAYOUT_CONFIG"])
+            .Returns(string.Empty);
+
+        // Act
+        var result = _controller.LayoutConfig(mockConfig.Object);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(badRequestResult.Value);
+    }
+
+    [Fact]
+    public void LayoutConfig_NullConfig_ReturnsBadRequest()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["REACT_APP_LAYOUT_CONFIG"])
+            .Returns((string?)null);
+
+        // Act
+        var result = _controller.LayoutConfig(mockConfig.Object);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(badRequestResult.Value);
+    }
+
+    [Fact]
+    public void LayoutConfig_InvalidJson_ReturnsBadRequest()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["REACT_APP_LAYOUT_CONFIG"])
+            .Returns("not valid json {");
+
+        // Act
+        var result = _controller.LayoutConfig(mockConfig.Object);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(badRequestResult.Value);
+    }
+
+    [Fact]
+    public void LayoutConfig_NestedJson_ReturnsJsonResult()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["REACT_APP_LAYOUT_CONFIG"])
+            .Returns("{\"header\":{\"title\":\"My App\",\"logo\":\"logo.png\"},\"sidebar\":{\"width\":200}}");
+
+        // Act
+        var result = _controller.LayoutConfig(mockConfig.Object);
+
+        // Assert
+        Assert.IsType<JsonResult>(result);
+    }
+
+    [Fact]
+    public void LayoutConfig_ArrayJson_ReturnsJsonResult()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["REACT_APP_LAYOUT_CONFIG"])
+            .Returns("[{\"name\":\"item1\"},{\"name\":\"item2\"}]");
+
+        // Act
+        var result = _controller.LayoutConfig(mockConfig.Object);
+
+        // Assert
+        Assert.IsType<JsonResult>(result);
+    }
+
+    #endregion
+
+    #region DisplayChartDefault Tests
+
+    [Fact]
+    public void DisplayChartDefault_ValidValue_ReturnsJsonResult()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["DISPLAY_CHART_DEFAULT"])
+            .Returns("true");
+
+        // Act
+        var result = _controller.DisplayChartDefault(mockConfig.Object);
+
+        // Assert
+        Assert.IsType<JsonResult>(result);
+    }
+
+    [Fact]
+    public void DisplayChartDefault_FalseValue_ReturnsJsonResult()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["DISPLAY_CHART_DEFAULT"])
+            .Returns("false");
+
+        // Act
+        var result = _controller.DisplayChartDefault(mockConfig.Object);
+
+        // Assert
+        Assert.IsType<JsonResult>(result);
+    }
+
+    [Fact]
+    public void DisplayChartDefault_EmptyValue_ReturnsBadRequest()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["DISPLAY_CHART_DEFAULT"])
+            .Returns(string.Empty);
+
+        // Act
+        var result = _controller.DisplayChartDefault(mockConfig.Object);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(badRequestResult.Value);
+    }
+
+    [Fact]
+    public void DisplayChartDefault_NullValue_ReturnsBadRequest()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["DISPLAY_CHART_DEFAULT"])
+            .Returns((string?)null);
+
+        // Act
+        var result = _controller.DisplayChartDefault(mockConfig.Object);
+
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(badRequestResult.Value);
+    }
+
+    [Fact]
+    public void DisplayChartDefault_CustomValue_ReturnsValueInResponse()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["DISPLAY_CHART_DEFAULT"])
+            .Returns("custom_value");
+
+        // Act
+        var result = _controller.DisplayChartDefault(mockConfig.Object);
+
+        // Assert
+        var jsonResult = Assert.IsType<JsonResult>(result);
+        Assert.NotNull(jsonResult.Value);
+    }
+
+    #endregion
+
+    #region Chat Streaming Error Handling Tests
+
+    [Fact]
+    public async Task Chat_EmptyQuery_ReturnsErrorEnvelope()
+    {
+        // Arrange
+        var mockAgentService = new Mock<IAgentFrameworkService>();
+        var request = new ChatRequest { Query = "", ConversationId = "conv-123" };
+
+        // Act
+        await _controller.Chat(request, mockAgentService.Object, CancellationToken.None);
+
+        // Assert
+        _controller.HttpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
+        var responseBody = reader.ReadToEnd();
+        Assert.Contains("query is required", responseBody);
+    }
+
+    [Fact]
+    public async Task Chat_InvalidOperationException_ReturnsErrorEnvelopeWhenAgentNotChatClient()
+    {
+        // Arrange - Agent that is not a ChatClientAgent causes InvalidOperationException
+        var mockAgent = new Mock<AIAgent>();
+        var mockAgentService = new Mock<IAgentFrameworkService>();
+        mockAgentService.Setup(a => a.Agent).Returns(mockAgent.Object);
+        _mockRepo.Setup(r => r.EnsureConversationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(("conv-123", true));
+
+        var request = new ChatRequest { Query = "test query", ConversationId = "conv-123" };
+
+        // Act - InvalidOperationException is caught and returned as an error envelope
+        await _controller.Chat(request, mockAgentService.Object, CancellationToken.None);
+
+        // Assert - error envelope is written to the response body
+        _controller.HttpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
+        var responseBody = reader.ReadToEnd();
+        Assert.Contains("\"error\":", responseBody);
+    }
+
+    #endregion
+}
