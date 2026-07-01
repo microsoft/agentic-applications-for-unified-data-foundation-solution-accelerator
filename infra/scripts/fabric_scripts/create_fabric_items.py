@@ -8,6 +8,13 @@ import os
 import sys
 import pandas as pd
 
+# Ensure Unicode output (e.g. ✓, ⚠) works on Windows consoles using cp1252.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 p = argparse.ArgumentParser()
 p.add_argument("--workspaceId", required=True)
 p.add_argument("--solutionname", required=True)
@@ -30,7 +37,7 @@ else:
     usecase = 'insurance'
 
 def get_fabric_headers():
-    credential = AzureCliCredential()
+    credential = AzureCliCredential(process_timeout=60)
     cred = credential.get_token('https://api.fabric.microsoft.com/.default')
     token = cred.token
     fabric_headers = {"Authorization": "Bearer " + token.strip()}
@@ -65,7 +72,7 @@ from azure.storage.filedatalake import (
     DataLakeServiceClient
 )
 from azure.identity import AzureCliCredential
-credential = AzureCliCredential()
+credential = AzureCliCredential(process_timeout=60)
 
 account_name = "onelake" #always onelake
 data_path = f"{lakehouse_name}.Lakehouse/Files/"
@@ -163,7 +170,7 @@ def get_fabric_db_connection():
         conn=None
         connection_string = ""
  
-        with AzureCliCredential() as credential:
+        with AzureCliCredential(process_timeout=60) as credential:
             token = credential.get_token("https://database.windows.net/.default")
             # logging.info("FABRIC-SQL-TOKEN: %s" % token.token)
             token_bytes = token.token.encode("utf-16-LE")
