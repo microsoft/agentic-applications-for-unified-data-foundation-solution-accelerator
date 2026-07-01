@@ -53,7 +53,7 @@ jobs:
       API_PID: ${{ steps.extract_env_values.outputs.API_PID }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Login to Azure
         id: login_azure
@@ -283,7 +283,7 @@ jobs:
       API_PID: ${{ needs.deploy.outputs.API_PID }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Azure Developer CLI
         uses: azure/setup-azd@v2
