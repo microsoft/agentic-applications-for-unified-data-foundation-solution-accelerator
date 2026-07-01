@@ -21,20 +21,6 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-
   }
 }
 
-@description('This is the built-in owner role. See https://docs.microsoft.com/azure/role-based-access-control/built-in-roles#owner')
-resource ownerRoleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
-  scope: resourceGroup()
-  name: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
-}
-
-resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, managedIdentity.id, ownerRoleDefinition.id)
-  properties: {
-    principalId: managedIdentity.properties.principalId
-    roleDefinitionId:  ownerRoleDefinition.id
-    principalType: 'ServicePrincipal' 
-  }
-}
 
 resource managedIdentityBackendApp 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: 'id-backend-app-mi-${solutionName}'

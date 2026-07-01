@@ -50,10 +50,10 @@ param searchServiceLocation string = resourceGroup().location
 param deploymentType string = 'GlobalStandard'
 
 @description('Name of the GPT model to deploy:')
-param gptModelName string = 'gpt-4.1-mini'
+param gptModelName string = 'gpt-5-mini'
 
 @description('Version of the GPT model to deploy:')
-param gptModelVersion string = '2025-04-14'
+param gptModelVersion string = '2025-08-07'
 
 param azureOpenAIApiVersion string = '2025-01-01-preview'
 
