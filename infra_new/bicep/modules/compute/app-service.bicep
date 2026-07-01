@@ -60,6 +60,9 @@ param publicNetworkAccess string = 'Enabled'
 @description('Optional. Managed identity configuration for the resource.')
 param identity object = { type: 'SystemAssigned' }
 
+@description('Optional. Whether to use managed identity credentials for ACR authentication.')
+param acrUseManagedIdentityCreds bool = false
+
 // ============================================================================
 // Resource Deployment
 // ============================================================================
@@ -80,6 +83,7 @@ resource appService 'Microsoft.Web/sites@2025-05-01' = {
       healthCheckPath: !empty(healthCheckPath) ? healthCheckPath : null
       webSocketsEnabled: webSocketsEnabled
       appCommandLine: appCommandLine
+      acrUseManagedIdentityCreds : acrUseManagedIdentityCreds
     }
     endToEndEncryptionEnabled: true
   }

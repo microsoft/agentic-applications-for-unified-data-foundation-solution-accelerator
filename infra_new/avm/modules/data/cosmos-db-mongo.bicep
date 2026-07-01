@@ -45,19 +45,9 @@ param diagnosticSettings array = []
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
 
-@description('Whether to enable private networking.')
-param enablePrivateNetworking bool = false
-
-@description('Subnet resource ID for the private endpoint.')
-param privateEndpointSubnetId string = ''
-
-@description('Private DNS zone resource IDs for Cosmos DB (MongoDB).')
-param privateDnsZoneResourceIds array = []
-
-var privateDnsZoneConfigs = [for (zoneId, i) in privateDnsZoneResourceIds: {
-  name: 'dns-zone-${i}'
-  privateDnsZoneResourceId: zoneId
-}]
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+@description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+param privateEndpoints privateEndpointSingleServiceType[]?
 
 // --- WAF: Redundancy ---
 @description('Enable zone redundancy.')
@@ -97,17 +87,7 @@ module cosmosAccount 'br/public:avm/res/document-db/database-account:0.19.0' = {
       networkAclBypass: 'AzureServices'
       publicNetworkAccess: publicNetworkAccess
     }
-    privateEndpoints: enablePrivateNetworking ? [
-      {
-        name: 'pep-${name}'
-        customNetworkInterfaceName: 'nic-${name}'
-        subnetResourceId: privateEndpointSubnetId
-        service: 'MongoDB'
-        privateDnsZoneGroup: {
-          privateDnsZoneGroupConfigs: privateDnsZoneConfigs
-        }
-      }
-    ] : []
+    privateEndpoints: privateEndpoints
     zoneRedundant: zoneRedundant
     enableAutomaticFailover: enableAutomaticFailover
     managedIdentities: managedIdentities
@@ -131,8 +111,9 @@ output resourceId string = cosmosAccount.outputs.resourceId
 @description('Name of the Cosmos DB account.')
 output name string = cosmosAccount.outputs.name
 
+@secure()
 @description('MongoDB connection string (without credentials — use Key Vault for secrets).')
-output connectionString string = 'mongodb+srv://${name}.mongo.cosmos.azure.com:443/?ssl=true&retrywrites=false&maxIdleTimeMS=120000'
+output connectionString string = cosmosAccount.outputs.primaryReadWriteConnectionString
 
 @description('Endpoint of the Cosmos DB account.')
 output endpoint string = 'https://${name}.mongo.cosmos.azure.com:443/'
