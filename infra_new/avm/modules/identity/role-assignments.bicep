@@ -28,6 +28,13 @@ param aiSearchPrincipalId string = ''
 @description('Principal ID of the backend App Service system-assigned identity (empty if not deployed).')
 param backendAppServicePrincipalId string = ''
 
+@description('Principal ID of the deploying user/service principal (for deployer role assignments).')
+param deployerPrincipalId string = ''
+
+@description('Principal type of the deploying user.')
+@allowed(['User', 'ServicePrincipal'])
+param deployerPrincipalType string = 'User'
+
 // --- Resource References ---
 
 @description('Resource ID of the AI Foundry account (empty if not deployed — new project path).')
@@ -41,6 +48,15 @@ param storageAccountResourceId string = ''
 
 @description('Name of the Cosmos DB account (empty if not deployed).')
 param cosmosDbAccountName string = ''
+
+@description('Name of the container registry to grant AcrPull on (empty = skip).')
+param containerRegistryName string = ''
+
+@description('Subscription ID of the container registry (defaults to the current subscription).')
+param containerRegistrySubscriptionId string = subscription().subscriptionId
+
+@description('Resource group of the container registry (defaults to the current resource group).')
+param containerRegistryResourceGroup string = resourceGroup().name
 
 // ============================================================================
 // Derived Variables
@@ -62,6 +78,7 @@ var roleDefinitions = {
   searchServiceContributor: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
   storageBlobDataContributor: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
   storageBlobDataReader: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+  acrPull: '7f951dda-4ed3-4680-a7ca-43fe172d538d'
 }
 
 // ============================================================================
@@ -228,6 +245,46 @@ resource backendAppCosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/s
     principalId: backendAppServicePrincipalId
     roleDefinitionId: cosmosContributorRoleDefinition.id
     scope: cosmosAccount.id
+  }
+}
+
+// ============================================================================
+// 5. CONTAINER REGISTRY ROLE ASSIGNMENTS
+//    Deploying principal → AcrPull on the container registry (new or reused).
+//    Same-RG registries are assigned inline; a registry that lives in another
+//    resource group or subscription (reused) is assigned via the cross-scope
+//    helper module.
+// ============================================================================
+
+var assignAcrPull = !empty(deployerPrincipalId) && !empty(containerRegistryName)
+var acrIsCrossScope = containerRegistrySubscriptionId != subscription().subscriptionId || containerRegistryResourceGroup != resourceGroup().name
+
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = if (assignAcrPull && !acrIsCrossScope) {
+  name: containerRegistryName
+}
+
+// Deploying principal → AcrPull on a same-RG container registry
+resource deployerAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (assignAcrPull && !acrIsCrossScope) {
+  name: guid(solutionName, containerRegistryName, deployerPrincipalId, roleDefinitions.acrPull)
+  scope: containerRegistry
+  properties: {
+    principalId: deployerPrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
+    principalType: deployerPrincipalType
+  }
+}
+
+// Deploying principal → AcrPull on an existing (reused) cross-scope container registry
+module deployerAcrPullExisting './cross-scope-role-assignment.bicep' = if (assignAcrPull && acrIsCrossScope) {
+  name: 'assignAcrPullToDeployerExisting'
+  scope: resourceGroup(containerRegistrySubscriptionId, containerRegistryResourceGroup)
+  params: {
+    targetResourceType: 'ContainerRegistry'
+    containerRegistryName: containerRegistryName
+    principalId: deployerPrincipalId
+    principalType: deployerPrincipalType
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
+    roleAssignmentName: guid(solutionName, containerRegistryName, deployerPrincipalId, roleDefinitions.acrPull)
   }
 }
 

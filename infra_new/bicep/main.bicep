@@ -158,6 +158,9 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('Optional. Resource ID of an existing AI Foundry project. Empty creates a new one.')
 param existingFoundryProjectResourceId string = ''
 
+@description('Optional. Resource ID of an existing Azure Container Registry to reuse. If empty, a new container registry is created.')
+param existingContainerRegistryResourceId string = ''
+
 // ============================================================================
 // Parameters — Identity
 // ============================================================================
@@ -199,6 +202,12 @@ var shouldDeployApp = deployApp
 var useExistingAIProject = !empty(existingFoundryProjectResourceId)
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
+
+// Container Registry: reuse existing when a resource ID is provided; otherwise create a new one.
+var useExistingContainerRegistry = !empty(existingContainerRegistryResourceId)
+var existingContainerRegistryName = useExistingContainerRegistry ? last(split(existingContainerRegistryResourceId, '/')) : ''
+var existingContainerRegistrySubscriptionId = useExistingContainerRegistry ? split(existingContainerRegistryResourceId, '/')[2] : subscription().subscriptionId
+var existingContainerRegistryResourceGroup = useExistingContainerRegistry ? split(existingContainerRegistryResourceId, '/')[4] : resourceGroup().name
 
 var useExistingFabricCapacity = !empty(azureFabricCapacityName)
 var shouldCreateFabricCapacity = createFabricWorkspace && !useExistingFabricCapacity
@@ -592,6 +601,30 @@ module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployA
 }
 
 // ============================================================================
+// Module: Container Registry
+//   - Created only when no existing registry is provided.
+//   - When an existing registry is provided, it is reused (referenced) instead.
+//   - Anonymous pull is left at its secure default (disabled).
+//   - AcrPull is granted to the deploying principal on the resolved registry.
+// ============================================================================
+
+module container_registry './modules/compute/container-registry.bicep' = if (!useExistingContainerRegistry) {
+  name: take('module.container-registry.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    location: location
+    tags: resourceTags
+    publicNetworkAccess: 'Enabled'
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
+
+// Resolved registry name — newly created or existing/reused.
+var resolvedContainerRegistryName = useExistingContainerRegistry
+  ? existingContainerRegistryName
+  : container_registry!.outputs.name
+
+// ============================================================================
 // Module: Role Assignments (centralized)
 // ============================================================================
 
@@ -612,6 +645,9 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
       ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
       : ''
     cosmosDbAccountName: shouldDeployApp ? cosmosDBModule!.outputs.name : ''
+    containerRegistryName: resolvedContainerRegistryName
+    containerRegistrySubscriptionId: existingContainerRegistrySubscriptionId
+    containerRegistryResourceGroup: existingContainerRegistryResourceGroup
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -724,3 +760,6 @@ output FABRIC_ADMIN_MEMBERS array = shouldCreateFabricCapacity ? fabricTotalAdmi
 
 @description('The unique solution suffix of the deployed resources.')
 output SOLUTION_SUFFIX string = solutionSuffix
+
+@description('The name of the container registry (newly created or existing/reused).')
+output AZURE_CONTAINER_REGISTRY_NAME string = resolvedContainerRegistryName

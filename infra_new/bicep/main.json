@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "17752466085733394892"
+      "templateHash": "12544210379381570164"
     }
   },
   "parameters": {
@@ -252,6 +252,13 @@
         "description": "Optional. Resource ID of an existing AI Foundry project. Empty creates a new one."
       }
     },
+    "existingContainerRegistryResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Resource ID of an existing Azure Container Registry to reuse. If empty, a new container registry is created."
+      }
+    },
     "deployingUserPrincipalType": {
       "type": "string",
       "defaultValue": "User",
@@ -288,6 +295,10 @@
     "useExistingAIProject": "[not(empty(parameters('existingFoundryProjectResourceId')))]",
     "useChatHistoryEnabledSetting": "[if(parameters('useChatHistoryEnabled'), 'True', 'False')]",
     "useUserAccessTokenSetting": "[if(parameters('useUserAccessToken'), 'True', 'False')]",
+    "useExistingContainerRegistry": "[not(empty(parameters('existingContainerRegistryResourceId')))]",
+    "existingContainerRegistryName": "[if(variables('useExistingContainerRegistry'), last(split(parameters('existingContainerRegistryResourceId'), '/')), '')]",
+    "existingContainerRegistrySubscriptionId": "[if(variables('useExistingContainerRegistry'), split(parameters('existingContainerRegistryResourceId'), '/')[2], subscription().subscriptionId)]",
+    "existingContainerRegistryResourceGroup": "[if(variables('useExistingContainerRegistry'), split(parameters('existingContainerRegistryResourceId'), '/')[4], resourceGroup().name)]",
     "useExistingFabricCapacity": "[not(empty(parameters('azureFabricCapacityName')))]",
     "shouldCreateFabricCapacity": "[and(parameters('createFabricWorkspace'), not(variables('useExistingFabricCapacity')))]",
     "fabricCapacityResourceName": "[if(variables('useExistingFabricCapacity'), parameters('azureFabricCapacityName'), format('fc{0}', variables('solutionSuffix')))]",
@@ -3668,6 +3679,181 @@
       ]
     },
     {
+      "condition": "[not(variables('useExistingContainerRegistry'))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[take(format('module.container-registry.{0}', parameters('solutionName')), 64)]",
+      "resourceGroup": "[resourceGroup().name]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "solutionName": {
+            "value": "[variables('solutionSuffix')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('resourceTags')]"
+          },
+          "publicNetworkAccess": {
+            "value": "Enabled"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.44.1.10279",
+              "templateHash": "6730962297935458636"
+            }
+          },
+          "parameters": {
+            "solutionName": {
+              "type": "string",
+              "metadata": {
+                "description": "Solution name used for naming convention."
+              }
+            },
+            "name": {
+              "type": "string",
+              "defaultValue": "[replace(format('cr{0}', parameters('solutionName')), '-', '')]",
+              "metadata": {
+                "description": "Name of the container registry."
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployment."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Resource tags."
+              }
+            },
+            "sku": {
+              "type": "string",
+              "defaultValue": "Standard",
+              "allowedValues": [
+                "Basic",
+                "Standard",
+                "Premium"
+              ],
+              "metadata": {
+                "description": "SKU for the container registry."
+              }
+            },
+            "adminUserEnabled": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable admin user."
+              }
+            },
+            "publicNetworkAccess": {
+              "type": "string",
+              "defaultValue": "Enabled",
+              "allowedValues": [
+                "Enabled",
+                "Disabled"
+              ],
+              "metadata": {
+                "description": "Public network access setting."
+              }
+            },
+            "exportPolicyStatus": {
+              "type": "string",
+              "defaultValue": "enabled",
+              "metadata": {
+                "description": "Export policy status."
+              }
+            },
+            "retentionPolicyStatus": {
+              "type": "string",
+              "defaultValue": "disabled",
+              "metadata": {
+                "description": "Retention policy status."
+              }
+            },
+            "identity": {
+              "type": "object",
+              "defaultValue": {
+                "type": "SystemAssigned"
+              },
+              "metadata": {
+                "description": "Optional. Managed identity configuration for the resource."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2025-04-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('sku')]"
+              },
+              "identity": "[parameters('identity')]",
+              "properties": {
+                "adminUserEnabled": "[parameters('adminUserEnabled')]",
+                "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
+                "dataEndpointEnabled": false,
+                "networkRuleBypassOptions": "AzureServices",
+                "policies": {
+                  "exportPolicy": {
+                    "status": "[parameters('exportPolicyStatus')]"
+                  },
+                  "retentionPolicy": {
+                    "status": "[parameters('retentionPolicyStatus')]",
+                    "days": 7
+                  },
+                  "trustPolicy": {
+                    "status": "disabled",
+                    "type": "Notary"
+                  }
+                },
+                "zoneRedundancy": "Disabled"
+              }
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the container registry."
+              },
+              "value": "[parameters('name')]"
+            },
+            "loginServer": {
+              "type": "string",
+              "metadata": {
+                "description": "The login server URL."
+              },
+              "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('name')), '2025-04-01').loginServer]"
+            },
+            "resourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource ID of the container registry."
+              },
+              "value": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('name'))]"
+            }
+          }
+        }
+      }
+    },
+    {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "[take(format('module.role-assignments.{0}', parameters('solutionName')), 64)]",
@@ -3705,7 +3891,14 @@
             "value": "[parameters('deployingUserPrincipalType')]"
           },
           "backendAppServicePrincipalId": "[if(variables('shouldDeployApp'), if(equals(parameters('backendRuntimeStack'), 'python'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value)), createObject('value', ''))]",
-          "cosmosDbAccountName": "[if(variables('shouldDeployApp'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value), createObject('value', ''))]"
+          "cosmosDbAccountName": "[if(variables('shouldDeployApp'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value), createObject('value', ''))]",
+          "containerRegistryName": "[if(variables('useExistingContainerRegistry'), createObject('value', variables('existingContainerRegistryName')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value))]",
+          "containerRegistrySubscriptionId": {
+            "value": "[variables('existingContainerRegistrySubscriptionId')]"
+          },
+          "containerRegistryResourceGroup": {
+            "value": "[variables('existingContainerRegistryResourceGroup')]"
+          }
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -3714,7 +3907,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "18394750597129424907"
+              "templateHash": "11931354889104122784"
             }
           },
           "parameters": {
@@ -3805,6 +3998,27 @@
               "metadata": {
                 "description": "Name of the Cosmos DB account (empty if not deployed)."
               }
+            },
+            "containerRegistryName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Name of the container registry to grant AcrPull on (empty = skip)."
+              }
+            },
+            "containerRegistrySubscriptionId": {
+              "type": "string",
+              "defaultValue": "[subscription().subscriptionId]",
+              "metadata": {
+                "description": "Subscription ID of the container registry (defaults to the current subscription)."
+              }
+            },
+            "containerRegistryResourceGroup": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().name]",
+              "metadata": {
+                "description": "Resource group of the container registry (defaults to the current resource group)."
+              }
             }
           },
           "variables": {
@@ -3819,8 +4033,11 @@
               "searchIndexDataContributor": "8ebe5a00-799e-43f5-93ac-243d3dce84a7",
               "searchServiceContributor": "7ca78c08-252a-4471-8644-bb5ff32d4ba0",
               "storageBlobDataContributor": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
-              "storageBlobDataReader": "2a2b9908-6ea1-4ae2-8e65-a410df84e7d1"
-            }
+              "storageBlobDataReader": "2a2b9908-6ea1-4ae2-8e65-a410df84e7d1",
+              "acrPull": "7f951dda-4ed3-4680-a7ca-43fe172d538d"
+            },
+            "assignAcrPull": "[and(not(empty(parameters('deployerPrincipalId'))), not(empty(parameters('containerRegistryName'))))]",
+            "acrIsCrossScope": "[or(not(equals(parameters('containerRegistrySubscriptionId'), subscription().subscriptionId)), not(equals(parameters('containerRegistryResourceGroup'), resourceGroup().name)))]"
           },
           "resources": [
             {
@@ -3991,6 +4208,18 @@
               }
             },
             {
+              "condition": "[and(variables('assignAcrPull'), not(variables('acrIsCrossScope')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
+              "name": "[guid(parameters('solutionName'), parameters('containerRegistryName'), parameters('deployerPrincipalId'), variables('roleDefinitions').acrPull)]",
+              "properties": {
+                "principalId": "[parameters('deployerPrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]",
+                "principalType": "[parameters('deployerPrincipalType')]"
+              }
+            },
+            {
               "condition": "[and(parameters('useExistingAIProject'), not(empty(parameters('aiSearchPrincipalId'))))]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
@@ -4023,7 +4252,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.44.1.10279",
-                      "templateHash": "3414629451173950961"
+                      "templateHash": "15240584362831878613"
                     }
                   },
                   "parameters": {
@@ -4045,29 +4274,62 @@
                         "description": "A unique name for the role assignment."
                       }
                     },
-                    "aiFoundryName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "The name of the AI Services account to scope the role assignment to."
-                      }
-                    },
                     "principalType": {
                       "type": "string",
                       "defaultValue": "ServicePrincipal",
                       "allowedValues": [
                         "ServicePrincipal",
-                        "User"
+                        "User",
+                        "Group"
                       ],
                       "metadata": {
                         "description": "The principal type of the identity being assigned."
+                      }
+                    },
+                    "targetResourceType": {
+                      "type": "string",
+                      "defaultValue": "AIServices",
+                      "allowedValues": [
+                        "AIServices",
+                        "ContainerRegistry"
+                      ],
+                      "metadata": {
+                        "description": "The type of target resource to scope the role assignment to."
+                      }
+                    },
+                    "aiFoundryName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Name of the target AI Services (Cognitive Services) account. Required when targetResourceType is AIServices."
+                      }
+                    },
+                    "containerRegistryName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Name of the target Azure Container Registry. Required when targetResourceType is ContainerRegistry."
                       }
                     }
                   },
                   "resources": [
                     {
+                      "condition": "[equals(parameters('targetResourceType'), 'AIServices')]",
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
+                      "name": "[parameters('roleAssignmentName')]",
+                      "properties": {
+                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                        "principalId": "[parameters('principalId')]",
+                        "principalType": "[parameters('principalType')]"
+                      }
+                    },
+                    {
+                      "condition": "[equals(parameters('targetResourceType'), 'ContainerRegistry')]",
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
                       "name": "[parameters('roleAssignmentName')]",
                       "properties": {
                         "roleDefinitionId": "[parameters('roleDefinitionId')]",
@@ -4112,7 +4374,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.44.1.10279",
-                      "templateHash": "3414629451173950961"
+                      "templateHash": "15240584362831878613"
                     }
                   },
                   "parameters": {
@@ -4134,10 +4396,132 @@
                         "description": "A unique name for the role assignment."
                       }
                     },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "ServicePrincipal",
+                      "allowedValues": [
+                        "ServicePrincipal",
+                        "User",
+                        "Group"
+                      ],
+                      "metadata": {
+                        "description": "The principal type of the identity being assigned."
+                      }
+                    },
+                    "targetResourceType": {
+                      "type": "string",
+                      "defaultValue": "AIServices",
+                      "allowedValues": [
+                        "AIServices",
+                        "ContainerRegistry"
+                      ],
+                      "metadata": {
+                        "description": "The type of target resource to scope the role assignment to."
+                      }
+                    },
                     "aiFoundryName": {
                       "type": "string",
+                      "defaultValue": "",
                       "metadata": {
-                        "description": "The name of the AI Services account to scope the role assignment to."
+                        "description": "Name of the target AI Services (Cognitive Services) account. Required when targetResourceType is AIServices."
+                      }
+                    },
+                    "containerRegistryName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Name of the target Azure Container Registry. Required when targetResourceType is ContainerRegistry."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "condition": "[equals(parameters('targetResourceType'), 'AIServices')]",
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
+                      "name": "[parameters('roleAssignmentName')]",
+                      "properties": {
+                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                        "principalId": "[parameters('principalId')]",
+                        "principalType": "[parameters('principalType')]"
+                      }
+                    },
+                    {
+                      "condition": "[equals(parameters('targetResourceType'), 'ContainerRegistry')]",
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
+                      "name": "[parameters('roleAssignmentName')]",
+                      "properties": {
+                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                        "principalId": "[parameters('principalId')]",
+                        "principalType": "[parameters('principalType')]"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "condition": "[and(variables('assignAcrPull'), variables('acrIsCrossScope'))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "assignAcrPullToDeployerExisting",
+              "subscriptionId": "[parameters('containerRegistrySubscriptionId')]",
+              "resourceGroup": "[parameters('containerRegistryResourceGroup')]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "targetResourceType": {
+                    "value": "ContainerRegistry"
+                  },
+                  "containerRegistryName": {
+                    "value": "[parameters('containerRegistryName')]"
+                  },
+                  "principalId": {
+                    "value": "[parameters('deployerPrincipalId')]"
+                  },
+                  "principalType": {
+                    "value": "[parameters('deployerPrincipalType')]"
+                  },
+                  "roleDefinitionId": {
+                    "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]"
+                  },
+                  "roleAssignmentName": {
+                    "value": "[guid(parameters('solutionName'), parameters('containerRegistryName'), parameters('deployerPrincipalId'), variables('roleDefinitions').acrPull)]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.44.1.10279",
+                      "templateHash": "15240584362831878613"
+                    }
+                  },
+                  "parameters": {
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The principal ID to assign the role to."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The resource ID of the role definition to assign."
+                      }
+                    },
+                    "roleAssignmentName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "A unique name for the role assignment."
                       }
                     },
                     "principalType": {
@@ -4145,18 +4529,57 @@
                       "defaultValue": "ServicePrincipal",
                       "allowedValues": [
                         "ServicePrincipal",
-                        "User"
+                        "User",
+                        "Group"
                       ],
                       "metadata": {
                         "description": "The principal type of the identity being assigned."
+                      }
+                    },
+                    "targetResourceType": {
+                      "type": "string",
+                      "defaultValue": "AIServices",
+                      "allowedValues": [
+                        "AIServices",
+                        "ContainerRegistry"
+                      ],
+                      "metadata": {
+                        "description": "The type of target resource to scope the role assignment to."
+                      }
+                    },
+                    "aiFoundryName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Name of the target AI Services (Cognitive Services) account. Required when targetResourceType is AIServices."
+                      }
+                    },
+                    "containerRegistryName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Name of the target Azure Container Registry. Required when targetResourceType is ContainerRegistry."
                       }
                     }
                   },
                   "resources": [
                     {
+                      "condition": "[equals(parameters('targetResourceType'), 'AIServices')]",
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
                       "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
+                      "name": "[parameters('roleAssignmentName')]",
+                      "properties": {
+                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                        "principalId": "[parameters('principalId')]",
+                        "principalType": "[parameters('principalType')]"
+                      }
+                    },
+                    {
+                      "condition": "[equals(parameters('targetResourceType'), 'ContainerRegistry')]",
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
                       "name": "[parameters('roleAssignmentName')]",
                       "properties": {
                         "roleDefinitionId": "[parameters('roleDefinitionId')]",
@@ -4176,6 +4599,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.storage-account.{0}', parameters('solutionName')), 64))]"
@@ -4427,6 +4851,13 @@
         "description": "The unique solution suffix of the deployed resources."
       },
       "value": "[variables('solutionSuffix')]"
+    },
+    "AZURE_CONTAINER_REGISTRY_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the container registry (newly created or existing/reused)."
+      },
+      "value": "[if(variables('useExistingContainerRegistry'), variables('existingContainerRegistryName'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value)]"
     }
   }
 }
