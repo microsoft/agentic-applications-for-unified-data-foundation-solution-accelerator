@@ -751,10 +751,21 @@ module storage_account './modules/data/storage-account.bicep' = {
         principalType: deployingUserPrincipalType
       }
     ]
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.blob]!.outputs.resourceId
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-st-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-st-${solutionSuffix}'
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+        service: 'blob'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'dns-zone-blob'
+              privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.blob]!.outputs.resourceId
+            }
+          ]
+        }
+      }
     ] : []
   }
 }
@@ -775,10 +786,21 @@ module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = if (shouldDeployA
     zoneRedundant: enableRedundancy
     enableAutomaticFailover: enableRedundancy
     haLocation: cosmosDbHaLocation
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.cosmosDb]!.outputs.resourceId
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-cosmos-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-cosmos-${solutionSuffix}'
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+        service: 'Sql'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'dns-zone-cosmos'
+              privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cosmosDb]!.outputs.resourceId
+            }
+          ]
+        }
+      }
     ] : []
   }
 }
