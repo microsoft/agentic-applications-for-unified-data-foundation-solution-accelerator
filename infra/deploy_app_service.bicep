@@ -20,6 +20,12 @@ param appImageName string
 @description('The resource ID of the user-assigned managed identity. If empty, only system-assigned identity is used.')
 param userassignedIdentityId string = ''
 
+@description('Whether the App Service should use a managed identity to pull images from Azure Container Registry.')
+param acrUseManagedIdentityCreds bool = false
+
+@description('Client ID of the user-assigned managed identity used for ACR pull. Leave empty to use the system-assigned identity.')
+param acrUserManagedIdentityClientId string = ''
+
 resource appService 'Microsoft.Web/sites@2025-05-01' = {
   name: solutionName
   location: solutionLocation
@@ -40,6 +46,8 @@ resource appService 'Microsoft.Web/sites@2025-05-01' = {
       linuxFxVersion: appImageName
       endToEndEncryptionEnabled: true
       minTlsVersion: '1.2'
+      acrUseManagedIdentityCreds: acrUseManagedIdentityCreds
+      acrUserManagedIdentityID: acrUseManagedIdentityCreds && !empty(acrUserManagedIdentityClientId) ? acrUserManagedIdentityClientId : null
     }
   }
   resource basicPublishingCredentialsPoliciesFtp 'basicPublishingCredentialsPolicies' = {

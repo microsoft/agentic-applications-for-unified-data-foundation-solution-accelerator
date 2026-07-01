@@ -81,6 +81,9 @@ param embeddingDeploymentCapacity int = 80
 
 param imageTag string = 'latest_v2'
 
+@description('Public placeholder container image used at provisioning time. The real application images are built and applied by the post-deployment ACR build script (infra/scripts/acr_build_and_deploy).')
+param placeholderImage string = 'mcr.microsoft.com/azuredocs/aci-helloworld:latest'
+
 @description('Deploy the application components (Cosmos DB, API, Frontend). Set to true to deploy the app.')
 param deployApp bool = true
 
@@ -147,8 +150,10 @@ var solutionSuffix = toLower(trim(replace(
 @description('Location for AI Foundry deployment. This is the location where the AI Foundry resources will be deployed.')
 param aiDeploymentsLocation string
 
-@description('Name of the Azure Container Registry')
-param acrName string = 'dataagentscontainerreg'
+@description('Optional. Name of the dedicated Azure Container Registry to create for this deployment. If empty, a unique name is derived from the solution suffix. Must be globally unique, 5-50 alphanumeric characters.')
+param acrName string = ''
+
+var acrNameResolved = !empty(acrName) ? acrName : take('${abbrs.containers.containerRegistry}${solutionSuffix}', 50)
 
 //Get the current deployer's information
 var deployerInfo = deployer()
@@ -183,6 +188,21 @@ module managedIdentityModule 'deploy_managed_identity.bicep' = {
     miName:'${abbrs.security.managedIdentity}${solutionSuffix}'
     solutionName: solutionSuffix
     solutionLocation: solutionLocation
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
+
+// ========== Dedicated Container Registry (identity-based pull) ========== //
+module containerRegistryModule 'deploy_acr.bicep' = if (shouldDeployApp) {
+  name: 'deploy_container_registry'
+  params: {
+    acrName: acrNameResolved
+    solutionLocation: solutionLocation
+    solutionName: solutionSuffix
+    acrPullPrincipalIds: [
+      managedIdentityModule.outputs.managedIdentityOutput.objectId
+      managedIdentityModule.outputs.managedIdentityBackendAppOutput.objectId
+    ]
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -247,8 +267,8 @@ module backend_docker 'deploy_backend_docker.bicep' = if (shouldDeployApp && bac
   params: {
     name: 'api-${solutionSuffix}'
     solutionLocation: solutionLocation
-    imageTag: imageTag
-    acrName: acrName
+    placeholderImage: placeholderImage
+    acrUserManagedIdentityClientId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
     appServicePlanId: hostingplan!.outputs.name
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
@@ -309,8 +329,8 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
   params: {
     name: 'api-cs-${solutionSuffix}'
     solutionLocation: solutionLocation
-    imageTag: imageTag
-    acrName: acrName
+    placeholderImage: placeholderImage
+    acrUserManagedIdentityClientId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
     appServicePlanId: hostingplan!.outputs.name
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
@@ -360,8 +380,9 @@ module frontend_docker 'deploy_frontend_docker.bicep' = if (shouldDeployApp) {
   params: {
     name: '${abbrs.compute.webApp}${solutionSuffix}'
     solutionLocation:solutionLocation
-    imageTag: imageTag
-    acrName: acrName
+    placeholderImage: placeholderImage
+    userassignedIdentityId: managedIdentityModule.outputs.managedIdentityOutput.id
+    acrUserManagedIdentityClientId: managedIdentityModule.outputs.managedIdentityOutput.clientId
     appServicePlanId: hostingplan!.outputs.name
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     appSettings:{
@@ -432,6 +453,19 @@ output MID_DISPLAY_NAME string = managedIdentityModule.outputs.managedIdentityBa
 
 @description('Frontend web application URL')
 output WEB_APP_URL string = shouldDeployApp ? frontend_docker!.outputs.appUrl : ''
+
+@description('Frontend web application (App Service) name')
+output WEB_APP_NAME string = shouldDeployApp ? '${abbrs.compute.webApp}${solutionSuffix}' : ''
+
+@description('Name of the dedicated Azure Container Registry created for this deployment')
+output AZURE_ENV_CONTAINER_REGISTRY_NAME string = shouldDeployApp ? containerRegistryModule!.outputs.acrName : ''
+
+@description('Login server of the dedicated Azure Container Registry (e.g., myacr.azurecr.io)')
+output ACR_LOGIN_SERVER string = shouldDeployApp ? containerRegistryModule!.outputs.loginServer : ''
+
+@description('Container image tag used for the application images')
+output AZURE_ENV_IMAGE_TAG string = imageTag
+
 
 @description('Deployed use case identifier (e.g., Retail-sales-analysis)')
 output USE_CASE string = usecase
