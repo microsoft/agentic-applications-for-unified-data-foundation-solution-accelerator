@@ -42,7 +42,7 @@
       "value": "${AZURE_ENV_AI_SERVICE_LOCATION}"
     },
     "acrName": {
-      "value": "${AZURE_ENV_CONTAINER_REGISTRY_NAME}"
+      "value": "${AZURE_ENV_CONTAINER_REGISTRY_NAME=}"
     },
     "usecase": {
       "value": "${USE_CASE}"

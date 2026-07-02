@@ -37,6 +37,10 @@ param createdBy string = !empty(deployer().?userPrincipalName ?? '') ? split(dep
 ])
 param backendRuntimeStack string = 'python'
 
+@description('Public placeholder container image used at provisioning time for container-based App Services (C# backend). The real image is built and applied by the post-deployment ACR build script.')
+param placeholderImage string = 'mcr.microsoft.com/azuredocs/aci-helloworld:latest'
+
+
 @minLength(1)
 @description('Industry use case for deployment:')
 @allowed([
@@ -61,10 +65,10 @@ param searchServiceLocation string = resourceGroup().location
 param deploymentType string = 'GlobalStandard'
 
 @description('Name of the GPT model to deploy:')
-param gptModelName string = 'gpt-4.1-mini'
+param gptModelName string = 'gpt-5-mini'
 
 @description('Version of the GPT model to deploy:')
-param gptModelVersion string = '2025-04-14'
+param gptModelVersion string = '2025-08-07'
 
 param azureOpenAIApiVersion string = '2025-01-01-preview'
 
@@ -169,6 +173,20 @@ module managedIdentityModule 'deploy_managed_identity.bicep' = {
     miName: '${abbrs.security.managedIdentity}${solutionSuffix}'
     solutionName: solutionSuffix
     solutionLocation: solutionLocation
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
+
+// ========== Dedicated Container Registry (identity-based pull, C# container path) ========== //
+module containerRegistryModule 'deploy_acr.bicep' = if (shouldDeployApp && backendRuntimeStack == 'dotnet') {
+  name: 'deploy_container_registry'
+  params: {
+    acrName: take('${abbrs.containers.containerRegistry}${solutionSuffix}', 50)
+    solutionLocation: solutionLocation
+    solutionName: solutionSuffix
+    acrPullPrincipalIds: [
+      managedIdentityModule.outputs.managedIdentityBackendAppOutput.objectId
+    ]
   }
   scope: resourceGroup(resourceGroup().name)
 }
@@ -295,8 +313,8 @@ module backend_csapi_docker 'deploy_backend_csapi_docker.bicep' = if (shouldDepl
   params: {
     name: 'api-cs-${solutionSuffix}'
     solutionLocation: solutionLocation
-    imageTag: 'latest_v2'
-    acrName: 'dataagentscontainerreg'
+    placeholderImage: placeholderImage
+    acrUserManagedIdentityClientId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.clientId
     appServicePlanId: hostingplan!.outputs.name
     applicationInsightsId: aifoundry.outputs.applicationInsightsId
     userassignedIdentityId: managedIdentityModule.outputs.managedIdentityBackendAppOutput.id
