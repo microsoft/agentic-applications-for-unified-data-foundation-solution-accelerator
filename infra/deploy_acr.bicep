@@ -23,7 +23,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-11-01' =
     location: solutionLocation
   }
   sku: {
-    name: 'Premium'
+    name: 'Standard'
   }
   properties: {
     // Identity-based authentication only. Anonymous pull and admin user are disabled.
@@ -31,16 +31,9 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-11-01' =
     anonymousPullEnabled: false
     dataEndpointEnabled: false
     networkRuleBypassOptions: 'AzureServices'
-    networkRuleSet: {
-      defaultAction: 'Allow'
-    }
     policies: {
       quarantinePolicy: {
         status: 'disabled'
-      }
-      retentionPolicy: {
-        status: 'enabled'
-        days: 7
       }
       trustPolicy: {
         status: 'disabled'
