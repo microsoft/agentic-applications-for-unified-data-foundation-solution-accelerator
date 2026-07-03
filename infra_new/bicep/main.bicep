@@ -206,8 +206,6 @@ var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
 // Container Registry: reuse existing when a resource ID is provided; otherwise create a new one.
 var useExistingContainerRegistry = !empty(existingContainerRegistryResourceId)
 var existingContainerRegistryName = useExistingContainerRegistry ? last(split(existingContainerRegistryResourceId, '/')) : ''
-var existingContainerRegistrySubscriptionId = useExistingContainerRegistry ? split(existingContainerRegistryResourceId, '/')[2] : subscription().subscriptionId
-var existingContainerRegistryResourceGroup = useExistingContainerRegistry ? split(existingContainerRegistryResourceId, '/')[4] : resourceGroup().name
 
 var useExistingFabricCapacity = !empty(azureFabricCapacityName)
 var shouldCreateFabricCapacity = createFabricWorkspace && !useExistingFabricCapacity
@@ -624,6 +622,35 @@ var resolvedContainerRegistryName = useExistingContainerRegistry
   ? existingContainerRegistryName
   : container_registry!.outputs.name
 
+// Single registry resource ID handed to role assignments (new or existing — just the ID).
+var containerRegistryResourceId = useExistingContainerRegistry
+  ? existingContainerRegistryResourceId
+  : container_registry!.outputs.resourceId
+
+// Principals that need AcrPull on the container registry: the deployer plus the
+// app services (backend + frontend) when the app is deployed. Add or remove
+// entries here to control who gets pull access.
+var acrPullPrincipals = concat(
+  [
+    {
+      principalId: deployingUserPrincipalId
+      principalType: deployingUserPrincipalType
+    }
+  ],
+  shouldDeployApp
+    ? [
+        {
+          principalId: backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId
+          principalType: 'ServicePrincipal'
+        }
+        {
+          principalId: frontend_docker!.outputs.identityPrincipalId
+          principalType: 'ServicePrincipal'
+        }
+      ]
+    : []
+)
+
 // ============================================================================
 // Module: Role Assignments (centralized)
 // ============================================================================
@@ -645,9 +672,9 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
       ? (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
       : ''
     cosmosDbAccountName: shouldDeployApp ? cosmosDBModule!.outputs.name : ''
-    containerRegistryName: resolvedContainerRegistryName
-    containerRegistrySubscriptionId: existingContainerRegistrySubscriptionId
-    containerRegistryResourceGroup: existingContainerRegistryResourceGroup
+    useExistingContainerRegistry: useExistingContainerRegistry
+    containerRegistryResourceId: containerRegistryResourceId
+    acrPullPrincipals: acrPullPrincipals
   }
   scope: resourceGroup(resourceGroup().name)
 }

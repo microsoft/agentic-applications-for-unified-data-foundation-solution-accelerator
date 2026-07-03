@@ -28,13 +28,6 @@ param aiSearchPrincipalId string = ''
 @description('Principal ID of the backend App Service system-assigned identity (empty if not deployed).')
 param backendAppServicePrincipalId string = ''
 
-@description('Principal ID of the deploying user/service principal (for deployer role assignments).')
-param deployerPrincipalId string = ''
-
-@description('Principal type of the deploying user.')
-@allowed(['User', 'ServicePrincipal'])
-param deployerPrincipalType string = 'User'
-
 // --- Resource References ---
 
 @description('Resource ID of the AI Foundry account (empty if not deployed — new project path).')
@@ -49,14 +42,14 @@ param storageAccountResourceId string = ''
 @description('Name of the Cosmos DB account (empty if not deployed).')
 param cosmosDbAccountName string = ''
 
-@description('Name of the container registry to grant AcrPull on (empty = skip).')
-param containerRegistryName string = ''
+@description('Whether the container registry already exists (true) or was newly created in this deployment (false). Mirrors the useExistingAIProject flag.')
+param useExistingContainerRegistry bool = false
 
-@description('Subscription ID of the container registry (defaults to the current subscription).')
-param containerRegistrySubscriptionId string = subscription().subscriptionId
+@description('Resource ID of the container registry to grant AcrPull on (new or existing — just pass the ID). Name, subscription, and resource group are derived from it. Empty = skip ACR role assignments.')
+param containerRegistryResourceId string = ''
 
-@description('Resource group of the container registry (defaults to the current resource group).')
-param containerRegistryResourceGroup string = resourceGroup().name
+@description('Principals to grant AcrPull on the container registry (for example the deployer, backend and frontend app services, or container app identities). Each item is an object with principalId (string) and principalType (ServicePrincipal, User, or Group).')
+param acrPullPrincipals array = []
 
 // ============================================================================
 // Derived Variables
@@ -65,6 +58,11 @@ param containerRegistryResourceGroup string = resourceGroup().name
 var existingAIFoundryName = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[8] : ''
 var existingAIFoundrySubscription = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIFoundryResourceGroup = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[4] : resourceGroup().name
+
+// Container registry — derive name, subscription, and resource group from the resource ID (new or existing).
+var containerRegistryName = empty(containerRegistryResourceId) ? '' : split(containerRegistryResourceId, '/')[8]
+var containerRegistrySubscription = empty(containerRegistryResourceId) ? subscription().subscriptionId : split(containerRegistryResourceId, '/')[2]
+var containerRegistryResourceGroup = empty(containerRegistryResourceId) ? resourceGroup().name : split(containerRegistryResourceId, '/')[4]
 
 // ============================================================================
 // Role Definitions
@@ -250,40 +248,38 @@ resource backendAppCosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/s
 
 // ============================================================================
 // 5. CONTAINER REGISTRY ROLE ASSIGNMENTS
-//    Deploying principal → AcrPull on the container registry (new or reused).
-//    Same-RG registries are assigned inline; a registry that lives in another
-//    resource group or subscription (reused) is assigned via the cross-scope
-//    helper module.
+//    Grants AcrPull to every principal in acrPullPrincipals (e.g. the deployer,
+//    the backend/frontend app services, or container app identities). Mirrors
+//    the AI Foundry pattern: a newly created (same resource group) registry is
+//    assigned inline; an existing (reused) registry — which may live in another
+//    resource group or subscription — is assigned via the cross-scope helper.
 // ============================================================================
 
-var assignAcrPull = !empty(deployerPrincipalId) && !empty(containerRegistryName)
-var acrIsCrossScope = containerRegistrySubscriptionId != subscription().subscriptionId || containerRegistryResourceGroup != resourceGroup().name
-
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = if (assignAcrPull && !acrIsCrossScope) {
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = if (!useExistingContainerRegistry && !empty(containerRegistryResourceId)) {
   name: containerRegistryName
 }
 
-// Deploying principal → AcrPull on a same-RG container registry
-resource deployerAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (assignAcrPull && !acrIsCrossScope) {
-  name: guid(solutionName, containerRegistryName, deployerPrincipalId, roleDefinitions.acrPull)
+// Each principal → AcrPull on a newly created (same resource group) container registry
+resource acrPullAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for principal in acrPullPrincipals: if (!useExistingContainerRegistry && !empty(containerRegistryResourceId) && !empty(principal.principalId)) {
+  name: guid(solutionName, containerRegistryName, principal.principalId, roleDefinitions.acrPull)
   scope: containerRegistry
   properties: {
-    principalId: deployerPrincipalId
+    principalId: principal.principalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
-    principalType: deployerPrincipalType
+    principalType: principal.principalType
   }
-}
+}]
 
-// Deploying principal → AcrPull on an existing (reused) cross-scope container registry
-module deployerAcrPullExisting './cross-scope-role-assignment.bicep' = if (assignAcrPull && acrIsCrossScope) {
-  name: 'assignAcrPullToDeployerExisting'
-  scope: resourceGroup(containerRegistrySubscriptionId, containerRegistryResourceGroup)
+// Each principal → AcrPull on an existing (reused) cross-scope container registry
+module acrPullAssignmentsExisting './cross-scope-role-assignment.bicep' = [for principal in acrPullPrincipals: if (useExistingContainerRegistry && !empty(containerRegistryResourceId) && !empty(principal.principalId)) {
+  name: take('acrPull-${uniqueString(solutionName, containerRegistryName, principal.principalId)}', 64)
+  scope: resourceGroup(containerRegistrySubscription, containerRegistryResourceGroup)
   params: {
     targetResourceType: 'ContainerRegistry'
     containerRegistryName: containerRegistryName
-    principalId: deployerPrincipalId
-    principalType: deployerPrincipalType
+    principalId: principal.principalId
+    principalType: principal.principalType
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
-    roleAssignmentName: guid(solutionName, containerRegistryName, deployerPrincipalId, roleDefinitions.acrPull)
+    roleAssignmentName: guid(solutionName, containerRegistryName, principal.principalId, roleDefinitions.acrPull)
   }
-}
+}]
