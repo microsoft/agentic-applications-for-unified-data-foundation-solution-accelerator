@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "18227460170144305694"
+      "templateHash": "14322627335104775868"
     }
   },
   "parameters": {
@@ -650,7 +650,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "8654133598391472726"
+              "templateHash": "12120005818918099664"
             }
           },
           "parameters": {
@@ -692,23 +692,16 @@
               "location": "[parameters('solutionLocation')]",
               "tags": "[if(empty(parameters('solutionName')), createObject(), createObject('app', parameters('solutionName'), 'location', parameters('solutionLocation')))]",
               "sku": {
-                "name": "Premium"
+                "name": "Standard"
               },
               "properties": {
                 "adminUserEnabled": false,
                 "anonymousPullEnabled": false,
                 "dataEndpointEnabled": false,
                 "networkRuleBypassOptions": "AzureServices",
-                "networkRuleSet": {
-                  "defaultAction": "Allow"
-                },
                 "policies": {
                   "quarantinePolicy": {
                     "status": "disabled"
-                  },
-                  "retentionPolicy": {
-                    "status": "enabled",
-                    "days": 7
                   },
                   "trustPolicy": {
                     "status": "disabled",
