@@ -85,6 +85,7 @@
     "form-data": "3.0.5",
     "launch-editor": "2.14.1",
     "js-yaml": "4.2.0",
+    "http-proxy-middleware": "2.0.10",
     "@fluentui/react-icons": "$@fluentui/react-icons"
   }
 }
