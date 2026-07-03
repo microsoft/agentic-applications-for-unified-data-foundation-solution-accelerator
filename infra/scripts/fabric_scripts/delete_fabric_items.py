@@ -1,6 +1,14 @@
 import requests
 from azure.identity import AzureCliCredential
 import argparse
+import sys
+
+# Ensure Unicode output (e.g. ✓, ⚠) works on Windows consoles using cp1252.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 # Parse command-line arguments
 p = argparse.ArgumentParser(description="Delete Fabric workspace items created by create_fabric_items.py")
@@ -15,7 +23,7 @@ backend_app_pid = args.backend_app_pid
 
 def get_fabric_headers():
     """Get authentication headers for Fabric API"""
-    credential = AzureCliCredential()
+    credential = AzureCliCredential(process_timeout=60)
     cred = credential.get_token('https://api.fabric.microsoft.com/.default')
     token = cred.token
     fabric_headers = {"Authorization": "Bearer " + token.strip()}

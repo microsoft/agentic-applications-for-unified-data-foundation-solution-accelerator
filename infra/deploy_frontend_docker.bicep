@@ -1,8 +1,11 @@
-@description('The Docker image tag to deploy.')
-param imageTag string
+@description('The public placeholder container image used at provisioning time. The real image is applied by the post-deployment ACR build script.')
+param placeholderImage string
 
-@description('The name of the Azure Container Registry.')
-param acrName string
+@description('The resource ID of the user-assigned managed identity used for ACR pull.')
+param userassignedIdentityId string = ''
+
+@description('Client ID of the user-assigned managed identity used for ACR pull.')
+param acrUserManagedIdentityClientId string = ''
 
 @description('The resource ID of the Application Insights instance.')
 param applicationInsightsId string
@@ -17,7 +20,7 @@ param appSettings object = {}
 @description('The resource ID of the App Service Plan.')
 param appServicePlanId string
 
-var imageName = 'DOCKER|${acrName}.azurecr.io/da-app:${imageTag}'
+var imageName = 'DOCKER|${placeholderImage}'
 
 @description('The name of the App Service.')
 param name string
@@ -28,6 +31,9 @@ module appService 'deploy_app_service.bicep' = {
     solutionName: name
     appServicePlanId: appServicePlanId
     appImageName: imageName
+    userassignedIdentityId: userassignedIdentityId
+    acrUseManagedIdentityCreds: true
+    acrUserManagedIdentityClientId: acrUserManagedIdentityClientId
     appSettings: union(
       appSettings,
       {

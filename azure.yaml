@@ -27,10 +27,13 @@ hooks:
             Write-Host ""
         } else {
             Write-Host "`nRun the following commands in the bash terminal:"
-            Write-Host "1. Create agents:"
+            Write-Host "1. Build and deploy the application container images to the dedicated ACR:"
+            Write-Host "bash ./infra/scripts/acr_build_and_deploy.sh" -ForegroundColor Cyan
+
+            Write-Host "`n2. Create agents:"
             Write-Host "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh" -ForegroundColor Cyan
 
-            Write-Host "`n2. Create Fabric items:"
+            Write-Host "`n3. Create Fabric items:"
             Write-Host "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>" -ForegroundColor Cyan
         }
 
@@ -49,10 +52,13 @@ hooks:
             echo ""
         else
             echo "Run the following commands in the bash terminal:"
-            echo "1. Create agents:"
+            echo "1. Build and deploy the application container images to the dedicated ACR:"
+            echo "bash ./infra/scripts/acr_build_and_deploy.sh"
+            echo ""
+            echo "2. Create agents:"
             echo "bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh"
             echo ""
-            echo "2. Create Fabric items:"
+            echo "3. Create Fabric items:"
             echo "bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric_workspace_id>"
         fi
 
