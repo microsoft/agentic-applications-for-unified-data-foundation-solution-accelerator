@@ -78,7 +78,7 @@ from azure.ai.projects.models import (
 
 # Azure services - from azd environment
 ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
-MODEL = os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-4.1-mini")
+MODEL = os.getenv("AZURE_CHAT_MODEL") or os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "gpt-5-mini")
 
 # Search mode
 USE_KNOWLEDGE_BASE = args.use_knowledge_base or True
