@@ -79,7 +79,7 @@ param embeddingModel string = 'text-embedding-3-small'
 @description('Capacity of the Embedding Model deployment')
 param embeddingDeploymentCapacity int = 80
 
-param imageTag string = 'latest_v2'
+param imageTag string = 'latest'
 
 @description('Public placeholder container image used at provisioning time. The real application images are built and applied by the post-deployment ACR build script (infra/scripts/acr_build_and_deploy).')
 param placeholderImage string = 'mcr.microsoft.com/azuredocs/aci-helloworld:latest'
@@ -142,7 +142,7 @@ var solutionSuffix = toLower(trim(replace(
   azd:{
     type: 'location'
     usageName: [
-      'OpenAI.GlobalStandard.gpt4.1-mini,20'
+      'OpenAI.GlobalStandard.gpt-5-mini,20'
       'OpenAI.GlobalStandard.text-embedding-3-small,80'
     ]
   }

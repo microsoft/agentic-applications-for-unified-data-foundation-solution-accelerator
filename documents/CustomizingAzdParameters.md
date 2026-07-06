@@ -13,8 +13,8 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_NAME`                          | string  | `env_name`               | Sets the environment name prefix for all Azure resources (3-20 chars).     |
 | `AZURE_ENV_SECONDARY_LOCATION`            | string  | `eastus2`                | Specifies a secondary Azure region for databases.                          |
 | `AZURE_ENV_MODEL_DEPLOYMENT_TYPE`      | string  | `GlobalStandard`         | Defines the model deployment type (allowed: `Standard`, `GlobalStandard`). |
-| `AZURE_ENV_GPT_MODEL_NAME`           | string  | `gpt-4.1-mini`           | Specifies the GPT model name (e.g., `gpt-4.1-mini`).                      |
-| `AZURE_ENV_GPT_MODEL_VERSION`            | string  | `2025-04-14`             | Sets the GPT model version.                                                |
+| `AZURE_ENV_GPT_MODEL_NAME`           | string  | `gpt-5-mini`             | Specifies the GPT model name (e.g., `gpt-5-mini`).                        |
+| `AZURE_ENV_GPT_MODEL_VERSION`            | string  | `2025-08-07`             | Sets the GPT model version.                                                |
 | `AZURE_ENV_OPENAI_API_VERSION`            | string  | `2025-01-01-preview`     | Specifies the API version for Azure OpenAI.                                |
 | `AZURE_ENV_GPT_MODEL_CAPACITY`  | integer | `150`                    | Sets the GPT model capacity (minimum: 10).                                 |
 | `AZURE_ENV_IMAGE_TAG`                    | string  | `latest_workshop`        | Sets the container image tag.                                              |

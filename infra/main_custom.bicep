@@ -132,7 +132,7 @@ var solutionSuffix = toLower(trim(replace(
   azd: {
     type: 'location'
     usageName: [
-      'OpenAI.GlobalStandard.gpt4.1-mini,20'
+      'OpenAI.GlobalStandard.gpt-5-mini,20'
       'OpenAI.GlobalStandard.text-embedding-3-small,80'
     ]
   }
