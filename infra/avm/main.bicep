@@ -920,6 +920,7 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (backendR
       DISPLAY_CHART_DEFAULT: 'False'
       APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsightsConnectionString
       SOLUTION_NAME: solutionSuffix
+      USE_USER_ACCESS_TOKEN: useUserAccessTokenSetting
       APP_ENV: 'Prod'
       AGENT_NAME_CHAT: ''
       AGENT_NAME_TITLE: ''

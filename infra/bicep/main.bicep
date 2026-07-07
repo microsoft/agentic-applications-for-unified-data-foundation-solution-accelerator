@@ -554,6 +554,7 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (backendR
       APPLICATIONINSIGHTS_CONNECTION_STRING: app_insights.outputs.connectionString
       DUMMY_TEST: 'True'
       SOLUTION_NAME: solutionSuffix 
+      USE_USER_ACCESS_TOKEN: useUserAccessTokenSetting
       APP_ENV: 'Prod'
 
       AGENT_NAME_CHAT: ''

@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "1806876377258182207"
+      "templateHash": "1138736693056161647"
     }
   },
   "parameters": {
@@ -46719,7 +46719,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "2721583462833023327"
+              "templateHash": "7219841793741923362"
             }
           },
           "definitions": {
@@ -47252,6 +47252,40 @@
             }
           },
           "resources": {
+            "site": {
+              "existing": true,
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2025-03-01",
+              "name": "[parameters('name')]"
+            },
+            "logsConfig": {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-03-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'logs')]",
+              "properties": {
+                "applicationLogs": {
+                  "fileSystem": {
+                    "level": "Verbose"
+                  }
+                },
+                "detailedErrorMessages": {
+                  "enabled": true
+                },
+                "failedRequestsTracing": {
+                  "enabled": true
+                },
+                "httpLogs": {
+                  "fileSystem": {
+                    "enabled": true,
+                    "retentionInDays": 1,
+                    "retentionInMb": 35
+                  }
+                }
+              },
+              "dependsOn": [
+                "appService"
+              ]
+            },
             "appService": {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
@@ -47291,7 +47325,8 @@
                       "minTlsVersion": "1.2",
                       "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                       "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
-                      "appCommandLine": "[parameters('appCommandLine')]"
+                      "appCommandLine": "[parameters('appCommandLine')]",
+                      "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
                     }
                   },
                   "e2eEncryptionEnabled": {
@@ -47303,35 +47338,6 @@
                         "name": "appsettings",
                         "properties": "[parameters('appSettings')]",
                         "applicationInsightResourceId": "[if(not(empty(parameters('applicationInsightResourceId'))), parameters('applicationInsightResourceId'), null())]"
-                      },
-                      {
-                        "name": "logs",
-                        "properties": {
-                          "applicationLogs": {
-                            "fileSystem": {
-                              "level": "Verbose"
-                            }
-                          },
-                          "detailedErrorMessages": {
-                            "enabled": true
-                          },
-                          "failedRequestsTracing": {
-                            "enabled": true
-                          },
-                          "httpLogs": {
-                            "fileSystem": {
-                              "enabled": true,
-                              "retentionInDays": 1,
-                              "retentionInMb": 35
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "name": "web",
-                        "properties": {
-                          "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
-                        }
                       }
                     ]
                   },
@@ -62264,6 +62270,7 @@
               "DISPLAY_CHART_DEFAULT": "False",
               "APPLICATIONINSIGHTS_CONNECTION_STRING": "[if(parameters('enableMonitoring'), reference('app_insights').outputs.connectionString.value, '')]",
               "SOLUTION_NAME": "[variables('solutionSuffix')]",
+              "USE_USER_ACCESS_TOKEN": "[variables('useUserAccessTokenSetting')]",
               "APP_ENV": "Prod",
               "AGENT_NAME_CHAT": "",
               "AGENT_NAME_TITLE": "",
@@ -62281,7 +62288,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "2721583462833023327"
+              "templateHash": "7219841793741923362"
             }
           },
           "definitions": {
@@ -62814,6 +62821,40 @@
             }
           },
           "resources": {
+            "site": {
+              "existing": true,
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2025-03-01",
+              "name": "[parameters('name')]"
+            },
+            "logsConfig": {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-03-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'logs')]",
+              "properties": {
+                "applicationLogs": {
+                  "fileSystem": {
+                    "level": "Verbose"
+                  }
+                },
+                "detailedErrorMessages": {
+                  "enabled": true
+                },
+                "failedRequestsTracing": {
+                  "enabled": true
+                },
+                "httpLogs": {
+                  "fileSystem": {
+                    "enabled": true,
+                    "retentionInDays": 1,
+                    "retentionInMb": 35
+                  }
+                }
+              },
+              "dependsOn": [
+                "appService"
+              ]
+            },
             "appService": {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
@@ -62853,7 +62894,8 @@
                       "minTlsVersion": "1.2",
                       "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                       "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
-                      "appCommandLine": "[parameters('appCommandLine')]"
+                      "appCommandLine": "[parameters('appCommandLine')]",
+                      "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
                     }
                   },
                   "e2eEncryptionEnabled": {
@@ -62865,35 +62907,6 @@
                         "name": "appsettings",
                         "properties": "[parameters('appSettings')]",
                         "applicationInsightResourceId": "[if(not(empty(parameters('applicationInsightResourceId'))), parameters('applicationInsightResourceId'), null())]"
-                      },
-                      {
-                        "name": "logs",
-                        "properties": {
-                          "applicationLogs": {
-                            "fileSystem": {
-                              "level": "Verbose"
-                            }
-                          },
-                          "detailedErrorMessages": {
-                            "enabled": true
-                          },
-                          "failedRequestsTracing": {
-                            "enabled": true
-                          },
-                          "httpLogs": {
-                            "fileSystem": {
-                              "enabled": true,
-                              "retentionInDays": 1,
-                              "retentionInMb": 35
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "name": "web",
-                        "properties": {
-                          "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
-                        }
                       }
                     ]
                   },
@@ -77819,7 +77832,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "2721583462833023327"
+              "templateHash": "7219841793741923362"
             }
           },
           "definitions": {
@@ -78352,6 +78365,40 @@
             }
           },
           "resources": {
+            "site": {
+              "existing": true,
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2025-03-01",
+              "name": "[parameters('name')]"
+            },
+            "logsConfig": {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-03-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'logs')]",
+              "properties": {
+                "applicationLogs": {
+                  "fileSystem": {
+                    "level": "Verbose"
+                  }
+                },
+                "detailedErrorMessages": {
+                  "enabled": true
+                },
+                "failedRequestsTracing": {
+                  "enabled": true
+                },
+                "httpLogs": {
+                  "fileSystem": {
+                    "enabled": true,
+                    "retentionInDays": 1,
+                    "retentionInMb": 35
+                  }
+                }
+              },
+              "dependsOn": [
+                "appService"
+              ]
+            },
             "appService": {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
@@ -78391,7 +78438,8 @@
                       "minTlsVersion": "1.2",
                       "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                       "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
-                      "appCommandLine": "[parameters('appCommandLine')]"
+                      "appCommandLine": "[parameters('appCommandLine')]",
+                      "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
                     }
                   },
                   "e2eEncryptionEnabled": {
@@ -78403,35 +78451,6 @@
                         "name": "appsettings",
                         "properties": "[parameters('appSettings')]",
                         "applicationInsightResourceId": "[if(not(empty(parameters('applicationInsightResourceId'))), parameters('applicationInsightResourceId'), null())]"
-                      },
-                      {
-                        "name": "logs",
-                        "properties": {
-                          "applicationLogs": {
-                            "fileSystem": {
-                              "level": "Verbose"
-                            }
-                          },
-                          "detailedErrorMessages": {
-                            "enabled": true
-                          },
-                          "failedRequestsTracing": {
-                            "enabled": true
-                          },
-                          "httpLogs": {
-                            "fileSystem": {
-                              "enabled": true,
-                              "retentionInDays": 1,
-                              "retentionInMb": 35
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "name": "web",
-                        "properties": {
-                          "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
-                        }
                       }
                     ]
                   },
