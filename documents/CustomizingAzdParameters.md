@@ -17,8 +17,8 @@ By default this template will use the environment name as the prefix to prevent 
 | `BACKEND_RUNTIME_STACK`                   | string  | `python`                 | Backend language (allowed: `python`, `dotnet`).                            |
 | `DEPLOYMENT_FLAVOR`                       | string  | `bicep`                  | Deployment flavor (allowed: `bicep`, `avm`, `avm-waf`).                    |
 | `AZURE_ENV_MODEL_DEPLOYMENT_TYPE`         | string  | `GlobalStandard`         | Defines the model deployment type (allowed: `Standard`, `GlobalStandard`). |
-| `AZURE_ENV_GPT_MODEL_NAME`               | string  | `gpt-4.1-mini`           | Specifies the GPT model name (e.g., `gpt-4.1-mini`).                      |
-| `AZURE_ENV_GPT_MODEL_VERSION`            | string  | `2025-04-14`             | Sets the GPT model version.                                                |
+| `AZURE_ENV_GPT_MODEL_NAME`               | string  | `gpt-5.4-mini`           | Specifies the GPT model name (e.g., `gpt-5.4-mini`).                      |
+| `AZURE_ENV_GPT_MODEL_VERSION`            | string  | `2026-03-17`             | Sets the GPT model version.                                                |
 | `AZURE_ENV_OPENAI_API_VERSION`            | string  | `2025-01-01-preview`     | Specifies the API version for Azure OpenAI.                                |
 | `AZURE_ENV_GPT_MODEL_CAPACITY`            | integer | `150`                    | Sets the GPT model capacity (minimum: 10).                                 |
 | `AZURE_ENV_EMBEDDING_DEPLOYMENT_CAPACITY` | integer | `80`                     | Sets the embedding model deployment capacity (minimum: 10).                |

@@ -184,8 +184,8 @@ When you start the deployment, most parameters will have **default values**, but
 | **Environment Name**                        | A **3–20 character alphanumeric value** used to generate a unique ID to prefix the resources.             | env\_name              |
 | **Backend Programming Language**            | Programming language for the backend API: **python** or **dotnet**.                                       | python                 |
 | **Deployment Type**                         | Select from a drop-down list (allowed: `Standard`, `GlobalStandard`).                                     | GlobalStandard         |
-| **GPT Model**                               | Name of the GPT model to deploy (e.g., `gpt-4.1-mini`).                                                  | gpt-4.1-mini           |
-| **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2025-04-14             |
+| **GPT Model**                               | Name of the GPT model to deploy (e.g., `gpt-5.4-mini`).                                                  | gpt-5.4-mini           |
+| **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2026-03-17             |
 | **OpenAI API Version**                      | The Azure OpenAI API version to use.                                                                      | 2025-01-01-preview     |
 | **GPT Model Deployment Capacity**           | Configure capacity for **GPT models** (in thousands).                                                     | 150                    |
 | **Image Tag**                               | Docker image tag to deploy. Common values: `latest_v2`, `dev`, `hotfix`.                                  | latest\_v2             |
@@ -200,7 +200,7 @@ When you start the deployment, most parameters will have **default values**, but
 <details>
   <summary><b>[Optional] Quota Recommendations</b></summary>
 
-By default, the **gpt-4.1-mini model capacity** in deployment is set to **150 TPM (thousands)**, which is the recommended minimum for optimal performance.
+By default, the **gpt-5.4-mini model capacity** in deployment is set to **150 TPM (thousands)**, which is the recommended minimum for optimal performance.
 
 Depending on your subscription quota and capacity, you can [adjust quota settings](AzureGPTQuotaSettings.md) to better meet your specific needs. You can also [adjust the deployment parameters](CustomizingAzdParameters.md) for additional optimization.
 

@@ -40,7 +40,7 @@ param tags object = {}
   azd: {
     type: 'location'
     usageName: [
-      'OpenAI.GlobalStandard.gpt4.1-mini,100'
+      'OpenAI.GlobalStandard.gpt-5.4-mini,100'
       'OpenAI.GlobalStandard.text-embedding-3-small,80'
     ]
   }
@@ -60,10 +60,10 @@ param azureAiServiceLocation string
 param deploymentType string = 'GlobalStandard'
 
 @description('Optional. Name of the GPT model to deploy.')
-param gptModelName string = 'gpt-4.1-mini'
+param gptModelName string = 'gpt-5.4-mini'
 
 @description('Optional. Version of the GPT model to deploy.')
-param gptModelVersion string = '2025-04-14'
+param gptModelVersion string = '2026-03-17'
 
 @minValue(10)
 @description('Optional. Capacity of the GPT deployment (TPM in thousands).')
