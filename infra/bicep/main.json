@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "4272848169429759010"
+      "templateHash": "15841029785825128032"
     }
   },
   "parameters": {
@@ -138,9 +138,9 @@
     },
     "containerRegistryName": {
       "type": "string",
-      "defaultValue": "dataagentscontainerreg",
+      "defaultValue": "",
       "metadata": {
-        "description": "Optional. Name of the Azure Container Registry."
+        "description": "Optional. Name of the Azure Container Registry. Empty derives a per-deployment name (cr<suffix>)."
       }
     },
     "backendRuntimeStack": {
@@ -275,6 +275,7 @@
     "solutionSuffix": "[toLower(trim(replace(replace(replace(replace(replace(replace(format('{0}{1}', parameters('solutionName'), parameters('solutionUniqueText')), '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))]",
     "deployerInfo": "[deployer()]",
     "deployingUserPrincipalId": "[variables('deployerInfo').objectId]",
+    "containerRegistryResourceName": "[if(not(empty(parameters('containerRegistryName'))), parameters('containerRegistryName'), take(format('cr{0}', variables('solutionSuffix')), 50))]",
     "createdBy": "[if(contains(variables('deployerInfo'), 'userPrincipalName'), split(variables('deployerInfo').userPrincipalName, '@')[0], variables('deployerInfo').objectId)]",
     "existingTags": "[coalesce(resourceGroup().tags, createObject())]",
     "useExistingAIProject": "[not(empty(parameters('existingFoundryProjectResourceId')))]",
@@ -311,10 +312,11 @@
     ],
     "aiFoundrySubscriptionId": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[2], subscription().subscriptionId)]",
     "aiFoundryResourceGroupName": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[4], resourceGroup().name)]",
-    "backendApiImageName": "[format('DOCKER|{0}.azurecr.io/da-api:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
-    "backendCsApiImageName": "[format('DOCKER|{0}.azurecr.io/da-api-dotnet:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
-    "frontendImageName": "[format('DOCKER|{0}.azurecr.io/da-app:{1}', parameters('containerRegistryName'), parameters('imageTag'))]",
-    "reactAppLayoutConfig": "{\n  \"appConfig\": {\n      \"CHAT_CHATHISTORY\": {\n        \"CHAT\": 70,\n        \"CHATHISTORY\": 30\n      }\n    }\n  }\n}"
+    "placeholderContainerImage": "DOCKER|mcr.microsoft.com/azuredocs/aci-helloworld:latest",
+    "backendApiImageName": "[variables('placeholderContainerImage')]",
+    "backendCsApiImageName": "[variables('placeholderContainerImage')]",
+    "frontendImageName": "[variables('placeholderContainerImage')]",
+    "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
   },
   "resources": [
     {
@@ -2727,6 +2729,186 @@
       }
     },
     {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[take(format('module.container-registry.{0}', parameters('solutionName')), 64)]",
+      "resourceGroup": "[resourceGroup().name]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "solutionName": {
+            "value": "[variables('solutionSuffix')]"
+          },
+          "name": {
+            "value": "[variables('containerRegistryResourceName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('existingTags')]"
+          },
+          "sku": {
+            "value": "Standard"
+          },
+          "publicNetworkAccess": {
+            "value": "Enabled"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.44.1.10279",
+              "templateHash": "6730962297935458636"
+            }
+          },
+          "parameters": {
+            "solutionName": {
+              "type": "string",
+              "metadata": {
+                "description": "Solution name used for naming convention."
+              }
+            },
+            "name": {
+              "type": "string",
+              "defaultValue": "[replace(format('cr{0}', parameters('solutionName')), '-', '')]",
+              "metadata": {
+                "description": "Name of the container registry."
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployment."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Resource tags."
+              }
+            },
+            "sku": {
+              "type": "string",
+              "defaultValue": "Standard",
+              "allowedValues": [
+                "Basic",
+                "Standard",
+                "Premium"
+              ],
+              "metadata": {
+                "description": "SKU for the container registry."
+              }
+            },
+            "adminUserEnabled": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable admin user."
+              }
+            },
+            "publicNetworkAccess": {
+              "type": "string",
+              "defaultValue": "Enabled",
+              "allowedValues": [
+                "Enabled",
+                "Disabled"
+              ],
+              "metadata": {
+                "description": "Public network access setting."
+              }
+            },
+            "exportPolicyStatus": {
+              "type": "string",
+              "defaultValue": "enabled",
+              "metadata": {
+                "description": "Export policy status."
+              }
+            },
+            "retentionPolicyStatus": {
+              "type": "string",
+              "defaultValue": "disabled",
+              "metadata": {
+                "description": "Retention policy status."
+              }
+            },
+            "identity": {
+              "type": "object",
+              "defaultValue": {
+                "type": "SystemAssigned"
+              },
+              "metadata": {
+                "description": "Optional. Managed identity configuration for the resource."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2025-04-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('sku')]"
+              },
+              "identity": "[parameters('identity')]",
+              "properties": {
+                "adminUserEnabled": "[parameters('adminUserEnabled')]",
+                "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
+                "dataEndpointEnabled": false,
+                "networkRuleBypassOptions": "AzureServices",
+                "policies": {
+                  "exportPolicy": {
+                    "status": "[parameters('exportPolicyStatus')]"
+                  },
+                  "retentionPolicy": {
+                    "status": "[parameters('retentionPolicyStatus')]",
+                    "days": 7
+                  },
+                  "trustPolicy": {
+                    "status": "disabled",
+                    "type": "Notary"
+                  }
+                },
+                "zoneRedundancy": "Disabled"
+              }
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the container registry."
+              },
+              "value": "[parameters('name')]"
+            },
+            "loginServer": {
+              "type": "string",
+              "metadata": {
+                "description": "The login server URL."
+              },
+              "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('name')), '2025-04-01').loginServer]"
+            },
+            "resourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource ID of the container registry."
+              },
+              "value": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('name'))]"
+            }
+          }
+        }
+      }
+    },
+    {
       "condition": "[equals(parameters('backendRuntimeStack'), 'python')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
@@ -2752,6 +2934,9 @@
           },
           "linuxFxVersion": {
             "value": "[variables('backendApiImageName')]"
+          },
+          "acrUseManagedIdentityCreds": {
+            "value": true
           },
           "appSettings": {
             "value": {
@@ -2800,7 +2985,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "9185565370457912659"
+              "templateHash": "13673771886806254197"
             }
           },
           "parameters": {
@@ -2913,6 +3098,13 @@
               "metadata": {
                 "description": "Optional. Managed identity configuration for the resource."
               }
+            },
+            "acrUseManagedIdentityCreds": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Use the app managed identity to authenticate ACR image pulls."
+              }
             }
           },
           "resources": [
@@ -2956,7 +3148,8 @@
                   "minTlsVersion": "1.2",
                   "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                   "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
-                  "appCommandLine": "[parameters('appCommandLine')]"
+                  "appCommandLine": "[parameters('appCommandLine')]",
+                  "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]"
                 },
                 "endToEndEncryptionEnabled": true
               }
@@ -3076,6 +3269,9 @@
           "linuxFxVersion": {
             "value": "[variables('backendCsApiImageName')]"
           },
+          "acrUseManagedIdentityCreds": {
+            "value": true
+          },
           "appSettings": {
             "value": {
               "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.instrumentationKey.value]",
@@ -3119,7 +3315,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "9185565370457912659"
+              "templateHash": "13673771886806254197"
             }
           },
           "parameters": {
@@ -3232,6 +3428,13 @@
               "metadata": {
                 "description": "Optional. Managed identity configuration for the resource."
               }
+            },
+            "acrUseManagedIdentityCreds": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Use the app managed identity to authenticate ACR image pulls."
+              }
             }
           },
           "resources": [
@@ -3275,7 +3478,8 @@
                   "minTlsVersion": "1.2",
                   "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                   "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
-                  "appCommandLine": "[parameters('appCommandLine')]"
+                  "appCommandLine": "[parameters('appCommandLine')]",
+                  "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]"
                 },
                 "endToEndEncryptionEnabled": true
               }
@@ -3394,6 +3598,9 @@
           "linuxFxVersion": {
             "value": "[variables('frontendImageName')]"
           },
+          "acrUseManagedIdentityCreds": {
+            "value": true
+          },
           "appSettings": {
             "value": {
               "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.instrumentationKey.value]",
@@ -3411,7 +3618,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "9185565370457912659"
+              "templateHash": "13673771886806254197"
             }
           },
           "parameters": {
@@ -3524,6 +3731,13 @@
               "metadata": {
                 "description": "Optional. Managed identity configuration for the resource."
               }
+            },
+            "acrUseManagedIdentityCreds": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Use the app managed identity to authenticate ACR image pulls."
+              }
             }
           },
           "resources": [
@@ -3567,7 +3781,8 @@
                   "minTlsVersion": "1.2",
                   "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                   "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
-                  "appCommandLine": "[parameters('appCommandLine')]"
+                  "appCommandLine": "[parameters('appCommandLine')]",
+                  "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]"
                 },
                 "endToEndEncryptionEnabled": true
               }
@@ -3695,6 +3910,12 @@
             "value": "[parameters('deployingUserPrincipalType')]"
           },
           "backendAppServicePrincipalId": "[if(equals(parameters('backendRuntimeStack'), 'python'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value))]",
+          "frontendAppServicePrincipalId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-frontend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value]"
+          },
+          "containerRegistryResourceId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value]"
+          },
           "cosmosDbAccountName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]"
           }
@@ -3706,7 +3927,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "18394750597129424907"
+              "templateHash": "816923035574542416"
             }
           },
           "parameters": {
@@ -3750,6 +3971,13 @@
               "defaultValue": "",
               "metadata": {
                 "description": "Principal ID of the backend App Service system-assigned identity (empty if not deployed)."
+              }
+            },
+            "frontendAppServicePrincipalId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Principal ID of the frontend App Service system-assigned identity (empty if not deployed)."
               }
             },
             "deployerPrincipalId": {
@@ -3797,6 +4025,13 @@
               "metadata": {
                 "description": "Name of the Cosmos DB account (empty if not deployed)."
               }
+            },
+            "containerRegistryResourceId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Resource ID of the Azure Container Registry (empty if not deployed)."
+              }
             }
           },
           "variables": {
@@ -3811,7 +4046,8 @@
               "searchIndexDataContributor": "8ebe5a00-799e-43f5-93ac-243d3dce84a7",
               "searchServiceContributor": "7ca78c08-252a-4471-8644-bb5ff32d4ba0",
               "storageBlobDataContributor": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
-              "storageBlobDataReader": "2a2b9908-6ea1-4ae2-8e65-a410df84e7d1"
+              "storageBlobDataReader": "2a2b9908-6ea1-4ae2-8e65-a410df84e7d1",
+              "acrPull": "7f951dda-4ed3-4680-a7ca-43fe172d538d"
             }
           },
           "resources": [
@@ -3980,6 +4216,30 @@
                 "principalId": "[parameters('deployerPrincipalId')]",
                 "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').storageBlobDataContributor)]",
                 "principalType": "[parameters('deployerPrincipalType')]"
+              }
+            },
+            {
+              "condition": "[and(not(empty(parameters('containerRegistryResourceId'))), not(empty(parameters('backendAppServicePrincipalId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/'))), parameters('backendAppServicePrincipalId'), variables('roleDefinitions').acrPull)]",
+              "properties": {
+                "principalId": "[parameters('backendAppServicePrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]",
+                "principalType": "ServicePrincipal"
+              }
+            },
+            {
+              "condition": "[and(not(empty(parameters('containerRegistryResourceId'))), not(empty(parameters('frontendAppServicePrincipalId'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/')))]",
+              "name": "[guid(parameters('solutionName'), resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/'))), parameters('frontendAppServicePrincipalId'), variables('roleDefinitions').acrPull)]",
+              "properties": {
+                "principalId": "[parameters('frontendAppServicePrincipalId')]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]",
+                "principalType": "ServicePrincipal"
               }
             },
             {
@@ -4168,8 +4428,10 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.ai-search.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', variables('aiFoundrySubscriptionId'), variables('aiFoundryResourceGroupName')), 'Microsoft.Resources/deployments', take(format('module.existing-project-setup.{0}', parameters('solutionName')), 64))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-frontend.{0}', parameters('solutionName')), 64))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.storage-account.{0}', parameters('solutionName')), 64))]"
       ]
     }
@@ -4181,6 +4443,27 @@
         "description": "Solution suffix used for naming resources"
       },
       "value": "[variables('solutionSuffix')]"
+    },
+    "AZURE_ENV_CONTAINER_REGISTRY_NAME": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the dedicated Azure Container Registry."
+      },
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]"
+    },
+    "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
+      "type": "string",
+      "metadata": {
+        "description": "Login server of the dedicated Azure Container Registry."
+      },
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.loginServer.value]"
+    },
+    "AZURE_ENV_IMAGE_TAG": {
+      "type": "string",
+      "metadata": {
+        "description": "Docker image tag used for app deployments."
+      },
+      "value": "[parameters('imageTag')]"
     },
     "RESOURCE_GROUP_NAME": {
       "type": "string",

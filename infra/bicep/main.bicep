@@ -92,8 +92,8 @@ param azureAiAgentApiVersion string = '2025-05-01'
 @description('Optional. Docker image tag for app deployments.')
 param imageTag string = 'latest_v2'
 
-@description('Optional. Name of the Azure Container Registry.')
-param containerRegistryName string = 'dataagentscontainerreg'
+@description('Optional. Name of the Azure Container Registry. Empty derives a per-deployment name (cr<suffix>).')
+param containerRegistryName string = ''
 
 @allowed([
   'python'
@@ -189,6 +189,9 @@ var solutionSuffix = toLower(trim(replace(
 
 var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
+
+// Container Registry: per-deployment ACR name (registry names: alphanumeric, 5-50 chars)
+var containerRegistryResourceName = !empty(containerRegistryName) ? containerRegistryName : take('cr${solutionSuffix}', 50)
 var createdBy = contains(deployerInfo, 'userPrincipalName') ? split(deployerInfo.userPrincipalName, '@')[0] : deployerInfo.objectId
 var existingTags = resourceGroup().tags ?? {}
 
@@ -450,12 +453,30 @@ module hostingplan './modules/compute/app-service-plan.bicep' = {
   }
 }
 
+// Seed / placeholder handling: App Services start on a public placeholder image;
+// the separate post-deployment script (infra/scripts/build/build-and-push-acr.*)
+// builds the real images into the dedicated ACR and repoints the apps.
+module containerRegistry './modules/compute/container-registry.bicep' = {
+  name: take('module.container-registry.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    name: containerRegistryResourceName
+    location: location
+    tags: existingTags
+    sku: 'Standard'
+    publicNetworkAccess: 'Enabled'
+  }
+  scope: resourceGroup(resourceGroup().name)
+}
+
 // ============================================================================
 // Module: Compute
 // ============================================================================
-var backendApiImageName = 'DOCKER|${containerRegistryName}.azurecr.io/da-api:${imageTag}'
-var backendCsApiImageName = 'DOCKER|${containerRegistryName}.azurecr.io/da-api-dotnet:${imageTag}'
-var frontendImageName = 'DOCKER|${containerRegistryName}.azurecr.io/da-app:${imageTag}'
+// Public placeholder image used at provision time (real images pushed post-deploy).
+var placeholderContainerImage = 'DOCKER|mcr.microsoft.com/azuredocs/aci-helloworld:latest'
+var backendApiImageName = placeholderContainerImage
+var backendCsApiImageName = placeholderContainerImage
+var frontendImageName = placeholderContainerImage
 var reactAppLayoutConfig = '''{
   "appConfig": {
       "CHAT_CHATHISTORY": {
@@ -475,6 +496,7 @@ module backend_docker './modules/compute/app-service.bicep' = if (backendRuntime
     location: location
     serverFarmResourceId: hostingplan!.outputs.resourceId
     linuxFxVersion: backendApiImageName
+    acrUseManagedIdentityCreds: true
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
       REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
@@ -528,6 +550,7 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (backendR
     location: location
     serverFarmResourceId: hostingplan!.outputs.resourceId
     linuxFxVersion: backendCsApiImageName
+    acrUseManagedIdentityCreds: true
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
       REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
@@ -578,6 +601,7 @@ module frontend_docker './modules/compute/app-service.bicep' = {
     location: location
     serverFarmResourceId: hostingplan!.outputs.resourceId
     linuxFxVersion: frontendImageName
+    acrUseManagedIdentityCreds: true
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
       APP_API_BASE_URL: apiBaseUrl
@@ -607,6 +631,8 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     deployerPrincipalId: deployingUserPrincipalId
     deployerPrincipalType: deployingUserPrincipalType
     backendAppServicePrincipalId: backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId
+    frontendAppServicePrincipalId: frontend_docker.outputs.identityPrincipalId
+    containerRegistryResourceId: containerRegistry.outputs.resourceId
     cosmosDbAccountName: cosmosDBModule.outputs.name
   }
   scope: resourceGroup(resourceGroup().name)
@@ -618,6 +644,15 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
 
 @description('Solution suffix used for naming resources')
 output SOLUTION_NAME string = solutionSuffix
+
+@description('Name of the dedicated Azure Container Registry.')
+output AZURE_ENV_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
+
+@description('Login server of the dedicated Azure Container Registry.')
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+
+@description('Docker image tag used for app deployments.')
+output AZURE_ENV_IMAGE_TAG string = imageTag
 
 @description('Name of the deployed resource group')
 output RESOURCE_GROUP_NAME string = resourceGroup().name
