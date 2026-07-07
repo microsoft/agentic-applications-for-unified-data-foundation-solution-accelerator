@@ -24,6 +24,38 @@
 set -euo pipefail
 
 # ----------------------------------------------------------------------------
+# UTF-8-safe `az` wrapper.
+#
+# The Windows MSI `az` launcher runs `python.exe -IBm azure.cli`. The -I
+# (isolated) flag makes Python ignore PYTHON* env vars (PYTHONUTF8 /
+# PYTHONIOENCODING), so on Git Bash the `az acr build` log stream is encoded
+# with the console code page (cp1252) and crashes with a UnicodeEncodeError on
+# any non-ASCII build output.
+#
+# We can't override that via env vars, but the `-X utf8` command-line flag is
+# NOT blocked by isolated mode. So when the bundled python is found next to the
+# az launcher we call it directly with -X utf8; otherwise we fall back to the
+# normal `az` on PATH (Linux/macOS, where UTF-8 locales avoid the issue).
+# ----------------------------------------------------------------------------
+_AZ_PY=""
+_az_launcher="$(command -v az || true)"
+if [[ -n "$_az_launcher" ]]; then
+    _az_dir="$(cd "$(dirname "$_az_launcher")" && pwd)"
+    for _cand in "$_az_dir/../python.exe" "$_az_dir/python.exe"; do
+        if [[ -f "$_cand" ]]; then _AZ_PY="$_cand"; break; fi
+    done
+fi
+
+az() {
+    if [[ -n "$_AZ_PY" ]]; then
+        AZ_INSTALLER=MSI "$_AZ_PY" -X utf8 -Bm azure.cli "$@"
+    else
+        command az "$@"
+    fi
+}
+
+
+# ----------------------------------------------------------------------------
 # Argument parsing
 # ----------------------------------------------------------------------------
 ACR_NAME=""
@@ -119,7 +151,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # ----------------------------------------------------------------------------
-# Command runner: suppress stdout unless --verbose; errors (stderr) always show
+# Command runner: suppress stdout unless --verbose; errors (stderr) always show.
 # ----------------------------------------------------------------------------
 run() {
     if [[ "$VERBOSE" == "true" ]]; then
@@ -257,12 +289,14 @@ for entry in "${IMAGES[@]}"; do
     echo "  [$build_index/${#IMAGES[@]}] Building '$image_ref'"
     echo "        context ...: $context"
     echo "        dockerfile : $dockerfile"
-    run az acr build \
+    # Run from within the context so `--file` resolves relative to it (az acr
+    # build validates the dockerfile path against the current directory).
+    ( cd "$context" && run az acr build \
         --registry "$ACR_NAME" \
         --resource-group "$RESOURCE_GROUP" \
         --image "$image_ref" \
         --file "$dockerfile" \
-        "$context"
+        . )
     echo "  [$build_index/${#IMAGES[@]}] Pushed '${LOGIN_SERVER}/${image_ref}'"
 done
 echo ""

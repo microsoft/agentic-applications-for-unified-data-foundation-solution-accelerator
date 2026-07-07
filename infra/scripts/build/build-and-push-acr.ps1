@@ -47,14 +47,58 @@ param (
 
 $ErrorActionPreference = "Stop"
 
-function Invoke-Az {
-    param([string[]]$Args)
-    # Suppress command stdout unless -VerboseOutput; errors (stderr) always show.
-    if ($VerboseOutput) {
-        & az @Args
+# ---------------------------------------------------------------------------
+# UTF-8-safe `az` wrapper (mirrors the bash `az()` override).
+#
+# The Windows MSI `az` launcher runs `python.exe -IBm azure.cli`. The -I
+# (isolated) flag makes Python ignore PYTHON* env vars (PYTHONUTF8 /
+# PYTHONIOENCODING), so the `az acr build` log stream is encoded with the
+# console code page (cp1252) and crashes with a UnicodeEncodeError on any
+# non-ASCII build output. The `-X utf8` command-line flag is NOT blocked by
+# isolated mode, so we call the bundled python directly with -X utf8 when we
+# can find it; otherwise we fall back to the normal `az` launcher on PATH.
+#
+# Shadowing `az` as a function means EVERY az call in this script (login,
+# discovery queries, and the acr build) uses the UTF-8-safe invocation, exactly
+# like the bash version.
+# ---------------------------------------------------------------------------
+$script:AzPython = $null
+$script:AzReal = $null
+$azCmd = Get-Command az -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($azCmd) {
+    $script:AzReal = $azCmd.Source
+    $azDir = Split-Path -Parent $azCmd.Source
+    foreach ($cand in @(
+            (Join-Path $azDir "..\python.exe"),
+            (Join-Path $azDir "python.exe"))) {
+        if (Test-Path $cand) { $script:AzPython = (Resolve-Path $cand).Path; break }
+    }
+}
+
+function az {
+    if ($script:AzPython) {
+        $env:AZ_INSTALLER = "MSI"
+        & $script:AzPython -X utf8 -B -m azure.cli @args
+    }
+    elseif ($script:AzReal) {
+        & $script:AzReal @args
     }
     else {
-        & az @Args 1>$null
+        throw "Azure CLI ('az') was not found on PATH."
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Command runner: suppress stdout unless -VerboseOutput; errors always show.
+# (mirrors the bash `run()` wrapper, plus a non-zero exit-code guard.)
+# ---------------------------------------------------------------------------
+function Invoke-Az {
+    param([string[]]$Args)
+    if ($VerboseOutput) {
+        az @Args
+    }
+    else {
+        az @Args 1>$null
     }
     if ($LASTEXITCODE -ne 0) {
         throw "Azure CLI command failed: az $($Args -join ' ')"
@@ -238,14 +282,22 @@ try {
         Write-Host "  [$buildIndex/$($Images.Count)] Building '$imageRef'"
         Write-Host "        context ...: $ctx"
         Write-Host "        dockerfile : $dockerfile"
-        Invoke-Az @(
-            "acr", "build",
-            "--registry", $AcrName,
-            "--resource-group", $ResourceGroup,
-            "--image", $imageRef,
-            "--file", $dockerfile,
-            $ctx
-        )
+        # Run from within the context so `--file` resolves relative to it (az acr
+        # build validates the dockerfile path against the current directory).
+        Push-Location $ctx
+        try {
+            Invoke-Az @(
+                "acr", "build",
+                "--registry", $AcrName,
+                "--resource-group", $ResourceGroup,
+                "--image", $imageRef,
+                "--file", $dockerfile,
+                "."
+            )
+        }
+        finally {
+            Pop-Location
+        }
         Write-Host "  [$buildIndex/$($Images.Count)] Pushed '$LoginServer/$imageRef'"
     }
     Write-Host ""
