@@ -14,7 +14,7 @@ echo ""
 # Parameter details:
 #   $1  projectEndpoint          - Azure AI Project endpoint URL (e.g., https://<ai-service>.services.ai.azure.com/api/projects/<project-name>)  | azd env: AZURE_AI_AGENT_ENDPOINT
 #   $2  solutionName             - Solution name used as a suffix for resource naming                                                             | azd env: SOLUTION_NAME
-#   $3  gptModelName             - GPT model deployment name (e.g., gpt-4o-mini)                                                                 | azd env: AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME
+#   $3  gptModelName             - GPT model deployment name (e.g., gpt-5.4-mini)                                                                 | azd env: AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME
 #   $4  aiFoundryResourceId      - Full Azure resource ID of the AI Foundry (starts with /subscriptions/...)                                     | azd env: AI_FOUNDRY_RESOURCE_ID
 #   $5  apiAppName               - Name of the backend API App Service                                                                           | azd env: API_APP_NAME
 #   $6  resourceGroup            - Azure resource group name                                                                                     | azd env: AZURE_RESOURCE_GROUP
@@ -99,7 +99,7 @@ fi
 
 if [ -z "$gptModelName" ]; then
     echo "❌ ERROR: 'gptModelName' is missing."
-    echo "   Expected: GPT model deployment name (e.g., gpt-4o-mini, gpt-4o, gpt-4)"
+    echo "   Expected: GPT model deployment name (e.g., gpt-5.4-mini, gpt-4o, gpt-4)"
     echo "   Source:   Pass as argument \$3 or set azd env variable AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME"
     validation_failed=true
 fi
