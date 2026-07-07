@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "10114190453070608008"
+      "templateHash": "10319810619476764090"
     }
   },
   "parameters": {
@@ -106,14 +106,14 @@
     },
     "gptModelName": {
       "type": "string",
-      "defaultValue": "gpt-5-mini",
+      "defaultValue": "gpt-5.4-mini",
       "metadata": {
         "description": "Name of the GPT model to deploy:"
       }
     },
     "gptModelVersion": {
       "type": "string",
-      "defaultValue": "2025-08-07",
+      "defaultValue": "2026-03-17",
       "metadata": {
         "description": "Version of the GPT model to deploy:"
       }
@@ -607,7 +607,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "8654133598391472726"
+              "templateHash": "12120005818918099664"
             }
           },
           "parameters": {
@@ -649,23 +649,16 @@
               "location": "[parameters('solutionLocation')]",
               "tags": "[if(empty(parameters('solutionName')), createObject(), createObject('app', parameters('solutionName'), 'location', parameters('solutionLocation')))]",
               "sku": {
-                "name": "Premium"
+                "name": "Standard"
               },
               "properties": {
                 "adminUserEnabled": false,
                 "anonymousPullEnabled": false,
                 "dataEndpointEnabled": false,
                 "networkRuleBypassOptions": "AzureServices",
-                "networkRuleSet": {
-                  "defaultAction": "Allow"
-                },
                 "policies": {
                   "quarantinePolicy": {
                     "status": "disabled"
-                  },
-                  "retentionPolicy": {
-                    "status": "enabled",
-                    "days": 7
                   },
                   "trustPolicy": {
                     "status": "disabled",
@@ -788,7 +781,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "10451455981184581021"
+              "templateHash": "2041035845133379254"
             }
           },
           "parameters": {
@@ -814,7 +807,7 @@
             "gptModelName": {
               "type": "string",
               "metadata": {
-                "description": "The name of the GPT model to deploy (e.g., gpt-4o, gpt-4)."
+                "description": "The name of the GPT model to deploy (e.g., gpt-5.4-mini)."
               }
             },
             "gptModelVersion": {
@@ -5183,7 +5176,7 @@
     "AZURE_ENV_GPT_MODEL_NAME": {
       "type": "string",
       "metadata": {
-        "description": "GPT model deployment name (e.g., gpt-4o-mini)"
+        "description": "GPT model deployment name (e.g., gpt-5.4-mini)"
       },
       "value": "[parameters('gptModelName')]"
     },
