@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "15406414339800399151"
+      "templateHash": "14683443711102617663"
     }
   },
   "parameters": {
@@ -45790,7 +45790,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "1223988259594936060"
+              "templateHash": "11760905568301824383"
             }
           },
           "parameters": {
@@ -45855,6 +45855,17 @@
               "defaultValue": "enabled",
               "metadata": {
                 "description": "Export policy status. Must be \"enabled\" when publicNetworkAccess is \"Enabled\"."
+              }
+            },
+            "azureADAuthenticationAsArmPolicyStatus": {
+              "type": "string",
+              "defaultValue": "enabled",
+              "allowedValues": [
+                "enabled",
+                "disabled"
+              ],
+              "metadata": {
+                "description": "Enable the ARM-audience AAD token policy. Must be \"enabled\" for App Service managed-identity image pulls to work (the AVM module defaults this to \"disabled\", which causes ACR token retrieval to fail with 401)."
               }
             },
             "acrPullPrincipalIds": {
@@ -46000,6 +46011,9 @@
                   },
                   "exportPolicyStatus": {
                     "value": "[parameters('exportPolicyStatus')]"
+                  },
+                  "azureADAuthenticationAsArmPolicyStatus": {
+                    "value": "[parameters('azureADAuthenticationAsArmPolicyStatus')]"
                   },
                   "roleAssignments": "[if(not(empty(variables('roleAssignments'))), createObject('value', variables('roleAssignments')), createObject('value', createArray()))]",
                   "privateEndpoints": {
