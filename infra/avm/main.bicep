@@ -610,25 +610,6 @@ module foundry_search_connection './modules/ai/ai-foundry-connection.bicep' = {
   }
 }
 
-// Storage Blob connection (single call for both existing and new paths)
-module foundry_storage_connection './modules/ai/ai-foundry-connection.bicep' = {
-  name: take('module.foundry-storage-conn.${solutionName}', 64)
-  scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
-  params: {
-    solutionName: solutionSuffix
-    aiServicesAccountName: aiFoundryResourceName
-    projectName: aiProjectResourceName
-    category: 'AzureBlob'
-    target: storage_account!.outputs.blobEndpoint
-    authType: 'AAD'
-    metadata: {
-      ResourceId: storage_account!.outputs.resourceId
-      AccountName: storage_account!.outputs.name
-      ContainerName: 'default'
-    }
-  }
-}
-
 // Application Insights connection (skip if using existing Foundry project which already has one)
 module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = if (enableMonitoring && !useExistingAIProject) {
   name: take('module.foundry-appi-conn.${solutionName}', 64)
@@ -741,33 +722,6 @@ module ai_search './modules/ai/ai-search.bicep' = {
 // ============================================================================
 // Module: Data 
 // ============================================================================
-
-module storage_account './modules/data/storage-account.bicep' = {
-  name: take('module.storage-account.${solutionName}', 64)
-  params: {
-    solutionName: solutionSuffix
-    location: azureAiServiceLocation
-    tags: tags
-    enableTelemetry: enableTelemetry
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    diagnosticSettings: monitoringDiagnosticSettings
-    containers: [
-      { name: 'default', publicAccess: 'None' }
-    ]
-    roleAssignments: [
-      {
-        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor
-        principalId: deployingUserPrincipalId
-        principalType: deployingUserPrincipalType
-      }
-    ]
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.blob]!.outputs.resourceId
-    ] : []
-  }
-}
 
 module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = {
   name: take('module.cosmos-db-nosql.${solutionName}', 64)
@@ -1007,7 +961,6 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     aiProjectPrincipalId: aiProjectPrincipalId
     aiSearchPrincipalId: ai_search.outputs.identityPrincipalId
     aiSearchResourceId: ai_search.outputs.resourceId
-    storageAccountResourceId: storage_account.outputs.resourceId
     cosmosDbAccountName: cosmosDBModule.outputs.name
     backendAppServicePrincipalId: (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
     frontendAppServicePrincipalId: frontend_docker.outputs.identityPrincipalId
