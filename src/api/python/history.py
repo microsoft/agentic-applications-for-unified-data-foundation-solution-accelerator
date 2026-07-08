@@ -8,7 +8,6 @@ from azure.ai.projects.aio import AIProjectClient
 from azure.core.exceptions import HttpResponseError
 from azure.cosmos import exceptions
 from azure.cosmos.aio import CosmosClient
-from azure.monitor.events.extension import track_event
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
@@ -17,6 +16,9 @@ from opentelemetry.trace import Status, StatusCode
 # from chat import adjust_processed_data_dates
 from auth.auth_utils import get_authenticated_user_details
 from auth.azure_credential_utils import get_azure_credential_async
+
+# Token usage telemetry helpers (modular, reusable)
+from token_usage import track_event_if_configured, UsageAccumulator
 
 router = APIRouter()
 
@@ -37,15 +39,6 @@ CHAT_HISTORY_ENABLED = (
 
 AZURE_AI_AGENT_ENDPOINT = os.getenv("AZURE_AI_AGENT_ENDPOINT")
 AGENT_NAME_TITLE = os.getenv("AGENT_NAME_TITLE")
-
-
-def track_event_if_configured(event_name: str, event_data: dict):
-    """Track events to Application Insights if configured."""
-    instrumentation_key = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
-    if instrumentation_key:
-        track_event(event_name, event_data)
-    else:
-        logging.warning("Skipping track_event for %s as Application Insights is not configured", event_name)
 
 
 class CosmosConversationClient:
@@ -279,7 +272,7 @@ async def init_cosmosdb_client():
         raise
 
 
-async def generate_title(conversation_messages):
+async def generate_title(conversation_messages, user_id: str = "", conversation_id: str = ""):
     """Generate a title for a conversation using Azure AI Foundry agent."""
     try:
         user_messages = [msg for msg in conversation_messages if msg["role"] == "user"]
@@ -312,6 +305,15 @@ async def generate_title(conversation_messages):
                     conversation=conversation.id,
                     input=final_prompt,
                     extra_body={"agent_reference": {"name": AGENT_NAME_TITLE, "type": "agent_reference"}}
+                )
+
+                _title_usage = UsageAccumulator()
+                _title_usage.add_from_response(response)
+                _title_usage.emit(
+                    agent_name=AGENT_NAME_TITLE or "",
+                    model_deployment_name=os.getenv("AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME", "") or "",
+                    user_id=user_id or "",
+                    conversation_id=conversation_id or "",
                 )
 
                 result_text = ""
@@ -363,7 +365,7 @@ async def add_conversation(user_id: str, request_json: dict):
             raise ValueError("CosmosDB is not configured or unavailable")
 
         if not conversation_id:
-            title = await generate_title(messages)
+            title = await generate_title(messages, user_id=user_id)
             conversation_dict = await cosmos_conversation_client.create_conversation(user_id, title)
             conversation_id = conversation_dict["id"]
             history_metadata["title"] = title
@@ -397,7 +399,7 @@ async def update_conversation(user_id: str, request_json: dict):
     # Retrieve or create conversation
     conversation = await cosmos_conversation_client.get_conversation(user_id, conversation_id)
     if not conversation:
-        title = await generate_title(messages)
+        title = await generate_title(messages, user_id=user_id, conversation_id=conversation_id)
         conversation = await cosmos_conversation_client.create_conversation(
             user_id=user_id, conversation_id=conversation_id, title=title
         )
