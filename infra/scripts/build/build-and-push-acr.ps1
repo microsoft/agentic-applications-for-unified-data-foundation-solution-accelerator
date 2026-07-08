@@ -23,10 +23,11 @@
     Requires: Azure CLI (`az`) and an authenticated context (`az login`).
     Does NOT require Docker to be installed locally.
 
-    When only -ResourceGroup is given, the ACR name, API/Web App Service names,
-    backend runtime, and private-networking state are auto-discovered from the RG.
+    When -ResourceGroup is given, the ACR name, API/Web App Service names,
+    backend runtime, and private-networking state are auto-discovered from that RG
+    and the local azd environment is IGNORED. Any other explicit parameter still wins.
     With NO parameters, values are pulled from the local azd environment
-    (azd env get-values), if one is initialized. Any explicit parameter wins.
+    (azd env get-values), if one is initialized.
 
     By default, individual `az` command output is suppressed and only progress
     messages and errors are shown. Pass -VerboseOutput to see full command output.
@@ -113,9 +114,15 @@ $RepoRoot = (Resolve-Path (Join-Path $ScriptDir "..\..\..")).Path
 
 # ---------------------------------------------------------------------------
 # Fallback: pull any unset values from the local azd environment (if present).
-# Precedence: explicit parameter > azd env > RG-based discovery > default.
+# This ONLY runs when the user did NOT pass -ResourceGroup. If a resource group
+# is supplied explicitly, the local azd environment is ignored entirely and
+# every value is taken from the parameters or discovered from that RG.
+# Precedence (no explicit RG): explicit parameter > azd env > RG-based discovery > default.
 # ---------------------------------------------------------------------------
-if (Get-Command azd -ErrorAction SilentlyContinue) {
+if ($PSBoundParameters.ContainsKey('ResourceGroup')) {
+    Write-Host "Resource group provided explicitly - ignoring local azd environment; all inputs will come from '$ResourceGroup'."
+}
+elseif (Get-Command azd -ErrorAction SilentlyContinue) {
     $azdRaw = azd env get-values 2>$null
     if ($LASTEXITCODE -eq 0 -and $azdRaw) {
         $azdValues = @{}

@@ -60,6 +60,7 @@ az() {
 # ----------------------------------------------------------------------------
 ACR_NAME=""
 RESOURCE_GROUP=""
+RESOURCE_GROUP_EXPLICIT="false"
 SUBSCRIPTION_ID=""
 IMAGE_TAG="latest_v2"
 API_APP_NAME=""
@@ -79,10 +80,11 @@ Required:
   --resource-group <rg>        Resource group of the deployment
 
 Auto-discovery:
-  When only --resource-group is given, the ACR name, API/Web App Service names,
-  backend runtime, and private-networking state are auto-discovered from the RG.
+  When --resource-group is given, the ACR name, API/Web App Service names,
+  backend runtime, and private-networking state are auto-discovered from that RG
+  and the local azd environment is IGNORED. Any other explicit value still wins.
   With NO arguments, values are pulled from the local azd environment
-  (azd env get-values), if one is initialized. Any explicit value wins.
+  (azd env get-values), if one is initialized.
 
 Options:
   --acr-name <name>            Target Azure Container Registry name
@@ -100,7 +102,7 @@ EOF
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --acr-name) ACR_NAME="$2"; shift 2 ;;
-        --resource-group) RESOURCE_GROUP="$2"; shift 2 ;;
+        --resource-group) RESOURCE_GROUP="$2"; RESOURCE_GROUP_EXPLICIT="true"; shift 2 ;;
         --subscription) SUBSCRIPTION_ID="$2"; shift 2 ;;
         --image-tag) IMAGE_TAG="$2"; IMAGE_TAG_EXPLICIT="true"; shift 2 ;;
         --api-app-name) API_APP_NAME="$2"; shift 2 ;;
@@ -115,9 +117,14 @@ done
 
 # ----------------------------------------------------------------------------
 # Fallback: pull any unset values from the local azd environment (if present).
-# Precedence: explicit CLI arg > azd env > RG-based discovery > default.
+# This ONLY runs when the user did NOT pass --resource-group. If a resource
+# group is supplied explicitly, the local azd environment is ignored entirely
+# and every value is taken from the CLI args or discovered from that RG.
+# Precedence (no explicit RG): explicit CLI arg > azd env > RG-based discovery > default.
 # ----------------------------------------------------------------------------
-if command -v azd > /dev/null 2>&1; then
+if [[ "$RESOURCE_GROUP_EXPLICIT" == "true" ]]; then
+    echo "Resource group provided explicitly - ignoring local azd environment; all inputs will come from '$RESOURCE_GROUP'."
+elif command -v azd > /dev/null 2>&1; then
     AZD_VALUES="$(azd env get-values 2>/dev/null || true)"
     if [[ -n "$AZD_VALUES" ]]; then
         azd_get() { echo "$AZD_VALUES" | grep -E "^$1=" | head -n1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
