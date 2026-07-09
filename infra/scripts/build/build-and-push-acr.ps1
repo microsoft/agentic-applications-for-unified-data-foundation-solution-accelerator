@@ -263,7 +263,10 @@ Write-Host ""
 if ($UsePrivateNetworking) {
     Write-Host "=== Step 2/4: Temporarily opening ACR '$AcrName' for remote build ==="
     Write-Host "  App Services stay private - only the registry is opened for the build context upload."
-    Invoke-Az @("acr", "update", "--name", $AcrName, "--resource-group", $ResourceGroup, "--public-network-access", "Enabled", "--default-action", "Allow")
+    # Public network access cannot be enabled while the export policy is disabled,
+    # so enable exports first, then open the public endpoint.
+    Invoke-Az @("acr", "update", "--name", $AcrName, "--resource-group", $ResourceGroup, "--allow-exports", "true")
+    Invoke-Az @("acr", "update", "--name", $AcrName, "--resource-group", $ResourceGroup, "--public-network-enabled", "true", "--default-action", "Allow")
     Write-Host "  Waiting 30s for network rule propagation..."
     Start-Sleep -Seconds 30
     Write-Host "  ACR public network access temporarily enabled."
@@ -317,8 +320,12 @@ finally {
     if ($UsePrivateNetworking) {
         Write-Host ""
         Write-Host "=== Cleanup: Re-locking ACR '$AcrName' (disabling public access) ==="
-        Invoke-Az @("acr", "update", "--name", $AcrName, "--resource-group", $ResourceGroup, "--public-network-access", "Disabled", "--default-action", "Deny")
+        Invoke-Az @("acr", "update", "--name", $AcrName, "--resource-group", $ResourceGroup, "--public-network-enabled", "false", "--default-action", "Deny")
         Write-Host "  ACR public network access disabled again."
+        # Restore the export policy to its locked-down (disabled) state. This can
+        # only be disabled once public network access is off (done above).
+        Invoke-Az @("acr", "update", "--name", $AcrName, "--resource-group", $ResourceGroup, "--allow-exports", "false")
+        Write-Host "  ACR export policy re-disabled."
     }
 }
 

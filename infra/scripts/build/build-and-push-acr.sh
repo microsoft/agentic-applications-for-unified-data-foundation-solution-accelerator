@@ -263,8 +263,13 @@ disable_public_access() {
         echo ""
         echo "=== Cleanup: Re-locking ACR '$ACR_NAME' (disabling public access) ==="
         run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
-            --public-network-access Disabled --default-action Deny
+            --public-network-enabled false --default-action Deny
         echo "  ACR public network access disabled again."
+        # Restore the export policy to its locked-down (disabled) state. This can
+        # only be disabled once public network access is off (done above).
+        run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
+            --allow-exports false
+        echo "  ACR export policy re-disabled."
     fi
 }
 trap disable_public_access EXIT
@@ -273,8 +278,12 @@ echo ""
 if [[ "$PRIVATE_NETWORKING" == "true" ]]; then
     echo "=== Step 2/4: Temporarily opening ACR '$ACR_NAME' for remote build ==="
     echo "  App Services stay private - only the registry is opened for the build context upload."
+    # Public network access cannot be enabled while the export policy is disabled,
+    # so enable exports first, then open the public endpoint.
     run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
-        --public-network-access Enabled --default-action Allow
+        --allow-exports true
+    run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
+        --public-network-enabled true --default-action Allow
     echo "  Waiting 30s for network rule propagation..."
     sleep 30
     echo "  ACR public network access temporarily enabled."

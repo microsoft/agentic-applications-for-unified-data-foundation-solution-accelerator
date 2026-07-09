@@ -984,6 +984,9 @@ module frontend_docker './modules/compute/app-service.bicep' = {
     acrUseManagedIdentityCreds: true
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
+    vnetRouteAllEnabled: enablePrivateNetworking ? true : false
+    imagePullTraffic: enablePrivateNetworking ? true : false
+    contentShareTraffic: enablePrivateNetworking ? true : false
     diagnosticSettings: monitoringDiagnosticSettings
     appSettings: {
       APP_API_BASE_URL: enablePrivateNetworking ? '' : apiBaseUrl
