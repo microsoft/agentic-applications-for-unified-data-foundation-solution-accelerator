@@ -36,6 +36,14 @@ import subprocess
 import sys
 import os
 
+# Ensure Unicode output (✓, 🚀, — etc.) doesn't crash on Windows consoles
+# whose default encoding is cp1252.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # ============================================================================
@@ -536,6 +544,34 @@ total_elapsed = time.time() - total_start
 
 web_app_url = os.getenv("WEB_APP_URL", "")
 
+
+def load_sample_questions(max_questions=5):
+    """Read generated sample questions from the active data folder.
+
+    Returns a list of question strings (without their numbering), or an empty
+    list if the file cannot be found.
+    """
+    try:
+        from load_env import get_data_folder
+        questions_path = os.path.join(get_data_folder(), "config", "sample_questions.txt")
+    except Exception:
+        return []
+
+    if not os.path.isfile(questions_path):
+        return []
+
+    questions = []
+    with open(questions_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            # Match numbered questions like "1. How many ..."
+            if line and line[0].isdigit() and ". " in line:
+                questions.append(line.split(". ", 1)[1].strip())
+            if len(questions) >= max_questions:
+                break
+    return questions
+
+
 if args.quiet:
     print(f"\n✓ Done! {successful}/{len(pipeline)} steps completed in {total_elapsed:.1f}s")
     if failed == 0:
@@ -552,15 +588,16 @@ else:
     print(f"  Total time: {total_elapsed:.1f}s")
 
     if failed == 0:
-        print(f"""
+        print("""
 Next step - Test the agent:
   python infra/scripts/post-provision/06_test_agent.py
-
-Sample questions to try:
-  - "How many outages occurred last month?"
-  - "What is the response time required for outages?"
-  - "Which outages exceeded the maximum duration defined in our policy?"
 """)
+        sample_questions = load_sample_questions()
+        if sample_questions:
+            print("Sample questions to try:")
+            for q in sample_questions:
+                print(f'  - "{q}"')
+            print()
     else:
         print("\nSome steps failed. Check the output above for errors.")
         sys.exit(1)
