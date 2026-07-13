@@ -131,12 +131,16 @@ class HomePage(BasePage):
 
         # Check for JSON format
         if response_text.strip().startswith('{') or response_text.strip().startswith('['):
+            is_json_response = False
             try:
                 json.loads(response_text)
+                is_json_response = True
+            except json.JSONDecodeError:
+                is_json_response = False
+
+            if is_json_response:
                 logger.warning("⚠️ Response is in JSON format")
                 return False, "Response is in JSON format"
-            except json.JSONDecodeError:
-                pass
 
         # Check for "I don't know" type responses
         invalid_responses = [

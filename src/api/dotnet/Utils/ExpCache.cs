@@ -75,12 +75,9 @@ namespace CsApi.Utils
                     .Select(kvp => kvp.Key)
                     .ToList();
 
-                foreach (var expiredKey in expiredKeys)
+                foreach (var removedItem in RemoveItems(expiredKeys))
                 {
-                    if (_cache.TryRemove(expiredKey, out var removedItem))
-                    {
-                        Task.Run(() => DeleteThreadAsync(removedItem.Value));
-                    }
+                    Task.Run(() => DeleteThreadAsync(removedItem.Value));
                 }
                 
                 // If still over max size after removing expired items, remove oldest non-expired items
@@ -94,13 +91,10 @@ namespace CsApi.Utils
                         .Select(kvp => kvp.Key)
                         .ToList();
 
-                    foreach (var evictedKey in oldestItems)
+                    foreach (var removedItem in RemoveItems(oldestItems))
                     {
-                        if (_cache.TryRemove(evictedKey, out var removedItem))
-                        {
-                            // Delete thread immediately when LRU evicted
-                            Task.Run(() => DeleteThreadAsync(removedItem.Value));
-                        }
+                        // Delete thread immediately when LRU evicted
+                        Task.Run(() => DeleteThreadAsync(removedItem.Value));
                     }
                 }
             }
@@ -135,14 +129,19 @@ namespace CsApi.Utils
                 .Select(kvp => kvp.Key)
                 .ToList();
 
-            foreach (var expiredKey in expiredKeys)
+            foreach (var removedItem in RemoveItems(expiredKeys))
             {
-                if (_cache.TryRemove(expiredKey, out var removedItem))
-                {
-                    // Delete thread immediately like other cleanup operations
-                    await DeleteThreadAsync(removedItem.Value);
-                }
+                // Delete thread immediately like other cleanup operations
+                await DeleteThreadAsync(removedItem.Value);
             }
+        }
+
+        private IEnumerable<CacheItem> RemoveItems(IEnumerable<TKey> keys)
+        {
+            return keys
+                .Select(key => new { WasRemoved = _cache.TryRemove(key, out var item), Item = item })
+                .Where(x => x.WasRemoved)
+                .Select(x => x.Item);
         }
 
         /// <summary>
