@@ -464,9 +464,12 @@ module hostingplan './modules/compute/app-service-plan.bicep' = if (shouldDeploy
 // ============================================================================
 // Module: Compute
 // ============================================================================
-var backendApiImageName = 'DOCKER|${containerRegistryName}.azurecr.io/da-api:${imageTag}'
-var backendCsApiImageName = 'DOCKER|${containerRegistryName}.azurecr.io/da-api-dotnet:${imageTag}'
-var frontendImageName = 'DOCKER|${containerRegistryName}.azurecr.io/da-app:${imageTag}'
+// Placeholder image used at provision time. The real application images are built
+// and pushed to the container registry by the post-provision script, which then
+// swaps each app service over to the real image. Using a public MCR image avoids a
+// chicken-and-egg dependency on an image that does not yet exist in a freshly
+// created registry.
+var placeholderImage = 'DOCKER|mcr.microsoft.com/appsvc/staticsite:latest'
 var reactAppLayoutConfig = '''{
   "appConfig": {
       "CHAT_CHATHISTORY": {
@@ -485,7 +488,7 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
     name: 'api-${solutionSuffix}'
     location: location
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: backendApiImageName
+    linuxFxVersion: placeholderImage
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
       REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
@@ -538,7 +541,7 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
     name: 'api-cs-${solutionSuffix}'
     location: location
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: backendCsApiImageName
+    linuxFxVersion: placeholderImage
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
       REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
@@ -586,7 +589,7 @@ module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployA
     name: 'app-${solutionSuffix}'
     location: location
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: frontendImageName
+    linuxFxVersion: placeholderImage
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
       APP_API_BASE_URL: backendRuntimeStack == 'python' ? backend_docker!.outputs.appUrl : backend_csapi_docker!.outputs.appUrl
@@ -790,3 +793,15 @@ output SOLUTION_SUFFIX string = solutionSuffix
 
 @description('The name of the container registry (newly created or existing/reused).')
 output AZURE_CONTAINER_REGISTRY_NAME string = resolvedContainerRegistryName
+
+@description('Docker image tag for the application images (consumed by the post-provision image build/swap script).')
+output IMAGE_TAG string = imageTag
+
+@description('Real backend (Python) app image to swap in after provisioning (post-provision script replaces the placeholder with this).')
+output BACKEND_APP_IMAGE string = 'DOCKER|${containerRegistryName}.azurecr.io/da-api:${imageTag}'
+
+@description('Real backend (C#) app image to swap in after provisioning (post-provision script replaces the placeholder with this).')
+output BACKEND_CSAPI_APP_IMAGE string = 'DOCKER|${containerRegistryName}.azurecr.io/da-api-dotnet:${imageTag}'
+
+@description('Real frontend app image to swap in after provisioning (post-provision script replaces the placeholder with this).')
+output FRONTEND_APP_IMAGE string = 'DOCKER|${containerRegistryName}.azurecr.io/da-app:${imageTag}'

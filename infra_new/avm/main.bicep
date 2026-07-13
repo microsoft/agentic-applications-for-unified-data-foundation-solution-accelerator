@@ -281,6 +281,7 @@ var privateDnsZones = [
   'privatelink.blob.core.windows.net'
   'privatelink.search.windows.net'
   'privatelink.database.windows.net'
+  'privatelink.azurecr.io'
 ]
 var dnsZoneIndex = {
   cognitiveServices: 0
@@ -290,6 +291,7 @@ var dnsZoneIndex = {
   blob: 4
   search: 5
   sqlServer: 6
+  containerRegistry: 7
 }
 
 // Resource naming (parameterized — no abbreviations.json dependency)
@@ -830,6 +832,13 @@ module hostingplan './modules/compute/app-service-plan.bicep' = if (shouldDeploy
   }
 }
 
+// Placeholder image used at provision time. The real application images are built
+// and pushed to the container registry by the post-provision script, which then
+// swaps each app service over to the real image. Using a public MCR image avoids a
+// chicken-and-egg dependency on an image that does not yet exist in a freshly
+// created registry.
+var placeholderImage = 'DOCKER|mcr.microsoft.com/appsvc/staticsite:latest'
+
 // Backend API (Python)
 module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
   name: take('module.app-service-pybackend.${solutionName}', 64)
@@ -839,7 +848,7 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api:${imageTag}'
+    linuxFxVersion: placeholderImage
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -889,7 +898,7 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api-dotnet:${imageTag}'
+    linuxFxVersion: placeholderImage
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -934,7 +943,7 @@ module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployA
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-app:${imageTag}'
+    linuxFxVersion: placeholderImage
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -962,7 +971,28 @@ module container_registry './modules/compute/container-registry.bicep' = if (!us
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
-    publicNetworkAccess: 'Enabled'
+    // WAF: Premium SKU is required for private endpoints. When private networking is
+    // enabled, public access is disabled and pulls flow over the private endpoint.
+    sku: enablePrivateNetworking ? 'Premium' : 'Standard'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    exportPolicyStatus: enablePrivateNetworking ? 'disabled' : 'enabled'
+    networkRuleSetDefaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-cr-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-cr-${solutionSuffix}'
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+        service: 'registry'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'dns-zone-cr'
+              privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.containerRegistry]!.outputs.resourceId
+            }
+          ]
+        }
+      }
+    ] : []
   }
 }
 
@@ -1143,3 +1173,15 @@ output SOLUTION_SUFFIX string = solutionSuffix
 
 @description('The name of the container registry (newly created or existing/reused).')
 output AZURE_CONTAINER_REGISTRY_NAME string = resolvedContainerRegistryName
+
+@description('Docker image tag for the application images (consumed by the post-provision image build/swap script).')
+output IMAGE_TAG string = imageTag
+
+@description('Real backend (Python) app image to swap in after provisioning (post-provision script replaces the placeholder with this).')
+output BACKEND_APP_IMAGE string = 'DOCKER|${containerRegistryName}.azurecr.io/da-api:${imageTag}'
+
+@description('Real backend (C#) app image to swap in after provisioning (post-provision script replaces the placeholder with this).')
+output BACKEND_CSAPI_APP_IMAGE string = 'DOCKER|${containerRegistryName}.azurecr.io/da-api-dotnet:${imageTag}'
+
+@description('Real frontend app image to swap in after provisioning (post-provision script replaces the placeholder with this).')
+output FRONTEND_APP_IMAGE string = 'DOCKER|${containerRegistryName}.azurecr.io/da-app:${imageTag}'
