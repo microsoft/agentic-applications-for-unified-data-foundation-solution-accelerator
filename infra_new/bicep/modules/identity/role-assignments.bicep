@@ -49,13 +49,13 @@ param storageAccountResourceId string = ''
 @description('Name of the Cosmos DB account (empty if not deployed).')
 param cosmosDbAccountName string = ''
 
-@description('Whether the container registry already exists (true) or was newly created in this deployment (false). Mirrors the useExistingAIProject flag.')
+@description('Whether to use an existing container registry (true) or the one created in this deployment (false).')
 param useExistingContainerRegistry bool = false
 
-@description('Resource ID of the container registry to grant AcrPull on (new or existing — just pass the ID). Name, subscription, and resource group are derived from it. Empty = skip ACR role assignments.')
+@description('Resource ID of the container registry to grant AcrPull on (for deriving name/sub/RG; empty = skip ACR role assignments).')
 param containerRegistryResourceId string = ''
 
-@description('Principals to grant AcrPull on the container registry (for example the deployer, backend and frontend app services, or container app identities). Each item is an object with principalId (string) and principalType (ServicePrincipal, User, or Group).')
+@description('Principals to grant AcrPull on the container registry (array of objects with principalId and principalType).')
 param acrPullPrincipals array = []
 
 // ============================================================================
@@ -320,12 +320,12 @@ resource deployerStorageBlobContributor 'Microsoft.Authorization/roleAssignments
 // Foundry pattern: a newly created (same resource group) registry is assigned
 // inline; an existing (reused) registry — which may live in another resource
 // group or subscription — is assigned via the cross-scope helper.
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = if (!useExistingContainerRegistry && !empty(containerRegistryResourceId)) {
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = if (!useExistingContainerRegistry) {
   name: containerRegistryName
 }
 
 // Each principal → AcrPull on a newly created (same resource group) container registry
-resource acrPullAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for principal in acrPullPrincipals: if (!useExistingContainerRegistry && !empty(containerRegistryResourceId) && !empty(principal.principalId)) {
+resource acrPullAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for principal in acrPullPrincipals: if (!useExistingContainerRegistry && !empty(principal.principalId)) {
   scope: containerRegistry
   name: guid(solutionName, containerRegistryName, principal.principalId, roleDefinitions.acrPull)
   properties: {
@@ -336,7 +336,7 @@ resource acrPullAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01'
 }]
 
 // Each principal → AcrPull on an existing (reused) cross-scope container registry
-module acrPullAssignmentsExisting './cross-scope-role-assignment.bicep' = [for principal in acrPullPrincipals: if (useExistingContainerRegistry && !empty(containerRegistryResourceId) && !empty(principal.principalId)) {
+module acrPullAssignmentsExisting './cross-scope-role-assignment.bicep' = [for principal in acrPullPrincipals: if (useExistingContainerRegistry && !empty(principal.principalId)) {
   name: take('acrPull-${uniqueString(solutionName, containerRegistryName, principal.principalId)}', 64)
   scope: resourceGroup(containerRegistrySubscription, containerRegistryResourceGroup)
   params: {
