@@ -69,6 +69,9 @@ param virtualNetworkSubnetId string = ''
 @description('Public network access setting.')
 param publicNetworkAccess string = 'Enabled'
 
+@description('Optional. Whether the app pulls its container image from ACR using its managed identity.')
+param acrUseManagedIdentityCreds bool = false
+
 @description('Optional. Whether to route all outbound traffic through the virtual network.')
 param vnetRouteAllEnabled bool = false
 
@@ -107,6 +110,7 @@ module appService 'br/public:avm/res/web/site:0.23.1' = {
       webSocketsEnabled: webSocketsEnabled
       appCommandLine: appCommandLine
       vnetRouteAllEnabled: vnetRouteAllEnabled
+      acrUseManagedIdentityCreds: acrUseManagedIdentityCreds
     }
     e2eEncryptionEnabled: true
     configs: [
