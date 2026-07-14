@@ -1007,28 +1007,22 @@ var containerRegistryResourceId = useExistingContainerRegistry
   : container_registry!.outputs.resourceId
 
 // Principals that need AcrPull on the container registry: the deployer plus the
-// app services (backend + frontend) when the app is deployed. Add or remove
-// entries here to control who gets pull access.
-var acrPullPrincipals = concat(
-  [
-    {
-      principalId: deployingUserPrincipalId
-      principalType: deployingUserPrincipalType
-    }
-  ],
-  shouldDeployApp
-    ? [
-        {
-          principalId: backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId
-          principalType: 'ServicePrincipal'
-        }
-        {
-          principalId: frontend_docker!.outputs.identityPrincipalId
-          principalType: 'ServicePrincipal'
-        }
-      ]
-    : []
-)
+// backend and frontend app services. Add or remove entries here to control who
+// gets pull access.
+var acrPullPrincipals = [
+  {
+    principalId: deployingUserPrincipalId
+    principalType: deployingUserPrincipalType
+  }
+  {
+    principalId: backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+  {
+    principalId: frontend_docker!.outputs.identityPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+]
 
 // ============================================================================
 // Module: Role Assignments (centralized)
