@@ -138,10 +138,13 @@ namespace CsApi.Utils
 
         private IEnumerable<CacheItem> RemoveItems(IEnumerable<TKey> keys)
         {
-            return keys
-                .Select(key => new { WasRemoved = _cache.TryRemove(key, out var item), Item = item })
-                .Where(x => x.WasRemoved)
-                .Select(x => x.Item);
+            foreach (var key in keys)
+            {
+                if (_cache.TryRemove(key, out var item))
+                {
+                    yield return item;
+                }
+            }
         }
 
         /// <summary>
