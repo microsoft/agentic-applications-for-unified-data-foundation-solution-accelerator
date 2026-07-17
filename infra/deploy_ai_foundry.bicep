@@ -10,7 +10,7 @@ param solutionLocation string
 @description('The deployment type for the GPT model (e.g., Standard, GlobalStandard).')
 param deploymentType string
 
-@description('The name of the GPT model to deploy (e.g., gpt-4o, gpt-4).')
+@description('The name of the GPT model to deploy (e.g., gpt-5.4-mini).')
 param gptModelName string
 
 @description('The version of the GPT model to deploy.')

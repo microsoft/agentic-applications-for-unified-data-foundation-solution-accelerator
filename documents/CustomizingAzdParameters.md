@@ -13,8 +13,8 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_NAME`                          | string  | `env_name`               | Sets the environment name prefix for all Azure resources (3-20 chars).     |
 | `AZURE_ENV_SECONDARY_LOCATION`            | string  | `eastus2`                | Specifies a secondary Azure region for databases.                          |
 | `AZURE_ENV_MODEL_DEPLOYMENT_TYPE`      | string  | `GlobalStandard`         | Defines the model deployment type (allowed: `Standard`, `GlobalStandard`). |
-| `AZURE_ENV_GPT_MODEL_NAME`           | string  | `gpt-4.1-mini`           | Specifies the GPT model name (e.g., `gpt-4.1-mini`).                      |
-| `AZURE_ENV_GPT_MODEL_VERSION`            | string  | `2025-04-14`             | Sets the GPT model version.                                                |
+| `AZURE_ENV_GPT_MODEL_NAME`           | string  | `gpt-5.4-mini`           | Specifies the GPT model name (e.g., `gpt-5.4-mini`).                      |
+| `AZURE_ENV_GPT_MODEL_VERSION`            | string  | `2026-03-17`             | Sets the GPT model version.                                                |
 | `AZURE_ENV_OPENAI_API_VERSION`            | string  | `2025-01-01-preview`     | Specifies the API version for Azure OpenAI.                                |
 | `AZURE_ENV_GPT_MODEL_CAPACITY`  | integer | `150`                    | Sets the GPT model capacity (minimum: 10).                                 |
 | `AZURE_ENV_IMAGE_TAG`                    | string  | `latest_workshop`        | Sets the container image tag.                                              |
@@ -23,7 +23,7 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_EXISTING_AIPROJECT_RESOURCE_ID`   | string  | ` `                      | Reuses an existing AI Foundry project instead of creating a new one.       |
 | `BACKEND_RUNTIME_STACK`                   | string  | `python`                 | Backend language (allowed: `python`, `dotnet`).                            |
 | `AZURE_ENV_AI_SERVICE_LOCATION`       | string  |                          | Location for AI Foundry deployment (e.g., `eastus`, `swedencentral`).      |
-| `AZURE_ENV_CONTAINER_REGISTRY_NAME`       | string  | `dataagentscontainerregworkshop` | Name of the Azure Container Registry to pull images from.           |
+| `AZURE_ENV_CONTAINER_REGISTRY_NAME`       | string  | *(derived: `cr<solution-suffix>`)* | Optional override for the name of the dedicated Azure Container Registry created for this deployment. Leave unset to auto-generate a unique name. Images are built into and pulled from this registry using identity-based (AcrPull) authentication. |
 | `AZURE_ENV_SEARCH_SERVICE_LOCATION`       | string  | *(resource group location)* | Location for Azure AI Search service deployment.                        |
 | `AZURE_ENV_DEPLOY_APP`                    | bool    | `true`                   | Deploy application components (API, Frontend, Cosmos DB).                  |
 | `IS_WORKSHOP`                             | bool    | `false`                   | Enable workshop mode with sample data and simplified configuration.        |

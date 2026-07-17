@@ -150,8 +150,8 @@ When you start the deployment, most parameters will have **default values**, but
 | **Backend Programming Language**                   | Programming language for the backend API: **python** or **dotnet**.                           | *(empty)*              |
 | **Use Case**                   | Use case: **Retail-sales-analysis** or **Insurance-improve-customer-meetings**.                           | *(empty)*              |
 | **Deployment Type**                         | Select from a drop-down list (allowed: `Standard`, `GlobalStandard`).                                     | GlobalStandard         |
-| **GPT Model**                               | Choose from **gpt-4, gpt-4o, gpt-4o-mini**.                                                               | gpt-4o-mini            |
-| **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2024-07-18             |
+| **GPT Model**                               | Choose from **gpt-4, gpt-4o, gpt-4o-mini**.                                                               | gpt-5.4-mini           |
+| **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2026-03-17             |
 | **OpenAI API Version**                      | The Azure OpenAI API version to use.                                                                      | 2025-01-01-preview     |
 | **GPT Model Deployment Capacity**           | Configure capacity for **GPT models** (in thousands).                                                     | 30k                    |
 | **Image Tag**                               | Docker image tag to deploy. Common values: `latest`, `dev`, `hotfix`.                  | latest       |
@@ -166,9 +166,9 @@ When you start the deployment, most parameters will have **default values**, but
 <details>
   <summary><b>[Optional] Quota Recommendations</b></summary>
 
-By default, the **Gpt-4o-mini model capacity** in deployment is set to **30k tokens**, so we recommend updating the following:
+By default, the **gpt-5.4-mini model capacity** in deployment is set to **30k tokens**, so we recommend updating the following:
 
-> **For Global Standard | GPT-4o-mini - increase the capacity to at least 150k tokens post-deployment for optimal performance.**
+> **For Global Standard | gpt-5.4-mini - increase the capacity to at least 150k tokens post-deployment for optimal performance.**
 
 Depending on your subscription quota and capacity, you can [adjust quota settings](AzureGPTQuotaSettings.md) to better meet your specific needs. You can also [adjust the deployment parameters](CustomizingAzdParameters.md) for additional optimization.
 
@@ -249,7 +249,8 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
    
    If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
-5. Once the deployment has completed successfully, copy the 2 bash commands from the terminal (ex. 
+5. Once the deployment has completed successfully, copy the 3 bash commands from the terminal (ex. 
+`bash ./infra/scripts/acr_build_and_deploy.sh`,
 `bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh` and
 `bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
 
@@ -276,8 +277,20 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     az login --use-device-code
     ```
 
-> **Note**: you will need to open a Git Bash terminal to complete steps 8 and 9.  
-8. Run the bash script from the output of the azd deployment. The script will look like the following:
+> **Note**: you will need to open a Git Bash terminal to complete steps 8, 9 and 10.  
+8. Build and deploy the application container images to the dedicated Azure Container Registry (ACR). This builds the API and frontend images remotely with `az acr build` (no local Docker required) and points each App Service at the images in the deployment's dedicated ACR. Images are pulled using the App Service's user-assigned managed identity (AcrPull role) — the registry has admin user and anonymous pull disabled.
+
+    ```Shell
+    bash ./infra/scripts/acr_build_and_deploy.sh
+    ```
+
+    The script resolves all values from your azd environment. If you don't have an azd env, you can pass them positionally (any omitted argument is resolved from environment variables):
+
+    ```Shell
+    bash ./infra/scripts/acr_build_and_deploy.sh <subscription-id> <resource-group> <acr-name> <image-tag> <backend-runtime-stack> <api-app-name> <web-app-name> <acr-login-server>
+    ```
+
+9. Run the bash script from the output of the azd deployment. The script will look like the following:
     
     ```Shell
     bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
@@ -287,7 +300,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <ai-project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group> <usecase> [<is-workshop>]
     ```
 
-    **Step 8 Parameter Reference:**
+    **Step 9 Parameter Reference:**
 
     | Parameter | azd env Variable | Format / Example |
     |---|---|---|
@@ -300,7 +313,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
     | `<is-workshop>` | `IS_WORKSHOP` | `true` or `false` (defaults to `false`) |
 
-9. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
+10. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
     ```Shell
     bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>
     ```
@@ -310,7 +323,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup> <usecase>
     ```
 
-    **Step 9 Parameter Reference:**
+    **Step 10 Parameter Reference:**
 
     | Parameter | azd env Variable | Format / Example |
     |---|---|---|
@@ -323,9 +336,9 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     | `<resourcegroup>` | `RESOURCE_GROUP_NAME` | Resource group name (e.g., `rg-<envname>`) |
     | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
 
-10. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
+11. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
-11. If you are done trying out the application, you can delete the resources by running `azd down`.
+12. If you are done trying out the application, you can delete the resources by running `azd down`.
 
 
 ## Post Deployment Steps
