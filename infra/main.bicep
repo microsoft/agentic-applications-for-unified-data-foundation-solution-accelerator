@@ -37,7 +37,7 @@ param location string = resourceGroup().location
   azd:{
     type: 'location'
     usageName: [
-      'OpenAI.GlobalStandard.gpt4.1-mini,100'
+      'OpenAI.GlobalStandard.gpt-5.4-mini,100'
       'OpenAI.GlobalStandard.text-embedding-3-small,80'
     ]
   }
@@ -54,10 +54,10 @@ param azureAiServiceLocation string
 param deploymentType string = 'GlobalStandard'
 
 @description('Optional. Name of the GPT model to deploy.')
-param gptModelName string = 'gpt-4.1-mini'
+param gptModelName string = 'gpt-5.4-mini'
 
 @description('Optional. Version of the GPT model to deploy.')
-param gptModelVersion string = '2025-04-14'
+param gptModelVersion string = '2026-03-17'
 
 @description('Optional. Azure OpenAI API version.')
 param azureOpenaiAPIVersion string = '2025-01-01-preview'
@@ -84,8 +84,8 @@ param embeddingDeploymentCapacity int = 80
 @description('Optional. Docker image tag for app deployments.')
 param imageTag string = 'latest_v3'
 
-@description('Optional. Name of the Azure Container Registry.')
-param containerRegistryName string = 'dataagentscontainerreg'
+@description('Optional. Name of the Azure Container Registry. Empty derives a per-deployment name.')
+param containerRegistryName string = ''
 
 @allowed(['python', 'dotnet'])
 @description('Optional. Backend runtime stack.')
@@ -296,6 +296,15 @@ output DEPLOYMENT_FLAVOR string = deploymentFlavor
 
 @description('WAF deployment type (AVM only).')
 output DEPLOYMENT_TYPE string = isAvm ? avmDeployment!.outputs.DEPLOYMENT_TYPE : 'N/A'
+
+@description('Name of the dedicated Azure Container Registry.')
+output AZURE_ENV_CONTAINER_REGISTRY_NAME string = isAvm ? avmDeployment!.outputs.AZURE_ENV_CONTAINER_REGISTRY_NAME : bicepDeployment!.outputs.AZURE_ENV_CONTAINER_REGISTRY_NAME
+
+@description('Login server of the dedicated Azure Container Registry.')
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT : bicepDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
+
+@description('Docker image tag used for app deployments.')
+output AZURE_ENV_IMAGE_TAG string = isAvm ? avmDeployment!.outputs.AZURE_ENV_IMAGE_TAG : bicepDeployment!.outputs.AZURE_ENV_IMAGE_TAG
 
 @description('Cosmos DB account name.')
 output AZURE_COSMOSDB_ACCOUNT string = isAvm ? avmDeployment!.outputs.AZURE_COSMOSDB_ACCOUNT : bicepDeployment!.outputs.AZURE_COSMOSDB_ACCOUNT

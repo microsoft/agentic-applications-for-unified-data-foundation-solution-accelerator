@@ -29,6 +29,10 @@ param publicNetworkAccess string = 'Enabled'
 @description('Export policy status. Must be "enabled" when publicNetworkAccess is "Enabled".')
 param exportPolicyStatus string = 'enabled'
 
+@description('Enable the ARM-audience AAD token policy. Must be "enabled" for App Service managed-identity image pulls to work (the AVM module defaults this to "disabled", which causes ACR token retrieval to fail with 401).')
+@allowed(['enabled', 'disabled'])
+param azureADAuthenticationAsArmPolicyStatus string = 'enabled'
+
 @description('Principal IDs to assign AcrPull role.')
 param acrPullPrincipalIds array = []
 
@@ -113,6 +117,7 @@ module containerRegistry 'br/public:avm/res/container-registry/registry:0.12.1' 
     acrAdminUserEnabled: adminUserEnabled
     publicNetworkAccess: publicNetworkAccess
     exportPolicyStatus: exportPolicyStatus
+    azureADAuthenticationAsArmPolicyStatus: azureADAuthenticationAsArmPolicyStatus
     roleAssignments: !empty(roleAssignments) ? roleAssignments : []
     privateEndpoints: privateEndpointConfig
     networkRuleSetDefaultAction: networkRuleSetDefaultAction

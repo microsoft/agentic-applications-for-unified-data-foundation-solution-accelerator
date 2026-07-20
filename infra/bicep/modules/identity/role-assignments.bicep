@@ -28,6 +28,9 @@ param aiSearchPrincipalId string = ''
 @description('Principal ID of the backend App Service system-assigned identity (empty if not deployed).')
 param backendAppServicePrincipalId string = ''
 
+@description('Principal ID of the frontend App Service system-assigned identity (empty if not deployed).')
+param frontendAppServicePrincipalId string = ''
+
 @description('Principal ID of the deploying user (for user access roles).')
 param deployerPrincipalId string = ''
 
@@ -48,6 +51,9 @@ param storageAccountResourceId string = ''
 
 @description('Name of the Cosmos DB account (empty if not deployed).')
 param cosmosDbAccountName string = ''
+
+@description('Resource ID of the Azure Container Registry (empty if not deployed).')
+param containerRegistryResourceId string = ''
 
 // ============================================================================
 // Derived Variables
@@ -70,6 +76,7 @@ var roleDefinitions = {
   searchServiceContributor: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
   storageBlobDataContributor: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
   storageBlobDataReader: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
+  acrPull: '7f951dda-4ed3-4680-a7ca-43fe172d538d'
 }
 
 // ============================================================================
@@ -90,6 +97,10 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-08-01' existing 
 
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = if (!empty(cosmosDbAccountName)) {
   name: cosmosDbAccountName
+}
+
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = if (!empty(containerRegistryResourceId)) {
+  name: last(split(containerRegistryResourceId, '/'))
 }
 
 resource cosmosContributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-10-15' existing = if (!empty(cosmosDbAccountName)) {
@@ -301,3 +312,28 @@ resource deployerStorageBlobContributor 'Microsoft.Authorization/roleAssignments
 
 // NOTE: Deployer roles on existing AI Foundry (cross-scope) are assigned via
 // 00_build_solution.py to avoid conflicts when the deployer already has the roles.
+
+// ============================================================================
+// 6. CONTAINER REGISTRY ROLE ASSIGNMENTS
+//    Backend + Frontend App Service identities → AcrPull on the dedicated ACR
+// ============================================================================
+
+resource backendAppAcrPullAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(containerRegistryResourceId) && !empty(backendAppServicePrincipalId)) {
+  name: guid(solutionName, containerRegistry.id, backendAppServicePrincipalId, roleDefinitions.acrPull)
+  scope: containerRegistry
+  properties: {
+    principalId: backendAppServicePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource frontendAppAcrPullAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(containerRegistryResourceId) && !empty(frontendAppServicePrincipalId)) {
+  name: guid(solutionName, containerRegistry.id, frontendAppServicePrincipalId, roleDefinitions.acrPull)
+  scope: containerRegistry
+  properties: {
+    principalId: frontendAppServicePrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
+    principalType: 'ServicePrincipal'
+  }
+}

@@ -79,7 +79,7 @@ param vmSize string = 'Standard_D2s_v5'
   azd: {
     type: 'location'
     usageName: [
-      'OpenAI.GlobalStandard.gpt4.1-mini,100'
+      'OpenAI.GlobalStandard.gpt-5.4-mini,100'
       'OpenAI.GlobalStandard.text-embedding-3-small,80'
     ]
   }
@@ -92,10 +92,10 @@ param azureAiServiceLocation string
 param deploymentType string = 'GlobalStandard'
 
 @description('Optional. Name of the GPT model to deploy.')
-param gptModelName string = 'gpt-4.1-mini'
+param gptModelName string = 'gpt-5.4-mini'
 
 @description('Optional. Version of the GPT model to deploy.')
-param gptModelVersion string = '2025-04-14'
+param gptModelVersion string = '2026-03-17'
 
 @minValue(10)
 @description('Optional. Capacity of the GPT deployment (TPM in thousands).')
@@ -122,8 +122,8 @@ param azureAiAgentApiVersion string = '2025-05-01'
 @description('Optional. Docker image tag for app deployments.')
 param imageTag string = 'latest_v2'
 
-@description('Optional. Name of the Azure Container Registry.')
-param containerRegistryName string = 'dataagentscontainerreg'
+@description('Optional. Name of the Azure Container Registry. Empty derives a per-deployment name (cr<suffix>).')
+param containerRegistryName string = ''
 
 @allowed(['python', 'dotnet'])
 @description('Optional. Backend runtime stack.')
@@ -205,6 +205,14 @@ param appTitleSecondary string = '| Unified Data Analysis Agents'
 // ============================================================================
 
 var solutionSuffix = toLower(trim(replace(replace(replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))
+
+// Container Registry: per-deployment ACR name (registry names: alphanumeric, 5-50 chars)
+var containerRegistryResourceName = !empty(containerRegistryName) ? containerRegistryName : take('cr${solutionSuffix}', 50)
+
+// Public placeholder image used at provision time. App Services start on this
+// image; the separate post-deployment script (infra/scripts/build/build-and-push-acr.*)
+// builds the real images into the dedicated ACR and repoints the apps.
+var placeholderContainerImage = 'DOCKER|mcr.microsoft.com/azuredocs/aci-helloworld:latest'
 var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
 var createdBy = contains(deployerInfo, 'userPrincipalName') ? split(deployerInfo.userPrincipalName, '@')[0] : deployerInfo.objectId
@@ -273,6 +281,7 @@ var privateDnsZones = [
   #disable-next-line no-hardcoded-env-urls
   'privatelink.database.windows.net'
   'privatelink.azurewebsites.net'
+  'privatelink.azurecr.io'
 ]
 var dnsZoneIndex = {
   cognitiveServices: 0
@@ -283,6 +292,7 @@ var dnsZoneIndex = {
   search: 5
   sqlServer: 6
   webApp : 7
+  containerRegistry: 8
 }
 
 // Resource naming (parameterized — no abbreviations.json dependency)
@@ -784,6 +794,32 @@ module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = {
 }
 
 // ============================================================================
+// Module: Container Registry (dedicated per-deployment ACR)
+// ============================================================================
+
+module containerRegistry './modules/compute/container-registry.bicep' = {
+  name: take('module.container-registry.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    name: containerRegistryResourceName
+    location: location
+    tags: tags
+    enableTelemetry: enableTelemetry
+    // Premium is required for private endpoints; Standard otherwise.
+    sku: enablePrivateNetworking ? 'Premium' : 'Standard'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    networkRuleSetDefaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
+    // Export policy must be enabled only when public access is enabled.
+    exportPolicyStatus: enablePrivateNetworking ? 'disabled' : 'enabled'
+    enablePrivateNetworking: enablePrivateNetworking
+    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
+    privateDnsZoneResourceIds: enablePrivateNetworking ? [
+      privateDnsZoneDeployments[dnsZoneIndex.containerRegistry]!.outputs.resourceId
+    ] : []
+  }
+}
+
+// ============================================================================
 // Module: Compute
 // ============================================================================
 
@@ -812,7 +848,8 @@ module backend_docker './modules/compute/app-service.bicep' = if (backendRuntime
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api:${imageTag}'
+    linuxFxVersion: placeholderContainerImage
+    acrUseManagedIdentityCreds: true
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
@@ -878,7 +915,8 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (backendR
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api-dotnet:${imageTag}'
+    linuxFxVersion: placeholderContainerImage
+    acrUseManagedIdentityCreds: true
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
@@ -942,9 +980,13 @@ module frontend_docker './modules/compute/app-service.bicep' = {
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-app:${imageTag}'
+    linuxFxVersion: placeholderContainerImage
+    acrUseManagedIdentityCreds: true
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
+    vnetRouteAllEnabled: enablePrivateNetworking ? true : false
+    imagePullTraffic: enablePrivateNetworking ? true : false
+    contentShareTraffic: enablePrivateNetworking ? true : false
     diagnosticSettings: monitoringDiagnosticSettings
     appSettings: {
       APP_API_BASE_URL: enablePrivateNetworking ? '' : apiBaseUrl
@@ -971,6 +1013,8 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     storageAccountResourceId: storage_account.outputs.resourceId
     cosmosDbAccountName: cosmosDBModule.outputs.name
     backendAppServicePrincipalId: (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
+    frontendAppServicePrincipalId: frontend_docker.outputs.identityPrincipalId
+    containerRegistryResourceId: containerRegistry.outputs.resourceId
     aiFoundryResourceId: aiFoundryResourceId
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
@@ -989,6 +1033,15 @@ output RESOURCE_GROUP_NAME string = resourceGroup().name
 
 @description('WAF deployment type.')
 output DEPLOYMENT_TYPE string = enablePrivateNetworking ? 'WAF' : 'Non-WAF'
+
+@description('Name of the dedicated Azure Container Registry.')
+output AZURE_ENV_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
+
+@description('Login server of the dedicated Azure Container Registry.')
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+
+@description('Docker image tag used for app deployments.')
+output AZURE_ENV_IMAGE_TAG string = imageTag
 
 @description('Cosmos DB account name.')
 output AZURE_COSMOSDB_ACCOUNT string = cosmosDBModule.outputs.name
