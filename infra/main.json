@@ -98724,8 +98724,8 @@
           "azureAiAgentApiVersion": {
             "value": "[parameters('azureAiAgentApiVersion')]"
           },
-          "imageTag": {
-            "value": "[parameters('imageTag')]"
+          "placeholderImage": {
+            "value": "[parameters('placeholderImage')]"
           },
           "containerRegistryName": {
             "value": "[parameters('containerRegistryName')]"
@@ -99190,6 +99190,20 @@
                       "type": "array",
                       "metadata": {
                         "description": "List of admin members (UPNs for users, object IDs for service principals)."
+                      }
+                    },
+                    "acrUseManagedIdentityCreds": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Whether the App Service should use a managed identity to pull images from Azure Container Registry."
+                      }
+                    },
+                    "acrUserManagedIdentityClientId": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Client ID of the user-assigned managed identity used for ACR pull. Leave empty to use the system-assigned identity."
                       }
                     }
                   },
@@ -101877,6 +101891,20 @@
                       "metadata": {
                         "description": "Optional. Use the app managed identity to authenticate ACR image pulls."
                       }
+                    },
+                    "acrUseManagedIdentityCreds": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Whether the App Service should use a managed identity to pull images from Azure Container Registry."
+                      }
+                    },
+                    "acrUserManagedIdentityClientId": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Client ID of the user-assigned managed identity used for ACR pull. Leave empty to use the system-assigned identity."
+                      }
                     }
                   },
                   "resources": [
@@ -102044,6 +102072,15 @@
                   "acrUseManagedIdentityCreds": {
                     "value": true
                   },
+                  "userassignedIdentityId": {
+                    "value": "[parameters('userassignedIdentityId')]"
+                  },
+                  "acrUseManagedIdentityCreds": {
+                    "value": true
+                  },
+                  "acrUserManagedIdentityClientId": {
+                    "value": "[parameters('acrUserManagedIdentityClientId')]"
+                  },
                   "appSettings": {
                     "value": {
                       "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.instrumentationKey.value]",
@@ -102206,6 +102243,20 @@
                       "defaultValue": false,
                       "metadata": {
                         "description": "Optional. Use the app managed identity to authenticate ACR image pulls."
+                      }
+                    },
+                    "acrUseManagedIdentityCreds": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Whether the App Service should use a managed identity to pull images from Azure Container Registry."
+                      }
+                    },
+                    "acrUserManagedIdentityClientId": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Client ID of the user-assigned managed identity used for ACR pull. Leave empty to use the system-assigned identity."
                       }
                     }
                   },

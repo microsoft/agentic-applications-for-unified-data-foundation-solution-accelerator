@@ -633,7 +633,7 @@ output AZURE_COSMOSDB_CONVERSATIONS_CONTAINER string = 'conversations'
 @description('Cosmos DB database name for conversation history')
 output AZURE_COSMOSDB_DATABASE string = 'db_conversation_history'
 
-@description('GPT model deployment name (e.g., gpt-4o-mini)')
+@description('GPT model deployment name (e.g., gpt-5.4-mini)')
 output AZURE_ENV_GPT_MODEL_NAME string = gptModelName
 
 @description('Azure OpenAI service endpoint URL')
