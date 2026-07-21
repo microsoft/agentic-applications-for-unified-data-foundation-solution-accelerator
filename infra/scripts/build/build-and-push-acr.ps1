@@ -37,6 +37,26 @@ param (
 )
 
 $ErrorActionPreference = "Stop"
+$ScriptStart = [datetime]::UtcNow
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
+
+# ----------------------------------------------------------------------------
+# Print helpers: consistent, colored step banners and status lines.
+# ----------------------------------------------------------------------------
+function Write-Step {
+    param([int]$Number, [int]$Total, [string]$Title)
+    Write-Host ""
+    Write-Host "=====================================================================" -ForegroundColor Cyan
+    Write-Host "  Step $Number/$Total  |  $Title" -ForegroundColor Cyan
+    Write-Host "=====================================================================" -ForegroundColor Cyan
+}
+function Write-Success { param([string]$Msg) Write-Host "  [OK]  $Msg" -ForegroundColor Green }
+function Write-Info    { param([string]$Msg) Write-Host "  >>    $Msg" -ForegroundColor White }
+function Write-Warn    { param([string]$Msg) Write-Host "  [!]   $Msg" -ForegroundColor Yellow }
+function Write-Elapsed {
+    $elapsed = [datetime]::UtcNow - $ScriptStart
+    Write-Host ("  Elapsed: {0:mm\:ss}" -f $elapsed) -ForegroundColor DarkGray
+}
 
 function Show-Usage {
     @"
@@ -90,7 +110,7 @@ $PrivateNetworkingEnabled = [bool]$PrivateNetworking
 # Precedence (no explicit RG): explicit CLI arg > azd env > RG-based discovery > default.
 # ----------------------------------------------------------------------------
 if ($ResourceGroupExplicit) {
-    Write-Host "Resource group provided explicitly - ignoring local azd environment; all inputs will come from '$ResourceGroup'."
+    Write-Info "Resource group provided explicitly - Fetching Inputs From '$ResourceGroup'."
 }
 elseif (Get-Command azd -ErrorAction SilentlyContinue) {
     $azdValues = & azd env get-values 2>$null
@@ -116,12 +136,12 @@ elseif (Get-Command azd -ErrorAction SilentlyContinue) {
             $azdTag = Get-AzdValue "AZURE_ENV_IMAGE_TAG"
             if ($azdTag) { $ImageTag = $azdTag }
         }
-        if ($ResourceGroup) { Write-Host "Loaded defaults from azd environment." }
+        if ($ResourceGroup) { Write-Info "Loaded defaults from azd environment." }
     }
 }
 
 if (-not $ResourceGroup) {
-    Write-Error "ERROR: -ResourceGroup is required (or run inside an initialized azd environment)."
+    Write-Error "-ResourceGroup is required (or run inside an initialized azd environment)."
     Show-Usage
     exit 1
 }
@@ -151,16 +171,15 @@ function Invoke-Run {
 # ----------------------------------------------------------------------------
 # 1. Ensure Azure login + subscription
 # ----------------------------------------------------------------------------
-Write-Host ""
-Write-Host "=== Step 1/4: Verifying Azure CLI login and discovering deployment ==="
-Write-Host "  Resource group ...: $ResourceGroup"
+Write-Step 1 4 "Verify Azure CLI login and discover deployment"
+Write-Info "Resource group : $ResourceGroup"
 az account show 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "  Not logged in to Azure. Launching 'az login'..."
+    Write-Warn "Not logged in to Azure. Launching 'az login'..."
     az login | Out-Null
 }
 if ($Subscription) {
-    Write-Host "  Setting subscription to '$Subscription'..."
+    Write-Info "Subscription : '$Subscription'"
     Invoke-Run { az account set --subscription $Subscription }
 }
 
@@ -170,10 +189,10 @@ if ($Subscription) {
 if (-not $AcrName) {
     $AcrName = az acr list --resource-group $ResourceGroup --query "[0].name" -o tsv 2>$null
     if (-not $AcrName) {
-        Write-Error "ERROR: No container registry found in resource group '$ResourceGroup'. Pass -AcrName explicitly."
+        Write-Error "ERROR: No Container Registry Found In Resource Group '$ResourceGroup'. Pass -AcrName explicitly."
         exit 1
     }
-    Write-Host "  Discovered ACR ....: $AcrName"
+    Write-Success "Discovered ACR ........: $AcrName"
 }
 
 if (-not $ApiAppName) {
@@ -187,20 +206,20 @@ if (-not $ApiAppName) {
         $BackendRuntime = "python"
     }
     if ($ApiAppName) {
-        Write-Host "  Discovered API app : $ApiAppName (runtime: $BackendRuntime)"
+        Write-Success "Discovered Backend App : $ApiAppName (runtime: $BackendRuntime)"
     }
     else {
-        Write-Host "  WARNING: No API App Service (api-* / api-cs-*) found in '$ResourceGroup'."
+        Write-Warn "No Backend App Service (api-* / api-cs-*) found in '$ResourceGroup'."
     }
 }
 
 if (-not $WebAppName) {
     $WebAppName = az webapp list --resource-group $ResourceGroup --query "[?starts_with(name, 'app-')].name | [0]" -o tsv 2>$null
     if ($WebAppName) {
-        Write-Host "  Discovered Web app : $WebAppName"
+        Write-Success "Discovered Frontend App : $WebAppName"
     }
     else {
-        Write-Host "  WARNING: No Web App Service (app-*) found in '$ResourceGroup'."
+        Write-Warn "No Frontend App Service (app-*) found in '$ResourceGroup'."
     }
 }
 
@@ -209,7 +228,7 @@ if (-not $PrivateNetworkingExplicit) {
     $acrPublic = az acr show --name $AcrName --resource-group $ResourceGroup --query "publicNetworkAccess" -o tsv 2>$null
     if ($acrPublic -eq "Disabled") {
         $PrivateNetworkingEnabled = $true
-        Write-Host "  Detected private networking (ACR public access is Disabled)."
+        Write-Info "Detected private networking (ACR public access is Disabled)."
     }
 }
 
@@ -239,11 +258,11 @@ Write-Host "  Resolved configuration:"
 Write-Host "    ACR ..............: $AcrName ($LoginServer)"
 Write-Host "    Image tag ........: $ImageTag"
 Write-Host "    Backend runtime ..: $BackendRuntime"
-Write-Host "    API app ..........: $apiAppDisplay"
-Write-Host "    Web app ..........: $webAppDisplay"
+Write-Host "    Backend app ......: $apiAppDisplay"
+Write-Host "    Frontend app .....: $webAppDisplay"
 Write-Host "    Private networking: $PrivateNetworkingEnabled"
 Write-Host "    Verbose output ...: $([bool]$VerboseOutput)"
-Write-Host "  Azure context ready."
+Write-Elapsed
 
 # ----------------------------------------------------------------------------
 # Cleanup: (Private networking) re-lock ACR on exit
@@ -251,15 +270,17 @@ Write-Host "  Azure context ready."
 function Disable-PublicAccess {
     if ($PrivateNetworkingEnabled) {
         Write-Host ""
-        Write-Host "=== Cleanup: Re-locking ACR '$AcrName' (disabling public access) ==="
+        Write-Host "====================================================" -ForegroundColor Cyan
+        Write-Host "  Cleanup  | Disabling Public Access '$AcrName'" -ForegroundColor Cyan
+        Write-Host "====================================================" -ForegroundColor Cyan
         Invoke-Run { az acr update --name $AcrName --resource-group $ResourceGroup `
                 --public-network-enabled false --default-action Deny }
-        Write-Host "  ACR public network access disabled again."
+        Write-Success "ACR public network access disabled again."
         # Restore the export policy to its locked-down (disabled) state. This can
         # only be disabled once public network access is off (done above).
         Invoke-Run { az acr update --name $AcrName --resource-group $ResourceGroup `
                 --allow-exports false }
-        Write-Host "  ACR export policy re-disabled."
+        Write-Success "ACR export policy re-disabled."
     }
 }
 
@@ -267,39 +288,37 @@ try {
     # ------------------------------------------------------------------------
     # 2. (Private networking) Temporarily enable ACR public access
     # ------------------------------------------------------------------------
-    Write-Host ""
     if ($PrivateNetworkingEnabled) {
-        Write-Host "=== Step 2/4: Temporarily opening ACR '$AcrName' for remote build ==="
-        Write-Host "  App Services stay private - only the registry is opened for the build context upload."
+        Write-Step 2 4 "Temporarily opening ACR '$AcrName' for remote build"
+        Write-Info "App Services stay private - only the registry is opened for the build context upload."
         # Public network access cannot be enabled while the export policy is disabled,
         # so enable exports first, then open the public endpoint.
         Invoke-Run { az acr update --name $AcrName --resource-group $ResourceGroup `
                 --allow-exports true }
         Invoke-Run { az acr update --name $AcrName --resource-group $ResourceGroup `
                 --public-network-enabled true --default-action Allow }
-        Write-Host "  Waiting 30s for network rule propagation..."
+        Write-Warn "Waiting 30s for network rule propagation..."
         Start-Sleep -Seconds 30
-        Write-Host "  ACR public network access temporarily enabled."
+        Write-Success "ACR public network access temporarily enabled."
     }
     else {
-        Write-Host "=== Step 2/4: Public networking mode - no ACR access toggle needed ==="
+        Write-Step 2 4 "Public networking mode - Skipping ACR public access"
     }
 
     # ------------------------------------------------------------------------
     # 3. Remote build + push each image (server-side, no local Docker)
     # ------------------------------------------------------------------------
-    Write-Host ""
-    Write-Host "=== Step 3/4: Building $($Images.Count) image(s) via ACR remote build (no local Docker) ==="
+    Write-Step 3 4 "Building $($Images.Count) Image(s) via ACR Remote Build"
     $buildIndex = 0
     foreach ($entry in $Images) {
         $buildIndex++
         $imageRef = "$($entry.Name):$ImageTag"
         Write-Host ""
-        Write-Host "  [$buildIndex/$($Images.Count)] Building '$imageRef'"
-        Write-Host "        context ...: $($entry.Context)"
-        Write-Host "        dockerfile : $($entry.Dockerfile)"
-        # Run from within the context so `--file` resolves relative to it (az acr
-        # build validates the dockerfile path against the current directory).
+        Write-Host "  [$buildIndex/$($Images.Count)] $($entry.Name)" -ForegroundColor White
+        Write-Info "  context ...: $($entry.Context)"
+        Write-Info "  dockerfile : $($entry.Dockerfile)"
+        Write-Info "  image ref ..: $LoginServer/$imageRef"
+        Write-Info "  Submitting Remote build to ACR '$AcrName'"
         Push-Location $entry.Context
         try {
             Invoke-Run { az acr build `
@@ -307,57 +326,60 @@ try {
                     --resource-group $ResourceGroup `
                     --image $imageRef `
                     --file $entry.Dockerfile `
+                    --no-logs `
                     . }
         }
         finally {
             Pop-Location
         }
-        Write-Host "  [$buildIndex/$($Images.Count)] Pushed '$LoginServer/$imageRef'"
+        Write-Success "[$buildIndex/$($Images.Count)] Pushed '$LoginServer/$imageRef'"
     }
-    Write-Host ""
-    Write-Host "  All images built and pushed."
+    Write-Success "All images built and pushed."
+    Write-Elapsed
 
     # ------------------------------------------------------------------------
     # 4. Update App Services to the newly built images (managed-identity pull)
     # ------------------------------------------------------------------------
-    Write-Host ""
-    Write-Host "=== Step 4/4: Repointing App Services to the new images (managed-identity pull) ==="
+    Write-Step 4 4 "Repointing App Services to the New Images"
     function Update-AppServiceImage {
         param(
             [string]$AppName,
             [string]$ImageName
         )
         if (-not $AppName) {
-            Write-Host "  App name not provided for image '$ImageName' - skipping."
+            Write-Warn "App name not provided for image '$ImageName' - skipping."
             return
         }
         $fullImage = "$LoginServer/$($ImageName):$ImageTag"
         Write-Host ""
-        Write-Host "  Updating '$AppName' -> '$fullImage'"
+        Write-Info "Updating '$AppName' with '$fullImage'"
         Invoke-Run { az webapp config container set `
                 --name $AppName `
                 --resource-group $ResourceGroup `
                 --container-image-name $fullImage `
-                --container-registry-url "https://$LoginServer" }
+                --container-registry-url "https://$LoginServer" `
+                --only-show-errors }
         # Ensure the app keeps using its managed identity for the ACR pull.
-        Write-Host "  Enforcing managed-identity ACR authentication on '$AppName'..."
+        Write-Info "Enforcing managed-identity ACR authentication on '$AppName'..."
         Invoke-Run { az resource update `
                 --resource-group $ResourceGroup `
                 --name $AppName `
                 --resource-type "Microsoft.Web/sites" `
                 --set properties.siteConfig.acrUseManagedIdentityCreds=true }
-        Write-Host "  Restarting '$AppName'..."
+        Write-Info "Restarting '$AppName'..."
         Invoke-Run { az webapp restart --name $AppName --resource-group $ResourceGroup }
-        Write-Host "  '$AppName' updated and restarted."
+        Write-Success "'$AppName' Updated and Restarted."
     }
 
     Update-AppServiceImage -AppName $ApiAppName -ImageName $BackendImage
     Update-AppServiceImage -AppName $WebAppName -ImageName "da-app"
 
     Write-Host ""
-    Write-Host "=== All done! ==="
-    Write-Host "  Images built in '$AcrName' and App Services repointed to managed-identity pulls."
-    Write-Host "  Run any remaining post-deployment scripts separately, after this one."
+    Write-Host "====================================================" -ForegroundColor Green
+    Write-Host "  All Steps have been completed!" -ForegroundColor Green
+    Write-Host "====================================================" -ForegroundColor Green
+    Write-Success "Images built in '$AcrName' and App Services are pointed to the new images."
+    Write-Elapsed
 }
 finally {
     Disable-PublicAccess

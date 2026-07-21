@@ -22,21 +22,6 @@
 # Does NOT require Docker to be installed locally.
 # ============================================================================
 set -euo pipefail
-
-# ----------------------------------------------------------------------------
-# UTF-8-safe `az` wrapper.
-#
-# The Windows MSI `az` launcher runs `python.exe -IBm azure.cli`. The -I
-# (isolated) flag makes Python ignore PYTHON* env vars (PYTHONUTF8 /
-# PYTHONIOENCODING), so on Git Bash the `az acr build` log stream is encoded
-# with the console code page (cp1252) and crashes with a UnicodeEncodeError on
-# any non-ASCII build output.
-#
-# We can't override that via env vars, but the `-X utf8` command-line flag is
-# NOT blocked by isolated mode. So when the bundled python is found next to the
-# az launcher we call it directly with -X utf8; otherwise we fall back to the
-# normal `az` on PATH (Linux/macOS, where UTF-8 locales avoid the issue).
-# ----------------------------------------------------------------------------
 _AZ_PY=""
 _az_launcher="$(command -v az || true)"
 if [[ -n "$_az_launcher" ]]; then
@@ -52,6 +37,38 @@ az() {
     else
         command az "$@"
     fi
+}
+
+
+# ----------------------------------------------------------------------------
+# Print helpers: consistent, colored step banners and status lines.
+# ----------------------------------------------------------------------------
+SCRIPT_START=$(date +%s)
+
+CY='\033[0;36m'   # Cyan
+GR='\033[0;32m'   # Green
+YL='\033[0;33m'   # Yellow
+WH='\033[1;37m'   # White
+DG='\033[0;90m'   # Dark gray
+RS='\033[0m'      # Reset
+
+write_step() {
+    local number=$1 total=$2 title=$3
+    echo ""
+    echo -e "${CY}=====================================================================${RS}"
+    echo -e "${CY}  Step ${number}/${total}  |  ${title}${RS}"
+    echo -e "${CY}=====================================================================${RS}"
+}
+write_success() { echo -e "${GR}  [OK]  $1${RS}"; }
+write_info()    { echo -e "${WH}  >>    $1${RS}"; }
+write_warn()    { echo -e "${YL}  [!]   $1${RS}"; }
+write_elapsed() {
+    local now elapsed mins secs
+    now=$(date +%s)
+    elapsed=$(( now - SCRIPT_START ))
+    mins=$(( elapsed / 60 ))
+    secs=$(( elapsed % 60 ))
+    echo -e "${DG}  Elapsed: $(printf '%02d:%02d' $mins $secs)${RS}"
 }
 
 
@@ -123,7 +140,7 @@ done
 # Precedence (no explicit RG): explicit CLI arg > azd env > RG-based discovery > default.
 # ----------------------------------------------------------------------------
 if [[ "$RESOURCE_GROUP_EXPLICIT" == "true" ]]; then
-    echo "Resource group provided explicitly - ignoring local azd environment; all inputs will come from '$RESOURCE_GROUP'."
+    write_info "Resource group provided explicitly - Fetching inputs from '$RESOURCE_GROUP'."
 elif command -v azd > /dev/null 2>&1; then
     AZD_VALUES="$(azd env get-values 2>/dev/null || true)"
     if [[ -n "$AZD_VALUES" ]]; then
@@ -141,7 +158,7 @@ elif command -v azd > /dev/null 2>&1; then
             azd_tag="$(azd_get AZURE_ENV_IMAGE_TAG)"
             [[ -n "$azd_tag" ]] && IMAGE_TAG="$azd_tag"
         fi
-        [[ -n "$RESOURCE_GROUP" ]] && echo "Loaded defaults from azd environment."
+        [[ -n "$RESOURCE_GROUP" ]] && write_info "Loaded defaults from azd environment."
     fi
 fi
 
@@ -171,15 +188,14 @@ run() {
 # ----------------------------------------------------------------------------
 # 1. Ensure Azure login + subscription
 # ----------------------------------------------------------------------------
-echo ""
-echo "=== Step 1/4: Verifying Azure CLI login and discovering deployment ==="
-echo "  Resource group ...: $RESOURCE_GROUP"
+write_step 1 4 "Verify Azure CLI login and discover deployment"
+write_info "Resource group : $RESOURCE_GROUP"
 if ! az account show > /dev/null 2>&1; then
-    echo "  Not logged in to Azure. Launching 'az login'..."
+    write_warn "Not logged in to Azure. Launching 'az login'..."
     az login
 fi
 if [[ -n "$SUBSCRIPTION_ID" ]]; then
-    echo "  Setting subscription to '$SUBSCRIPTION_ID'..."
+    write_info "Subscription : '$SUBSCRIPTION_ID'"
     run az account set --subscription "$SUBSCRIPTION_ID"
 fi
 
@@ -192,7 +208,7 @@ if [[ -z "$ACR_NAME" ]]; then
         echo "ERROR: No container registry found in resource group '$RESOURCE_GROUP'. Pass --acr-name explicitly." >&2
         exit 1
     fi
-    echo "  Discovered ACR ....: $ACR_NAME"
+    write_success "Discovered ACR ........: $ACR_NAME"
 fi
 
 if [[ -z "$API_APP_NAME" ]]; then
@@ -205,18 +221,18 @@ if [[ -z "$API_APP_NAME" ]]; then
         BACKEND_RUNTIME_STACK="python"
     fi
     if [[ -n "$API_APP_NAME" ]]; then
-        echo "  Discovered API app : $API_APP_NAME (runtime: $BACKEND_RUNTIME_STACK)"
+        write_success "Discovered Backend App : $API_APP_NAME (runtime: $BACKEND_RUNTIME_STACK)"
     else
-        echo "  WARNING: No API App Service (api-* / api-cs-*) found in '$RESOURCE_GROUP'."
+        write_warn "No Backend App Service (api-* / api-cs-*) found in '$RESOURCE_GROUP'."
     fi
 fi
 
 if [[ -z "$WEB_APP_NAME" ]]; then
     WEB_APP_NAME="$(az webapp list --resource-group "$RESOURCE_GROUP" --query "[?starts_with(name, 'app-')].name | [0]" -o tsv 2>/dev/null || true)"
     if [[ -n "$WEB_APP_NAME" ]]; then
-        echo "  Discovered Web app : $WEB_APP_NAME"
+        write_success "Discovered Frontend App : $WEB_APP_NAME"
     else
-        echo "  WARNING: No Web App Service (app-*) found in '$RESOURCE_GROUP'."
+        write_warn "No Frontend App Service (app-*) found in '$RESOURCE_GROUP'."
     fi
 fi
 
@@ -225,7 +241,7 @@ if [[ "$PRIVATE_NETWORKING_EXPLICIT" == "false" ]]; then
     acr_public="$(az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --query "publicNetworkAccess" -o tsv 2>/dev/null || true)"
     if [[ "$acr_public" == "Disabled" ]]; then
         PRIVATE_NETWORKING="true"
-        echo "  Detected private networking (ACR public access is Disabled)."
+        write_info "Detected private networking (ACR public access is Disabled)."
     fi
 fi
 
@@ -249,11 +265,11 @@ echo "  Resolved configuration:"
 echo "    ACR ..............: $ACR_NAME ($LOGIN_SERVER)"
 echo "    Image tag ........: $IMAGE_TAG"
 echo "    Backend runtime ..: $BACKEND_RUNTIME_STACK"
-echo "    API app ..........: ${API_APP_NAME:-<none>}"
-echo "    Web app ..........: ${WEB_APP_NAME:-<none>}"
+echo "    Backend app ......: ${API_APP_NAME:-<none>}"
+echo "    Frontend app .....: ${WEB_APP_NAME:-<none>}"
 echo "    Private networking: $PRIVATE_NETWORKING"
 echo "    Verbose output ...: $VERBOSE"
-echo "  Azure context ready."
+write_elapsed
 
 # ----------------------------------------------------------------------------
 # 2. (Private networking) Temporarily enable ACR public access
@@ -261,50 +277,53 @@ echo "  Azure context ready."
 disable_public_access() {
     if [[ "$PRIVATE_NETWORKING" == "true" ]]; then
         echo ""
-        echo "=== Cleanup: Re-locking ACR '$ACR_NAME' (disabling public access) ==="
+        echo -e "${CY}====================================================${RS}"
+        echo -e "${CY}  Cleanup  | Disabling Public Access '$ACR_NAME'${RS}"
+        echo -e "${CY}====================================================${RS}"
         run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
             --public-network-enabled false --default-action Deny
-        echo "  ACR public network access disabled again."
+        write_success "ACR public network access disabled again."
         # Restore the export policy to its locked-down (disabled) state. This can
         # only be disabled once public network access is off (done above).
         run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
             --allow-exports false
-        echo "  ACR export policy re-disabled."
+        write_success "ACR export policy re-disabled."
     fi
 }
 trap disable_public_access EXIT
 
 echo ""
 if [[ "$PRIVATE_NETWORKING" == "true" ]]; then
-    echo "=== Step 2/4: Temporarily opening ACR '$ACR_NAME' for remote build ==="
-    echo "  App Services stay private - only the registry is opened for the build context upload."
+    write_step 2 4 "Temporarily opening ACR '$ACR_NAME' for remote build"
+    write_info "App Services stay private - only the registry is opened for the build context upload."
     # Public network access cannot be enabled while the export policy is disabled,
     # so enable exports first, then open the public endpoint.
     run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
         --allow-exports true
     run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
         --public-network-enabled true --default-action Allow
-    echo "  Waiting 30s for network rule propagation..."
+    write_warn "Waiting 30s for network rule propagation..."
     sleep 30
-    echo "  ACR public network access temporarily enabled."
+    write_success "ACR public network access temporarily enabled."
 else
-    echo "=== Step 2/4: Public networking mode - no ACR access toggle needed ==="
+    write_step 2 4 "Public networking mode - Skipping ACR public access"
 fi
 
 # ----------------------------------------------------------------------------
 # 3. Remote build + push each image (server-side, no local Docker)
 # ----------------------------------------------------------------------------
-echo ""
-echo "=== Step 3/4: Building ${#IMAGES[@]} image(s) via ACR remote build (no local Docker) ==="
+write_step 3 4 "Building ${#IMAGES[@]} Image(s) via ACR Remote Build"
 build_index=0
 for entry in "${IMAGES[@]}"; do
     build_index=$((build_index + 1))
     IFS='|' read -r image_name context dockerfile <<< "$entry"
     image_ref="${image_name}:${IMAGE_TAG}"
     echo ""
-    echo "  [$build_index/${#IMAGES[@]}] Building '$image_ref'"
-    echo "        context ...: $context"
-    echo "        dockerfile : $dockerfile"
+    echo -e "${WH}  [$build_index/${#IMAGES[@]}] ${image_name}${RS}"
+    write_info "  context    : $context"
+    write_info "  dockerfile : $dockerfile"
+    write_info "  image ref  : ${LOGIN_SERVER}/${image_ref}"
+    write_info "  Submitting Remote build to ACR '$ACR_NAME'"
     # Run from within the context so `--file` resolves relative to it (az acr
     # build validates the dockerfile path against the current directory).
     ( cd "$context" && run az acr build \
@@ -312,48 +331,51 @@ for entry in "${IMAGES[@]}"; do
         --resource-group "$RESOURCE_GROUP" \
         --image "$image_ref" \
         --file "$dockerfile" \
+        --no-logs \
         . )
-    echo "  [$build_index/${#IMAGES[@]}] Pushed '${LOGIN_SERVER}/${image_ref}'"
+    write_success "[$build_index/${#IMAGES[@]}] Pushed '${LOGIN_SERVER}/${image_ref}'"
 done
-echo ""
-echo "  All images built and pushed."
+write_success "All images built and pushed."
+write_elapsed
 
 # ----------------------------------------------------------------------------
 # 4. Update App Services to the newly built images (managed-identity pull)
 # ----------------------------------------------------------------------------
-echo ""
-echo "=== Step 4/4: Repointing App Services to the new images (managed-identity pull) ==="
+write_step 4 4 "Repointing App Services to the New Images"
 update_app_service_image() {
     local app_name="$1"
     local image_name="$2"
     if [[ -z "$app_name" ]]; then
-        echo "  App name not provided for image '$image_name' - skipping."
+        write_warn "App name not provided for image '$image_name' - skipping."
         return
     fi
     local full_image="${LOGIN_SERVER}/${image_name}:${IMAGE_TAG}"
     echo ""
-    echo "  Updating '$app_name' -> '$full_image'"
+    write_info "Updating '$app_name' with '$full_image'"
     run az webapp config container set \
         --name "$app_name" \
         --resource-group "$RESOURCE_GROUP" \
         --container-image-name "$full_image" \
-        --container-registry-url "https://${LOGIN_SERVER}"
+        --container-registry-url "https://${LOGIN_SERVER}" \
+        --only-show-errors
     # Ensure the app keeps using its managed identity for the ACR pull.
-    echo "  Enforcing managed-identity ACR authentication on '$app_name'..."
+    write_info "Enforcing managed-identity ACR authentication on '$app_name'..."
     run az resource update \
         --resource-group "$RESOURCE_GROUP" \
         --name "$app_name" \
         --resource-type "Microsoft.Web/sites" \
         --set properties.siteConfig.acrUseManagedIdentityCreds=true
-    echo "  Restarting '$app_name'..."
+    write_info "Restarting '$app_name'..."
     run az webapp restart --name "$app_name" --resource-group "$RESOURCE_GROUP"
-    echo "  '$app_name' updated and restarted."
+    write_success "'$app_name' Updated and Restarted."
 }
 
 update_app_service_image "$API_APP_NAME" "$BACKEND_IMAGE"
 update_app_service_image "$WEB_APP_NAME" "da-app"
 
 echo ""
-echo "=== All done! ==="
-echo "  Images built in '$ACR_NAME' and App Services repointed to managed-identity pulls."
-echo "  Run any remaining post-deployment scripts separately, after this one."
+echo -e "${GR}====================================================${RS}"
+echo -e "${GR}  All Steps have been completed!${RS}"
+echo -e "${GR}====================================================${RS}"
+write_success "Images built in '$ACR_NAME' and App Services are pointed to the new images."
+write_elapsed

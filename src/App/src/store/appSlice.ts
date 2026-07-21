@@ -14,6 +14,10 @@ export interface AppState {
   showAppSpinner: boolean;
   userInfo: UserInfo[];
   loadingUserInfo: boolean;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  isAuthenticated: boolean;
 }
 
 const initialState: AppState = {
@@ -27,6 +31,10 @@ const initialState: AppState = {
   showAppSpinner: false,
   userInfo: [],
   loadingUserInfo: false,
+  userId: "",
+  userName: "",
+  userEmail: "",
+  isAuthenticated: false,
 };
 
 // Async thunks
@@ -70,9 +78,32 @@ const appSlice = createSlice({
       .addCase(fetchUserInfo.fulfilled, (state, action) => {
         state.userInfo = action.payload;
         state.loadingUserInfo = false;
+
+        const userClaims = action.payload?.[0]?.user_claims || [];
+        const nameClaim = userClaims.find((c: any) => c.typ === "name");
+        const objectIdClaim = userClaims.find(
+          (c: any) =>
+            c.typ === "http://schemas.microsoft.com/identity/claims/objectidentifier"
+        );
+        const emailClaim = userClaims.find(
+          (c: any) =>
+            c.typ === "preferred_username" ||
+            c.typ === "email" ||
+            c.typ === "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress" ||
+            c.typ === "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn"
+        );
+
+        state.userId = objectIdClaim?.val || action.payload?.[0]?.user_id || "";
+        state.userName = nameClaim?.val || "";
+        state.userEmail = emailClaim?.val || "";
+        state.isAuthenticated = Boolean(action.payload?.[0]);
       })
       .addCase(fetchUserInfo.rejected, (state) => {
         state.loadingUserInfo = false;
+        state.userId = "";
+        state.userName = "";
+        state.userEmail = "";
+        state.isAuthenticated = false;
       });
   },
 });
