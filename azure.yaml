@@ -13,11 +13,40 @@ metadata:
   template: agentic-applications-for-unified-data-foundation@1.1
 
 hooks:
+  preprovision:
+    windows:
+      run: |
+        Write-Host ""
+        Write-Host "  ---------------------------------------------------------------------------------------------------" -ForegroundColor Yellow
+        Write-Host "  Note: If deployment fails or you encounter an issue, please open an issue with the deployment logs." -ForegroundColor Yellow
+        Write-Host "  https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator/issues" -ForegroundColor Cyan
+        Write-Host "  ---------------------------------------------------------------------------------------------------" -ForegroundColor Yellow
+        Write-Host ""
+      shell: pwsh
+      interactive: true
+    posix:
+      run: |
+        printf '\n'
+        printf '\033[33m  ---------------------------------------------------------------------------------------------------\033[0m\n'
+        printf '\033[33m  Note: If deployment fails or you encounter an issue, please open an issue with the deployment logs.\033[0m\n'
+        printf '\033[36m  https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator/issues\033[0m\n'
+        printf '\033[33m  ---------------------------------------------------------------------------------------------------\033[0m\n'
+        printf '\n'
+      shell: sh
+      interactive: true
   postprovision:
     windows:
       run: |
         Write-Host "Web app URL: "
         Write-Host "$env:WEB_APP_URL" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "Next steps - run the following commands to complete the setup:" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "1. Build and push the application container images to ACR:" -ForegroundColor Yellow
+        Write-Host "   .\infra\scripts\build\build-and-push-acr.ps1" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "   (Linux/macOS/Git Bash):" -ForegroundColor Yellow
+        Write-Host "   bash ./infra/scripts/build/build-and-push-acr.sh" -ForegroundColor Cyan
 
       shell: pwsh
       continueOnError: false
@@ -27,6 +56,10 @@ hooks:
         echo "Web app URL: "
         echo $WEB_APP_URL
         echo ""
+        echo "Next steps - run the following commands to complete the setup:"
+        echo ""
+        echo "1. Build and push the application container images to ACR:"
+        echo "   bash ./infra/scripts/build/build-and-push-acr.sh"
 
       shell: sh
       continueOnError: false

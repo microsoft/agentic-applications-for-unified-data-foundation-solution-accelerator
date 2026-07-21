@@ -310,6 +310,10 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
    
    If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
+   Once the deployment has completed successfully, the terminal will display the next steps. Copy the build command shown in the terminal output (e.g., `bash ./infra/scripts/build/build-and-push-acr.sh --resource-group <resource-group>`) for use in step 8 below.
+
+   > **Note:** If you are running this deployment in GitHub Codespaces, VS Code Dev Container, or Visual Studio Code (Web), skip to step 7.
+
 5. Setup Python environment:
 
     ```shell
@@ -345,7 +349,30 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
     > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
-8. Build the solution:
+8. Build and push the application container images to the dedicated Azure Container Registry (ACR). This builds the API and frontend images remotely with `az acr build` (no local Docker required) and points each App Service at the new images. Images are pulled using the App Service's managed identity (AcrPull role).
+
+   **Windows (PowerShell):**
+   ```powershell
+   .\infra\scripts\build\build-and-push-acr.ps1
+   ```
+
+   **Linux / macOS / Git Bash:**
+   ```bash
+   bash ./infra/scripts/build/build-and-push-acr.sh
+   ```
+
+   > The script resolves all values automatically from your active `azd` environment.
+
+   If you don't have an active `azd` environment, pass the resource group explicitly:
+   ```powershell
+   # PowerShell
+   .\infra\scripts\build\build-and-push-acr.ps1 -ResourceGroup <your-resource-group>
+
+   # Bash
+   bash ./infra/scripts/build/build-and-push-acr.sh --resource-group <your-resource-group>
+   ```
+
+9. Build the solution:
 
     ```shell
     python infra/scripts/post-provision/00_build_solution.py --from 01
@@ -366,7 +393,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
     > Press **Enter** to start or **Ctrl+C** to cancel the process.
 
-9. Test the agent:
+10. Test the agent:
 
     ```shell
     python infra/scripts/post-provision/06_test_agent.py
@@ -379,9 +406,9 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     | **Retail (Default)** | "Show the top 5 products by total quantity sold last month?"<br /> "Show total revenue by year for last 5 years" <br /> "Show top 10 products by Revenue in the last year" |
     | **Insurance** | "I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?" <br /> "Can you provide details of her communications?" <br /> "Based on Ida's policy data has she ever missed a payment?" |
 
-10. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
+11. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
-11. If you are done trying out the application, you can delete the resources by running `azd down`.
+12. If you are done trying out the application, you can delete the resources by running `azd down`.
 
 
 ## Post Deployment Steps
@@ -439,3 +466,4 @@ azd up
 ```
 
 > **Note:** These custom files are configured to deploy your local code changes instead of pulling from the GitHub repository.
+
