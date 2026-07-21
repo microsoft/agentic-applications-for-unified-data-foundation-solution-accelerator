@@ -310,46 +310,9 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
    
    If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
-   Once the deployment has completed successfully, the terminal will display the next steps. Copy the build command shown in the terminal output (e.g., `bash ./infra/scripts/build/build-and-push-acr.sh --resource-group <resource-group>`) for use in step 8 below.
+   Once the deployment has completed successfully, the terminal will display the next steps. Copy the build command shown in the terminal output (e.g., `bash ./infra/scripts/build/build-and-push-acr.sh`) for use in step 5 below.
 
-   > **Note:** If you are running this deployment in GitHub Codespaces, VS Code Dev Container, or Visual Studio Code (Web), skip to step 7.
-
-5. Setup Python environment:
-
-    ```shell
-    python -m venv .venv
-    ```
-
-    For Windows (PowerShell):
-    ```shell
-    .venv\Scripts\Activate.ps1
-    ```
-
-    For Windows (Bash):
-    ```shell
-    source .venv/Scripts/activate
-    ```
-
-    For Linux/macOS/VS Code Web (Bash):
-    ```shell
-    source .venv/bin/activate
-    ```
-
-6. Install dependencies:
-
-    ```shell
-    pip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt
-    ```
-
-7. Login to Azure:
-
-    ```shell
-    az login
-    ```
-
-    > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
-
-8. Build and push the application container images to the dedicated Azure Container Registry (ACR). This builds the API and frontend images remotely with `az acr build` (no local Docker required) and points each App Service at the new images. Images are pulled using the App Service's managed identity (AcrPull role).
+5. Build and push the application container images to the dedicated Azure Container Registry (ACR). This builds the API and frontend images remotely
 
    **Windows (PowerShell):**
    ```powershell
@@ -371,6 +334,41 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
    # Bash
    bash ./infra/scripts/build/build-and-push-acr.sh --resource-group <your-resource-group>
    ```
+
+6. Setup Python environment:
+
+    ```shell
+    python -m venv .venv
+    ```
+
+    For Windows (PowerShell):
+    ```shell
+    .venv\Scripts\Activate.ps1
+    ```
+
+    For Windows (Bash):
+    ```shell
+    source .venv/Scripts/activate
+    ```
+
+    For Linux/macOS/VS Code Web (Bash):
+    ```shell
+    source .venv/bin/activate
+    ```
+
+7. Install dependencies:
+
+    ```shell
+    pip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt
+    ```
+
+8. Login to Azure:
+
+    ```shell
+    az login
+    ```
+
+    > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
 
 9. Build the solution:
 
