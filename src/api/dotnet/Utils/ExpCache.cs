@@ -69,12 +69,7 @@ namespace CsApi.Utils
                 var now = DateTime.UtcNow;
                 
                 // First, try to remove expired items
-                var expiredKeys = _cache
-                    .Where(kvp => kvp.Value.ExpiresAt <= now)
-                    .Select(kvp => kvp.Key)
-                    .ToList();
-
-                foreach (var removedItem in RemoveItems(expiredKeys))
+                foreach (var kvp in _cache.Where(kvp => kvp.Value.ExpiresAt <= now))
                 {
                     if (_cache.TryRemove(kvp.Key, out var removedItem))
                     {
@@ -87,13 +82,10 @@ namespace CsApi.Utils
                 {
                     var excessCount = _cache.Count - _maxSize;
                     var oldestItems = _cache
-                        .Where(kvp => kvp.Value.ExpiresAt > now)
                         .OrderBy(kvp => kvp.Value.CreatedAt)
-                        .Take(excessCount)
-                        .Select(kvp => kvp.Key)
-                        .ToList();
+                        .Take(excessCount);
 
-                    foreach (var removedItem in RemoveItems(oldestItems))
+                    foreach (var kvp in oldestItems)
                     {
                         if (_cache.TryRemove(kvp.Key, out var removedItem))
                         {
@@ -127,23 +119,9 @@ namespace CsApi.Utils
         public async Task ForceCleanupAsync()
         {
             var now = DateTime.UtcNow;
-            var expiredKeys = _cache
-                .Where(kvp => kvp.Value.ExpiresAt <= now)
-                .Select(kvp => kvp.Key)
-                .ToList();
-
-            foreach (var removedItem in RemoveItems(expiredKeys))
+            foreach (var kvp in _cache.Where(kvp => kvp.Value.ExpiresAt <= now))
             {
-                // Delete thread immediately like other cleanup operations
-                await DeleteThreadAsync(removedItem.Value);
-            }
-        }
-
-        private IEnumerable<CacheItem> RemoveItems(IEnumerable<TKey> keys)
-        {
-            foreach (var key in keys)
-            {
-                if (_cache.TryRemove(key, out var item))
+                if (_cache.TryRemove(kvp.Key, out var removedItem))
                 {
                     await DeleteConversationAsync(removedItem.Value);
                 }
@@ -192,7 +170,7 @@ namespace CsApi.Utils
                 {
                     _logger.LogError(ex, "ExpCache: Invalid argument while deleting conversation");
                 }
-                catch (TaskCanceledException ex)
+                catch (Exception ex) when (ex is not InvalidOperationException && ex is not RequestFailedException && ex is not UriFormatException && ex is not ArgumentException)
                 {
                     _logger.LogError(ex, "ExpCache: Unexpected error deleting conversation");
                 }
