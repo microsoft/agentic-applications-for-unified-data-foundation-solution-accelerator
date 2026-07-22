@@ -59,6 +59,9 @@ az() {
 # Argument parsing
 # ----------------------------------------------------------------------------
 ACR_NAME=""
+ACR_RESOURCE_GROUP=""
+ACR_RESOURCE_ID=""
+ACR_SUBSCRIPTION=""
 RESOURCE_GROUP=""
 RESOURCE_GROUP_EXPLICIT="false"
 SUBSCRIPTION_ID=""
@@ -88,6 +91,8 @@ Auto-discovery:
 
 Options:
   --acr-name <name>            Target Azure Container Registry name
+  --acr-resource-group <rg>    Resource group of the ACR (when different from the deployment RG)
+  --acr-resource-id <id>       Full resource ID of an existing ACR (sets name, RG and subscription)
   --subscription <id>          Azure subscription ID
   --image-tag <tag>            Image tag (default: latest_v2)
   --api-app-name <name>        Backend App Service name to repoint
@@ -102,6 +107,8 @@ EOF
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --acr-name) ACR_NAME="$2"; shift 2 ;;
+        --acr-resource-group) ACR_RESOURCE_GROUP="$2"; shift 2 ;;
+        --acr-resource-id) ACR_RESOURCE_ID="$2"; shift 2 ;;
         --resource-group) RESOURCE_GROUP="$2"; RESOURCE_GROUP_EXPLICIT="true"; shift 2 ;;
         --subscription) SUBSCRIPTION_ID="$2"; shift 2 ;;
         --image-tag) IMAGE_TAG="$2"; IMAGE_TAG_EXPLICIT="true"; shift 2 ;;
@@ -131,6 +138,8 @@ elif command -v azd > /dev/null 2>&1; then
         [[ -z "$RESOURCE_GROUP" ]]        && RESOURCE_GROUP="$(azd_get RESOURCE_GROUP_NAME)"
         [[ -z "$SUBSCRIPTION_ID" ]]       && SUBSCRIPTION_ID="$(azd_get AZURE_SUBSCRIPTION_ID)"
         [[ -z "$ACR_NAME" ]]              && ACR_NAME="$(azd_get AZURE_ENV_CONTAINER_REGISTRY_NAME)"
+        [[ -z "$ACR_RESOURCE_ID" ]]       && ACR_RESOURCE_ID="$(azd_get AZURE_CONTAINER_REGISTRY_RESOURCE_ID)"
+        [[ -z "$ACR_RESOURCE_ID" ]]       && ACR_RESOURCE_ID="$(azd_get AZURE_EXISTING_CONTAINER_REGISTRY_RESOURCE_ID)"
         [[ -z "$API_APP_NAME" ]]          && API_APP_NAME="$(azd_get API_APP_NAME)"
         [[ -z "$WEB_APP_NAME" ]]          && WEB_APP_NAME="$(azd_get WEB_APP_NAME)"
         if [[ "$BACKEND_RUNTIME_EXPLICIT" == "false" ]]; then
@@ -184,15 +193,71 @@ if [[ -n "$SUBSCRIPTION_ID" ]]; then
 fi
 
 # ----------------------------------------------------------------------------
-# 1b. Auto-discover any values not supplied explicitly, from the resource group
+# 1b. Resolve the container registry (name + the RG/subscription it lives in).
+#     An existing (reused) ACR may live in a DIFFERENT resource group or
+#     subscription than the deployment, so we never assume it is in $RESOURCE_GROUP.
 # ----------------------------------------------------------------------------
+# If a full ACR resource ID was supplied (existing/reused registry), parse the
+# subscription, resource group, and name straight from it.
+if [[ -n "$ACR_RESOURCE_ID" ]]; then
+    ACR_SUBSCRIPTION="$(echo "$ACR_RESOURCE_ID" | awk -F'/' '{print $3}')"
+    ACR_RESOURCE_GROUP="$(echo "$ACR_RESOURCE_ID" | awk -F'/' '{print $5}')"
+    [[ -z "$ACR_NAME" ]] && ACR_NAME="$(echo "$ACR_RESOURCE_ID" | awk -F'/' '{print $9}')"
+    echo "  Using existing ACR from resource ID:"
+    echo "    name ...........: $ACR_NAME"
+    echo "    resource group .: $ACR_RESOURCE_GROUP"
+    echo "    subscription ...: $ACR_SUBSCRIPTION"
+fi
+
+# No resource ID available (e.g. a standalone run without an azd environment, or
+# an env that predates the AZURE_CONTAINER_REGISTRY_RESOURCE_ID output).
+if [[ -z "$ACR_RESOURCE_ID" ]]; then
+    echo "  WARNING: Container registry resource ID not found (AZURE_CONTAINER_REGISTRY_RESOURCE_ID missing)." >&2
+    echo "           Falling back to name / resource-group discovery. Pass --acr-resource-id to be explicit," >&2
+    echo "           or re-run 'azd provision' so the resource ID output is captured in the environment." >&2
+fi
+
+# If we still don't know the ACR name, list registries in the deployment RG.
 if [[ -z "$ACR_NAME" ]]; then
     ACR_NAME="$(az acr list --resource-group "$RESOURCE_GROUP" --query "[0].name" -o tsv 2>/dev/null || true)"
     if [[ -z "$ACR_NAME" ]]; then
-        echo "ERROR: No container registry found in resource group '$RESOURCE_GROUP'. Pass --acr-name explicitly." >&2
+        echo "ERROR: No container registry found in resource group '$RESOURCE_GROUP'. Pass --acr-name or --acr-resource-id explicitly." >&2
         exit 1
     fi
-    echo "  Discovered ACR ....: $ACR_NAME"
+    ACR_RESOURCE_GROUP="$RESOURCE_GROUP"
+    echo "  Discovered ACR ....: $ACR_NAME (in '$RESOURCE_GROUP')"
+fi
+
+# If the ACR name is known but its resource group isn't, resolve it by name
+# across the current subscription (finds registries in any resource group).
+if [[ -z "$ACR_RESOURCE_GROUP" ]]; then
+    _acr_id="$(az acr show --name "$ACR_NAME" --query id -o tsv 2>/dev/null || true)"
+    if [[ -n "$_acr_id" ]]; then
+        ACR_SUBSCRIPTION="$(echo "$_acr_id" | awk -F'/' '{print $3}')"
+        ACR_RESOURCE_GROUP="$(echo "$_acr_id" | awk -F'/' '{print $5}')"
+        echo "  Resolved ACR resource group: $ACR_RESOURCE_GROUP"
+    fi
+fi
+
+# Final fallback: assume the ACR lives in the deployment resource group.
+[[ -z "$ACR_RESOURCE_GROUP" ]] && ACR_RESOURCE_GROUP="$RESOURCE_GROUP"
+
+# Scope args applied to EVERY `az acr` call so they always target the registry's
+# real RG/subscription (not the deployment's).
+ACR_SCOPE=(--resource-group "$ACR_RESOURCE_GROUP")
+[[ -n "$ACR_SUBSCRIPTION" ]] && ACR_SCOPE+=(--subscription "$ACR_SUBSCRIPTION")
+
+# Ensure the AAD "authenticate as ARM" policy is enabled on the registry.
+# A newly-created registry already has this set by the container-registry.bicep
+# module, but a reused/existing registry may still have it at its default
+# ('disabled'), which blocks App Service system-assigned identities from
+# obtaining an ARM-audience token — image pulls then fail with ACRImageFailure
+# even though AcrPull RBAC is correctly granted. Safe to run unconditionally
+# (idempotent no-op when already enabled).
+arm_auth_status="$(az acr config authentication-as-arm show --registry "$ACR_NAME" "${ACR_SCOPE[@]}" --query "status" -o tsv 2>/dev/null || true)"
+if [[ "$arm_auth_status" != "enabled" ]]; then
+    echo "  Enabling ACR 'authenticate as ARM' policy (required for managed-identity image pulls)..."
+    run az acr config authentication-as-arm update --registry "$ACR_NAME" "${ACR_SCOPE[@]}" --status enabled
 fi
 
 if [[ -z "$API_APP_NAME" ]]; then
@@ -222,7 +287,7 @@ fi
 
 # Auto-detect private networking from the ACR public-access state (unless explicit)
 if [[ "$PRIVATE_NETWORKING_EXPLICIT" == "false" ]]; then
-    acr_public="$(az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --query "publicNetworkAccess" -o tsv 2>/dev/null || true)"
+    acr_public="$(az acr show --name "$ACR_NAME" "${ACR_SCOPE[@]}" --query "publicNetworkAccess" -o tsv 2>/dev/null || true)"
     if [[ "$acr_public" == "Disabled" ]]; then
         PRIVATE_NETWORKING="true"
         echo "  Detected private networking (ACR public access is Disabled)."
@@ -232,7 +297,8 @@ fi
 # ----------------------------------------------------------------------------
 # Compute derived values now that discovery is complete
 # ----------------------------------------------------------------------------
-LOGIN_SERVER="${ACR_NAME}.azurecr.io"
+LOGIN_SERVER="$(az acr show --name "$ACR_NAME" "${ACR_SCOPE[@]}" --query "loginServer" -o tsv 2>/dev/null || true)"
+[[ -z "$LOGIN_SERVER" ]] && LOGIN_SERVER="${ACR_NAME}.azurecr.io"
 
 # Image definitions (name|context|dockerfile)
 IMAGES=("da-app|${REPO_ROOT}/src/App|WebApp.Dockerfile")
@@ -247,6 +313,7 @@ fi
 echo "  ----------------------------------------------------------"
 echo "  Resolved configuration:"
 echo "    ACR ..............: $ACR_NAME ($LOGIN_SERVER)"
+    echo "    ACR resource group: $ACR_RESOURCE_GROUP"
 echo "    Image tag ........: $IMAGE_TAG"
 echo "    Backend runtime ..: $BACKEND_RUNTIME_STACK"
 echo "    API app ..........: ${API_APP_NAME:-<none>}"
@@ -262,12 +329,12 @@ disable_public_access() {
     if [[ "$PRIVATE_NETWORKING" == "true" ]]; then
         echo ""
         echo "=== Cleanup: Re-locking ACR '$ACR_NAME' (disabling public access) ==="
-        run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
+        run az acr update --name "$ACR_NAME" "${ACR_SCOPE[@]}" \
             --public-network-enabled false --default-action Deny
         echo "  ACR public network access disabled again."
         # Restore the export policy to its locked-down (disabled) state. This can
         # only be disabled once public network access is off (done above).
-        run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
+        run az acr update --name "$ACR_NAME" "${ACR_SCOPE[@]}" \
             --allow-exports false
         echo "  ACR export policy re-disabled."
     fi
@@ -280,9 +347,9 @@ if [[ "$PRIVATE_NETWORKING" == "true" ]]; then
     echo "  App Services stay private - only the registry is opened for the build context upload."
     # Public network access cannot be enabled while the export policy is disabled,
     # so enable exports first, then open the public endpoint.
-    run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
+    run az acr update --name "$ACR_NAME" "${ACR_SCOPE[@]}" \
         --allow-exports true
-    run az acr update --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" \
+    run az acr update --name "$ACR_NAME" "${ACR_SCOPE[@]}" \
         --public-network-enabled true --default-action Allow
     echo "  Waiting 30s for network rule propagation..."
     sleep 30
@@ -309,7 +376,7 @@ for entry in "${IMAGES[@]}"; do
     # build validates the dockerfile path against the current directory).
     ( cd "$context" && run az acr build \
         --registry "$ACR_NAME" \
-        --resource-group "$RESOURCE_GROUP" \
+        "${ACR_SCOPE[@]}" \
         --image "$image_ref" \
         --file "$dockerfile" \
         . )

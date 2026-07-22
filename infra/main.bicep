@@ -115,6 +115,9 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('Optional. Resource ID of an existing AI Foundry project. Empty creates a new one.')
 param existingFoundryProjectResourceId string = ''
 
+@description('Optional. Resource ID of an existing Azure Container Registry to reuse. Empty creates a new per-deployment ACR.')
+param existingContainerRegistryResourceId string = ''
+
 // ============================================================================
 // Parameters — Identity
 // ============================================================================
@@ -232,6 +235,7 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     useUserAccessToken: useUserAccessToken
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
+    existingContainerRegistryResourceId: existingContainerRegistryResourceId
     deployingUserPrincipalType: deployingUserPrincipalType
     appTitlePrimary: appTitlePrimary
     appTitleSecondary: appTitleSecondary
@@ -271,6 +275,7 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     useUserAccessToken: useUserAccessToken
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
+    existingContainerRegistryResourceId: existingContainerRegistryResourceId
     deployingUserPrincipalType: deployingUserPrincipalType
     appTitlePrimary: appTitlePrimary
     appTitleSecondary: appTitleSecondary
@@ -302,6 +307,9 @@ output AZURE_ENV_CONTAINER_REGISTRY_NAME string = isAvm ? avmDeployment!.outputs
 
 @description('Login server of the dedicated Azure Container Registry.')
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT : bicepDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
+
+@description('Resource ID of the Azure Container Registry (new or reused).')
+output AZURE_CONTAINER_REGISTRY_RESOURCE_ID string = isAvm ? avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_RESOURCE_ID : bicepDeployment!.outputs.AZURE_CONTAINER_REGISTRY_RESOURCE_ID
 
 @description('Docker image tag used for app deployments.')
 output AZURE_ENV_IMAGE_TAG string = isAvm ? avmDeployment!.outputs.AZURE_ENV_IMAGE_TAG : bicepDeployment!.outputs.AZURE_ENV_IMAGE_TAG

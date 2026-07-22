@@ -44,6 +44,9 @@
     "existingFoundryProjectResourceId": {
       "value": "${AZURE_EXISTING_AIPROJECT_RESOURCE_ID}"
     },
+    "existingContainerRegistryResourceId": {
+      "value": "${AZURE_EXISTING_CONTAINER_REGISTRY_RESOURCE_ID}"
+    },
     "backendRuntimeStack": {
       "value": "${BACKEND_RUNTIME_STACK}"
     },

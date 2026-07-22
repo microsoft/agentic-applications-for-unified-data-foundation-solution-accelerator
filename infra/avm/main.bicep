@@ -182,6 +182,9 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('Optional. Resource ID of an existing AI Foundry project (empty = create new).')
 param existingFoundryProjectResourceId string = ''
 
+@description('Optional. Resource ID of an existing Azure Container Registry to reuse (empty = create a new per-deployment ACR).')
+param existingContainerRegistryResourceId string = ''
+
 // ============================================================================
 // Parameters — Identity
 // ============================================================================
@@ -217,6 +220,12 @@ var deployerInfo = deployer()
 var deployingUserPrincipalId = deployerInfo.objectId
 var createdBy = contains(deployerInfo, 'userPrincipalName') ? split(deployerInfo.userPrincipalName, '@')[0] : deployerInfo.objectId
 var useExistingAIProject = !empty(existingFoundryProjectResourceId)
+
+// Container Registry: reuse an existing ACR when its resource ID is provided; otherwise create a per-deployment one.
+var useExistingContainerRegistry = !empty(existingContainerRegistryResourceId)
+var containerRegistryResourceId = useExistingContainerRegistry ? existingContainerRegistryResourceId : containerRegistry!.outputs.resourceId
+var effectiveContainerRegistryName = useExistingContainerRegistry ? split(existingContainerRegistryResourceId, '/')[8] : containerRegistry!.outputs.name
+var effectiveContainerRegistryLoginServer = useExistingContainerRegistry ? '${toLower(split(existingContainerRegistryResourceId, '/')[8])}.azurecr.io' : containerRegistry!.outputs.loginServer
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
 
@@ -342,6 +351,17 @@ module fabricCapacity './modules/fabric/fabric-capacity.bicep' = if (shouldCreat
     enableTelemetry: enableTelemetry
   }
 }
+
+// Reused capacity: look up its resource ID by name so AZURE_FABRIC_CAPACITY_RESOURCE_ID
+// stays populated across redeploys (azd persists AZURE_FABRIC_CAPACITY_NAME as an output,
+// which then feeds back in as azureFabricCapacityName on the next run).
+resource existingFabricCapacity 'Microsoft.Fabric/capacities@2023-11-01' existing = if (useExistingFabricCapacity) {
+  name: fabricCapacityResourceName
+}
+
+var fabricCapacityResourceId = useExistingFabricCapacity
+  ? existingFabricCapacity.id
+  : (shouldCreateFabricCapacity ? fabricCapacity!.outputs.resourceId : '')
 
 // ============================================================================
 // Module: Monitoring
@@ -761,10 +781,18 @@ module storage_account './modules/data/storage-account.bicep' = {
         principalType: deployingUserPrincipalType
       }
     ]
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.blob]!.outputs.resourceId
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-st-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-st-${solutionSuffix}'
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+        service: 'blob'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            { privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.blob]!.outputs.resourceId }
+          ]
+        }
+      }
     ] : []
   }
 }
@@ -785,19 +813,28 @@ module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = {
     zoneRedundant: enableRedundancy
     enableAutomaticFailover: enableRedundancy
     haLocation: cosmosDbHaLocation
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.cosmosDb]!.outputs.resourceId
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-cosmos-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-cosmos-${solutionSuffix}'
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+        service: 'Sql'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            { privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cosmosDb]!.outputs.resourceId }
+          ]
+        }
+      }
     ] : []
   }
 }
 
 // ============================================================================
 // Module: Container Registry (dedicated per-deployment ACR)
+// Skipped when an existing registry is reused (existingContainerRegistryResourceId set).
 // ============================================================================
 
-module containerRegistry './modules/compute/container-registry.bicep' = {
+module containerRegistry './modules/compute/container-registry.bicep' = if (!useExistingContainerRegistry) {
   name: take('module.container-registry.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -811,10 +848,18 @@ module containerRegistry './modules/compute/container-registry.bicep' = {
     networkRuleSetDefaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
     // Export policy must be enabled only when public access is enabled.
     exportPolicyStatus: enablePrivateNetworking ? 'disabled' : 'enabled'
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.containerRegistry]!.outputs.resourceId
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-cr-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-cr-${solutionSuffix}'
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+        service: 'registry'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            { privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.containerRegistry]!.outputs.resourceId }
+          ]
+        }
+      }
     ] : []
   }
 }
@@ -1013,8 +1058,18 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     storageAccountResourceId: storage_account.outputs.resourceId
     cosmosDbAccountName: cosmosDBModule.outputs.name
     backendAppServicePrincipalId: (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
-    frontendAppServicePrincipalId: frontend_docker.outputs.identityPrincipalId
-    containerRegistryResourceId: containerRegistry.outputs.resourceId
+    containerRegistryResourceId: containerRegistryResourceId
+    useExistingContainerRegistry: useExistingContainerRegistry
+    acrPullPrincipals: [
+      {
+        principalId: (backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId)
+        principalType: 'ServicePrincipal'
+      }
+      {
+        principalId: frontend_docker.outputs.identityPrincipalId
+        principalType: 'ServicePrincipal'
+      }
+    ]
     aiFoundryResourceId: aiFoundryResourceId
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
@@ -1035,10 +1090,13 @@ output RESOURCE_GROUP_NAME string = resourceGroup().name
 output DEPLOYMENT_TYPE string = enablePrivateNetworking ? 'WAF' : 'Non-WAF'
 
 @description('Name of the dedicated Azure Container Registry.')
-output AZURE_ENV_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
+output AZURE_ENV_CONTAINER_REGISTRY_NAME string = effectiveContainerRegistryName
 
 @description('Login server of the dedicated Azure Container Registry.')
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = effectiveContainerRegistryLoginServer
+
+@description('Resource ID of the Azure Container Registry (new or reused).')
+output AZURE_CONTAINER_REGISTRY_RESOURCE_ID string = containerRegistryResourceId
 
 @description('Docker image tag used for app deployments.')
 output AZURE_ENV_IMAGE_TAG string = imageTag
@@ -1131,7 +1189,7 @@ output BACKEND_RUNTIME_STACK string = backendRuntimeStack
 output USE_USER_ACCESS_TOKEN string = useUserAccessTokenSetting
 
 @description('The resource ID of the Fabric capacity.')
-output AZURE_FABRIC_CAPACITY_RESOURCE_ID string = createFabricWorkspace ? fabricCapacity!.outputs.resourceId : ''
+output AZURE_FABRIC_CAPACITY_RESOURCE_ID string = fabricCapacityResourceId
 
 @description('The name of the Fabric capacity resource.')
 output AZURE_FABRIC_CAPACITY_NAME string = createFabricWorkspace ? fabricCapacityResourceName : ''

@@ -28,9 +28,6 @@ param aiSearchPrincipalId string = ''
 @description('Principal ID of the backend App Service system-assigned identity (empty if not deployed).')
 param backendAppServicePrincipalId string = ''
 
-@description('Principal ID of the frontend App Service system-assigned identity (empty if not deployed).')
-param frontendAppServicePrincipalId string = ''
-
 // --- Resource References ---
 
 @description('Resource ID of the AI Foundry account (empty if not deployed — new project path).')
@@ -45,8 +42,14 @@ param storageAccountResourceId string = ''
 @description('Name of the Cosmos DB account (empty if not deployed).')
 param cosmosDbAccountName string = ''
 
-@description('Resource ID of the Azure Container Registry (empty if not deployed).')
+@description('Whether to use an existing container registry (true) or the one created in this deployment (false).')
+param useExistingContainerRegistry bool = false
+
+@description('Resource ID of the container registry to grant AcrPull on (for deriving name/sub/RG; empty = skip ACR role assignments).')
 param containerRegistryResourceId string = ''
+
+@description('Principals to grant AcrPull on the container registry (array of objects with principalId and principalType).')
+param acrPullPrincipals array = []
 
 // ============================================================================
 // Derived Variables
@@ -55,6 +58,11 @@ param containerRegistryResourceId string = ''
 var existingAIFoundryName = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[8] : ''
 var existingAIFoundrySubscription = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[2] : subscription().subscriptionId
 var existingAIFoundryResourceGroup = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[4] : resourceGroup().name
+
+// Container registry — derive name, subscription, and resource group from the resource ID (new or existing).
+var containerRegistryName = empty(containerRegistryResourceId) ? '' : split(containerRegistryResourceId, '/')[8]
+var containerRegistrySubscription = empty(containerRegistryResourceId) ? subscription().subscriptionId : split(containerRegistryResourceId, '/')[2]
+var containerRegistryResourceGroup = empty(containerRegistryResourceId) ? resourceGroup().name : split(containerRegistryResourceId, '/')[4]
 
 // ============================================================================
 // Role Definitions
@@ -89,10 +97,6 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-08-01' existing 
 
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = if (!empty(cosmosDbAccountName)) {
   name: cosmosDbAccountName
-}
-
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = if (!empty(containerRegistryResourceId)) {
-  name: last(split(containerRegistryResourceId, '/'))
 }
 
 resource cosmosContributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-10-15' existing = if (!empty(cosmosDbAccountName)) {
@@ -244,27 +248,38 @@ resource backendAppCosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/s
 
 // ============================================================================
 // 5. CONTAINER REGISTRY ROLE ASSIGNMENTS
-//    Backend + Frontend App Service identities → AcrPull on the dedicated ACR
+//    Grants AcrPull to every principal in acrPullPrincipals (e.g. the deployer,
+//    the backend/frontend app services, or container app identities). Mirrors
+//    the AI Foundry pattern: a newly created (same resource group) registry is
+//    assigned inline; an existing (reused) registry — which may live in another
+//    resource group or subscription — is assigned via the cross-scope helper.
 // ============================================================================
 
-resource backendAppAcrPullAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(containerRegistryResourceId) && !empty(backendAppServicePrincipalId)) {
-  name: guid(solutionName, containerRegistry.id, backendAppServicePrincipalId, roleDefinitions.acrPull)
-  scope: containerRegistry
-  properties: {
-    principalId: backendAppServicePrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
-    principalType: 'ServicePrincipal'
-  }
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = if (!useExistingContainerRegistry) {
+  name: containerRegistryName
 }
 
-resource frontendAppAcrPullAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(containerRegistryResourceId) && !empty(frontendAppServicePrincipalId)) {
-  name: guid(solutionName, containerRegistry.id, frontendAppServicePrincipalId, roleDefinitions.acrPull)
+// Each principal → AcrPull on a newly created (same resource group) container registry
+resource acrPullAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for principal in acrPullPrincipals: if (!useExistingContainerRegistry && !empty(principal.principalId)) {
+  name: guid(solutionName, containerRegistryName, principal.principalId, roleDefinitions.acrPull)
   scope: containerRegistry
   properties: {
-    principalId: frontendAppServicePrincipalId
+    principalId: principal.principalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
-    principalType: 'ServicePrincipal'
+    principalType: principal.principalType
   }
-}
+}]
 
-
+// Each principal → AcrPull on an existing (reused) cross-scope container registry
+module acrPullAssignmentsExisting './cross-scope-role-assignment.bicep' = [for principal in acrPullPrincipals: if (useExistingContainerRegistry && !empty(principal.principalId)) {
+  name: take('acrPull-${uniqueString(solutionName, containerRegistryName, principal.principalId)}', 64)
+  scope: resourceGroup(containerRegistrySubscription, containerRegistryResourceGroup)
+  params: {
+    targetResourceType: 'ContainerRegistry'
+    containerRegistryName: containerRegistryName
+    principalId: principal.principalId
+    principalType: principal.principalType
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleDefinitions.acrPull)
+    roleAssignmentName: guid(solutionName, containerRegistryName, principal.principalId, roleDefinitions.acrPull)
+  }
+}]

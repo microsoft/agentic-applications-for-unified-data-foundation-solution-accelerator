@@ -155,6 +155,9 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('Optional. Resource ID of an existing AI Foundry project. Empty creates a new one.')
 param existingFoundryProjectResourceId string = ''
 
+@description('Optional. Resource ID of an existing Azure Container Registry to reuse. Empty creates a new per-deployment ACR.')
+param existingContainerRegistryResourceId string = ''
+
 // ============================================================================
 // Parameters — Identity
 // ============================================================================
@@ -196,6 +199,12 @@ var createdBy = contains(deployerInfo, 'userPrincipalName') ? split(deployerInfo
 var existingTags = resourceGroup().tags ?? {}
 
 var useExistingAIProject = !empty(existingFoundryProjectResourceId)
+
+// Container Registry: reuse an existing ACR when its resource ID is provided; otherwise create a per-deployment one.
+var useExistingContainerRegistry = !empty(existingContainerRegistryResourceId)
+var containerRegistryResourceId = useExistingContainerRegistry ? existingContainerRegistryResourceId : containerRegistry!.outputs.resourceId
+var effectiveContainerRegistryName = useExistingContainerRegistry ? split(existingContainerRegistryResourceId, '/')[8] : containerRegistry!.outputs.name
+var effectiveContainerRegistryLoginServer = useExistingContainerRegistry ? '${toLower(split(existingContainerRegistryResourceId, '/')[8])}.azurecr.io' : containerRegistry!.outputs.loginServer
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
 
@@ -239,6 +248,17 @@ module fabricCapacity './modules/fabric/fabric-capacity.bicep' = if (shouldCreat
     tags: resourceTags
   }
 }
+
+// Reused capacity: look up its resource ID by name so AZURE_FABRIC_CAPACITY_RESOURCE_ID
+// stays populated across redeploys (azd persists AZURE_FABRIC_CAPACITY_NAME as an output,
+// which then feeds back in as azureFabricCapacityName on the next run).
+resource existingFabricCapacity 'Microsoft.Fabric/capacities@2023-11-01' existing = if (useExistingFabricCapacity) {
+  name: fabricCapacityResourceName
+}
+
+var fabricCapacityResourceId = useExistingFabricCapacity
+  ? existingFabricCapacity.id
+  : (shouldCreateFabricCapacity ? fabricCapacity!.outputs.resourceId : '')
 
 // ============================================================================
 // Module: Monitoring
@@ -456,7 +476,8 @@ module hostingplan './modules/compute/app-service-plan.bicep' = {
 // Seed / placeholder handling: App Services start on a public placeholder image;
 // the separate post-deployment script (infra/scripts/build/build-and-push-acr.*)
 // builds the real images into the dedicated ACR and repoints the apps.
-module containerRegistry './modules/compute/container-registry.bicep' = {
+// Skipped when an existing registry is reused (existingContainerRegistryResourceId set).
+module containerRegistry './modules/compute/container-registry.bicep' = if (!useExistingContainerRegistry) {
   name: take('module.container-registry.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -631,8 +652,18 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     deployerPrincipalId: deployingUserPrincipalId
     deployerPrincipalType: deployingUserPrincipalType
     backendAppServicePrincipalId: backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId
-    frontendAppServicePrincipalId: frontend_docker.outputs.identityPrincipalId
-    containerRegistryResourceId: containerRegistry.outputs.resourceId
+    containerRegistryResourceId: containerRegistryResourceId
+    useExistingContainerRegistry: useExistingContainerRegistry
+    acrPullPrincipals: [
+      {
+        principalId: backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        principalId: frontend_docker.outputs.identityPrincipalId
+        principalType: 'ServicePrincipal'
+      }
+    ]
     cosmosDbAccountName: cosmosDBModule.outputs.name
   }
   scope: resourceGroup(resourceGroup().name)
@@ -646,10 +677,13 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
 output SOLUTION_NAME string = solutionSuffix
 
 @description('Name of the dedicated Azure Container Registry.')
-output AZURE_ENV_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
+output AZURE_ENV_CONTAINER_REGISTRY_NAME string = effectiveContainerRegistryName
 
 @description('Login server of the dedicated Azure Container Registry.')
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = effectiveContainerRegistryLoginServer
+
+@description('Resource ID of the Azure Container Registry (new or reused).')
+output AZURE_CONTAINER_REGISTRY_RESOURCE_ID string = containerRegistryResourceId
 
 @description('Docker image tag used for app deployments.')
 output AZURE_ENV_IMAGE_TAG string = imageTag
@@ -745,7 +779,7 @@ output BACKEND_RUNTIME_STACK string = backendRuntimeStack
 output USE_USER_ACCESS_TOKEN string = useUserAccessTokenSetting
 
 @description('The resource ID of the Fabric capacity.')
-output AZURE_FABRIC_CAPACITY_RESOURCE_ID string = createFabricWorkspace ? fabricCapacity!.outputs.resourceId : ''
+output AZURE_FABRIC_CAPACITY_RESOURCE_ID string = fabricCapacityResourceId
 
 @description('The name of the Fabric capacity resource.')
 output AZURE_FABRIC_CAPACITY_NAME string = createFabricWorkspace ? fabricCapacityResourceName : ''

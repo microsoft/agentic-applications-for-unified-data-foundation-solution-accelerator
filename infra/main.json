@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.44.1.10279",
-      "templateHash": "3587964259397477422"
+      "version": "0.45.6.27763",
+      "templateHash": "14804487449812538429"
     }
   },
   "parameters": {
@@ -207,6 +207,13 @@
       "defaultValue": "",
       "metadata": {
         "description": "Optional. Resource ID of an existing AI Foundry project. Empty creates a new one."
+      }
+    },
+    "existingContainerRegistryResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Resource ID of an existing Azure Container Registry to reuse. Empty creates a new per-deployment ACR."
       }
     },
     "deployingUserPrincipalType": {
@@ -443,6 +450,9 @@
           "existingFoundryProjectResourceId": {
             "value": "[parameters('existingFoundryProjectResourceId')]"
           },
+          "existingContainerRegistryResourceId": {
+            "value": "[parameters('existingContainerRegistryResourceId')]"
+          },
           "deployingUserPrincipalType": {
             "value": "[parameters('deployingUserPrincipalType')]"
           },
@@ -472,8 +482,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "15406414339800399151"
+              "version": "0.45.6.27763",
+              "templateHash": "7125456782465608484"
             }
           },
           "parameters": {
@@ -769,6 +779,13 @@
                 "description": "Optional. Resource ID of an existing AI Foundry project (empty = create new)."
               }
             },
+            "existingContainerRegistryResourceId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional. Resource ID of an existing Azure Container Registry to reuse (empty = create a new per-deployment ACR)."
+              }
+            },
             "deployingUserPrincipalType": {
               "type": "string",
               "defaultValue": "User",
@@ -803,6 +820,7 @@
             "deployingUserPrincipalId": "[variables('deployerInfo').objectId]",
             "createdBy": "[if(contains(variables('deployerInfo'), 'userPrincipalName'), split(variables('deployerInfo').userPrincipalName, '@')[0], variables('deployerInfo').objectId)]",
             "useExistingAIProject": "[not(empty(parameters('existingFoundryProjectResourceId')))]",
+            "useExistingContainerRegistry": "[not(empty(parameters('existingContainerRegistryResourceId')))]",
             "useChatHistoryEnabledSetting": "[if(parameters('useChatHistoryEnabled'), 'True', 'False')]",
             "useUserAccessTokenSetting": "[if(parameters('useUserAccessToken'), 'True', 'False')]",
             "useExistingFabricCapacity": "[not(empty(parameters('azureFabricCapacityName')))]",
@@ -939,8 +957,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "15409334367260759139"
+                      "version": "0.45.6.27763",
+                      "templateHash": "13259397090021316536"
                     }
                   },
                   "parameters": {
@@ -1325,8 +1343,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "3232047823815133881"
+                      "version": "0.45.6.27763",
+                      "templateHash": "13057004032172561022"
                     }
                   },
                   "parameters": {
@@ -4633,8 +4651,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "5783288507350094145"
+                      "version": "0.45.6.27763",
+                      "templateHash": "15211167376897453419"
                     }
                   },
                   "parameters": {
@@ -5560,8 +5578,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "17026638034178729316"
+                      "version": "0.45.6.27763",
+                      "templateHash": "6476447410274580151"
                     }
                   },
                   "definitions": {
@@ -8423,8 +8441,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "13928883839220797481"
+                      "version": "0.45.6.27763",
+                      "templateHash": "9116500550183450565"
                     }
                   },
                   "parameters": {
@@ -10327,8 +10345,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "1680554660663753024"
+                      "version": "0.45.6.27763",
+                      "templateHash": "5272027087445572747"
                     }
                   },
                   "parameters": {
@@ -10866,8 +10884,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "10734514187033998183"
+                      "version": "0.45.6.27763",
+                      "templateHash": "11479330755037849383"
                     }
                   },
                   "parameters": {
@@ -12335,8 +12353,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "14627790702698637496"
+                      "version": "0.45.6.27763",
+                      "templateHash": "6662408081790292224"
                     }
                   },
                   "parameters": {
@@ -12844,8 +12862,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "11639188571768358148"
+                      "version": "0.45.6.27763",
+                      "templateHash": "10374912774435131357"
                     }
                   },
                   "parameters": {
@@ -12909,7 +12927,7 @@
                     },
                     "availabilityZone": {
                       "type": "int",
-                      "defaultValue": 1,
+                      "defaultValue": -1,
                       "metadata": {
                         "description": "Availability zone for the VM."
                       }
@@ -22200,8 +22218,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "8816372137748980601"
+                      "version": "0.45.6.27763",
+                      "templateHash": "6269193753809634195"
                     }
                   },
                   "parameters": {
@@ -25683,8 +25701,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "15126235746263324029"
+                      "version": "0.45.6.27763",
+                      "templateHash": "705358977237504297"
                     }
                   },
                   "parameters": {
@@ -25829,8 +25847,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "14223009203414560544"
+                      "version": "0.45.6.27763",
+                      "templateHash": "8028799539155931791"
                     }
                   },
                   "parameters": {
@@ -28603,8 +28621,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "14126031085782385090"
+                      "version": "0.45.6.27763",
+                      "templateHash": "8750708162978576025"
                     }
                   },
                   "parameters": {
@@ -28770,8 +28788,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "14126031085782385090"
+                      "version": "0.45.6.27763",
+                      "templateHash": "8750708162978576025"
                     }
                   },
                   "parameters": {
@@ -28943,8 +28961,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "14126031085782385090"
+                      "version": "0.45.6.27763",
+                      "templateHash": "8750708162978576025"
                     }
                   },
                   "parameters": {
@@ -29114,8 +29132,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "10180502016624897684"
+                      "version": "0.45.6.27763",
+                      "templateHash": "6715448001846817199"
                     }
                   },
                   "parameters": {
@@ -29263,8 +29281,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "11864526637995139246"
+                      "version": "0.45.6.27763",
+                      "templateHash": "15520898487171778502"
                     }
                   },
                   "parameters": {
@@ -31592,11 +31610,7 @@
                       }
                     ]
                   },
-                  "enablePrivateNetworking": {
-                    "value": "[parameters('enablePrivateNetworking')]"
-                  },
-                  "privateEndpointSubnetId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference('virtualNetwork').outputs.backendSubnetResourceId.value), createObject('value', ''))]",
-                  "privateDnsZoneResourceIds": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(reference(format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').blob)).outputs.resourceId.value)), createObject('value', createArray()))]"
+                  "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-st-{0}', variables('solutionSuffix')), 'customNetworkInterfaceName', format('nic-st-{0}', variables('solutionSuffix')), 'subnetResourceId', reference('virtualNetwork').outputs.backendSubnetResourceId.value, 'service', 'blob', 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').blob)).outputs.resourceId.value)))))), createObject('value', createArray()))]"
                 },
                 "template": {
                   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -31605,8 +31619,366 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "1572954335278177330"
+                      "version": "0.45.6.27763",
+                      "templateHash": "4777127370526680404"
+                    }
+                  },
+                  "definitions": {
+                    "_1.lockType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the name of lock."
+                          }
+                        },
+                        "kind": {
+                          "type": "string",
+                          "allowedValues": [
+                            "CanNotDelete",
+                            "None",
+                            "ReadOnly"
+                          ],
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the type of lock."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "An AVM-aligned type for a lock.",
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.privateEndpointCustomDnsConfigType": {
+                      "type": "object",
+                      "properties": {
+                        "fqdn": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. FQDN that resolves to private endpoint IP address."
+                          }
+                        },
+                        "ipAddresses": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "metadata": {
+                            "description": "Required. A list of private IP addresses of the private endpoint."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.privateEndpointIpConfigurationType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. The name of the resource that is unique within a resource group."
+                          }
+                        },
+                        "properties": {
+                          "type": "object",
+                          "properties": {
+                            "groupId": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "Required. The ID of a group obtained from the remote resource that this private endpoint should connect to."
+                              }
+                            },
+                            "memberName": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "Required. The member name of a group obtained from the remote resource that this private endpoint should connect to."
+                              }
+                            },
+                            "privateIPAddress": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "Required. A private IP address obtained from the private endpoint's subnet."
+                              }
+                            }
+                          },
+                          "metadata": {
+                            "description": "Required. Properties of private endpoint IP configurations."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.privateEndpointPrivateDnsZoneGroupType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name of the Private DNS Zone Group."
+                          }
+                        },
+                        "privateDnsZoneGroupConfigs": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "nullable": true,
+                                "metadata": {
+                                  "description": "Optional. The name of the private DNS Zone Group config."
+                                }
+                              },
+                              "privateDnsZoneResourceId": {
+                                "type": "string",
+                                "metadata": {
+                                  "description": "Required. The resource id of the private DNS zone."
+                                }
+                              }
+                            }
+                          },
+                          "metadata": {
+                            "description": "Required. The private DNS Zone Groups to associate the Private Endpoint. A DNS Zone Group can support up to 5 DNS zones."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.roleAssignmentType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name (as GUID) of the role assignment. If not provided, a GUID will be generated."
+                          }
+                        },
+                        "roleDefinitionIdOrName": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'."
+                          }
+                        },
+                        "principalId": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. The principal ID of the principal (user/group/identity) to assign the role to."
+                          }
+                        },
+                        "principalType": {
+                          "type": "string",
+                          "allowedValues": [
+                            "Device",
+                            "ForeignGroup",
+                            "Group",
+                            "ServicePrincipal",
+                            "User"
+                          ],
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The principal type of the assigned principal ID."
+                          }
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The description of the role assignment."
+                          }
+                        },
+                        "condition": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase \"foo_storage_container\"."
+                          }
+                        },
+                        "conditionVersion": {
+                          "type": "string",
+                          "allowedValues": [
+                            "2.0"
+                          ],
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Version of the condition."
+                          }
+                        },
+                        "delegatedManagedIdentityResourceId": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The Resource Id of the delegated managed identity resource."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "An AVM-aligned type for a role assignment.",
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "privateEndpointSingleServiceType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name of the Private Endpoint."
+                          }
+                        },
+                        "location": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The location to deploy the Private Endpoint to."
+                          }
+                        },
+                        "privateLinkServiceConnectionName": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name of the private link connection to create."
+                          }
+                        },
+                        "service": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The subresource to deploy the Private Endpoint for. For example \"vault\" for a Key Vault Private Endpoint."
+                          }
+                        },
+                        "subnetResourceId": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. Resource ID of the subnet where the endpoint needs to be created."
+                          }
+                        },
+                        "resourceGroupResourceId": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The resource ID of the Resource Group the Private Endpoint will be created in. If not specified, the Resource Group of the provided Virtual Network Subnet is used."
+                          }
+                        },
+                        "privateDnsZoneGroup": {
+                          "$ref": "#/definitions/_1.privateEndpointPrivateDnsZoneGroupType",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The private DNS Zone Group to configure for the Private Endpoint."
+                          }
+                        },
+                        "isManualConnection": {
+                          "type": "bool",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. If Manual Private Link Connection is required."
+                          }
+                        },
+                        "manualConnectionRequestMessage": {
+                          "type": "string",
+                          "nullable": true,
+                          "maxLength": 140,
+                          "metadata": {
+                            "description": "Optional. A message passed to the owner of the remote resource with the manual connection request."
+                          }
+                        },
+                        "customDnsConfigs": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/_1.privateEndpointCustomDnsConfigType"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Custom DNS configurations."
+                          }
+                        },
+                        "ipConfigurations": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/_1.privateEndpointIpConfigurationType"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. A list of IP configurations of the Private Endpoint. This will be used to map to the first-party Service endpoints."
+                          }
+                        },
+                        "applicationSecurityGroupResourceIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Application security groups in which the Private Endpoint IP configuration is included."
+                          }
+                        },
+                        "customNetworkInterfaceName": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The custom name of the network interface attached to the Private Endpoint."
+                          }
+                        },
+                        "lock": {
+                          "$ref": "#/definitions/_1.lockType",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the type of lock."
+                          }
+                        },
+                        "roleAssignments": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/_1.roleAssignmentType"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Array of role assignments to create."
+                          }
+                        },
+                        "tags": {
+                          "type": "object",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Tags to be applied on all resources/Resource Groups in this deployment."
+                          }
+                        },
+                        "enableTelemetry": {
+                          "type": "bool",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Enable/Disable usage telemetry for module."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "An AVM-aligned type for a private endpoint. To be used if the private endpoint's default service / groupId can be assumed (i.e., for services that only have one Private Endpoint type like 'vault' for key vault).",
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
                     }
                   },
                   "parameters": {
@@ -31725,25 +32097,14 @@
                         "description": "Network ACLs for the storage account."
                       }
                     },
-                    "enablePrivateNetworking": {
-                      "type": "bool",
-                      "defaultValue": false,
-                      "metadata": {
-                        "description": "Whether to enable private networking."
-                      }
-                    },
-                    "privateEndpointSubnetId": {
-                      "type": "string",
-                      "defaultValue": "",
-                      "metadata": {
-                        "description": "Subnet resource ID for the private endpoint."
-                      }
-                    },
-                    "privateDnsZoneResourceIds": {
+                    "privateEndpoints": {
                       "type": "array",
-                      "defaultValue": [],
+                      "items": {
+                        "$ref": "#/definitions/privateEndpointSingleServiceType"
+                      },
+                      "nullable": true,
                       "metadata": {
-                        "description": "Private DNS zone resource IDs for Storage (blob)."
+                        "description": "Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible."
                       }
                     },
                     "roleAssignments": {
@@ -31762,18 +32123,6 @@
                         "description": "Optional. Managed identities for the resource."
                       }
                     }
-                  },
-                  "variables": {
-                    "copy": [
-                      {
-                        "name": "privateDnsZoneConfigs",
-                        "count": "[length(parameters('privateDnsZoneResourceIds'))]",
-                        "input": {
-                          "name": "[format('dns-zone-{0}', copyIndex('privateDnsZoneConfigs'))]",
-                          "privateDnsZoneResourceId": "[parameters('privateDnsZoneResourceIds')[copyIndex('privateDnsZoneConfigs')]]"
-                        }
-                      }
-                    ]
                   },
                   "resources": {
                     "storage": {
@@ -31850,7 +32199,9 @@
                             }
                           },
                           "diagnosticSettings": "[if(not(empty(parameters('diagnosticSettings'))), createObject('value', parameters('diagnosticSettings')), createObject('value', createArray()))]",
-                          "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', parameters('name')), 'customNetworkInterfaceName', format('nic-{0}', parameters('name')), 'subnetResourceId', parameters('privateEndpointSubnetId'), 'service', 'blob', 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', variables('privateDnsZoneConfigs'))))), createObject('value', createArray()))]",
+                          "privateEndpoints": {
+                            "value": "[parameters('privateEndpoints')]"
+                          },
                           "roleAssignments": "[if(not(empty(parameters('roleAssignments'))), createObject('value', parameters('roleAssignments')), createObject('value', createArray()))]"
                         },
                         "template": {
@@ -40044,11 +40395,7 @@
                   "haLocation": {
                     "value": "[variables('cosmosDbHaLocation')]"
                   },
-                  "enablePrivateNetworking": {
-                    "value": "[parameters('enablePrivateNetworking')]"
-                  },
-                  "privateEndpointSubnetId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference('virtualNetwork').outputs.backendSubnetResourceId.value), createObject('value', ''))]",
-                  "privateDnsZoneResourceIds": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(reference(format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').cosmosDb)).outputs.resourceId.value)), createObject('value', createArray()))]"
+                  "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-cosmos-{0}', variables('solutionSuffix')), 'customNetworkInterfaceName', format('nic-cosmos-{0}', variables('solutionSuffix')), 'subnetResourceId', reference('virtualNetwork').outputs.backendSubnetResourceId.value, 'service', 'Sql', 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').cosmosDb)).outputs.resourceId.value)))))), createObject('value', createArray()))]"
                 },
                 "template": {
                   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -40057,8 +40404,366 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "486166409253479101"
+                      "version": "0.45.6.27763",
+                      "templateHash": "5504060809490275188"
+                    }
+                  },
+                  "definitions": {
+                    "_1.lockType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the name of lock."
+                          }
+                        },
+                        "kind": {
+                          "type": "string",
+                          "allowedValues": [
+                            "CanNotDelete",
+                            "None",
+                            "ReadOnly"
+                          ],
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the type of lock."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "An AVM-aligned type for a lock.",
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.privateEndpointCustomDnsConfigType": {
+                      "type": "object",
+                      "properties": {
+                        "fqdn": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. FQDN that resolves to private endpoint IP address."
+                          }
+                        },
+                        "ipAddresses": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "metadata": {
+                            "description": "Required. A list of private IP addresses of the private endpoint."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.privateEndpointIpConfigurationType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. The name of the resource that is unique within a resource group."
+                          }
+                        },
+                        "properties": {
+                          "type": "object",
+                          "properties": {
+                            "groupId": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "Required. The ID of a group obtained from the remote resource that this private endpoint should connect to."
+                              }
+                            },
+                            "memberName": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "Required. The member name of a group obtained from the remote resource that this private endpoint should connect to."
+                              }
+                            },
+                            "privateIPAddress": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "Required. A private IP address obtained from the private endpoint's subnet."
+                              }
+                            }
+                          },
+                          "metadata": {
+                            "description": "Required. Properties of private endpoint IP configurations."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.privateEndpointPrivateDnsZoneGroupType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name of the Private DNS Zone Group."
+                          }
+                        },
+                        "privateDnsZoneGroupConfigs": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "nullable": true,
+                                "metadata": {
+                                  "description": "Optional. The name of the private DNS Zone Group config."
+                                }
+                              },
+                              "privateDnsZoneResourceId": {
+                                "type": "string",
+                                "metadata": {
+                                  "description": "Required. The resource id of the private DNS zone."
+                                }
+                              }
+                            }
+                          },
+                          "metadata": {
+                            "description": "Required. The private DNS Zone Groups to associate the Private Endpoint. A DNS Zone Group can support up to 5 DNS zones."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.roleAssignmentType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name (as GUID) of the role assignment. If not provided, a GUID will be generated."
+                          }
+                        },
+                        "roleDefinitionIdOrName": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'."
+                          }
+                        },
+                        "principalId": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. The principal ID of the principal (user/group/identity) to assign the role to."
+                          }
+                        },
+                        "principalType": {
+                          "type": "string",
+                          "allowedValues": [
+                            "Device",
+                            "ForeignGroup",
+                            "Group",
+                            "ServicePrincipal",
+                            "User"
+                          ],
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The principal type of the assigned principal ID."
+                          }
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The description of the role assignment."
+                          }
+                        },
+                        "condition": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase \"foo_storage_container\"."
+                          }
+                        },
+                        "conditionVersion": {
+                          "type": "string",
+                          "allowedValues": [
+                            "2.0"
+                          ],
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Version of the condition."
+                          }
+                        },
+                        "delegatedManagedIdentityResourceId": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The Resource Id of the delegated managed identity resource."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "An AVM-aligned type for a role assignment.",
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "privateEndpointSingleServiceType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name of the Private Endpoint."
+                          }
+                        },
+                        "location": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The location to deploy the Private Endpoint to."
+                          }
+                        },
+                        "privateLinkServiceConnectionName": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name of the private link connection to create."
+                          }
+                        },
+                        "service": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The subresource to deploy the Private Endpoint for. For example \"vault\" for a Key Vault Private Endpoint."
+                          }
+                        },
+                        "subnetResourceId": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. Resource ID of the subnet where the endpoint needs to be created."
+                          }
+                        },
+                        "resourceGroupResourceId": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The resource ID of the Resource Group the Private Endpoint will be created in. If not specified, the Resource Group of the provided Virtual Network Subnet is used."
+                          }
+                        },
+                        "privateDnsZoneGroup": {
+                          "$ref": "#/definitions/_1.privateEndpointPrivateDnsZoneGroupType",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The private DNS Zone Group to configure for the Private Endpoint."
+                          }
+                        },
+                        "isManualConnection": {
+                          "type": "bool",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. If Manual Private Link Connection is required."
+                          }
+                        },
+                        "manualConnectionRequestMessage": {
+                          "type": "string",
+                          "nullable": true,
+                          "maxLength": 140,
+                          "metadata": {
+                            "description": "Optional. A message passed to the owner of the remote resource with the manual connection request."
+                          }
+                        },
+                        "customDnsConfigs": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/_1.privateEndpointCustomDnsConfigType"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Custom DNS configurations."
+                          }
+                        },
+                        "ipConfigurations": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/_1.privateEndpointIpConfigurationType"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. A list of IP configurations of the Private Endpoint. This will be used to map to the first-party Service endpoints."
+                          }
+                        },
+                        "applicationSecurityGroupResourceIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Application security groups in which the Private Endpoint IP configuration is included."
+                          }
+                        },
+                        "customNetworkInterfaceName": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The custom name of the network interface attached to the Private Endpoint."
+                          }
+                        },
+                        "lock": {
+                          "$ref": "#/definitions/_1.lockType",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the type of lock."
+                          }
+                        },
+                        "roleAssignments": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/_1.roleAssignmentType"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Array of role assignments to create."
+                          }
+                        },
+                        "tags": {
+                          "type": "object",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Tags to be applied on all resources/Resource Groups in this deployment."
+                          }
+                        },
+                        "enableTelemetry": {
+                          "type": "bool",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Enable/Disable usage telemetry for module."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "An AVM-aligned type for a private endpoint. To be used if the private endpoint's default service / groupId can be assumed (i.e., for services that only have one Private Endpoint type like 'vault' for key vault).",
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
                     }
                   },
                   "parameters": {
@@ -40128,25 +40833,14 @@
                         "description": "Public network access setting."
                       }
                     },
-                    "enablePrivateNetworking": {
-                      "type": "bool",
-                      "defaultValue": false,
-                      "metadata": {
-                        "description": "Whether to enable private networking."
-                      }
-                    },
-                    "privateEndpointSubnetId": {
-                      "type": "string",
-                      "defaultValue": "",
-                      "metadata": {
-                        "description": "Subnet resource ID for the private endpoint."
-                      }
-                    },
-                    "privateDnsZoneResourceIds": {
+                    "privateEndpoints": {
                       "type": "array",
-                      "defaultValue": [],
+                      "items": {
+                        "$ref": "#/definitions/privateEndpointSingleServiceType"
+                      },
+                      "nullable": true,
                       "metadata": {
-                        "description": "Private DNS zone resource IDs for Cosmos DB."
+                        "description": "Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible."
                       }
                     },
                     "zoneRedundant": {
@@ -40179,18 +40873,6 @@
                         "description": "Optional. Managed identities for the resource."
                       }
                     }
-                  },
-                  "variables": {
-                    "copy": [
-                      {
-                        "name": "privateDnsZoneConfigs",
-                        "count": "[length(parameters('privateDnsZoneResourceIds'))]",
-                        "input": {
-                          "name": "[format('dns-zone-{0}', copyIndex('privateDnsZoneConfigs'))]",
-                          "privateDnsZoneResourceId": "[parameters('privateDnsZoneResourceIds')[copyIndex('privateDnsZoneConfigs')]]"
-                        }
-                      }
-                    ]
                   },
                   "resources": {
                     "cosmosAccount": {
@@ -40247,7 +40929,9 @@
                               "publicNetworkAccess": "[parameters('publicNetworkAccess')]"
                             }
                           },
-                          "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', parameters('name')), 'customNetworkInterfaceName', format('nic-{0}', parameters('name')), 'subnetResourceId', parameters('privateEndpointSubnetId'), 'service', 'Sql', 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', variables('privateDnsZoneConfigs'))))), createObject('value', createArray()))]",
+                          "privateEndpoints": {
+                            "value": "[parameters('privateEndpoints')]"
+                          },
                           "zoneRedundant": {
                             "value": "[parameters('zoneRedundant')]"
                           },
@@ -46216,6 +46900,7 @@
               ]
             },
             "containerRegistry": {
+              "condition": "[not(variables('useExistingContainerRegistry'))]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
               "name": "[take(format('module.container-registry.{0}', parameters('solutionName')), 64)]",
@@ -46244,20 +46929,375 @@
                   "publicNetworkAccess": "[if(parameters('enablePrivateNetworking'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
                   "networkRuleSetDefaultAction": "[if(parameters('enablePrivateNetworking'), createObject('value', 'Deny'), createObject('value', 'Allow'))]",
                   "exportPolicyStatus": "[if(parameters('enablePrivateNetworking'), createObject('value', 'disabled'), createObject('value', 'enabled'))]",
-                  "enablePrivateNetworking": {
-                    "value": "[parameters('enablePrivateNetworking')]"
-                  },
-                  "privateEndpointSubnetId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference('virtualNetwork').outputs.backendSubnetResourceId.value), createObject('value', ''))]",
-                  "privateDnsZoneResourceIds": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(reference(format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').containerRegistry)).outputs.resourceId.value)), createObject('value', createArray()))]"
+                  "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-cr-{0}', variables('solutionSuffix')), 'customNetworkInterfaceName', format('nic-cr-{0}', variables('solutionSuffix')), 'subnetResourceId', reference('virtualNetwork').outputs.backendSubnetResourceId.value, 'service', 'registry', 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').containerRegistry)).outputs.resourceId.value)))))), createObject('value', createArray()))]"
                 },
                 "template": {
                   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "languageVersion": "2.0",
                   "contentVersion": "1.0.0.0",
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "1223988259594936060"
+                      "version": "0.45.6.27763",
+                      "templateHash": "8763783421859210421"
+                    }
+                  },
+                  "definitions": {
+                    "_1.lockType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the name of lock."
+                          }
+                        },
+                        "kind": {
+                          "type": "string",
+                          "allowedValues": [
+                            "CanNotDelete",
+                            "None",
+                            "ReadOnly"
+                          ],
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the type of lock."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "An AVM-aligned type for a lock.",
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.privateEndpointCustomDnsConfigType": {
+                      "type": "object",
+                      "properties": {
+                        "fqdn": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. FQDN that resolves to private endpoint IP address."
+                          }
+                        },
+                        "ipAddresses": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "metadata": {
+                            "description": "Required. A list of private IP addresses of the private endpoint."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.privateEndpointIpConfigurationType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. The name of the resource that is unique within a resource group."
+                          }
+                        },
+                        "properties": {
+                          "type": "object",
+                          "properties": {
+                            "groupId": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "Required. The ID of a group obtained from the remote resource that this private endpoint should connect to."
+                              }
+                            },
+                            "memberName": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "Required. The member name of a group obtained from the remote resource that this private endpoint should connect to."
+                              }
+                            },
+                            "privateIPAddress": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "Required. A private IP address obtained from the private endpoint's subnet."
+                              }
+                            }
+                          },
+                          "metadata": {
+                            "description": "Required. Properties of private endpoint IP configurations."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.privateEndpointPrivateDnsZoneGroupType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name of the Private DNS Zone Group."
+                          }
+                        },
+                        "privateDnsZoneGroupConfigs": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "nullable": true,
+                                "metadata": {
+                                  "description": "Optional. The name of the private DNS Zone Group config."
+                                }
+                              },
+                              "privateDnsZoneResourceId": {
+                                "type": "string",
+                                "metadata": {
+                                  "description": "Required. The resource id of the private DNS zone."
+                                }
+                              }
+                            }
+                          },
+                          "metadata": {
+                            "description": "Required. The private DNS Zone Groups to associate the Private Endpoint. A DNS Zone Group can support up to 5 DNS zones."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "_1.roleAssignmentType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name (as GUID) of the role assignment. If not provided, a GUID will be generated."
+                          }
+                        },
+                        "roleDefinitionIdOrName": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'."
+                          }
+                        },
+                        "principalId": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. The principal ID of the principal (user/group/identity) to assign the role to."
+                          }
+                        },
+                        "principalType": {
+                          "type": "string",
+                          "allowedValues": [
+                            "Device",
+                            "ForeignGroup",
+                            "Group",
+                            "ServicePrincipal",
+                            "User"
+                          ],
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The principal type of the assigned principal ID."
+                          }
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The description of the role assignment."
+                          }
+                        },
+                        "condition": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase \"foo_storage_container\"."
+                          }
+                        },
+                        "conditionVersion": {
+                          "type": "string",
+                          "allowedValues": [
+                            "2.0"
+                          ],
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Version of the condition."
+                          }
+                        },
+                        "delegatedManagedIdentityResourceId": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The Resource Id of the delegated managed identity resource."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "An AVM-aligned type for a role assignment.",
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
+                    },
+                    "privateEndpointSingleServiceType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name of the Private Endpoint."
+                          }
+                        },
+                        "location": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The location to deploy the Private Endpoint to."
+                          }
+                        },
+                        "privateLinkServiceConnectionName": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The name of the private link connection to create."
+                          }
+                        },
+                        "service": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The subresource to deploy the Private Endpoint for. For example \"vault\" for a Key Vault Private Endpoint."
+                          }
+                        },
+                        "subnetResourceId": {
+                          "type": "string",
+                          "metadata": {
+                            "description": "Required. Resource ID of the subnet where the endpoint needs to be created."
+                          }
+                        },
+                        "resourceGroupResourceId": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The resource ID of the Resource Group the Private Endpoint will be created in. If not specified, the Resource Group of the provided Virtual Network Subnet is used."
+                          }
+                        },
+                        "privateDnsZoneGroup": {
+                          "$ref": "#/definitions/_1.privateEndpointPrivateDnsZoneGroupType",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The private DNS Zone Group to configure for the Private Endpoint."
+                          }
+                        },
+                        "isManualConnection": {
+                          "type": "bool",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. If Manual Private Link Connection is required."
+                          }
+                        },
+                        "manualConnectionRequestMessage": {
+                          "type": "string",
+                          "nullable": true,
+                          "maxLength": 140,
+                          "metadata": {
+                            "description": "Optional. A message passed to the owner of the remote resource with the manual connection request."
+                          }
+                        },
+                        "customDnsConfigs": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/_1.privateEndpointCustomDnsConfigType"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Custom DNS configurations."
+                          }
+                        },
+                        "ipConfigurations": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/_1.privateEndpointIpConfigurationType"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. A list of IP configurations of the Private Endpoint. This will be used to map to the first-party Service endpoints."
+                          }
+                        },
+                        "applicationSecurityGroupResourceIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Application security groups in which the Private Endpoint IP configuration is included."
+                          }
+                        },
+                        "customNetworkInterfaceName": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. The custom name of the network interface attached to the Private Endpoint."
+                          }
+                        },
+                        "lock": {
+                          "$ref": "#/definitions/_1.lockType",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the type of lock."
+                          }
+                        },
+                        "roleAssignments": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/_1.roleAssignmentType"
+                          },
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Array of role assignments to create."
+                          }
+                        },
+                        "tags": {
+                          "type": "object",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Tags to be applied on all resources/Resource Groups in this deployment."
+                          }
+                        },
+                        "enableTelemetry": {
+                          "type": "bool",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Enable/Disable usage telemetry for module."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "An AVM-aligned type for a private endpoint. To be used if the private endpoint's default service / groupId can be assumed (i.e., for services that only have one Private Endpoint type like 'vault' for key vault).",
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                        }
+                      }
                     }
                   },
                   "parameters": {
@@ -46324,6 +47364,17 @@
                         "description": "Export policy status. Must be \"enabled\" when publicNetworkAccess is \"Enabled\"."
                       }
                     },
+                    "azureADAuthenticationAsArmPolicyStatus": {
+                      "type": "string",
+                      "defaultValue": "enabled",
+                      "allowedValues": [
+                        "enabled",
+                        "disabled"
+                      ],
+                      "metadata": {
+                        "description": "Enable the ARM-audience AAD token policy. Must be \"enabled\" for App Service managed-identity image pulls to work (the AVM module defaults this to \"disabled\", which causes ACR token retrieval to fail with 401)."
+                      }
+                    },
                     "acrPullPrincipalIds": {
                       "type": "array",
                       "defaultValue": [],
@@ -46350,25 +47401,14 @@
                         "description": "Principal type for AcrPush assignments (User for azd user, ServicePrincipal for CI)."
                       }
                     },
-                    "enablePrivateNetworking": {
-                      "type": "bool",
-                      "defaultValue": false,
-                      "metadata": {
-                        "description": "Enable private networking."
-                      }
-                    },
-                    "privateEndpointSubnetId": {
-                      "type": "string",
-                      "defaultValue": "",
-                      "metadata": {
-                        "description": "Subnet resource ID for private endpoint."
-                      }
-                    },
-                    "privateDnsZoneResourceIds": {
+                    "privateEndpoints": {
                       "type": "array",
-                      "defaultValue": [],
+                      "items": {
+                        "$ref": "#/definitions/privateEndpointSingleServiceType"
+                      },
+                      "nullable": true,
                       "metadata": {
-                        "description": "Private DNS zone resource IDs for private endpoint."
+                        "description": "Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible."
                       }
                     },
                     "networkRuleSetDefaultAction": {
@@ -46418,23 +47458,14 @@
                           "roleDefinitionIdOrName": "[variables('acrPushRoleId')]",
                           "principalType": "[parameters('acrPushPrincipalType')]"
                         }
-                      },
-                      {
-                        "name": "dnsZoneConfigs",
-                        "count": "[length(parameters('privateDnsZoneResourceIds'))]",
-                        "input": {
-                          "name": "[format('config{0}', copyIndex('dnsZoneConfigs'))]",
-                          "privateDnsZoneResourceId": "[parameters('privateDnsZoneResourceIds')[copyIndex('dnsZoneConfigs')]]"
-                        }
                       }
                     ],
                     "acrPullRoleId": "7f951dda-4ed3-4680-a7ca-43fe172d538d",
                     "acrPushRoleId": "8311e382-0749-4cb8-b61a-304f252e45ec",
-                    "roleAssignments": "[concat(if(not(empty(parameters('acrPullPrincipalIds'))), variables('pullRoleAssignments'), createArray()), if(not(empty(parameters('acrPushPrincipalIds'))), variables('pushRoleAssignments'), createArray()))]",
-                    "privateEndpointConfig": "[if(and(parameters('enablePrivateNetworking'), not(empty(parameters('privateEndpointSubnetId')))), createArray(createObject('subnetResourceId', parameters('privateEndpointSubnetId'), 'privateDnsZoneGroup', if(not(empty(parameters('privateDnsZoneResourceIds'))), createObject('privateDnsZoneGroupConfigs', variables('dnsZoneConfigs')), null()))), createArray())]"
+                    "roleAssignments": "[concat(if(not(empty(parameters('acrPullPrincipalIds'))), variables('pullRoleAssignments'), createArray()), if(not(empty(parameters('acrPushPrincipalIds'))), variables('pushRoleAssignments'), createArray()))]"
                   },
-                  "resources": [
-                    {
+                  "resources": {
+                    "containerRegistry": {
                       "type": "Microsoft.Resources/deployments",
                       "apiVersion": "2025-04-01",
                       "name": "[take(format('avm.res.containerregistry.{0}', parameters('name')), 64)]",
@@ -46468,9 +47499,12 @@
                           "exportPolicyStatus": {
                             "value": "[parameters('exportPolicyStatus')]"
                           },
+                          "azureADAuthenticationAsArmPolicyStatus": {
+                            "value": "[parameters('azureADAuthenticationAsArmPolicyStatus')]"
+                          },
                           "roleAssignments": "[if(not(empty(variables('roleAssignments'))), createObject('value', variables('roleAssignments')), createObject('value', createArray()))]",
                           "privateEndpoints": {
-                            "value": "[variables('privateEndpointConfig')]"
+                            "value": "[parameters('privateEndpoints')]"
                           },
                           "networkRuleSetDefaultAction": {
                             "value": "[parameters('networkRuleSetDefaultAction')]"
@@ -50286,28 +51320,28 @@
                         }
                       }
                     }
-                  ],
+                  },
                   "outputs": {
                     "name": {
                       "type": "string",
                       "metadata": {
                         "description": "The name of the container registry."
                       },
-                      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('avm.res.containerregistry.{0}', parameters('name')), 64)), '2025-04-01').outputs.name.value]"
+                      "value": "[reference('containerRegistry').outputs.name.value]"
                     },
                     "loginServer": {
                       "type": "string",
                       "metadata": {
                         "description": "The login server URL."
                       },
-                      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('avm.res.containerregistry.{0}', parameters('name')), 64)), '2025-04-01').outputs.loginServer.value]"
+                      "value": "[reference('containerRegistry').outputs.loginServer.value]"
                     },
                     "resourceId": {
                       "type": "string",
                       "metadata": {
                         "description": "The resource ID of the container registry."
                       },
-                      "value": "[reference(resourceId('Microsoft.Resources/deployments', take(format('avm.res.containerregistry.{0}', parameters('name')), 64)), '2025-04-01').outputs.resourceId.value]"
+                      "value": "[reference('containerRegistry').outputs.resourceId.value]"
                     }
                   }
                 }
@@ -50352,8 +51386,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "1571277744110287631"
+                      "version": "0.45.6.27763",
+                      "templateHash": "7722311537111875045"
                     }
                   },
                   "parameters": {
@@ -51294,8 +52328,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "15548497476269761773"
+                      "version": "0.45.6.27763",
+                      "templateHash": "7416655330416944910"
                     }
                   },
                   "definitions": {
@@ -51786,6 +52820,13 @@
                         "description": "Public network access setting."
                       }
                     },
+                    "acrUseManagedIdentityCreds": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Optional. Whether the app pulls its container image from ACR using its managed identity."
+                      }
+                    },
                     "vnetRouteAllEnabled": {
                       "type": "bool",
                       "defaultValue": false,
@@ -51805,13 +52846,6 @@
                       "defaultValue": false,
                       "metadata": {
                         "description": "Optional. Whether to route content share traffic through the virtual network."
-                      }
-                    },
-                    "acrUseManagedIdentityCreds": {
-                      "type": "bool",
-                      "defaultValue": false,
-                      "metadata": {
-                        "description": "Optional. Use the app managed identity to authenticate ACR image pulls."
                       }
                     },
                     "privateEndpoints": {
@@ -66874,8 +67908,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "15548497476269761773"
+                      "version": "0.45.6.27763",
+                      "templateHash": "7416655330416944910"
                     }
                   },
                   "definitions": {
@@ -67366,6 +68400,13 @@
                         "description": "Public network access setting."
                       }
                     },
+                    "acrUseManagedIdentityCreds": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Optional. Whether the app pulls its container image from ACR using its managed identity."
+                      }
+                    },
                     "vnetRouteAllEnabled": {
                       "type": "bool",
                       "defaultValue": false,
@@ -67385,13 +68426,6 @@
                       "defaultValue": false,
                       "metadata": {
                         "description": "Optional. Whether to route content share traffic through the virtual network."
-                      }
-                    },
-                    "acrUseManagedIdentityCreds": {
-                      "type": "bool",
-                      "defaultValue": false,
-                      "metadata": {
-                        "description": "Optional. Use the app managed identity to authenticate ACR image pulls."
                       }
                     },
                     "privateEndpoints": {
@@ -82410,6 +83444,9 @@
                   "publicNetworkAccess": {
                     "value": "Enabled"
                   },
+                  "vnetRouteAllEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
+                  "imagePullTraffic": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
+                  "contentShareTraffic": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
                   "diagnosticSettings": "[if(parameters('enableMonitoring'), createObject('value', createArray(createObject('workspaceResourceId', if(variables('useExistingLogAnalytics'), extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', split(parameters('existingLogAnalyticsWorkspaceId'), '/')[2], split(parameters('existingLogAnalyticsWorkspaceId'), '/')[4]), 'Microsoft.OperationalInsights/workspaces', split(parameters('existingLogAnalyticsWorkspaceId'), '/')[8]), if(parameters('enableMonitoring'), reference('log_analytics').outputs.resourceId.value, ''))))), createObject('value', createArray()))]",
                   "appSettings": {
                     "value": {
@@ -82429,8 +83466,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "15548497476269761773"
+                      "version": "0.45.6.27763",
+                      "templateHash": "7416655330416944910"
                     }
                   },
                   "definitions": {
@@ -82921,6 +83958,13 @@
                         "description": "Public network access setting."
                       }
                     },
+                    "acrUseManagedIdentityCreds": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Optional. Whether the app pulls its container image from ACR using its managed identity."
+                      }
+                    },
                     "vnetRouteAllEnabled": {
                       "type": "bool",
                       "defaultValue": false,
@@ -82940,13 +83984,6 @@
                       "defaultValue": false,
                       "metadata": {
                         "description": "Optional. Whether to route content share traffic through the virtual network."
-                      }
-                    },
-                    "acrUseManagedIdentityCreds": {
-                      "type": "bool",
-                      "defaultValue": false,
-                      "metadata": {
-                        "description": "Optional. Use the app managed identity to authenticate ACR image pulls."
                       }
                     },
                     "privateEndpoints": {
@@ -97952,11 +98989,21 @@
                     "value": "[reference('cosmosDBModule').outputs.name.value]"
                   },
                   "backendAppServicePrincipalId": "[if(equals(parameters('backendRuntimeStack'), 'python'), createObject('value', reference('backend_docker').outputs.identityPrincipalId.value), createObject('value', reference('backend_csapi_docker').outputs.identityPrincipalId.value))]",
-                  "frontendAppServicePrincipalId": {
-                    "value": "[reference('frontend_docker').outputs.identityPrincipalId.value]"
+                  "containerRegistryResourceId": "[if(variables('useExistingContainerRegistry'), createObject('value', parameters('existingContainerRegistryResourceId')), createObject('value', reference('containerRegistry').outputs.resourceId.value))]",
+                  "useExistingContainerRegistry": {
+                    "value": "[variables('useExistingContainerRegistry')]"
                   },
-                  "containerRegistryResourceId": {
-                    "value": "[reference('containerRegistry').outputs.resourceId.value]"
+                  "acrPullPrincipals": {
+                    "value": [
+                      {
+                        "principalId": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference('backend_docker').outputs.identityPrincipalId.value, reference('backend_csapi_docker').outputs.identityPrincipalId.value)]",
+                        "principalType": "ServicePrincipal"
+                      },
+                      {
+                        "principalId": "[reference('frontend_docker').outputs.identityPrincipalId.value]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    ]
                   },
                   "aiFoundryResourceId": "[if(variables('useExistingAIProject'), createObject('value', reference('existing_project_setup').outputs.resourceId.value), createObject('value', reference('ai_foundry_project').outputs.resourceId.value))]",
                   "useExistingAIProject": {
@@ -97972,8 +99019,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "1138212285559024015"
+                      "version": "0.45.6.27763",
+                      "templateHash": "5799875140464598536"
                     }
                   },
                   "parameters": {
@@ -98019,13 +99066,6 @@
                         "description": "Principal ID of the backend App Service system-assigned identity (empty if not deployed)."
                       }
                     },
-                    "frontendAppServicePrincipalId": {
-                      "type": "string",
-                      "defaultValue": "",
-                      "metadata": {
-                        "description": "Principal ID of the frontend App Service system-assigned identity (empty if not deployed)."
-                      }
-                    },
                     "aiFoundryResourceId": {
                       "type": "string",
                       "defaultValue": "",
@@ -98054,11 +99094,25 @@
                         "description": "Name of the Cosmos DB account (empty if not deployed)."
                       }
                     },
+                    "useExistingContainerRegistry": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Whether to use an existing container registry (true) or the one created in this deployment (false)."
+                      }
+                    },
                     "containerRegistryResourceId": {
                       "type": "string",
                       "defaultValue": "",
                       "metadata": {
-                        "description": "Resource ID of the Azure Container Registry (empty if not deployed)."
+                        "description": "Resource ID of the container registry to grant AcrPull on (for deriving name/sub/RG; empty = skip ACR role assignments)."
+                      }
+                    },
+                    "acrPullPrincipals": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Principals to grant AcrPull on the container registry (array of objects with principalId and principalType)."
                       }
                     }
                   },
@@ -98066,6 +99120,9 @@
                     "existingAIFoundryName": "[if(parameters('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[8], '')]",
                     "existingAIFoundrySubscription": "[if(parameters('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[2], subscription().subscriptionId)]",
                     "existingAIFoundryResourceGroup": "[if(parameters('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[4], resourceGroup().name)]",
+                    "containerRegistryName": "[if(empty(parameters('containerRegistryResourceId')), '', split(parameters('containerRegistryResourceId'), '/')[8])]",
+                    "containerRegistrySubscription": "[if(empty(parameters('containerRegistryResourceId')), subscription().subscriptionId, split(parameters('containerRegistryResourceId'), '/')[2])]",
+                    "containerRegistryResourceGroup": "[if(empty(parameters('containerRegistryResourceId')), resourceGroup().name, split(parameters('containerRegistryResourceId'), '/')[4])]",
                     "roleDefinitions": {
                       "azureAiUser": "53ca6127-db72-4b80-b1b0-d745d6d5456d",
                       "cognitiveServicesUser": "a97b65f3-24c7-4388-baec-2e87135dc908",
@@ -98186,27 +99243,19 @@
                       }
                     },
                     {
-                      "condition": "[and(not(empty(parameters('containerRegistryResourceId'))), not(empty(parameters('backendAppServicePrincipalId'))))]",
+                      "copy": {
+                        "name": "acrPullAssignments",
+                        "count": "[length(parameters('acrPullPrincipals'))]"
+                      },
+                      "condition": "[and(not(parameters('useExistingContainerRegistry')), not(empty(parameters('acrPullPrincipals')[copyIndex()].principalId)))]",
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
-                      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/')))]",
-                      "name": "[guid(parameters('solutionName'), resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/'))), parameters('backendAppServicePrincipalId'), variables('roleDefinitions').acrPull)]",
+                      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName'))]",
+                      "name": "[guid(parameters('solutionName'), variables('containerRegistryName'), parameters('acrPullPrincipals')[copyIndex()].principalId, variables('roleDefinitions').acrPull)]",
                       "properties": {
-                        "principalId": "[parameters('backendAppServicePrincipalId')]",
+                        "principalId": "[parameters('acrPullPrincipals')[copyIndex()].principalId]",
                         "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]",
-                        "principalType": "ServicePrincipal"
-                      }
-                    },
-                    {
-                      "condition": "[and(not(empty(parameters('containerRegistryResourceId'))), not(empty(parameters('frontendAppServicePrincipalId'))))]",
-                      "type": "Microsoft.Authorization/roleAssignments",
-                      "apiVersion": "2022-04-01",
-                      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/')))]",
-                      "name": "[guid(parameters('solutionName'), resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/'))), parameters('frontendAppServicePrincipalId'), variables('roleDefinitions').acrPull)]",
-                      "properties": {
-                        "principalId": "[parameters('frontendAppServicePrincipalId')]",
-                        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]",
-                        "principalType": "ServicePrincipal"
+                        "principalType": "[parameters('acrPullPrincipals')[copyIndex()].principalType]"
                       }
                     },
                     {
@@ -98241,8 +99290,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.44.1.10279",
-                              "templateHash": "17425188716359064959"
+                              "version": "0.45.6.27763",
+                              "templateHash": "8340198449457510026"
                             }
                           },
                           "parameters": {
@@ -98264,29 +99313,62 @@
                                 "description": "A unique name for the role assignment."
                               }
                             },
-                            "aiFoundryName": {
-                              "type": "string",
-                              "metadata": {
-                                "description": "The name of the AI Foundry account to scope the role assignment to."
-                              }
-                            },
                             "principalType": {
                               "type": "string",
                               "defaultValue": "ServicePrincipal",
                               "allowedValues": [
                                 "ServicePrincipal",
-                                "User"
+                                "User",
+                                "Group"
                               ],
                               "metadata": {
                                 "description": "The principal type of the identity being assigned."
+                              }
+                            },
+                            "targetResourceType": {
+                              "type": "string",
+                              "defaultValue": "AIServices",
+                              "allowedValues": [
+                                "AIServices",
+                                "ContainerRegistry"
+                              ],
+                              "metadata": {
+                                "description": "The type of target resource to scope the role assignment to."
+                              }
+                            },
+                            "aiFoundryName": {
+                              "type": "string",
+                              "defaultValue": "",
+                              "metadata": {
+                                "description": "Name of the target AI Foundry (Cognitive Services) account. Required when targetResourceType is AIServices."
+                              }
+                            },
+                            "containerRegistryName": {
+                              "type": "string",
+                              "defaultValue": "",
+                              "metadata": {
+                                "description": "Name of the target Azure Container Registry. Required when targetResourceType is ContainerRegistry."
                               }
                             }
                           },
                           "resources": [
                             {
+                              "condition": "[equals(parameters('targetResourceType'), 'AIServices')]",
                               "type": "Microsoft.Authorization/roleAssignments",
                               "apiVersion": "2022-04-01",
                               "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
+                              "name": "[parameters('roleAssignmentName')]",
+                              "properties": {
+                                "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                                "principalId": "[parameters('principalId')]",
+                                "principalType": "[parameters('principalType')]"
+                              }
+                            },
+                            {
+                              "condition": "[equals(parameters('targetResourceType'), 'ContainerRegistry')]",
+                              "type": "Microsoft.Authorization/roleAssignments",
+                              "apiVersion": "2022-04-01",
+                              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
                               "name": "[parameters('roleAssignmentName')]",
                               "properties": {
                                 "roleDefinitionId": "[parameters('roleDefinitionId')]",
@@ -98330,8 +99412,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.44.1.10279",
-                              "templateHash": "17425188716359064959"
+                              "version": "0.45.6.27763",
+                              "templateHash": "8340198449457510026"
                             }
                           },
                           "parameters": {
@@ -98353,10 +99435,136 @@
                                 "description": "A unique name for the role assignment."
                               }
                             },
+                            "principalType": {
+                              "type": "string",
+                              "defaultValue": "ServicePrincipal",
+                              "allowedValues": [
+                                "ServicePrincipal",
+                                "User",
+                                "Group"
+                              ],
+                              "metadata": {
+                                "description": "The principal type of the identity being assigned."
+                              }
+                            },
+                            "targetResourceType": {
+                              "type": "string",
+                              "defaultValue": "AIServices",
+                              "allowedValues": [
+                                "AIServices",
+                                "ContainerRegistry"
+                              ],
+                              "metadata": {
+                                "description": "The type of target resource to scope the role assignment to."
+                              }
+                            },
                             "aiFoundryName": {
                               "type": "string",
+                              "defaultValue": "",
                               "metadata": {
-                                "description": "The name of the AI Foundry account to scope the role assignment to."
+                                "description": "Name of the target AI Foundry (Cognitive Services) account. Required when targetResourceType is AIServices."
+                              }
+                            },
+                            "containerRegistryName": {
+                              "type": "string",
+                              "defaultValue": "",
+                              "metadata": {
+                                "description": "Name of the target Azure Container Registry. Required when targetResourceType is ContainerRegistry."
+                              }
+                            }
+                          },
+                          "resources": [
+                            {
+                              "condition": "[equals(parameters('targetResourceType'), 'AIServices')]",
+                              "type": "Microsoft.Authorization/roleAssignments",
+                              "apiVersion": "2022-04-01",
+                              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
+                              "name": "[parameters('roleAssignmentName')]",
+                              "properties": {
+                                "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                                "principalId": "[parameters('principalId')]",
+                                "principalType": "[parameters('principalType')]"
+                              }
+                            },
+                            {
+                              "condition": "[equals(parameters('targetResourceType'), 'ContainerRegistry')]",
+                              "type": "Microsoft.Authorization/roleAssignments",
+                              "apiVersion": "2022-04-01",
+                              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
+                              "name": "[parameters('roleAssignmentName')]",
+                              "properties": {
+                                "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                                "principalId": "[parameters('principalId')]",
+                                "principalType": "[parameters('principalType')]"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "copy": {
+                        "name": "acrPullAssignmentsExisting",
+                        "count": "[length(parameters('acrPullPrincipals'))]"
+                      },
+                      "condition": "[and(parameters('useExistingContainerRegistry'), not(empty(parameters('acrPullPrincipals')[copyIndex()].principalId)))]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2025-04-01",
+                      "name": "[take(format('acrPull-{0}', uniqueString(parameters('solutionName'), variables('containerRegistryName'), parameters('acrPullPrincipals')[copyIndex()].principalId)), 64)]",
+                      "subscriptionId": "[variables('containerRegistrySubscription')]",
+                      "resourceGroup": "[variables('containerRegistryResourceGroup')]",
+                      "properties": {
+                        "expressionEvaluationOptions": {
+                          "scope": "inner"
+                        },
+                        "mode": "Incremental",
+                        "parameters": {
+                          "targetResourceType": {
+                            "value": "ContainerRegistry"
+                          },
+                          "containerRegistryName": {
+                            "value": "[variables('containerRegistryName')]"
+                          },
+                          "principalId": {
+                            "value": "[parameters('acrPullPrincipals')[copyIndex()].principalId]"
+                          },
+                          "principalType": {
+                            "value": "[parameters('acrPullPrincipals')[copyIndex()].principalType]"
+                          },
+                          "roleDefinitionId": {
+                            "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]"
+                          },
+                          "roleAssignmentName": {
+                            "value": "[guid(parameters('solutionName'), variables('containerRegistryName'), parameters('acrPullPrincipals')[copyIndex()].principalId, variables('roleDefinitions').acrPull)]"
+                          }
+                        },
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "metadata": {
+                            "_generator": {
+                              "name": "bicep",
+                              "version": "0.45.6.27763",
+                              "templateHash": "8340198449457510026"
+                            }
+                          },
+                          "parameters": {
+                            "principalId": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "The principal ID to assign the role to."
+                              }
+                            },
+                            "roleDefinitionId": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "The resource ID of the role definition to assign."
+                              }
+                            },
+                            "roleAssignmentName": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "A unique name for the role assignment."
                               }
                             },
                             "principalType": {
@@ -98364,18 +99572,57 @@
                               "defaultValue": "ServicePrincipal",
                               "allowedValues": [
                                 "ServicePrincipal",
-                                "User"
+                                "User",
+                                "Group"
                               ],
                               "metadata": {
                                 "description": "The principal type of the identity being assigned."
+                              }
+                            },
+                            "targetResourceType": {
+                              "type": "string",
+                              "defaultValue": "AIServices",
+                              "allowedValues": [
+                                "AIServices",
+                                "ContainerRegistry"
+                              ],
+                              "metadata": {
+                                "description": "The type of target resource to scope the role assignment to."
+                              }
+                            },
+                            "aiFoundryName": {
+                              "type": "string",
+                              "defaultValue": "",
+                              "metadata": {
+                                "description": "Name of the target AI Foundry (Cognitive Services) account. Required when targetResourceType is AIServices."
+                              }
+                            },
+                            "containerRegistryName": {
+                              "type": "string",
+                              "defaultValue": "",
+                              "metadata": {
+                                "description": "Name of the target Azure Container Registry. Required when targetResourceType is ContainerRegistry."
                               }
                             }
                           },
                           "resources": [
                             {
+                              "condition": "[equals(parameters('targetResourceType'), 'AIServices')]",
                               "type": "Microsoft.Authorization/roleAssignments",
                               "apiVersion": "2022-04-01",
                               "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
+                              "name": "[parameters('roleAssignmentName')]",
+                              "properties": {
+                                "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                                "principalId": "[parameters('principalId')]",
+                                "principalType": "[parameters('principalType')]"
+                              }
+                            },
+                            {
+                              "condition": "[equals(parameters('targetResourceType'), 'ContainerRegistry')]",
+                              "type": "Microsoft.Authorization/roleAssignments",
+                              "apiVersion": "2022-04-01",
+                              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
                               "name": "[parameters('roleAssignmentName')]",
                               "properties": {
                                 "roleDefinitionId": "[parameters('roleDefinitionId')]",
@@ -98430,14 +99677,21 @@
               "metadata": {
                 "description": "Name of the dedicated Azure Container Registry."
               },
-              "value": "[reference('containerRegistry').outputs.name.value]"
+              "value": "[if(variables('useExistingContainerRegistry'), split(parameters('existingContainerRegistryResourceId'), '/')[8], reference('containerRegistry').outputs.name.value)]"
             },
             "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
               "type": "string",
               "metadata": {
                 "description": "Login server of the dedicated Azure Container Registry."
               },
-              "value": "[reference('containerRegistry').outputs.loginServer.value]"
+              "value": "[if(variables('useExistingContainerRegistry'), format('{0}.azurecr.io', toLower(split(parameters('existingContainerRegistryResourceId'), '/')[8])), reference('containerRegistry').outputs.loginServer.value)]"
+            },
+            "AZURE_CONTAINER_REGISTRY_RESOURCE_ID": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the Azure Container Registry (new or reused)."
+              },
+              "value": "[if(variables('useExistingContainerRegistry'), parameters('existingContainerRegistryResourceId'), reference('containerRegistry').outputs.resourceId.value)]"
             },
             "AZURE_ENV_IMAGE_TAG": {
               "type": "string",
@@ -98654,7 +99908,7 @@
               "metadata": {
                 "description": "The resource ID of the Fabric capacity."
               },
-              "value": "[if(parameters('createFabricWorkspace'), reference('fabricCapacity').outputs.resourceId.value, '')]"
+              "value": "[if(variables('shouldCreateFabricCapacity'), reference('fabricCapacity').outputs.resourceId.value, '')]"
             },
             "AZURE_FABRIC_CAPACITY_NAME": {
               "type": "string",
@@ -98748,6 +100002,9 @@
           "existingFoundryProjectResourceId": {
             "value": "[parameters('existingFoundryProjectResourceId')]"
           },
+          "existingContainerRegistryResourceId": {
+            "value": "[parameters('existingContainerRegistryResourceId')]"
+          },
           "deployingUserPrincipalType": {
             "value": "[parameters('deployingUserPrincipalType')]"
           },
@@ -98776,8 +100033,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "15646615221951775073"
+              "version": "0.45.6.27763",
+              "templateHash": "6248469797507183755"
             }
           },
           "parameters": {
@@ -99017,6 +100274,13 @@
                 "description": "Optional. Resource ID of an existing AI Foundry project. Empty creates a new one."
               }
             },
+            "existingContainerRegistryResourceId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional. Resource ID of an existing Azure Container Registry to reuse. Empty creates a new per-deployment ACR."
+              }
+            },
             "deployingUserPrincipalType": {
               "type": "string",
               "defaultValue": "User",
@@ -99051,6 +100315,7 @@
             "createdBy": "[if(contains(variables('deployerInfo'), 'userPrincipalName'), split(variables('deployerInfo').userPrincipalName, '@')[0], variables('deployerInfo').objectId)]",
             "existingTags": "[coalesce(resourceGroup().tags, createObject())]",
             "useExistingAIProject": "[not(empty(parameters('existingFoundryProjectResourceId')))]",
+            "useExistingContainerRegistry": "[not(empty(parameters('existingContainerRegistryResourceId')))]",
             "useChatHistoryEnabledSetting": "[if(parameters('useChatHistoryEnabled'), 'True', 'False')]",
             "useUserAccessTokenSetting": "[if(parameters('useUserAccessToken'), 'True', 'False')]",
             "useExistingFabricCapacity": "[not(empty(parameters('azureFabricCapacityName')))]",
@@ -99135,8 +100400,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "16210701608149351637"
+                      "version": "0.45.6.27763",
+                      "templateHash": "14621137606999427205"
                     }
                   },
                   "parameters": {
@@ -99269,8 +100534,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "18362209914173142473"
+                      "version": "0.45.6.27763",
+                      "templateHash": "12829235775567600920"
                     }
                   },
                   "parameters": {
@@ -99398,8 +100663,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "3199910078817503702"
+                      "version": "0.45.6.27763",
+                      "templateHash": "17497827752064117634"
                     }
                   },
                   "parameters": {
@@ -99555,8 +100820,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "11426307275851055409"
+                      "version": "0.45.6.27763",
+                      "templateHash": "6434598355203707033"
                     }
                   },
                   "parameters": {
@@ -99677,8 +100942,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "18246185807871991410"
+                      "version": "0.45.6.27763",
+                      "templateHash": "8511660641005875858"
                     }
                   },
                   "parameters": {
@@ -99915,8 +101180,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "14126031085782385090"
+                      "version": "0.45.6.27763",
+                      "templateHash": "8750708162978576025"
                     }
                   },
                   "parameters": {
@@ -100082,8 +101347,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "14126031085782385090"
+                      "version": "0.45.6.27763",
+                      "templateHash": "8750708162978576025"
                     }
                   },
                   "parameters": {
@@ -100255,8 +101520,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "14126031085782385090"
+                      "version": "0.45.6.27763",
+                      "templateHash": "8750708162978576025"
                     }
                   },
                   "parameters": {
@@ -100426,8 +101691,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "10180502016624897684"
+                      "version": "0.45.6.27763",
+                      "templateHash": "6715448001846817199"
                     }
                   },
                   "parameters": {
@@ -100548,8 +101813,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "5979892336048972781"
+                      "version": "0.45.6.27763",
+                      "templateHash": "778242983230747658"
                     }
                   },
                   "parameters": {
@@ -100737,8 +102002,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.44.1.10279",
-                              "templateHash": "2672261376096761553"
+                              "version": "0.45.6.27763",
+                              "templateHash": "16237442077230849366"
                             }
                           },
                           "parameters": {
@@ -100945,8 +102210,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "17656900860519556442"
+                      "version": "0.45.6.27763",
+                      "templateHash": "6211578612939096043"
                     }
                   },
                   "parameters": {
@@ -101172,8 +102437,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "18081889173683611818"
+                      "version": "0.45.6.27763",
+                      "templateHash": "16072023559576139398"
                     }
                   },
                   "parameters": {
@@ -101366,8 +102631,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "8496143357348681814"
+                      "version": "0.45.6.27763",
+                      "templateHash": "14921737129205933042"
                     }
                   },
                   "parameters": {
@@ -101501,6 +102766,7 @@
               }
             },
             {
+              "condition": "[not(variables('useExistingContainerRegistry'))]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
               "name": "[take(format('module.container-registry.{0}', parameters('solutionName')), 64)]",
@@ -101536,8 +102802,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "6730962297935458636"
+                      "version": "0.45.6.27763",
+                      "templateHash": "7309270875979052806"
                     }
                   },
                   "parameters": {
@@ -101756,8 +103022,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "13673771886806254197"
+                      "version": "0.45.6.27763",
+                      "templateHash": "12196797251843480266"
                     }
                   },
                   "parameters": {
@@ -101875,7 +103141,7 @@
                       "type": "bool",
                       "defaultValue": false,
                       "metadata": {
-                        "description": "Optional. Use the app managed identity to authenticate ACR image pulls."
+                        "description": "Optional. Whether to use managed identity credentials for ACR authentication."
                       }
                     }
                   },
@@ -102086,8 +103352,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "13673771886806254197"
+                      "version": "0.45.6.27763",
+                      "templateHash": "12196797251843480266"
                     }
                   },
                   "parameters": {
@@ -102205,7 +103471,7 @@
                       "type": "bool",
                       "defaultValue": false,
                       "metadata": {
-                        "description": "Optional. Use the app managed identity to authenticate ACR image pulls."
+                        "description": "Optional. Whether to use managed identity credentials for ACR authentication."
                       }
                     }
                   },
@@ -102389,8 +103655,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "13673771886806254197"
+                      "version": "0.45.6.27763",
+                      "templateHash": "12196797251843480266"
                     }
                   },
                   "parameters": {
@@ -102508,7 +103774,7 @@
                       "type": "bool",
                       "defaultValue": false,
                       "metadata": {
-                        "description": "Optional. Use the app managed identity to authenticate ACR image pulls."
+                        "description": "Optional. Whether to use managed identity credentials for ACR authentication."
                       }
                     }
                   },
@@ -102682,11 +103948,21 @@
                     "value": "[parameters('deployingUserPrincipalType')]"
                   },
                   "backendAppServicePrincipalId": "[if(equals(parameters('backendRuntimeStack'), 'python'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value))]",
-                  "frontendAppServicePrincipalId": {
-                    "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-frontend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value]"
+                  "containerRegistryResourceId": "[if(variables('useExistingContainerRegistry'), createObject('value', parameters('existingContainerRegistryResourceId')), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value))]",
+                  "useExistingContainerRegistry": {
+                    "value": "[variables('useExistingContainerRegistry')]"
                   },
-                  "containerRegistryResourceId": {
-                    "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value]"
+                  "acrPullPrincipals": {
+                    "value": [
+                      {
+                        "principalId": "[if(equals(parameters('backendRuntimeStack'), 'python'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-pybackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value, reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-csbackend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value)]",
+                        "principalType": "ServicePrincipal"
+                      },
+                      {
+                        "principalId": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-service-frontend.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.identityPrincipalId.value]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    ]
                   },
                   "cosmosDbAccountName": {
                     "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.cosmos-db-nosql.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]"
@@ -102698,8 +103974,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "816923035574542416"
+                      "version": "0.45.6.27763",
+                      "templateHash": "7515750829596093129"
                     }
                   },
                   "parameters": {
@@ -102743,13 +104019,6 @@
                       "defaultValue": "",
                       "metadata": {
                         "description": "Principal ID of the backend App Service system-assigned identity (empty if not deployed)."
-                      }
-                    },
-                    "frontendAppServicePrincipalId": {
-                      "type": "string",
-                      "defaultValue": "",
-                      "metadata": {
-                        "description": "Principal ID of the frontend App Service system-assigned identity (empty if not deployed)."
                       }
                     },
                     "deployerPrincipalId": {
@@ -102798,11 +104067,25 @@
                         "description": "Name of the Cosmos DB account (empty if not deployed)."
                       }
                     },
+                    "useExistingContainerRegistry": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Whether to use an existing container registry (true) or the one created in this deployment (false)."
+                      }
+                    },
                     "containerRegistryResourceId": {
                       "type": "string",
                       "defaultValue": "",
                       "metadata": {
-                        "description": "Resource ID of the Azure Container Registry (empty if not deployed)."
+                        "description": "Resource ID of the container registry to grant AcrPull on (for deriving name/sub/RG; empty = skip ACR role assignments)."
+                      }
+                    },
+                    "acrPullPrincipals": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Principals to grant AcrPull on the container registry (array of objects with principalId and principalType)."
                       }
                     }
                   },
@@ -102810,6 +104093,9 @@
                     "existingAIFoundryName": "[if(parameters('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[8], '')]",
                     "existingAIFoundrySubscription": "[if(parameters('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[2], subscription().subscriptionId)]",
                     "existingAIFoundryResourceGroup": "[if(parameters('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[4], resourceGroup().name)]",
+                    "containerRegistryName": "[if(empty(parameters('containerRegistryResourceId')), '', split(parameters('containerRegistryResourceId'), '/')[8])]",
+                    "containerRegistrySubscription": "[if(empty(parameters('containerRegistryResourceId')), subscription().subscriptionId, split(parameters('containerRegistryResourceId'), '/')[2])]",
+                    "containerRegistryResourceGroup": "[if(empty(parameters('containerRegistryResourceId')), resourceGroup().name, split(parameters('containerRegistryResourceId'), '/')[4])]",
                     "roleDefinitions": {
                       "azureAiUser": "53ca6127-db72-4b80-b1b0-d745d6d5456d",
                       "cognitiveServicesUser": "a97b65f3-24c7-4388-baec-2e87135dc908",
@@ -102991,27 +104277,19 @@
                       }
                     },
                     {
-                      "condition": "[and(not(empty(parameters('containerRegistryResourceId'))), not(empty(parameters('backendAppServicePrincipalId'))))]",
+                      "copy": {
+                        "name": "acrPullAssignments",
+                        "count": "[length(parameters('acrPullPrincipals'))]"
+                      },
+                      "condition": "[and(not(parameters('useExistingContainerRegistry')), not(empty(parameters('acrPullPrincipals')[copyIndex()].principalId)))]",
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
-                      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/')))]",
-                      "name": "[guid(parameters('solutionName'), resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/'))), parameters('backendAppServicePrincipalId'), variables('roleDefinitions').acrPull)]",
+                      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName'))]",
+                      "name": "[guid(parameters('solutionName'), variables('containerRegistryName'), parameters('acrPullPrincipals')[copyIndex()].principalId, variables('roleDefinitions').acrPull)]",
                       "properties": {
-                        "principalId": "[parameters('backendAppServicePrincipalId')]",
+                        "principalId": "[parameters('acrPullPrincipals')[copyIndex()].principalId]",
                         "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]",
-                        "principalType": "ServicePrincipal"
-                      }
-                    },
-                    {
-                      "condition": "[and(not(empty(parameters('containerRegistryResourceId'))), not(empty(parameters('frontendAppServicePrincipalId'))))]",
-                      "type": "Microsoft.Authorization/roleAssignments",
-                      "apiVersion": "2022-04-01",
-                      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/')))]",
-                      "name": "[guid(parameters('solutionName'), resourceId('Microsoft.ContainerRegistry/registries', last(split(parameters('containerRegistryResourceId'), '/'))), parameters('frontendAppServicePrincipalId'), variables('roleDefinitions').acrPull)]",
-                      "properties": {
-                        "principalId": "[parameters('frontendAppServicePrincipalId')]",
-                        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]",
-                        "principalType": "ServicePrincipal"
+                        "principalType": "[parameters('acrPullPrincipals')[copyIndex()].principalType]"
                       }
                     },
                     {
@@ -103046,8 +104324,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.44.1.10279",
-                              "templateHash": "3414629451173950961"
+                              "version": "0.45.6.27763",
+                              "templateHash": "1989127288943974415"
                             }
                           },
                           "parameters": {
@@ -103069,29 +104347,62 @@
                                 "description": "A unique name for the role assignment."
                               }
                             },
-                            "aiFoundryName": {
-                              "type": "string",
-                              "metadata": {
-                                "description": "The name of the AI Services account to scope the role assignment to."
-                              }
-                            },
                             "principalType": {
                               "type": "string",
                               "defaultValue": "ServicePrincipal",
                               "allowedValues": [
                                 "ServicePrincipal",
-                                "User"
+                                "User",
+                                "Group"
                               ],
                               "metadata": {
                                 "description": "The principal type of the identity being assigned."
+                              }
+                            },
+                            "targetResourceType": {
+                              "type": "string",
+                              "defaultValue": "AIServices",
+                              "allowedValues": [
+                                "AIServices",
+                                "ContainerRegistry"
+                              ],
+                              "metadata": {
+                                "description": "The type of target resource to scope the role assignment to."
+                              }
+                            },
+                            "aiFoundryName": {
+                              "type": "string",
+                              "defaultValue": "",
+                              "metadata": {
+                                "description": "Name of the target AI Services (Cognitive Services) account. Required when targetResourceType is AIServices."
+                              }
+                            },
+                            "containerRegistryName": {
+                              "type": "string",
+                              "defaultValue": "",
+                              "metadata": {
+                                "description": "Name of the target Azure Container Registry. Required when targetResourceType is ContainerRegistry."
                               }
                             }
                           },
                           "resources": [
                             {
+                              "condition": "[equals(parameters('targetResourceType'), 'AIServices')]",
                               "type": "Microsoft.Authorization/roleAssignments",
                               "apiVersion": "2022-04-01",
                               "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
+                              "name": "[parameters('roleAssignmentName')]",
+                              "properties": {
+                                "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                                "principalId": "[parameters('principalId')]",
+                                "principalType": "[parameters('principalType')]"
+                              }
+                            },
+                            {
+                              "condition": "[equals(parameters('targetResourceType'), 'ContainerRegistry')]",
+                              "type": "Microsoft.Authorization/roleAssignments",
+                              "apiVersion": "2022-04-01",
+                              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
                               "name": "[parameters('roleAssignmentName')]",
                               "properties": {
                                 "roleDefinitionId": "[parameters('roleDefinitionId')]",
@@ -103135,8 +104446,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.44.1.10279",
-                              "templateHash": "3414629451173950961"
+                              "version": "0.45.6.27763",
+                              "templateHash": "1989127288943974415"
                             }
                           },
                           "parameters": {
@@ -103158,10 +104469,136 @@
                                 "description": "A unique name for the role assignment."
                               }
                             },
+                            "principalType": {
+                              "type": "string",
+                              "defaultValue": "ServicePrincipal",
+                              "allowedValues": [
+                                "ServicePrincipal",
+                                "User",
+                                "Group"
+                              ],
+                              "metadata": {
+                                "description": "The principal type of the identity being assigned."
+                              }
+                            },
+                            "targetResourceType": {
+                              "type": "string",
+                              "defaultValue": "AIServices",
+                              "allowedValues": [
+                                "AIServices",
+                                "ContainerRegistry"
+                              ],
+                              "metadata": {
+                                "description": "The type of target resource to scope the role assignment to."
+                              }
+                            },
                             "aiFoundryName": {
                               "type": "string",
+                              "defaultValue": "",
                               "metadata": {
-                                "description": "The name of the AI Services account to scope the role assignment to."
+                                "description": "Name of the target AI Services (Cognitive Services) account. Required when targetResourceType is AIServices."
+                              }
+                            },
+                            "containerRegistryName": {
+                              "type": "string",
+                              "defaultValue": "",
+                              "metadata": {
+                                "description": "Name of the target Azure Container Registry. Required when targetResourceType is ContainerRegistry."
+                              }
+                            }
+                          },
+                          "resources": [
+                            {
+                              "condition": "[equals(parameters('targetResourceType'), 'AIServices')]",
+                              "type": "Microsoft.Authorization/roleAssignments",
+                              "apiVersion": "2022-04-01",
+                              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
+                              "name": "[parameters('roleAssignmentName')]",
+                              "properties": {
+                                "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                                "principalId": "[parameters('principalId')]",
+                                "principalType": "[parameters('principalType')]"
+                              }
+                            },
+                            {
+                              "condition": "[equals(parameters('targetResourceType'), 'ContainerRegistry')]",
+                              "type": "Microsoft.Authorization/roleAssignments",
+                              "apiVersion": "2022-04-01",
+                              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
+                              "name": "[parameters('roleAssignmentName')]",
+                              "properties": {
+                                "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                                "principalId": "[parameters('principalId')]",
+                                "principalType": "[parameters('principalType')]"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "copy": {
+                        "name": "acrPullAssignmentsExisting",
+                        "count": "[length(parameters('acrPullPrincipals'))]"
+                      },
+                      "condition": "[and(parameters('useExistingContainerRegistry'), not(empty(parameters('acrPullPrincipals')[copyIndex()].principalId)))]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2025-04-01",
+                      "name": "[take(format('acrPull-{0}', uniqueString(parameters('solutionName'), variables('containerRegistryName'), parameters('acrPullPrincipals')[copyIndex()].principalId)), 64)]",
+                      "subscriptionId": "[variables('containerRegistrySubscription')]",
+                      "resourceGroup": "[variables('containerRegistryResourceGroup')]",
+                      "properties": {
+                        "expressionEvaluationOptions": {
+                          "scope": "inner"
+                        },
+                        "mode": "Incremental",
+                        "parameters": {
+                          "targetResourceType": {
+                            "value": "ContainerRegistry"
+                          },
+                          "containerRegistryName": {
+                            "value": "[variables('containerRegistryName')]"
+                          },
+                          "principalId": {
+                            "value": "[parameters('acrPullPrincipals')[copyIndex()].principalId]"
+                          },
+                          "principalType": {
+                            "value": "[parameters('acrPullPrincipals')[copyIndex()].principalType]"
+                          },
+                          "roleDefinitionId": {
+                            "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleDefinitions').acrPull)]"
+                          },
+                          "roleAssignmentName": {
+                            "value": "[guid(parameters('solutionName'), variables('containerRegistryName'), parameters('acrPullPrincipals')[copyIndex()].principalId, variables('roleDefinitions').acrPull)]"
+                          }
+                        },
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "metadata": {
+                            "_generator": {
+                              "name": "bicep",
+                              "version": "0.45.6.27763",
+                              "templateHash": "1989127288943974415"
+                            }
+                          },
+                          "parameters": {
+                            "principalId": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "The principal ID to assign the role to."
+                              }
+                            },
+                            "roleDefinitionId": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "The resource ID of the role definition to assign."
+                              }
+                            },
+                            "roleAssignmentName": {
+                              "type": "string",
+                              "metadata": {
+                                "description": "A unique name for the role assignment."
                               }
                             },
                             "principalType": {
@@ -103169,18 +104606,57 @@
                               "defaultValue": "ServicePrincipal",
                               "allowedValues": [
                                 "ServicePrincipal",
-                                "User"
+                                "User",
+                                "Group"
                               ],
                               "metadata": {
                                 "description": "The principal type of the identity being assigned."
+                              }
+                            },
+                            "targetResourceType": {
+                              "type": "string",
+                              "defaultValue": "AIServices",
+                              "allowedValues": [
+                                "AIServices",
+                                "ContainerRegistry"
+                              ],
+                              "metadata": {
+                                "description": "The type of target resource to scope the role assignment to."
+                              }
+                            },
+                            "aiFoundryName": {
+                              "type": "string",
+                              "defaultValue": "",
+                              "metadata": {
+                                "description": "Name of the target AI Services (Cognitive Services) account. Required when targetResourceType is AIServices."
+                              }
+                            },
+                            "containerRegistryName": {
+                              "type": "string",
+                              "defaultValue": "",
+                              "metadata": {
+                                "description": "Name of the target Azure Container Registry. Required when targetResourceType is ContainerRegistry."
                               }
                             }
                           },
                           "resources": [
                             {
+                              "condition": "[equals(parameters('targetResourceType'), 'AIServices')]",
                               "type": "Microsoft.Authorization/roleAssignments",
                               "apiVersion": "2022-04-01",
                               "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
+                              "name": "[parameters('roleAssignmentName')]",
+                              "properties": {
+                                "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                                "principalId": "[parameters('principalId')]",
+                                "principalType": "[parameters('principalType')]"
+                              }
+                            },
+                            {
+                              "condition": "[equals(parameters('targetResourceType'), 'ContainerRegistry')]",
+                              "type": "Microsoft.Authorization/roleAssignments",
+                              "apiVersion": "2022-04-01",
+                              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
                               "name": "[parameters('roleAssignmentName')]",
                               "properties": {
                                 "roleDefinitionId": "[parameters('roleDefinitionId')]",
@@ -103221,14 +104697,21 @@
               "metadata": {
                 "description": "Name of the dedicated Azure Container Registry."
               },
-              "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value]"
+              "value": "[if(variables('useExistingContainerRegistry'), split(parameters('existingContainerRegistryResourceId'), '/')[8], reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.name.value)]"
             },
             "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
               "type": "string",
               "metadata": {
                 "description": "Login server of the dedicated Azure Container Registry."
               },
-              "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.loginServer.value]"
+              "value": "[if(variables('useExistingContainerRegistry'), format('{0}.azurecr.io', toLower(split(parameters('existingContainerRegistryResourceId'), '/')[8])), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.loginServer.value)]"
+            },
+            "AZURE_CONTAINER_REGISTRY_RESOURCE_ID": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the Azure Container Registry (new or reused)."
+              },
+              "value": "[if(variables('useExistingContainerRegistry'), parameters('existingContainerRegistryResourceId'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.container-registry.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value)]"
             },
             "AZURE_ENV_IMAGE_TAG": {
               "type": "string",
@@ -103452,7 +104935,7 @@
               "metadata": {
                 "description": "The resource ID of the Fabric capacity."
               },
-              "value": "[if(parameters('createFabricWorkspace'), reference(resourceId('Microsoft.Resources/deployments', take(format('module.fabric-capacity.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value, '')]"
+              "value": "[if(variables('shouldCreateFabricCapacity'), reference(resourceId('Microsoft.Resources/deployments', take(format('module.fabric-capacity.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.resourceId.value, '')]"
             },
             "AZURE_FABRIC_CAPACITY_NAME": {
               "type": "string",
@@ -103515,6 +104998,13 @@
         "description": "Login server of the dedicated Azure Container Registry."
       },
       "value": "[if(variables('isAvm'), reference('avmDeployment').outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT.value, reference('bicepDeployment').outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT.value)]"
+    },
+    "AZURE_CONTAINER_REGISTRY_RESOURCE_ID": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the Azure Container Registry (new or reused)."
+      },
+      "value": "[if(variables('isAvm'), reference('avmDeployment').outputs.AZURE_CONTAINER_REGISTRY_RESOURCE_ID.value, reference('bicepDeployment').outputs.AZURE_CONTAINER_REGISTRY_RESOURCE_ID.value)]"
     },
     "AZURE_ENV_IMAGE_TAG": {
       "type": "string",
