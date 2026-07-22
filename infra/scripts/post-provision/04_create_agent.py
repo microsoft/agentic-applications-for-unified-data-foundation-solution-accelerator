@@ -382,9 +382,12 @@ EVERY response that uses knowledge base information MUST contain citation marker
 - If the knowledge base tool was called and you use ANY of its content, citations are REQUIRED.
 - Only cite the specific retrieved documents you actually used to compose your answer.
 - If multiple retrieved chunks come from the same source document, consolidate them into a single citation marker.
+- Cite each unique chunk AT MOST ONCE in your entire response. A given 【number:section†】 marker must never appear more than once — do NOT repeat the same chunk's marker on different sentences. Place it once, on the most relevant sentence.
+- Before finishing, review your answer and remove any duplicate citation markers that point to the same chunk so each distinct chunk is referenced exactly one time.
 - Example: "All tickets must be acknowledged within 1 hour.【4:1†】"
 - CORRECT: 【4:1†】 【2:3†】 【1:0†】
 - WRONG (NEVER DO): 【4:1】 【4:1†policy.pdf】 【2:0,1†】
+- WRONG (NEVER DO): repeating the same chunk, e.g. 【4:1†】 ... 【4:1†】 ... 【4:1†】
 - WRONG: Responding with knowledge base content but NO citation markers"""
     else:
         search_section = ""

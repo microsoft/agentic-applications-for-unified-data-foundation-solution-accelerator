@@ -205,7 +205,8 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
             # Citation tracking
             mcp_docs = {}  # Map section index → {id, title, source} from MCP output
             marker_buf = ""  # Buffer for incomplete marker fragments
-            citation_idx = 0  # Sequential citation counter
+            citation_map = {}  # Dedup key (source) → citation number
+            citation_order = []  # First-seen unique citations: (key, sec_idx, source)
             marker_re = _MARKER_RE
 
             # Stream response — incrementally process complete markers, buffer incomplete ones
@@ -239,11 +240,19 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
                     if m.start() > 0:
                         yield ("assistant", marker_buf[:m.start()])
 
-                    # Replace marker: drop section 0, renumber rest (consolidate same source)
+                    # Replace marker: drop section 0, dedup identical markers, renumber
                     sec_idx = m.group(1)
+                    marker_source = m.group(2)
                     if sec_idx != "0":
-                        citation_idx += 1
-                        yield ("assistant", f"[{citation_idx}]")
+                        # Key on the full marker text so the same chunk (identical
+                        # marker) reuses one number, while distinct chunks stay separate.
+                        key = m.group(0)
+                        num = citation_map.get(key)
+                        if num is None:
+                            num = len(citation_order) + 1
+                            citation_map[key] = num
+                            citation_order.append((key, sec_idx, marker_source))
+                        yield ("assistant", f"[{num}]")
 
                     marker_buf = marker_buf[m.end():]
 
@@ -253,30 +262,23 @@ async def stream_openai_text(conversation_id: str, query: str, user_id: str = ""
 
             cache[conversation_id] = conv_id
 
-            # Collect original markers from complete_response for citation building
-            original_markers = [
-                m for m in marker_re.finditer(complete_response)
-                if m.group(1) != "0"
-            ]
-
             logger.info("Streaming complete for conversation %s: response_length=%d, mcp_doc_count=%d",
                         conversation_id, len(complete_response), len(mcp_docs))
             track_event_if_configured("ChatResponseCompleted", {
                 "conversation_id": conversation_id,
                 "user_id": user_id,
                 "response_length": str(len(complete_response)),
-                "citation_count": str(len(mcp_docs)),
+                "citation_count": str(len(citation_order)),
             })
 
-            # Yield citations as a tool message — deduplicated by source
+            # Yield citations as a tool message — one entry per unique source,
+            # matching the inline citation numbers emitted during streaming.
             citation_list = []
-            if original_markers:
+            if citation_order:
                 search_endpoint = os.getenv("AZURE_AI_SEARCH_ENDPOINT", "")
                 search_index = os.getenv("AZURE_AI_SEARCH_INDEX", "")
 
-                for m in original_markers:
-                    sec_idx = m.group(1)
-                    marker_source = m.group(2)
+                for _key, sec_idx, marker_source in citation_order:
                     mcp_doc = mcp_docs.get(sec_idx, {})
                     doc_source = mcp_doc.get("source") or marker_source or f"source_{sec_idx}"
                     doc_id = mcp_doc.get("id", "")
