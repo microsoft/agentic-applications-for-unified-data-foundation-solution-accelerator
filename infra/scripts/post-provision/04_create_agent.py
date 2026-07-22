@@ -371,7 +371,15 @@ def build_agent_instructions(config, schema_text, use_knowledge_base=True,
 
 - **Database queries** (counts, lists, aggregations, filtering records) → {sql_tool_ref}
 - **Document lookups** (policies, thresholds, rules, guidelines) → {search_tool_ref}  
-- **Comparisons** (data vs. policy thresholds) → {search_action} for threshold, then query with that value"""
+- **Comparisons** (data vs. policy thresholds) → {search_action} for threshold, then query with that value
+
+## Non-Negotiable Rules:
+✗ Do NOT skip tool calls for follow-up questions about the same topic
+✗ Do NOT reuse answers from previous questions in the conversation
+✗ Do NOT assume you already have the answer because you answered a similar question earlier
+✓ ALWAYS call the appropriate tool for each new question
+✓ ALWAYS treat each question as a fresh request requiring tool calls
+"""
         citation_section = """## Citation Guidelines (CRITICAL - MANDATORY)
 EVERY response that uses knowledge base information MUST contain citation markers. NO EXCEPTIONS.
 - Format: 【number:section†】  (the † character is REQUIRED, do not omit it)
