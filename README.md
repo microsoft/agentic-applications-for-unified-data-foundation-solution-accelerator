@@ -98,7 +98,7 @@ azd up
 | Deploy | Configure | Customize |
 |--------|-----------|-----------|
 | Start with a working baseline using infrastructure, code, and agents. | Adapt the solution with a scenario pack, loaded data, and agent changes. | Extend the solution with enterprise data sources, security, networking, and integrations. |
-| [Deployment Guide →](./documents/DeploymentGuide.md) | [Configuration Guide →](./documents/DeploymentGuide.md) | [Customization Guide →](./documents/DeploymentGuide.md) |
+| [Deployment Guide →](./documents/DeploymentGuide.md) | [Configuration Guide →](./documents/ConfigurationGuide.md) | [Customization Guide →](./data/customdata/README.md) |
 
 
 
