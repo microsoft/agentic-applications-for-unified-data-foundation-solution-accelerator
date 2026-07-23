@@ -10,10 +10,8 @@ By default this template will use the environment name as the prefix to prevent 
 | Name                                      | Type    | Default Value            | Purpose                                                                    |
 | ----------------------------------------- | ------- | ------------------------ | -------------------------------------------------------------------------- |
 | `AZURE_LOCATION`                          | string  | ` `                      | Sets the Azure region for resource deployment.                             |
-| `AZURE_ENV_NAME`                          | string  | `env_name`               | Sets the environment name prefix for all Azure resources (3-20 chars).     |
-| `AZURE_ENV_SECONDARY_LOCATION`            | string  | `eastus2`                | Specifies a secondary Azure region for databases.                          |
-| `AZURE_ENV_AI_SERVICE_LOCATION`           | string  | ` `                      | Location for AI Foundry and model deployments (e.g., `eastus`, `swedencentral`). |
-| `AZURE_ENV_SEARCH_SERVICE_LOCATION`       | string  | *(resource group location)* | Location for Azure AI Search service deployment.                        |
+| `AZURE_ENV_NAME`                          | string  | `env_name`               | Sets the environment name prefix for all Azure resources (3-20 chars).     |                       |
+| `AZURE_ENV_AI_SERVICE_LOCATION`           | string  | ` `                      | Location for AI Foundry and model deployments (e.g., `eastus`, `swedencentral`). |                      |
 | `BACKEND_RUNTIME_STACK`                   | string  | `python`                 | Backend language (allowed: `python`, `dotnet`).                            |
 | `DEPLOYMENT_FLAVOR`                       | string  | `bicep`                  | Deployment flavor (allowed: `bicep`, `avm`, `avm-waf`).                    |
 | `AZURE_ENV_MODEL_DEPLOYMENT_TYPE`         | string  | `GlobalStandard`         | Defines the model deployment type (allowed: `Standard`, `GlobalStandard`). |
