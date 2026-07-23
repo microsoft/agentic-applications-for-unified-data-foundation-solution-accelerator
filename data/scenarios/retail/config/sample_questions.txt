@@ -1,6 +1,6 @@
 === SQL QUESTIONS (Structured Data) ===
 1. Show total revenue by year for last 5 years as a line chart.
-2. Show top 10 products by Revenue in the last 5 year in a table.
+2. Show top 10 products by Revenue in the last 5 years in a table.
 3. Show as a donut chart.
 
 === DOCUMENT QUESTIONS (AI Search) ===  
