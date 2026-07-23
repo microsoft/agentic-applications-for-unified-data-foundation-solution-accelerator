@@ -2,7 +2,9 @@ using Azure;
 using CsApi.Interfaces;
 using CsApi.Auth;
 using Azure.AI.Projects;
+using Azure.AI.Extensions.OpenAI;
 using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Foundry;
 
 namespace CsApi.Services;
 
@@ -68,6 +70,11 @@ public class TitleGenerationService : ITitleGenerationService
             _logger.LogWarning(ex, "Invalid operation while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
             return GenerateFallbackTitle(messages);
         }
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not RequestFailedException && ex is not InvalidOperationException)
+        {
+            _logger.LogWarning(ex, "Error generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
     }
 
     private string GenerateFallbackTitle(List<Models.ChatMessage> messages)
@@ -115,7 +122,8 @@ public class TitleGenerationService : ITitleGenerationService
             var credential = credentialFactory.Create();
            
             var projectClient = new AIProjectClient(new Uri(_endpoint), credential);
-            AIAgent titleAgent = projectClient.GetAIAgent(titleAgentName);
+            var agentReference = new AgentReference(titleAgentName);
+            FoundryAgent titleAgent = projectClient.AsAIAgent(agentReference);
 
             var userMessages = messages.Where(m => m.Role == "user").ToList();
             if (userMessages.Count == 0)
@@ -167,6 +175,11 @@ public class TitleGenerationService : ITitleGenerationService
         catch (UriFormatException ex)
         {
             _logger.LogError(ex, "Invalid endpoint URI generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && ex is not RequestFailedException && ex is not InvalidOperationException && ex is not UriFormatException)
+        {
+            _logger.LogError(ex, "Unexpected error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
             return GenerateFallbackTitle(messages);
         }
     }

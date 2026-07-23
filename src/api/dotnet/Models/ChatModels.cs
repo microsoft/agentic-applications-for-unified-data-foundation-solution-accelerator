@@ -22,6 +22,8 @@ public class ChatMessage
     
     [JsonPropertyName("feedback")] public string Feedback { get; set; } = string.Empty;
     
+    [JsonIgnore] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
     // Helper method to get content as string
     public string GetContentAsString()
     {

@@ -4,8 +4,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>1591;SKEXP0110;CA2252</NoWarn>
+    <NoWarn>1591;SKEXP0110;CA2252;AGENTSEXP;OPENAI001</NoWarn>
     <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
   </PropertyGroup>
   
   <!-- Exclude test project files from compilation -->
@@ -16,12 +17,13 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="Azure.AI.Projects.OpenAI" Version="1.0.0-beta.4" />
-    <PackageReference Include="Azure.AI.Projects" Version="1.2.0-beta.3" />
-    <PackageReference Include="Azure.Identity" Version="1.17.1" />
-    <PackageReference Include="Microsoft.Extensions.AI" Version="10.1.0" />
-    <PackageReference Include="Microsoft.Agents.AI.AzureAI" Version="1.0.0-preview.251204.1" />
+    <PackageReference Include="Azure.AI.Projects" Version="2.1.0-beta.2" />
+    <PackageReference Include="Azure.Identity" Version="1.21.0" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.5.1" />
+    <PackageReference Include="Microsoft.Agents.AI.Foundry" Version="1.6.1-preview.260514.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.51.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.0" />
     <PackageReference Include="System.Data.Odbc" Version="9.0.8" />
   </ItemGroup>

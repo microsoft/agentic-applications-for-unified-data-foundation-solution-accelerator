@@ -236,7 +236,6 @@ class TestStreamOpenAIText:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             # Setup mocks
@@ -263,7 +262,6 @@ class TestStreamOpenAIText:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             mock_cache.return_value = {}
 
@@ -282,7 +280,6 @@ class TestStreamOpenAIText:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             mock_cred.return_value = AsyncMock()
@@ -304,7 +301,6 @@ class TestStreamOpenAIText:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             mock_cache.return_value = {}
 
@@ -317,9 +313,9 @@ class TestStreamOpenAIText:
             assert "cannot answer" in results[0].lower()
 
     @pytest.mark.asyncio
-    async def test_workshop_passes_conversation_id_in_options(self):
-        """Verify workshop mode agent.run is called with options={'conversation_id': conv_id}."""
-        from chat import stream_openai_text_workshop
+    async def test_passes_conversation_id_in_options(self):
+        """Verify agent.run is called with options={'conversation_id': conv_id}."""
+        from chat import stream_openai_text
 
         mock_chunk = Mock()
         mock_chunk.text = "Hello"
@@ -347,19 +343,15 @@ class TestStreamOpenAIText:
              patch('chat.AIProjectClient') as mock_project, \
              patch('chat.FoundryAgent', return_value=mock_agent), \
              patch('chat.get_thread_cache') as mock_cache, \
-             patch('history_sql.get_azure_sql_connection', new_callable=AsyncMock, return_value=Mock()) as mock_sql, \
-             patch('history_sql.get_fabric_db_connection', new_callable=AsyncMock, return_value=Mock()), \
-             patch('history_sql.SqlQueryTool') as mock_tool:
+             patch('history_sql.get_fabric_db_connection', new_callable=AsyncMock, return_value=Mock()):
 
             mock_cred.return_value = AsyncMock()
             mock_cred.return_value.close = AsyncMock()
             mock_project.return_value = mock_proj_inst
-            mock_tool.return_value = Mock()
-            mock_tool.return_value.execute_sql = Mock()
             mock_cache.return_value = {}
 
             results = []
-            async for item in stream_openai_text_workshop("test_conv", "hello", "user1"):
+            async for item in stream_openai_text("test_conv", "hello", "user1"):
                 results.append(item)
 
             # Verify agent.run was called with options containing conversation_id
@@ -423,7 +415,6 @@ class TestAdditionalCoverage:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             mock_cred.return_value = AsyncMock()
@@ -448,7 +439,6 @@ class TestAdditionalCoverage:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             # Mock cache with existing thread ID
             mock_cache_dict = {"conv_123": "existing_thread_123"}
@@ -506,8 +496,7 @@ class TestAdditionalCoverage:
             yield ("assistant", "Hello")
             yield ("assistant", " World")
 
-        with patch('chat.stream_openai_text', side_effect=mock_stream), \
-             patch('chat.stream_openai_text_workshop', side_effect=mock_stream):
+        with patch('chat.stream_openai_text', side_effect=mock_stream):
             results = []
             generator = await stream_chat_request("123", "test")
             async for chunk in generator:
@@ -557,7 +546,6 @@ class TestAdditionalCoverage:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             mock_cred.return_value = AsyncMock()
@@ -583,7 +571,6 @@ class TestAdditionalCoverage:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             # Mock empty cache (no existing thread)
             mock_cache_dict = {}
@@ -607,7 +594,6 @@ class TestAdditionalCoverage:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             mock_cred.return_value = AsyncMock()
@@ -635,7 +621,6 @@ class TestAdditionalCoverage:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             mock_cache.return_value = {}
 
@@ -679,7 +664,6 @@ class TestApplicationInsightsCoverage:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('history_sql.SqlQueryTool') as mock_tool, \
              patch('chat.get_thread_cache') as mock_cache:
 
             mock_cred.return_value = AsyncMock()
@@ -703,7 +687,6 @@ class TestApplicationInsightsCoverage:
             mock_project.return_value = mock_proj_inst
 
             mock_db.return_value = Mock()
-            mock_tool.return_value = Mock()
 
             # Mock cache with existing thread
             mock_cache_dict = {"conv_cached": "existing_thread_999"}
@@ -1002,15 +985,14 @@ class TestStreamChatRequestDelta:
 
     @pytest.mark.asyncio
     async def test_wraps_tuples_in_delta_format(self):
-        """Test that stream_chat_request wraps tuples in delta JSON format (workshop mode)."""
+        """Test that stream_chat_request wraps tuples in delta JSON format."""
         from chat import stream_chat_request
 
         async def mock_gen(*args, **kwargs):
             yield ("assistant", "Hello world")
             yield ("tool", '[{"url":"u","source":"s","id":"i"}]')
 
-        with patch('chat.stream_openai_text_workshop', side_effect=mock_gen), \
-             patch('chat.IS_WORKSHOP', True):
+        with patch('chat.stream_openai_text', side_effect=mock_gen):
             gen = await stream_chat_request("conv1", "test query")
             chunks = []
             async for chunk in gen:
@@ -1020,27 +1002,6 @@ class TestStreamChatRequestDelta:
             first = json.loads(chunks[0].strip())
             assert "choices" in first
             assert "delta" in first["choices"][0]
-
-    @pytest.mark.asyncio
-    async def test_wraps_strings_in_messages_format(self):
-        """Test that stream_chat_request wraps plain strings in messages format (non-workshop)."""
-        from chat import stream_chat_request
-
-        async def mock_gen(*args, **kwargs):
-            yield "Hello world"
-
-        with patch('chat.stream_openai_text', side_effect=mock_gen), \
-             patch('chat.IS_WORKSHOP', False):
-            gen = await stream_chat_request("conv1", "test query")
-            chunks = []
-            async for chunk in gen:
-                chunks.append(chunk)
-
-            assert len(chunks) >= 1
-            first = json.loads(chunks[0].strip())
-            assert "choices" in first
-            assert "messages" in first["choices"][0]
-            assert first["choices"][0]["messages"][0]["content"] == "Hello world"
 
 
 class TestMissingLineCoverage:

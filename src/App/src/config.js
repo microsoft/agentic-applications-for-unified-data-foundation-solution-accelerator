@@ -11,7 +11,7 @@ function getRuntimeConfigValue(runtimeKey, envKey, defaultValue) {
   return defaultValue;
 }
 export function getApiBaseUrl() {
-  return getRuntimeConfigValue("APP_API_BASE_URL", "REACT_APP_API_BASE_URL", "http://127.0.0.1:8000");
+  return getRuntimeConfigValue("APP_API_BASE_URL", "REACT_APP_API_BASE_URL", "");
 }
 export function getChatLandingText() {
   return getRuntimeConfigValue(
@@ -19,17 +19,6 @@ export function getChatLandingText() {
     "REACT_APP_CHAT_LANDING_TEXT",
     "You can ask questions around sales, products and orders."
   );
-}
-
-export function isWorkShopDeployment() {
-  const rawValue = getRuntimeConfigValue(
-    "IS_WORKSHOP",
-    "REACT_APP_IS_WORKSHOP",
-    "false"
-  );
-  // Strip quotes and whitespace that might be included
-  const value = rawValue.replace(/['"]/g, '').trim().toLowerCase();
-  return value === "true";
 }
 
 export function getAppTitlePrimary() {

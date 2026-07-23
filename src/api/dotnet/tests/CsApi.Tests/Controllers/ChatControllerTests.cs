@@ -1,10 +1,10 @@
+using CsApi.Auth;
 using CsApi.Controllers;
 using CsApi.Interfaces;
 using CsApi.Models;
 using CsApi.Repositories;
 using CsApi.Services;
 using CsApi.Utils;
-using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -35,11 +35,11 @@ public class ChatControllerTests
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"])
             .Returns("https://test.azure.com");
 
-        var threadCache = new ExpCache<string, AgentThread>(
+        var conversationCache = new ExpCache<string, string>(
             maxSize: 1000,
             ttlSeconds: 3600.0,
             _mockConfiguration.Object,
-            NullLogger<ExpCache<string, AgentThread>>.Instance,
+            NullLogger<ExpCache<string, string>>.Instance,
             azureAIEndpoint: "https://test.azure.com");
 
         _controller = new ChatController(
@@ -47,7 +47,9 @@ public class ChatControllerTests
             _mockRepo.Object,
             _mockConfiguration.Object,
             NullLogger<ChatController>.Instance,
-            threadCache);
+            conversationCache,
+            Mock.Of<IAzureCredentialFactory>(),
+            Mock.Of<IHttpClientFactory>());
 
         // Setup default HttpContext
         var httpContext = new DefaultHttpContext();
@@ -233,49 +235,6 @@ public class ChatControllerTests
         // Assert
         var jsonResult = Assert.IsType<JsonResult>(result);
         Assert.NotNull(jsonResult.Value);
-    }
-
-    #endregion
-
-    #region Chat Streaming Error Handling Tests
-
-    [Fact]
-    public async Task Chat_EmptyQuery_ReturnsErrorEnvelope()
-    {
-        // Arrange
-        var mockAgentService = new Mock<IAgentFrameworkService>();
-        var request = new ChatRequest { Query = "", ConversationId = "conv-123" };
-
-        // Act
-        await _controller.Chat(request, mockAgentService.Object, CancellationToken.None);
-
-        // Assert
-        _controller.HttpContext.Response.Body.Seek(0, SeekOrigin.Begin);
-        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
-        var responseBody = reader.ReadToEnd();
-        Assert.Contains("query is required", responseBody);
-    }
-
-    [Fact]
-    public async Task Chat_InvalidOperationException_ReturnsErrorEnvelopeWhenAgentNotChatClient()
-    {
-        // Arrange - Agent that is not a ChatClientAgent causes InvalidOperationException
-        var mockAgent = new Mock<AIAgent>();
-        var mockAgentService = new Mock<IAgentFrameworkService>();
-        mockAgentService.Setup(a => a.Agent).Returns(mockAgent.Object);
-        _mockRepo.Setup(r => r.EnsureConversationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(("conv-123", true));
-
-        var request = new ChatRequest { Query = "test query", ConversationId = "conv-123" };
-
-        // Act - InvalidOperationException is caught and returned as an error envelope
-        await _controller.Chat(request, mockAgentService.Object, CancellationToken.None);
-
-        // Assert - error envelope is written to the response body
-        _controller.HttpContext.Response.Body.Seek(0, SeekOrigin.Begin);
-        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
-        var responseBody = reader.ReadToEnd();
-        Assert.Contains("\"error\":", responseBody);
     }
 
     #endregion
