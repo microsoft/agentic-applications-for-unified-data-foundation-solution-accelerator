@@ -280,7 +280,8 @@ class TestStreamOpenAIText:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('chat.get_thread_cache') as mock_cache:
+             patch('chat.get_thread_cache') as mock_cache, \
+             patch('chat.FoundryAgent') as mock_foundry_agent:
 
             mock_cred.return_value = AsyncMock()
             mock_cred.return_value.close = AsyncMock()
@@ -295,6 +296,14 @@ class TestStreamOpenAIText:
             mock_response.output = []
             mock_openai.responses.create = AsyncMock(return_value=mock_response)
 
+            async def empty_stream(*args, **kwargs):
+                if False:
+                    yield None
+
+            mock_agent = Mock()
+            mock_agent.run = Mock(return_value=empty_stream())
+            mock_foundry_agent.return_value = mock_agent
+
             mock_proj_inst.get_openai_client = Mock(return_value=mock_openai)
             mock_proj_inst.__aenter__ = AsyncMock(return_value=mock_proj_inst)
             mock_proj_inst.__aexit__ = AsyncMock()
@@ -308,9 +317,12 @@ class TestStreamOpenAIText:
             async for chunk in stream_openai_text("conv_123", "test"):
                 results.append(chunk)
 
-            # Should have fallback message as plain string
-            assert len(results) == 1
-            assert "cannot answer" in results[0].lower()
+            # Current contract emits citations first, then fallback assistant text.
+            assert len(results) == 2
+            assert results[0][0] == "tool"
+            assert results[0][1] == "[]"
+            assert results[1][0] == "assistant"
+            assert "cannot answer" in results[1][1].lower()
 
     @pytest.mark.asyncio
     async def test_passes_conversation_id_in_options(self):
@@ -594,7 +606,8 @@ class TestAdditionalCoverage:
         with patch('chat.get_azure_credential_async') as mock_cred, \
              patch('chat.AIProjectClient') as mock_project, \
              patch('history_sql.get_db_connection') as mock_db, \
-             patch('chat.get_thread_cache') as mock_cache:
+             patch('chat.get_thread_cache') as mock_cache, \
+             patch('chat.FoundryAgent') as mock_foundry_agent:
 
             mock_cred.return_value = AsyncMock()
             mock_cred.return_value.close = AsyncMock()
@@ -624,13 +637,25 @@ class TestAdditionalCoverage:
 
             mock_cache.return_value = {}
 
+            mock_chunk = Mock()
+            mock_chunk.text = "Hello World"
+            mock_chunk.contents = []
+
+            async def single_chunk_stream(*args, **kwargs):
+                yield mock_chunk
+
+            mock_agent = Mock()
+            mock_agent.run = Mock(return_value=single_chunk_stream())
+            mock_foundry_agent.return_value = mock_agent
+
             results = []
             async for chunk in stream_openai_text("conv_789", "test"):
                 results.append(chunk)
 
-            # Should yield plain text string
-            assert len(results) == 1
-            assert results[0] == "Hello World"
+            # Current contract yields assistant chunks and then tool citations.
+            assert len(results) == 2
+            assert results[0] == ("assistant", "Hello World")
+            assert results[1] == ("tool", "[]")
 
 
 class TestApplicationInsightsCoverage:
