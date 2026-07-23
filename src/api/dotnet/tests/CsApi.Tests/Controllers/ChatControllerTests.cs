@@ -1,16 +1,20 @@
+using CsApi.Auth;
 using CsApi.Controllers;
 using CsApi.Interfaces;
 using CsApi.Models;
 using CsApi.Repositories;
 using CsApi.Services;
 using CsApi.Utils;
-using Microsoft.Agents.AI;
+using Azure.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using Xunit;
 
@@ -35,11 +39,11 @@ public class ChatControllerTests
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"])
             .Returns("https://test.azure.com");
 
-        var threadCache = new ExpCache<string, AgentThread>(
+        var conversationCache = new ExpCache<string, string>(
             maxSize: 1000,
             ttlSeconds: 3600.0,
             _mockConfiguration.Object,
-            NullLogger<ExpCache<string, AgentThread>>.Instance,
+            NullLogger<ExpCache<string, string>>.Instance,
             azureAIEndpoint: "https://test.azure.com");
 
         _controller = new ChatController(
@@ -47,7 +51,9 @@ public class ChatControllerTests
             _mockRepo.Object,
             _mockConfiguration.Object,
             NullLogger<ChatController>.Instance,
-            threadCache);
+            conversationCache,
+            Mock.Of<IAzureCredentialFactory>(),
+            Mock.Of<IHttpClientFactory>());
 
         // Setup default HttpContext
         var httpContext = new DefaultHttpContext();
@@ -237,45 +243,196 @@ public class ChatControllerTests
 
     #endregion
 
-    #region Chat Streaming Error Handling Tests
+    #region FetchAzureSearchContent Tests
 
     [Fact]
-    public async Task Chat_EmptyQuery_ReturnsErrorEnvelope()
+    public async Task FetchAzureSearchContent_UrlMissing_ReturnsBadRequest()
     {
         // Arrange
-        var mockAgentService = new Mock<IAgentFrameworkService>();
-        var request = new ChatRequest { Query = "", ConversationId = "conv-123" };
+        var body = JsonDocument.Parse("{\"source\":\"fallback\"}").RootElement.Clone();
 
         // Act
-        await _controller.Chat(request, mockAgentService.Object, CancellationToken.None);
+        var result = await _controller.FetchAzureSearchContent(body, CancellationToken.None);
 
         // Assert
-        _controller.HttpContext.Response.Body.Seek(0, SeekOrigin.Begin);
-        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
-        var responseBody = reader.ReadToEnd();
-        Assert.Contains("query is required", responseBody);
+        Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
-    public async Task Chat_InvalidOperationException_ReturnsErrorEnvelopeWhenAgentNotChatClient()
+    public async Task FetchAzureSearchContent_InvalidUrl_ReturnsBadRequest()
     {
-        // Arrange - Agent that is not a ChatClientAgent causes InvalidOperationException
-        var mockAgent = new Mock<AIAgent>();
-        var mockAgentService = new Mock<IAgentFrameworkService>();
-        mockAgentService.Setup(a => a.Agent).Returns(mockAgent.Object);
-        _mockRepo.Setup(r => r.EnsureConversationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(("conv-123", true));
+        // Arrange
+        var body = JsonDocument.Parse("{\"url\":\"not-a-url\"}").RootElement.Clone();
 
-        var request = new ChatRequest { Query = "test query", ConversationId = "conv-123" };
+        // Act
+        var result = await _controller.FetchAzureSearchContent(body, CancellationToken.None);
 
-        // Act - InvalidOperationException is caught and returned as an error envelope
-        await _controller.Chat(request, mockAgentService.Object, CancellationToken.None);
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
 
-        // Assert - error envelope is written to the response body
-        _controller.HttpContext.Response.Body.Seek(0, SeekOrigin.Begin);
-        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
-        var responseBody = reader.ReadToEnd();
-        Assert.Contains("\"error\":", responseBody);
+    [Fact]
+    public async Task FetchAzureSearchContent_NonAllowedHost_ReturnsForbidden()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["AZURE_AI_SEARCH_ENDPOINT"]).Returns("https://allowed.search.windows.net");
+        var body = JsonDocument.Parse("{\"url\":\"https://evil.example.com/indexes/i/docs/d1?api-version=2024-07-01\"}").RootElement.Clone();
+
+        // Act
+        var result = await _controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, objectResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task FetchAzureSearchContent_HttpScheme_ReturnsBadRequest()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["AZURE_AI_SEARCH_ENDPOINT"]).Returns("https://allowed.search.windows.net");
+        var body = JsonDocument.Parse("{\"url\":\"http://allowed.search.windows.net/indexes/i/docs/d1?api-version=2024-07-01\"}").RootElement.Clone();
+
+        // Act
+        var result = await _controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task FetchAzureSearchContent_MissingDocId_ReturnsBadRequest()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["AZURE_AI_SEARCH_ENDPOINT"]).Returns("https://allowed.search.windows.net");
+        var body = JsonDocument.Parse("{\"url\":\"https://allowed.search.windows.net/indexes/i?api-version=2024-07-01\"}").RootElement.Clone();
+
+        // Act
+        var result = await _controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task FetchAzureSearchContent_Success_ReturnsContentAndTitle()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns("https://test.azure.com");
+        mockConfig.Setup(c => c["AZURE_AI_SEARCH_ENDPOINT"]).Returns("https://allowed.search.windows.net");
+
+        var mockCredentialFactory = new Mock<IAzureCredentialFactory>();
+        mockCredentialFactory
+            .Setup(f => f.Create(It.IsAny<string?>(), It.IsAny<string?>()))
+            .Returns(new StaticTokenCredential());
+
+        var handler = new StubHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"content\":\"doc body\",\"source\":\"doc-source\"}")
+            });
+        var httpClient = new HttpClient(handler);
+        var mockHttpFactory = new Mock<IHttpClientFactory>();
+        mockHttpFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        var cache = new ExpCache<string, string>(
+            maxSize: 1000,
+            ttlSeconds: 3600.0,
+            mockConfig.Object,
+            NullLogger<ExpCache<string, string>>.Instance,
+            azureAIEndpoint: "https://test.azure.com");
+
+        var controller = new ChatController(
+            _mockUserContext.Object,
+            _mockRepo.Object,
+            mockConfig.Object,
+            NullLogger<ChatController>.Instance,
+            cache,
+            mockCredentialFactory.Object,
+            mockHttpFactory.Object);
+
+        var body = JsonDocument.Parse("{\"url\":\"https://allowed.search.windows.net/indexes/my-index/docs/my-doc?api-version=2024-07-01\",\"source\":\"fallback\"}").RootElement.Clone();
+
+        // Act
+        var result = await controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value);
+        Assert.Contains("doc body", json);
+        Assert.Contains("doc-source", json);
+    }
+
+    [Fact]
+    public async Task FetchAzureSearchContent_DownstreamFailure_ReturnsOkWithError()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns("https://test.azure.com");
+        mockConfig.Setup(c => c["AZURE_AI_SEARCH_ENDPOINT"]).Returns("https://allowed.search.windows.net");
+
+        var mockCredentialFactory = new Mock<IAzureCredentialFactory>();
+        mockCredentialFactory
+            .Setup(f => f.Create(It.IsAny<string?>(), It.IsAny<string?>()))
+            .Returns(new StaticTokenCredential());
+
+        var handler = new StubHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.NotFound)
+            {
+                Content = new StringContent("not found")
+            });
+        var httpClient = new HttpClient(handler);
+        var mockHttpFactory = new Mock<IHttpClientFactory>();
+        mockHttpFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        var cache = new ExpCache<string, string>(
+            maxSize: 1000,
+            ttlSeconds: 3600.0,
+            mockConfig.Object,
+            NullLogger<ExpCache<string, string>>.Instance,
+            azureAIEndpoint: "https://test.azure.com");
+
+        var controller = new ChatController(
+            _mockUserContext.Object,
+            _mockRepo.Object,
+            mockConfig.Object,
+            NullLogger<ChatController>.Instance,
+            cache,
+            mockCredentialFactory.Object,
+            mockHttpFactory.Object);
+
+        var body = JsonDocument.Parse("{\"url\":\"https://allowed.search.windows.net/indexes/my-index/docs/my-doc?api-version=2024-07-01\",\"source\":\"fallback\"}").RootElement.Clone();
+
+        // Act
+        var result = await controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value);
+        Assert.Contains("HTTP 404", json);
+    }
+
+    private sealed class StaticTokenCredential : TokenCredential
+    {
+        public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
+            => new("test-token", DateTimeOffset.UtcNow.AddMinutes(30));
+
+        public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
+            => ValueTask.FromResult(new AccessToken("test-token", DateTimeOffset.UtcNow.AddMinutes(30)));
+    }
+
+    private sealed class StubHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
+
+        public StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)
+        {
+            _handler = handler;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(_handler(request));
     }
 
     #endregion

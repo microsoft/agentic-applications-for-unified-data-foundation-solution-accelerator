@@ -244,29 +244,17 @@ def test_history_router_prefix(test_env_vars):
     assert history_router is not None
 
 
-def test_historyfab_router_prefix(test_env_vars):
-    """Test that historyfab router has correct /historyfab prefix."""
-    from app import build_app
-    from history_sql import router as history_sql_router
-    
-    build_app()
-    # Verify historyfab router is imported and available
-    assert history_sql_router is not None
-
-
 # Test router tags
 def test_app_has_correct_tags(test_env_vars):
     """Test that routers are tagged correctly."""
     from app import build_app
     from chat import router as chat_router
     from history import router as history_router
-    from history_sql import router as history_sql_router
     
     build_app()
     # Since routers are mocked, just verify they exist and can be included
     assert chat_router is not None
     assert history_router is not None
-    assert history_sql_router is not None
 
 
 def test_chat_router_tag(test_env_vars):
@@ -287,16 +275,6 @@ def test_history_router_tag(test_env_vars):
     build_app()
     # Verify history router exists (mocked)
     assert history_router is not None
-
-
-def test_historyfab_router_tag(test_env_vars):
-    """Test that historyfab router has correct 'historyfab' tag."""
-    from app import build_app
-    from history_sql import router as history_sql_router
-    
-    build_app()
-    # Verify historyfab router exists (mocked)
-    assert history_sql_router is not None
 
 
 # Test app configuration

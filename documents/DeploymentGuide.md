@@ -25,10 +25,45 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 This will allow the scripts to run for the current session without permanently changing your system's policy.
 
-## Deployment Options & Steps
-###  Fabric Deployment 
+## Deployment Options
+
+This solution deploys with Microsoft Fabric (Data Agent, Ontology, Lakehouse) + Azure AI Foundry.
+
+**Requirements:** Fabric capacity (F2+) + Azure subscription
+
+---
+
+## Scenario Packs
+
+Pre-built scenario packs provide ready-to-use datasets without requiring AI data generation. They are ideal for demos, workshops, and testing.
+
+| Pack | Industry | Use Case | Tables | Documents |
+|------|----------|----------|--------|-----------|
+| **retail** | Retail | Inventory and sales operations | 13 (customers, orders, products, invoices, payments, locations) | None (SQL-only) |
+| **insurance** | Insurance | Claims processing and customer management | 4 (customer, policy, claim, communicationshistory) | None (SQL-only) |
+| **default** | Retail | Inventory and sales operations | 13 (customers, orders, products, invoices, payments, locations) | None (SQL-only) |
+
+> **Note:** If you don't use `--scenario`, the `default` scenario is used automatically set to retail for the sample data.
+
+To use a scenario pack, add `--scenario <name>` to the build command (see step 7 below).
+
+**Additional data options:**
+- [Bring Your Own Data](../data/customdata/README.md) — Use your own CSV tables and PDF documents
+
+---
+
+## Deployment Steps
+
+###  Fabric Deployment
 <!-- if you have an existing workspace use this Id -->
 1. Follow the steps in [Fabric Deployment](./Fabric_deployment.md) to create a Fabric workspace
+
+    > **Important (Fabric Admin Portal):** Before proceeding, ensure the following tenant settings are enabled in the [Fabric Admin Portal](https://app.fabric.microsoft.com/admin-portal) → **Tenant settings**:
+    > - **Ontology (preview)** — Required for Data Agent to function
+    > - **Graph (preview)** — Required for entity relationships
+    > - **Copilot and Azure OpenAI Service** — Required for AI features
+    >
+    > These settings may take up to 15 minutes to propagate. See [Fabric IQ Tenant Settings](https://learn.microsoft.com/en-us/fabric/iq/ontology/overview-tenant-settings) for details.
 
 Pick from the options below to see step-by-step instructions for GitHub Codespaces, VS Code Dev Containers, VS Code (Web), Local Environments, and Bicep deployments.
 
@@ -147,17 +182,16 @@ When you start the deployment, most parameters will have **default values**, but
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
 | **Azure Region**                            | The region where resources will be created.                                                               | *(empty)*              |
 | **Environment Name**                        | A **3–20 character alphanumeric value** used to generate a unique ID to prefix the resources.             | env\_name              |
-| **Backend Programming Language**                   | Programming language for the backend API: **python** or **dotnet**.                           | *(empty)*              |
-| **Use Case**                   | Use case: **Retail-sales-analysis** or **Insurance-improve-customer-meetings**.                           | *(empty)*              |
+| **Backend Programming Language**            | Programming language for the backend API: **python** or **dotnet**.                                       | python                 |
 | **Deployment Type**                         | Select from a drop-down list (allowed: `Standard`, `GlobalStandard`).                                     | GlobalStandard         |
-| **GPT Model**                               | Choose from **gpt-4, gpt-4o, gpt-4o-mini**.                                                               | gpt-5.4-mini           |
+| **GPT Model**                               | Name of the GPT model to deploy (e.g., `gpt-5.4-mini`).                                                  | gpt-5.4-mini           |
 | **GPT Model Version**                       | The version of the selected GPT model.                                                                    | 2026-03-17             |
 | **OpenAI API Version**                      | The Azure OpenAI API version to use.                                                                      | 2025-01-01-preview     |
-| **GPT Model Deployment Capacity**           | Configure capacity for **GPT models** (in thousands).                                                     | 30k                    |
-| **Image Tag**                               | Docker image tag to deploy. Common values: `latest`, `dev`, `hotfix`.                  | latest       |
-| **Use Local Build**                         | Boolean flag to determine if local container builds should be used.                         | false             |
+| **GPT Model Deployment Capacity**           | Configure capacity for **GPT models** (in thousands).                                                     | 150                    |
+| **Image Tag**                               | Docker image tag to deploy. Common values: `latest_v2`, `dev`, `hotfix`.                                  | latest\_v2             |
 | **Existing Log Analytics Workspace**        | To reuse an existing Log Analytics Workspace ID.                                                          | *(empty)*              |
-| **Existing Azure AI Foundry Project**        | To reuse an existing Azure AI Foundry Project ID instead of creating a new one.              | *(empty)*          |
+| **Existing Azure AI Foundry Project**       | To reuse an existing Azure AI Foundry Project ID instead of creating a new one.                           | *(empty)*              |
+| **Use User Access Token**                   | Enable On-Behalf-Of (OBO) flow so the API calls downstream services using the signed-in user's token. Requires running [OBO Authentication Setup](./SetupOBOAuthentication.md) after deployment. | false              |
 
 
 
@@ -166,9 +200,7 @@ When you start the deployment, most parameters will have **default values**, but
 <details>
   <summary><b>[Optional] Quota Recommendations</b></summary>
 
-By default, the **gpt-5.4-mini model capacity** in deployment is set to **30k tokens**, so we recommend updating the following:
-
-> **For Global Standard | gpt-5.4-mini - increase the capacity to at least 150k tokens post-deployment for optimal performance.**
+By default, the **gpt-5.4-mini model capacity** in deployment is set to **150 TPM (thousands)**, which is the recommended minimum for optimal performance.
 
 Depending on your subscription quota and capacity, you can [adjust quota settings](AzureGPTQuotaSettings.md) to better meet your specific needs. You can also [adjust the deployment parameters](CustomizingAzdParameters.md) for additional optimization.
 
@@ -190,6 +222,44 @@ Depending on your subscription quota and capacity, you can [adjust quota setting
 
 </details>
 
+<details>
+  <summary><b>Choose Deployment Mode (Optional)</b></summary>
+
+### Deployment Modes
+
+This solution supports three deployment modes to fit different use cases:
+
+| **Aspect** | **Development/Testing (bicep)** | **Production (avm)** | **Production WAF-Aligned (avm-waf)** |
+|------------|-----------------------------------|----------------------|--------------------------------------|
+| **Deployment Flavor** | `bicep` (Vanilla Bicep) | `avm` (AVM modules) | `avm-waf` (AVM + WAF features) |
+| **Configuration File** | `main.parameters.json` (default) | `main.parameters.json` | Copy `main.waf.parameters.json` to `main.parameters.json` |
+| **Security Controls** | Minimal (for rapid iteration) | Production-ready | Enhanced (WAF best practices) |
+| **Networking** | Public endpoints | Public endpoints | Private endpoints, VNet isolation |
+| **Cost** | Lower costs | Moderate costs | Higher costs (VMs, private networking) |
+| **Use Case** | POCs, development, testing | Production workloads | Production with compliance requirements |
+| **Framework** | Basic configuration | AVM-compliant | [Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) |
+
+**How to switch deployment flavors:**
+```bash
+# For AVM production without private networking
+azd env set DEPLOYMENT_FLAVOR avm
+```
+
+**To use production(WAF-aligned) configuration:**
+
+Copy the contents from the production configuration file to your main parameters file:
+
+1. Navigate to the `infra` folder in your project
+2. Open `main.waf.parameters.json` in a text editor (like Notepad, VS Code, etc.)
+3. Select all content (Ctrl+A) and copy it (Ctrl+C)
+4. Open `main.parameters.json` in the same text editor
+5. Select all existing content (Ctrl+A) and paste the copied content (Ctrl+V)
+6. Save the file (Ctrl+S)
+
+> **Note:** The `deploymentFlavor` parameter in `main.parameters.json` controls which modules are used. Set to `bicep` (default), `avm`, or `avm-waf` depending on your requirements. See [Parameter Customization Guide](./CustomizingAzdParameters.md) for details.
+
+</details>
+
 ### Deploying with AZD
 
 Once you've opened the project in [Codespaces](#github-codespaces), [Dev Containers](#vs-code-dev-containers), [Visual Studio Code (WEB)](#visual-studio-code-web), or [locally](#local-environment), you can deploy it to Azure by following these steps:
@@ -206,29 +276,26 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
     azd auth login --tenant-id <tenant-id>
     ```
 
-    > **Note**: This solution accelerator now supports two modes (standard and workshop). By default it runs in standard mode. To enable workshop mode, set `IS_WORKSHOP` to `true` before deploying:
-
-      ```sh
-      azd env set IS_WORKSHOP true
-      ```
-    
-      In standard mode, by default the backend API is configured to Python.
+      By default the backend API is configured to Python.
       To use dotnet instead, run the below command.
 
       ```sh
       azd env set BACKEND_RUNTIME_STACK dotnet
       ```
-      
-      In standard mode, by default the use case is set to Retail Sales.
-      To switch to Insurance, run the below command.
 
-      ```sh
-      azd env set USE_CASE Insurance-improve-customer-meetings
-      ```
     **NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command. 
     ```bash 
     azd config set provision.preflight off
     ```
+
+    **[Optional] Reuse an existing Fabric workspace:**
+
+    If you already have a Fabric workspace, set its ID before provisioning. This skips Fabric capacity creation during `azd up`:
+    ```shell
+    azd env set FABRIC_WORKSPACE_ID <your-workspace-id>
+    ```
+    > You can find your workspace ID in the Fabric URL: `https://app.fabric.microsoft.com/groups/<workspace-id>/...`
+    > If you omit `FABRIC_WORKSPACE_ID`, a new Fabric capacity and workspace will be created automatically.
 
 2. Provision and deploy all the resources:
 
@@ -238,145 +305,130 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
 3. Provide an `azd` environment name (e.g., "daapp").
 4. Select a subscription from your Azure account and choose a location that has quota for all the resources.
-<!--5. Choose the programming language for the backend API:
-   - **Python**
-   - **.NET (dotnet)**
-6. Choose the use case: 
-   - **Retail-sales-analysis**
-   - **Insurance-improve-customer-meetings** -->
 
    This deployment will take *7-10 minutes* to provision the resources in your account and set up the solution with sample data.
    
    If you encounter an error or timeout during deployment, changing the location may help, as there could be availability constraints for the resources.
 
-5. Once the deployment has completed successfully, copy the 3 bash commands from the terminal (ex. 
-`bash ./infra/scripts/acr_build_and_deploy.sh`,
-`bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh` and
-`bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>`) for later use.
+   Once the deployment has completed successfully, the terminal will display the next steps. Copy the build command shown in the terminal output (e.g., `bash ./infra/scripts/build/build-and-push-acr.sh`) for use in step 5 below.
 
-> **Note**: If you are running this deployment in GitHub Codespaces or VS Code Dev Container or Visual Studio Code (WEB) skip to step 7. 
+5. Build and push the application container images to the dedicated Azure Container Registry (ACR). This builds the API and frontend images remotely
 
-6. Create and activate a virtual environment 
-  
+   **Windows (PowerShell):**
+   ```powershell
+   .\infra\scripts\build\build-and-push-acr.ps1
+   ```
+
+   **Linux / macOS / Git Bash:**
+   ```bash
+   bash ./infra/scripts/build/build-and-push-acr.sh
+   ```
+
+   > The script resolves all values automatically from your active `azd` environment.
+
+   If you don't have an active `azd` environment, pass the resource group explicitly:
+   ```powershell
+   # PowerShell
+   .\infra\scripts\build\build-and-push-acr.ps1 -ResourceGroup <your-resource-group>
+
+   # Bash
+   bash ./infra/scripts/build/build-and-push-acr.sh --resource-group <your-resource-group>
+   ```
+
+6. Setup Python environment:
+
     ```shell
     python -m venv .venv
     ```
 
+    For Windows (PowerShell):
+    ```shell
+    .venv\Scripts\Activate.ps1
+    ```
+
+    For Windows (Bash):
     ```shell
     source .venv/Scripts/activate
     ```
 
-7. Login to Azure
+    For Linux/macOS/VS Code Web (Bash):
+    ```shell
+    source .venv/bin/activate
+    ```
+
+7. Install dependencies:
+
+    ```shell
+    pip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt
+    ```
+
+8. Login to Azure:
+
     ```shell
     az login
     ```
 
-    Alternatively, login to Azure using a device code (recommended when using VS Code Web):
+    > **VS Code Web users:** Use `az login --use-device-code` since browser-based login is not supported in VS Code Web.
+
+9. Build the solution:
 
     ```shell
-    az login --use-device-code
+    python infra/scripts/post-provision/00_build_solution.py --from 01
     ```
 
-> **Note**: you will need to open a Git Bash terminal to complete steps 8, 9 and 10.  
-8. Build and deploy the application container images to the dedicated Azure Container Registry (ACR). This builds the API and frontend images remotely with `az acr build` (no local Docker required) and points each App Service at the images in the deployment's dedicated ACR. Images are pulled using the App Service's user-assigned managed identity (AcrPull role) — the registry has admin user and anonymous pull disabled.
+    **Using a Scenario Pack** (pre-built datasets):
 
-    ```Shell
-    bash ./infra/scripts/acr_build_and_deploy.sh
+    ```shell
+    # Retail scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario retail
+
+    # Insurance scenario:
+    python infra/scripts/post-provision/00_build_solution.py --scenario insurance
     ```
 
-    The script resolves all values from your azd environment. If you don't have an azd env, you can pass them positionally (any omitted argument is resolved from environment variables):
 
-    ```Shell
-    bash ./infra/scripts/acr_build_and_deploy.sh <subscription-id> <resource-group> <acr-name> <image-tag> <backend-runtime-stack> <api-app-name> <web-app-name> <acr-login-server>
+    > **Tip:** To reuse an existing Fabric workspace, run `azd env set FABRIC_WORKSPACE_ID <your-workspace-id>` before building.
+
+    > Press **Enter** to start or **Ctrl+C** to cancel the process.
+
+10. Test the agent:
+
+    ```shell
+    python infra/scripts/post-provision/06_test_agent.py
     ```
 
-9. Run the bash script from the output of the azd deployment. The script will look like the following:
-    
-    ```Shell
-    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh
-    ```
-    If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
-    ```Shell
-    bash ./infra/scripts/agent_scripts/run_create_agents_scripts.sh <ai-project-endpoint> <solution-name> <gpt-model-name> <ai-foundry-resource-id> <api-app-name> <resource-group> <usecase> [<is-workshop>]
-    ```
+    **Sample questions by scenario:**
 
-    **Step 9 Parameter Reference:**
+    | Scenario | Sample Questions |
+    |----------|-----------------|
+    | **Retail (Default)** | "Show the top 5 products by total quantity sold last month?"<br /> "Show total revenue by year for last 5 years" <br /> "Show top 10 products by Revenue in the last year" |
+    | **Insurance** | "I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?" <br /> "Can you provide details of her communications?" <br /> "Based on Ida's policy data has she ever missed a payment?" |
 
-    | Parameter | azd env Variable | Format / Example |
-    |---|---|---|
-    | `<ai-project-endpoint>` | `AZURE_AI_PROJECT_ENDPOINT` | URL starting with `https://` (e.g., `https://<ai-service>.services.ai.azure.com/api/projects/<project>`) |
-    | `<solution-name>` | `SOLUTION_NAME` | Alphanumeric string (e.g., `da5fi6dninkrjn`) |
-    | `<gpt-model-name>` | `AZURE_AI_AGENT_MODEL_DEPLOYMENT_NAME` | Model name (e.g., `gpt-4o-mini`, `gpt-4o`, `gpt-4`) |
-    | `<ai-foundry-resource-id>` | `AI_FOUNDRY_RESOURCE_ID` | Full resource ID starting with `/subscriptions/...` |
-    | `<api-app-name>` | `API_APP_NAME` | App Service name (e.g., `api-cs-<solutionname>`) |
-    | `<resource-group>` | `AZURE_RESOURCE_GROUP` | Resource group name (e.g., `rg-<envname>`) |
-    | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
-    | `<is-workshop>` | `IS_WORKSHOP` | `true` or `false` (defaults to `false`) |
-
-10. Run the bash script from the output of the azd deployment. Replace the <fabric-workspaceId> with your Fabric workspace Id created in the previous steps. The script will look like the following:
-    ```Shell
-    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId>
-    ```
-
-    If you don't have azd env then you need to pass parameters along with the command. Then the command will look like the following:
-    ```Shell
-    bash ./infra/scripts/fabric_scripts/run_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <ai-foundry-name> <backend-api-mid-principal> <backend-api-mid-client> <api-app-name> <resourcegroup> <usecase>
-    ```
-
-    **Step 10 Parameter Reference:**
-
-    | Parameter | azd env Variable | Format / Example |
-    |---|---|---|
-    | `<fabric-workspaceId>` | *(user-provided)* | GUID (e.g., `5bxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxx246`) |
-    | `<solutionname>` | `SOLUTION_NAME` | Alphanumeric string (e.g., `da5fi6dninkrjn`) |
-    | `<ai-foundry-name>` | `AI_SERVICE_NAME` | AI Foundry account name (e.g., `aisa-<solutionname>`) |
-    | `<backend-api-mid-principal>` | `API_PID` | Managed identity Principal (Object) ID — GUID |
-    | `<backend-api-mid-client>` | `API_UID` | Managed identity Client ID — GUID |
-    | `<api-app-name>` | `API_APP_NAME` | App Service name (e.g., `api-cs-<solutionname>`) |
-    | `<resourcegroup>` | `RESOURCE_GROUP_NAME` | Resource group name (e.g., `rg-<envname>`) |
-    | `<usecase>` | `USE_CASE` | `Retail-sales-analysis` or `Insurance-improve-customer-meetings` (case-insensitive) |
-
-11. Once the script has run successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
+11. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
 
 12. If you are done trying out the application, you can delete the resources by running `azd down`.
 
 
 ## Post Deployment Steps
 
-1. **Add App Authentication**
+1. **Add OBO Connection**
    
-    Follow steps in [App Authentication](./AppAuthentication.md) to configure authentication in app service. Note: Authentication changes can take up to 10 minutes 
+    Follow steps in [Set up OBO Authentication](./SetupOBOAuthentication.md) to configure authentication in app service. Note: Authentication changes can take up to 10 minutes 
 
 2. **Deleting Resources After a Failed Deployment**  
 
      - Follow steps in [Delete Resource Group](./DeleteResourceGroup.md) if your deployment fails and/or you need to clean up the resources.
 
-3. **Cleaning Up Fabric Resources**
-
-     If you are done trying out the accelerator and want to clean up the Fabric resources (lakehouse, SQL database, and role assignments), run the following script:
-
-     ```shell
-     bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId>
-     ```
-
-     If you don't have azd env then you need to pass parameters along with the command:
-     
-     ```shell
-     bash ./infra/scripts/fabric_scripts/delete_fabric_items_scripts.sh <fabric-workspaceId> <solutionname> <backend-api-principal-id>
-     ```
-
-     **Note**: This script will remove the lakehouse, SQL database, and service principal role assignments from the Fabric workspace. To completely remove all Azure resources, use `azd down`.
-
 ## Sample Questions 
 
 To help you get started, here are some **Sample Questions** you can ask in the app:
 
-For Retail sales analysis use case: 
+**Retail (Default) scenario pack:**
 - Show total revenue by year for last 5 years as a line chart.
-- Show top 10 products by Revenue in the last year in a table.
+- Show top 10 products by Revenue in the last 5 years in a table.
 - Show as a donut chart.
 
-For Insurance improve customer meetings use case: 
+**Insurance scenario pack:**
 - I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?
 - Can you provide details of her communications?
 - Based on Ida's policy data has she ever missed a payment?
