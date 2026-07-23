@@ -1,10 +1,10 @@
 === SQL QUESTIONS (Structured Data) ===
-1. Show the top 5 products by total quantity sold last month?   
-2. Show total revenue by year for last 5 years.
-3. Show top 10 products by Revenue in the last year.
+1. Show total revenue by year for last 5 years as a line chart.
+2. Show top 10 products by Revenue in the last 5 year in a table.
+3. Show as a donut chart.
 
 === DOCUMENT QUESTIONS (AI Search) ===  
-1. What are the key steps for handling order delays?
-2. What metrics should be prioritized in monthly sales reports?
-3. What are the guidelines on applying discounts during seasonal promotions?
+1. What are the guidelines on applying discounts during seasonal promotions? 
+2. What are the key steps for handling order delays?
+3. What metrics should be prioritized in monthly sales reports?
 
