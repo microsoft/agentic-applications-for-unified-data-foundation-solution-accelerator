@@ -50,7 +50,6 @@ agentic-applications-for-unified-data-foundation-solution-accelerator/    ← Re
 │   │   ├── pre-provision/           ← Pre-deployment preparation (quota checks)
 │   │   └── utilities/               ← Helper scripts and utilities
 │   ├── main.bicep                   ← Main orchestrator (references avm or bicep modules)
-│   ├── main_custom.bicep            ← Custom orchestrator (direct module references)
 │   ├── main.parameters.json         ← Default deployment configuration (bicep mode)
 │   └── main.waf.parameters.json     ← WAF deployment configuration (avm-waf mode)
 └── documents/                       ← Documentation (you are here)
