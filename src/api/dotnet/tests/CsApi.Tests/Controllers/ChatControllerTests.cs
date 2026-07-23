@@ -5,12 +5,16 @@ using CsApi.Models;
 using CsApi.Repositories;
 using CsApi.Services;
 using CsApi.Utils;
+using Azure.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using Xunit;
 
@@ -235,6 +239,200 @@ public class ChatControllerTests
         // Assert
         var jsonResult = Assert.IsType<JsonResult>(result);
         Assert.NotNull(jsonResult.Value);
+    }
+
+    #endregion
+
+    #region FetchAzureSearchContent Tests
+
+    [Fact]
+    public async Task FetchAzureSearchContent_UrlMissing_ReturnsBadRequest()
+    {
+        // Arrange
+        var body = JsonDocument.Parse("{\"source\":\"fallback\"}").RootElement.Clone();
+
+        // Act
+        var result = await _controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task FetchAzureSearchContent_InvalidUrl_ReturnsBadRequest()
+    {
+        // Arrange
+        var body = JsonDocument.Parse("{\"url\":\"not-a-url\"}").RootElement.Clone();
+
+        // Act
+        var result = await _controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task FetchAzureSearchContent_NonAllowedHost_ReturnsForbidden()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["AZURE_AI_SEARCH_ENDPOINT"]).Returns("https://allowed.search.windows.net");
+        var body = JsonDocument.Parse("{\"url\":\"https://evil.example.com/indexes/i/docs/d1?api-version=2024-07-01\"}").RootElement.Clone();
+
+        // Act
+        var result = await _controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, objectResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task FetchAzureSearchContent_HttpScheme_ReturnsBadRequest()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["AZURE_AI_SEARCH_ENDPOINT"]).Returns("https://allowed.search.windows.net");
+        var body = JsonDocument.Parse("{\"url\":\"http://allowed.search.windows.net/indexes/i/docs/d1?api-version=2024-07-01\"}").RootElement.Clone();
+
+        // Act
+        var result = await _controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task FetchAzureSearchContent_MissingDocId_ReturnsBadRequest()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["AZURE_AI_SEARCH_ENDPOINT"]).Returns("https://allowed.search.windows.net");
+        var body = JsonDocument.Parse("{\"url\":\"https://allowed.search.windows.net/indexes/i?api-version=2024-07-01\"}").RootElement.Clone();
+
+        // Act
+        var result = await _controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task FetchAzureSearchContent_Success_ReturnsContentAndTitle()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns("https://test.azure.com");
+        mockConfig.Setup(c => c["AZURE_AI_SEARCH_ENDPOINT"]).Returns("https://allowed.search.windows.net");
+
+        var mockCredentialFactory = new Mock<IAzureCredentialFactory>();
+        mockCredentialFactory
+            .Setup(f => f.Create(It.IsAny<string?>(), It.IsAny<string?>()))
+            .Returns(new StaticTokenCredential());
+
+        var handler = new StubHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"content\":\"doc body\",\"source\":\"doc-source\"}")
+            });
+        var httpClient = new HttpClient(handler);
+        var mockHttpFactory = new Mock<IHttpClientFactory>();
+        mockHttpFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        var cache = new ExpCache<string, string>(
+            maxSize: 1000,
+            ttlSeconds: 3600.0,
+            mockConfig.Object,
+            NullLogger<ExpCache<string, string>>.Instance,
+            azureAIEndpoint: "https://test.azure.com");
+
+        var controller = new ChatController(
+            _mockUserContext.Object,
+            _mockRepo.Object,
+            mockConfig.Object,
+            NullLogger<ChatController>.Instance,
+            cache,
+            mockCredentialFactory.Object,
+            mockHttpFactory.Object);
+
+        var body = JsonDocument.Parse("{\"url\":\"https://allowed.search.windows.net/indexes/my-index/docs/my-doc?api-version=2024-07-01\",\"source\":\"fallback\"}").RootElement.Clone();
+
+        // Act
+        var result = await controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value);
+        Assert.Contains("doc body", json);
+        Assert.Contains("doc-source", json);
+    }
+
+    [Fact]
+    public async Task FetchAzureSearchContent_DownstreamFailure_ReturnsOkWithError()
+    {
+        // Arrange
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns("https://test.azure.com");
+        mockConfig.Setup(c => c["AZURE_AI_SEARCH_ENDPOINT"]).Returns("https://allowed.search.windows.net");
+
+        var mockCredentialFactory = new Mock<IAzureCredentialFactory>();
+        mockCredentialFactory
+            .Setup(f => f.Create(It.IsAny<string?>(), It.IsAny<string?>()))
+            .Returns(new StaticTokenCredential());
+
+        var handler = new StubHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.NotFound)
+            {
+                Content = new StringContent("not found")
+            });
+        var httpClient = new HttpClient(handler);
+        var mockHttpFactory = new Mock<IHttpClientFactory>();
+        mockHttpFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        var cache = new ExpCache<string, string>(
+            maxSize: 1000,
+            ttlSeconds: 3600.0,
+            mockConfig.Object,
+            NullLogger<ExpCache<string, string>>.Instance,
+            azureAIEndpoint: "https://test.azure.com");
+
+        var controller = new ChatController(
+            _mockUserContext.Object,
+            _mockRepo.Object,
+            mockConfig.Object,
+            NullLogger<ChatController>.Instance,
+            cache,
+            mockCredentialFactory.Object,
+            mockHttpFactory.Object);
+
+        var body = JsonDocument.Parse("{\"url\":\"https://allowed.search.windows.net/indexes/my-index/docs/my-doc?api-version=2024-07-01\",\"source\":\"fallback\"}").RootElement.Clone();
+
+        // Act
+        var result = await controller.FetchAzureSearchContent(body, CancellationToken.None);
+
+        // Assert
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value);
+        Assert.Contains("HTTP 404", json);
+    }
+
+    private sealed class StaticTokenCredential : TokenCredential
+    {
+        public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
+            => new("test-token", DateTimeOffset.UtcNow.AddMinutes(30));
+
+        public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
+            => ValueTask.FromResult(new AccessToken("test-token", DateTimeOffset.UtcNow.AddMinutes(30)));
+    }
+
+    private sealed class StubHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
+
+        public StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)
+        {
+            _handler = handler;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(_handler(request));
     }
 
     #endregion
