@@ -1,7 +1,6 @@
 using CsApi.Auth;
 using CsApi.Interfaces;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
 using Moq;
 using System.Text;
 using Xunit;
