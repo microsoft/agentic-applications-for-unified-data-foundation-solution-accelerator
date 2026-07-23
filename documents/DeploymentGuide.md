@@ -425,7 +425,7 @@ To help you get started, here are some **Sample Questions** you can ask in the a
 
 **Retail (Default) scenario pack:**
 - Show total revenue by year for last 5 years as a line chart.
-- Show top 10 products by Revenue in the last year in a table.
+- Show top 10 products by Revenue in the last 5 years in a table.
 - Show as a donut chart.
 
 **Insurance scenario pack:**
