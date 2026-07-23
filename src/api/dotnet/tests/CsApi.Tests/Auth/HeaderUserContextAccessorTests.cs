@@ -2,7 +2,6 @@ using CsApi.Auth;
 using CsApi.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
-using Microsoft.Extensions.Logging;
 using Moq;
 using System.Text;
 using Xunit;
@@ -12,14 +11,12 @@ namespace CsApi.Tests.Auth;
 public class HeaderUserContextAccessorTests
 {
     private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
-    private readonly Mock<ILogger<HeaderUserContextAccessor>> _mockLogger;
     private readonly HeaderUserContextAccessor _accessor;
 
     public HeaderUserContextAccessorTests()
     {
         _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        _mockLogger = new Mock<ILogger<HeaderUserContextAccessor>>();
-        _accessor = new HeaderUserContextAccessor(_mockHttpContextAccessor.Object, _mockLogger.Object);
+        _accessor = new HeaderUserContextAccessor(_mockHttpContextAccessor.Object);
     }
 
     [Fact]
