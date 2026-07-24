@@ -161,6 +161,46 @@ public class ChatControllerTests
 
     #endregion
 
+    #region Chat Endpoint Guard Tests
+
+    [Fact]
+    public async Task Chat_EmptyQuery_WritesValidationError()
+    {
+        var request = new ChatRequest
+        {
+            Query = "",
+            ConversationId = "conv-1"
+        };
+
+        await _controller.Chat(request, Mock.Of<IAgentFrameworkService>(), CancellationToken.None);
+
+        _controller.HttpContext.Response.Body.Position = 0;
+        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
+        var output = await reader.ReadToEndAsync();
+
+        Assert.Contains("query is required", output, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Chat_EmptyConversationId_WritesValidationError()
+    {
+        var request = new ChatRequest
+        {
+            Query = "hello",
+            ConversationId = ""
+        };
+
+        await _controller.Chat(request, Mock.Of<IAgentFrameworkService>(), CancellationToken.None);
+
+        _controller.HttpContext.Response.Body.Position = 0;
+        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
+        var output = await reader.ReadToEndAsync();
+
+        Assert.Contains("Conversation ID is required", output, StringComparison.OrdinalIgnoreCase);
+    }
+
+    #endregion
+
     #region DisplayChartDefault Tests
 
     [Fact]
