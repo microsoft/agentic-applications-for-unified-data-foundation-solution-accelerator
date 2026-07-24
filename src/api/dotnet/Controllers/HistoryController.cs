@@ -111,7 +111,7 @@ public class HistoryController : ControllerBase
         catch (OperationCanceledException)
         {
             _logger.LogInformation("Request cancelled in /history/read");
-            return StatusCode(499);
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
         }
         catch (CosmosException ex)
         {

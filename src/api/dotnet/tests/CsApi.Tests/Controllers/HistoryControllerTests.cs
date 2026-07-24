@@ -116,8 +116,8 @@ public class HistoryControllerTests
 
         var result = await _controller.Read("conv1");
 
-        var statusResult = Assert.IsType<StatusCodeResult>(result);
-        Assert.Equal(499, statusResult.StatusCode);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(499, objectResult.StatusCode);
     }
 
     [Fact]

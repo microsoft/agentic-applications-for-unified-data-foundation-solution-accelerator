@@ -405,7 +405,7 @@ public class ChatControllerTests
     }
 
     [Fact]
-    public async Task FetchAzureSearchContent_DownstreamFailure_ReturnsOkWithError()
+    public async Task FetchAzureSearchContent_DownstreamFailure_ReturnsUpstreamStatusWithError()
     {
         // Arrange
         var mockConfig = new Mock<IConfiguration>();
@@ -448,8 +448,9 @@ public class ChatControllerTests
         var result = await controller.FetchAzureSearchContent(body, CancellationToken.None);
 
         // Assert
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var json = JsonSerializer.Serialize(ok.Value);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, objectResult.StatusCode);
+        var json = JsonSerializer.Serialize(objectResult.Value);
         Assert.Contains("HTTP 404", json);
     }
 

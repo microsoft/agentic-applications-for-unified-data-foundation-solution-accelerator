@@ -80,7 +80,7 @@ function sanitizeJSONString(jsonString: string): string {
       sanitized = sanitized.slice(1, -1);
     }
     
-    // **STEP 3: ALWAYS unescape backslashes**
+    // **STEP 3: Unescape common escape sequences**
     sanitized = sanitized.replace(/\\"/g, '"');
     sanitized = sanitized.replace(/\\n/g, '\n');
     sanitized = sanitized.replace(/\\r/g, '\r');

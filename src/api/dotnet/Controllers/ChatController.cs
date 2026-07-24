@@ -506,7 +506,7 @@ public class ChatController : ControllerBase
 
             var errorBody = await response.Content.ReadAsStringAsync(ct);
             _logger.LogWarning("Azure Search fetch failed: status={Status}, body={Body}", (int)response.StatusCode, errorBody[..Math.Min(500, errorBody.Length)]);
-            return Ok(new { error = $"HTTP {(int)response.StatusCode}" });
+            return StatusCode((int)response.StatusCode, new { error = $"HTTP {(int)response.StatusCode}" });
         }
         catch (OperationCanceledException)
         {
