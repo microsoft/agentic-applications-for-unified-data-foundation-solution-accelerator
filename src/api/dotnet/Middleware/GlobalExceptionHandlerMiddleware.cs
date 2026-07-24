@@ -35,9 +35,10 @@ public class GlobalExceptionHandlerMiddleware
             // Client disconnected - don't log as error, don't try to write response
             context.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
         }
-        catch (OperationCanceledException ex)
+        catch (OperationCanceledException)
         {
-            await HandleExceptionAsync(context, ex);
+            // Non-client cancellation still maps to 499 for consistent cancellation semantics.
+            context.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
         }
         catch (ArgumentException ex)
         {
@@ -184,10 +185,10 @@ public class GlobalExceptionHandlerMiddleware
                 (StatusCodes.Status502BadGateway, "Bad Gateway", "External service error."),
 
             TaskCanceledException =>
-                (StatusCodes.Status408RequestTimeout, "Request Timeout", "The operation was cancelled due to timeout."),
+                (StatusCodes.Status499ClientClosedRequest, "Client Closed Request", "The operation was cancelled."),
 
             OperationCanceledException =>
-                (StatusCodes.Status408RequestTimeout, "Request Timeout", "The operation was cancelled."),
+                (StatusCodes.Status499ClientClosedRequest, "Client Closed Request", "The operation was cancelled."),
 
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred.")
         };
