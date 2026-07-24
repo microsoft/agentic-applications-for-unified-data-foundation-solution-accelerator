@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Azure;
 using System.Text.Json;
 
 namespace CsApi.Middleware;
@@ -34,7 +35,55 @@ public class GlobalExceptionHandlerMiddleware
             // Client disconnected - don't log as error, don't try to write response
             context.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (ArgumentException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (DirectoryServiceException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (FileNotFoundException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (NotImplementedException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (TimeoutException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (RequestFailedException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (IOException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (JsonException ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+        catch (Exception ex)
         {
             await HandleExceptionAsync(context, ex);
         }
@@ -47,7 +96,7 @@ public class GlobalExceptionHandlerMiddleware
         var safeQueryString = SanitizeForLog(context.Request.QueryString.Value);
 
         // Log the exception with full details
-        _logger.LogError(exception, 
+        _logger.LogError(exception,
             "Unhandled exception occurred. Request: {Method} {Path} {QueryString}",
             safeMethod,
             safePath,
@@ -71,7 +120,7 @@ public class GlobalExceptionHandlerMiddleware
         {
             problemDetails.Extensions["exception"] = exception.GetType().Name;
             problemDetails.Extensions["stackTrace"] = exception.StackTrace;
-            
+
             // Include inner exception details if present
             if (exception.InnerException != null)
             {
@@ -103,36 +152,36 @@ public class GlobalExceptionHandlerMiddleware
     {
         return exception switch
         {
-            ArgumentException or ArgumentNullException => 
+            ArgumentException or ArgumentNullException =>
                 (StatusCodes.Status400BadRequest, "Bad Request", "Invalid request parameters."),
-            
-            UnauthorizedAccessException => 
+
+            UnauthorizedAccessException =>
                 (StatusCodes.Status401Unauthorized, "Unauthorized", "Authentication required."),
-            
-            DirectoryServiceException => 
+
+            DirectoryServiceException =>
                 (StatusCodes.Status403Forbidden, "Forbidden", "Access denied."),
-            
-            FileNotFoundException or DirectoryNotFoundException => 
+
+            FileNotFoundException or DirectoryNotFoundException =>
                 (StatusCodes.Status404NotFound, "Not Found", "The requested resource was not found."),
-            
-            InvalidOperationException => 
+
+            InvalidOperationException =>
                 (StatusCodes.Status409Conflict, "Conflict", "The operation conflicts with the current state."),
-            
-            NotImplementedException => 
+
+            NotImplementedException =>
                 (StatusCodes.Status501NotImplemented, "Not Implemented", "This functionality is not implemented."),
-            
-            TimeoutException => 
+
+            TimeoutException =>
                 (StatusCodes.Status408RequestTimeout, "Request Timeout", "The request timed out."),
-            
-            HttpRequestException httpEx when httpEx.Message.Contains("timeout") => 
+
+            HttpRequestException httpEx when httpEx.Message.Contains("timeout") =>
                 (StatusCodes.Status408RequestTimeout, "Request Timeout", "External service request timed out."),
-            
-            HttpRequestException _ => 
+
+            HttpRequestException _ =>
                 (StatusCodes.Status502BadGateway, "Bad Gateway", "External service error."),
-            
-            TaskCanceledException => 
+
+            TaskCanceledException =>
                 (StatusCodes.Status408RequestTimeout, "Request Timeout", "The operation was cancelled due to timeout."),
-            
+
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred.")
         };
     }

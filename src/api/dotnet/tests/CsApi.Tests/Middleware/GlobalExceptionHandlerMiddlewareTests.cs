@@ -330,7 +330,7 @@ public class GlobalExceptionHandlerMiddlewareTests
         memoryStream.Position = 0;
         using var reader = new StreamReader(memoryStream);
         var responseBody = await reader.ReadToEndAsync();
-        
+
         // Should be valid JSON
         using var jsonDoc = JsonDocument.Parse(responseBody);
         Assert.NotNull(jsonDoc);
@@ -420,7 +420,7 @@ public class DirectoryServiceExceptionTests
     {
         // Arrange
         var innerException = new Exception("Inner");
-        
+
         // Act
         var exception = new DirectoryServiceException("Outer message", innerException);
 

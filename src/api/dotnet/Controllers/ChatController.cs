@@ -42,8 +42,8 @@ public class ChatController : ControllerBase
         ExpCache<string, string> conversationCache,
         IAzureCredentialFactory credentialFactory,
         IHttpClientFactory httpClientFactory)
-    { 
-        _userContextAccessor = userContextAccessor; 
+    {
+        _userContextAccessor = userContextAccessor;
         _sqlRepo = sqlRepo;
         _configuration = configuration;
         _logger = logger;
@@ -61,7 +61,7 @@ public class ChatController : ControllerBase
     public async Task Chat([FromBody] ChatRequest request, [FromServices] IAgentFrameworkService agentService, CancellationToken ct)
     {
         Response.ContentType = "application/json-lines";
-        
+
         if (string.IsNullOrWhiteSpace(request.Query))
         {
             await WriteDeltaAsync("assistant", string.Empty, ct);
@@ -75,9 +75,7 @@ public class ChatController : ControllerBase
             await WriteErrorAsync("Conversation ID is required", ct);
             return;
         }
-        
-        var user = _userContextAccessor.GetCurrentUser();
-        var userId = user.UserPrincipalId;
+
         var convId = request.ConversationId;
 
         // Sanitize user input to prevent log forging attacks
@@ -214,9 +212,51 @@ public class ChatController : ControllerBase
             _logger.LogError(ex, "IO error in chat streaming");
             await WriteErrorAsync(ex.Message, ct);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "JSON parsing error in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Invalid operation in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (UriFormatException ex)
+        {
+            _logger.LogError(ex, "Invalid URI in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (ArgumentException ex)
         {
             _logger.LogError(ex, "Unexpected error in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (NotSupportedException ex)
+        {
+            _logger.LogError(ex, "Unsupported operation in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogError(ex, "Missing key while processing chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogError(ex, "Formatting error in chat streaming");
             HandleCorruptConversation(convId);
             await WriteErrorAsync("An error occurred while processing the request.", ct);
         }
@@ -482,9 +522,39 @@ public class ChatController : ControllerBase
             _logger.LogError(ex, "HTTP error in fetch-azure-search-content");
             return StatusCode(502, new { error = "Upstream service request failed" });
         }
-        catch (Exception ex)
+        catch (RequestFailedException ex)
+        {
+            _logger.LogError(ex, "Azure request failed in fetch-azure-search-content");
+            return StatusCode(502, new { error = "Upstream service request failed" });
+        }
+        catch (UriFormatException ex)
+        {
+            _logger.LogError(ex, "Invalid endpoint URI in fetch-azure-search-content");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Invalid operation in fetch-azure-search-content");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+        catch (ArgumentException ex)
         {
             _logger.LogError(ex, "Error in fetch-azure-search-content");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+        catch (NotSupportedException ex)
+        {
+            _logger.LogError(ex, "Unsupported operation in fetch-azure-search-content");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogError(ex, "Missing key in fetch-azure-search-content");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogError(ex, "Formatting error in fetch-azure-search-content");
             return StatusCode(500, new { error = "Internal server error" });
         }
     }

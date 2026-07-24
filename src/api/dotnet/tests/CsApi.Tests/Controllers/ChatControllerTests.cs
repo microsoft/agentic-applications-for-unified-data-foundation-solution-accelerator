@@ -327,12 +327,12 @@ public class ChatControllerTests
             .Setup(f => f.Create(It.IsAny<string?>(), It.IsAny<string?>()))
             .Returns(new StaticTokenCredential());
 
-        var handler = new StubHttpMessageHandler(_ =>
+        using var handler = new StubHttpMessageHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("{\"content\":\"doc body\",\"source\":\"doc-source\"}")
             });
-        var httpClient = new HttpClient(handler);
+        using var httpClient = new HttpClient(handler);
         var mockHttpFactory = new Mock<IHttpClientFactory>();
         mockHttpFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
 
@@ -377,12 +377,12 @@ public class ChatControllerTests
             .Setup(f => f.Create(It.IsAny<string?>(), It.IsAny<string?>()))
             .Returns(new StaticTokenCredential());
 
-        var handler = new StubHttpMessageHandler(_ =>
+        using var handler = new StubHttpMessageHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.NotFound)
             {
                 Content = new StringContent("not found")
             });
-        var httpClient = new HttpClient(handler);
+        using var httpClient = new HttpClient(handler);
         var mockHttpFactory = new Mock<IHttpClientFactory>();
         mockHttpFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
 

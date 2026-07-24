@@ -204,7 +204,7 @@ public class AzureCredentialFactoryTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["APP_ENV"]).Returns("prod");
-        
+
         // Act
         IAzureCredentialFactory factory = new AzureCredentialFactory(_mockConfiguration.Object);
 

@@ -26,14 +26,14 @@ namespace CsApi.Services
         public string ChatAgentName => _chatAgentName;
 
         public AgentFrameworkService(
-            IConfiguration config, 
+            IConfiguration config,
                 ILogger<AgentFrameworkService> logger,
                 IUserContextAccessor userContextAccessor,
                 IAzureCredentialFactory credentialFactory)
         {
             _logger = logger;
 
-            var endpoint = config["AZURE_AI_AGENT_ENDPOINT"] 
+            var endpoint = config["AZURE_AI_AGENT_ENDPOINT"]
                 ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is required");
 
             _chatAgentName = config["AGENT_NAME_CHAT"]

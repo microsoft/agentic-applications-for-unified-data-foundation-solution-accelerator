@@ -44,7 +44,12 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
             await _container.ReadContainerAsync();
             return true;
         }
-        catch (Exception ex)
+        catch (CosmosException ex)
+        {
+            _logger.LogError(ex, "CosmosDB container not accessible");
+            return false;
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "CosmosDB container not accessible");
             return false;
@@ -257,7 +262,13 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
             await DeleteMessagesAsync(userId, conversationId, ct);
             return true;
         }
-        catch (Exception ex)
+        catch (CosmosException ex)
+        {
+            var safeConversationId = (conversationId ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
+            _logger.LogError(ex, "Failed to clear messages for conversation {Id}", safeConversationId);
+            return false;
+        }
+        catch (InvalidOperationException ex)
         {
             var safeConversationId = (conversationId ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
             _logger.LogError(ex, "Failed to clear messages for conversation {Id}", safeConversationId);
@@ -347,7 +358,15 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
                 UpdatedAt = updatedAt
             };
         }
-        catch
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+        catch (KeyNotFoundException)
+        {
+            return null;
+        }
+        catch (FormatException)
         {
             return null;
         }
@@ -396,7 +415,19 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
 
             return msg;
         }
-        catch
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+        catch (KeyNotFoundException)
+        {
+            return null;
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+        catch (ArgumentException)
         {
             return null;
         }

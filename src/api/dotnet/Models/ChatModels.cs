@@ -13,17 +13,17 @@ public class ChatMessage
 {
     [JsonPropertyName("id")] public string Id { get; set; } = Guid.NewGuid().ToString();
     [JsonPropertyName("role")] public string Role { get; set; } = "user";
-    
+
     // Content can be either string or structured JSON (like chart data) - matches Python flexibility
     [JsonPropertyName("content")] public JsonElement Content { get; set; } = JsonSerializer.SerializeToElement(string.Empty);
-    
+
     // Citations can be any JSON structure (array, object, etc.) - matches Python flexibility
     [JsonPropertyName("citations")] public JsonElement? Citations { get; set; }
-    
+
     [JsonPropertyName("feedback")] public string Feedback { get; set; } = string.Empty;
-    
+
     [JsonIgnore] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    
+
     // Helper method to get content as string
     public string GetContentAsString()
     {
@@ -33,12 +33,20 @@ public class ChatMessage
                 ? Content.GetString() ?? string.Empty
                 : Content.GetRawText();
         }
-        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
+        catch (JsonException)
+        {
+            return string.Empty;
+        }
+        catch (InvalidOperationException)
+        {
+            return string.Empty;
+        }
+        catch (NotSupportedException)
         {
             return string.Empty;
         }
     }
-    
+
     // Helper method to set content from string
     public void SetContentFromString(string content)
     {
@@ -47,13 +55,23 @@ public class ChatMessage
             // First try to parse as JSON to preserve structure
             Content = JsonSerializer.Deserialize<JsonElement>(content);
         }
-        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
+        catch (JsonException)
+        {
+            // If not JSON, store as string
+            Content = JsonSerializer.SerializeToElement(content);
+        }
+        catch (InvalidOperationException)
+        {
+            // If not JSON, store as string
+            Content = JsonSerializer.SerializeToElement(content);
+        }
+        catch (NotSupportedException)
         {
             // If not JSON, store as string
             Content = JsonSerializer.SerializeToElement(content);
         }
     }
-    
+
     // Helper method to get content as JSON string for database storage
     public string GetContentAsJsonString()
     {
@@ -63,18 +81,26 @@ public class ChatMessage
                 ? JsonSerializer.Serialize(Content.GetString() ?? string.Empty)
                 : Content.GetRawText();
         }
-        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
+        catch (JsonException)
+        {
+            return JsonSerializer.Serialize(string.Empty);
+        }
+        catch (InvalidOperationException)
+        {
+            return JsonSerializer.Serialize(string.Empty);
+        }
+        catch (NotSupportedException)
         {
             return JsonSerializer.Serialize(string.Empty);
         }
     }
-    
+
     // Helper method to get citations as a list of strings (for backward compatibility)
     public List<string> GetCitationsAsStringList()
     {
         if (Citations == null || Citations.Value.ValueKind == JsonValueKind.Null)
             return new List<string>();
-            
+
         try
         {
             if (Citations.Value.ValueKind == JsonValueKind.Array)
@@ -95,23 +121,39 @@ public class ChatMessage
                 return new List<string> { Citations.Value.GetRawText() };
             }
         }
-        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
+        catch (JsonException)
+        {
+            return new List<string>();
+        }
+        catch (InvalidOperationException)
+        {
+            return new List<string>();
+        }
+        catch (NotSupportedException)
         {
             return new List<string>();
         }
     }
-    
+
     // Helper method to get citations as JSON string for database storage
     public string GetCitationsAsJsonString()
     {
         if (Citations == null || Citations.Value.ValueKind == JsonValueKind.Null)
             return "";
-            
+
         try
         {
             return Citations.Value.GetRawText();
         }
-        catch (Exception ex) when (ex is JsonException or InvalidOperationException or NotSupportedException)
+        catch (JsonException)
+        {
+            return "";
+        }
+        catch (InvalidOperationException)
+        {
+            return "";
+        }
+        catch (NotSupportedException)
         {
             return "";
         }
