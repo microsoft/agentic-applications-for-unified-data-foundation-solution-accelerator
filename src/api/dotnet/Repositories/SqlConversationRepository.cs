@@ -115,8 +115,10 @@ public class SqlConversationRepository : ISqlConversationRepository
         var id = conversationId ?? Guid.NewGuid().ToString();
         using var conn = await CreateConnectionAsync();
         
-        _logger.LogInformation("EnsureConversationAsync - Input: hasUserContext={HasUserContext}, conversationId={ConversationId}, generatedId={GeneratedId}",
-            !string.IsNullOrEmpty(userId), conversationId ?? "NULL", id);
+        _logger.LogInformation(
+            "EnsureConversationAsync - Input: hasUserContext={HasUserContext}, hasProvidedConversationId={HasProvidedConversationId}",
+            !string.IsNullOrEmpty(userId),
+            !string.IsNullOrEmpty(conversationId));
         
         // Check if conversation exists
         const string existsSql = "SELECT userId FROM hst_conversations WHERE conversation_id=?";
@@ -132,7 +134,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         }
         
         // Conversation doesn't exist, create it
-        _logger.LogInformation("EnsureConversationAsync - Creating NEW conversation with id={ConversationId}", id);
+        _logger.LogInformation("EnsureConversationAsync - Creating new conversation");
         const string insertSql = "INSERT INTO hst_conversations (userId, conversation_id, title, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)";
         var now = DateTime.UtcNow.ToString("o");
         using (var cmd = new OdbcCommand(insertSql, (OdbcConnection)conn))

@@ -11,6 +11,10 @@ public interface IAzureCredentialFactory
 public class AzureCredentialFactory : IAzureCredentialFactory
 {
     private readonly IConfiguration _configuration;
+    private static readonly TokenCredential DeveloperCredential = new ChainedTokenCredential(
+        new AzureDeveloperCliCredential(),
+        new AzureCliCredential(),
+        new VisualStudioCredential());
 
     public AzureCredentialFactory(IConfiguration configuration)
     {
@@ -42,11 +46,7 @@ public class AzureCredentialFactory : IAzureCredentialFactory
         var appEnv = _configuration["APP_ENV"]?.ToLowerInvariant() ?? "prod";
         if (appEnv == "dev")
         {
-            if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(DefaultAzureCredential.DefaultEnvironmentVariableName)))
-            {
-                Environment.SetEnvironmentVariable(DefaultAzureCredential.DefaultEnvironmentVariableName, "dev");
-            }
-            return new DefaultAzureCredential(DefaultAzureCredential.DefaultEnvironmentVariableName);
+            return DeveloperCredential;
         }
         return string.IsNullOrWhiteSpace(clientId)
             ? new ManagedIdentityCredential(new ManagedIdentityCredentialOptions())
