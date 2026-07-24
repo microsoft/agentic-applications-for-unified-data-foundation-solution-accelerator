@@ -210,7 +210,7 @@ public class ChatController : ControllerBase
         catch (IOException ex)
         {
             _logger.LogError(ex, "IO error in chat streaming");
-            await WriteErrorAsync(ex.Message, ct);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
         }
         catch (JsonException ex)
         {
