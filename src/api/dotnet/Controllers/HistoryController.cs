@@ -55,6 +55,11 @@ public class HistoryController : ControllerBase
             // Python returns empty list (200) when no conversations — never 404
             return Ok(conversations ?? new List<ConversationSummary>());
         }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/list");
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception in /history/list");
@@ -94,6 +99,11 @@ public class HistoryController : ControllerBase
             }).ToList();
 
             return Ok(new { conversation_id = id, messages = formattedMessages });
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/read");
+            return StatusCode(499);
         }
         catch (Exception ex)
         {
@@ -141,6 +151,11 @@ public class HistoryController : ControllerBase
             await _cosmosRepo.CreateMessageAsync(userId, conversationId, userMsg, ct);
 
             return Ok(true);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/generate");
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
         }
         catch (Exception ex)
         {

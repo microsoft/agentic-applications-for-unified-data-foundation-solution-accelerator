@@ -42,10 +42,14 @@ public class AzureCredentialFactory : IAzureCredentialFactory
         var appEnv = _configuration["APP_ENV"]?.ToLowerInvariant() ?? "prod";
         if (appEnv == "dev")
         {
-            return new DefaultAzureCredential(); // CodeQL [SM05137] Okay use of DefaultAzureCredential as it is only used in development
+            if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(DefaultAzureCredential.DefaultEnvironmentVariableName)))
+            {
+                Environment.SetEnvironmentVariable(DefaultAzureCredential.DefaultEnvironmentVariableName, "dev");
+            }
+            return new DefaultAzureCredential(DefaultAzureCredential.DefaultEnvironmentVariableName);
         }
         return string.IsNullOrWhiteSpace(clientId)
-            ? new ManagedIdentityCredential()
-            : new ManagedIdentityCredential(clientId);
+            ? new ManagedIdentityCredential(new ManagedIdentityCredentialOptions())
+            : new ManagedIdentityCredential(ManagedIdentityId.FromUserAssignedClientId(clientId));
     }
 }

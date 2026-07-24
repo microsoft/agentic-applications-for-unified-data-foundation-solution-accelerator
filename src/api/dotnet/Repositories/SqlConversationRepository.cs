@@ -115,8 +115,8 @@ public class SqlConversationRepository : ISqlConversationRepository
         var id = conversationId ?? Guid.NewGuid().ToString();
         using var conn = await CreateConnectionAsync();
         
-        _logger.LogInformation("EnsureConversationAsync - Input: userId={UserId}, conversationId={ConversationId}, generatedId={GeneratedId}", 
-            userId ?? "NULL", conversationId ?? "NULL", id);
+        _logger.LogInformation("EnsureConversationAsync - Input: hasUserContext={HasUserContext}, conversationId={ConversationId}, generatedId={GeneratedId}",
+            !string.IsNullOrEmpty(userId), conversationId ?? "NULL", id);
         
         // Check if conversation exists
         const string existsSql = "SELECT userId FROM hst_conversations WHERE conversation_id=?";
@@ -239,12 +239,12 @@ public class SqlConversationRepository : ISqlConversationRepository
     public async Task<IReadOnlyList<ConversationSummary>> ListAsync(string? userId, int offset, int limit, string sortOrder, CancellationToken ct)
     {
         var list = new List<ConversationSummary>();
+        bool filterByUser = !string.IsNullOrEmpty(userId);
         try
         {
             var order = sortOrder.Equals("asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
             using var conn = await CreateConnectionAsync();
             string sql;
-            bool filterByUser = !string.IsNullOrEmpty(userId);
             // REDUNDANT: Detailed user listing logging
             // Console.WriteLine($"Listing conversations for user '{userId}' (filterByUser={filterByUser})");
             sql = filterByUser
@@ -287,15 +287,15 @@ public class SqlConversationRepository : ISqlConversationRepository
         }
         catch (OdbcException ex)
         {
-            _logger.LogError(ex, "SQL error listing conversations for user {UserId}", userId);
+            _logger.LogError(ex, "SQL error listing conversations (hasUserContext={HasUserContext})", filterByUser);
         }
         catch (DbException ex)
         {
-            _logger.LogError(ex, "Database error listing conversations for user {UserId}", userId);
+            _logger.LogError(ex, "Database error listing conversations (hasUserContext={HasUserContext})", filterByUser);
         }
         catch (TimeoutException ex)
         {
-            _logger.LogWarning(ex, "Timeout listing conversations for user {UserId}", userId);
+            _logger.LogWarning(ex, "Timeout listing conversations (hasUserContext={HasUserContext})", filterByUser);
         }
         catch (OperationCanceledException)
         {
@@ -303,7 +303,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         }
         catch (Exception ex) when (ex is not OperationCanceledException && ex is not OdbcException && ex is not DbException && ex is not TimeoutException)
         {
-            _logger.LogError(ex, "Unexpected error listing conversations for user {UserId}", userId);
+            _logger.LogError(ex, "Unexpected error listing conversations (hasUserContext={HasUserContext})", filterByUser);
             throw;
         }
         return list;

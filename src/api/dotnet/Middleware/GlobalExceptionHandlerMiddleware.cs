@@ -42,12 +42,16 @@ public class GlobalExceptionHandlerMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        var safeMethod = SanitizeForLog(context.Request.Method);
+        var safePath = SanitizeForLog(context.Request.Path.Value);
+        var safeQueryString = SanitizeForLog(context.Request.QueryString.Value);
+
         // Log the exception with full details
         _logger.LogError(exception, 
             "Unhandled exception occurred. Request: {Method} {Path} {QueryString}",
-            context.Request.Method,
-            context.Request.Path,
-            context.Request.QueryString);
+            safeMethod,
+            safePath,
+            safeQueryString);
 
         // Determine the appropriate status code and error details
         var (statusCode, title, detail) = GetErrorDetails(exception);
@@ -131,6 +135,11 @@ public class GlobalExceptionHandlerMiddleware
             
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error", "An unexpected error occurred.")
         };
+    }
+
+    private static string SanitizeForLog(string? value)
+    {
+        return (value ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
     }
 }
 

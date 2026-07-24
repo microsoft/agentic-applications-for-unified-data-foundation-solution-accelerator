@@ -80,7 +80,8 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
         }
         catch (CosmosException ex)
         {
-            _logger.LogError(ex, "Failed to create conversation {Id}", id);
+            var safeId = (id ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
+            _logger.LogError(ex, "Failed to create conversation {Id}", safeId);
             return null;
         }
     }
@@ -258,7 +259,8 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to clear messages for conversation {Id}", conversationId);
+            var safeConversationId = (conversationId ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
+            _logger.LogError(ex, "Failed to clear messages for conversation {Id}", safeConversationId);
             return false;
         }
     }
@@ -296,7 +298,8 @@ public class CosmosConversationRepository : IConversationRepository, IAsyncDispo
         }
         catch (CosmosException ex)
         {
-            _logger.LogWarning(ex, "Failed to update conversation timestamp for {Id}", conversationId);
+            var safeConversationId = (conversationId ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
+            _logger.LogWarning(ex, "Failed to update conversation timestamp for {Id}", safeConversationId);
         }
     }
 

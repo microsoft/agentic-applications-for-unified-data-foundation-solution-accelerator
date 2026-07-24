@@ -104,7 +104,7 @@ public class ChatController : ControllerBase
                 serverConvId = convSession.ConversationId;
                 if (string.IsNullOrEmpty(serverConvId))
                 {
-                    _logger.LogError("Failed to create server-side conversation for {ConversationId}", convId);
+                    _logger.LogError("Failed to create server-side conversation for {ConversationId}", sanitizedConvId);
                     await WriteErrorAsync("Failed to create conversation session", ct);
                     return;
                 }
@@ -187,7 +187,7 @@ public class ChatController : ControllerBase
             _conversationCache.Set(convId, serverConvId);
 
             _logger.LogInformation("Streaming complete for conversation {ConversationId}: response_length={ResponseLength}, mcp_doc_count={McpDocCount}",
-                convId, completeResponseBuilder.Length, mcpDocs.Count);
+                sanitizedConvId, completeResponseBuilder.Length, mcpDocs.Count);
 
             // Build and emit citations as a tool message
             var citationList = BuildCitationList(originalMarkers, mcpDocs);
@@ -268,20 +268,17 @@ public class ChatController : ControllerBase
         {
             // MCP results have an "Outputs" property containing items with "Text"
             var outputsProp = content.GetType().GetProperty("Outputs");
-            if (outputsProp != null)
+            if (outputsProp != null && outputsProp.GetValue(content) is System.Collections.IEnumerable outputs)
             {
-                if (outputsProp.GetValue(content) is System.Collections.IEnumerable outputs)
+                foreach (var output in outputs)
                 {
-                    foreach (var output in outputs)
+                    var textProp = output.GetType().GetProperty("Text");
+                    if (textProp != null)
                     {
-                        var textProp = output.GetType().GetProperty("Text");
-                        if (textProp != null)
+                        var text = textProp.GetValue(output) as string;
+                        if (!string.IsNullOrEmpty(text))
                         {
-                            var text = textProp.GetValue(output) as string;
-                            if (!string.IsNullOrEmpty(text))
-                            {
-                                ParseMcpDocs(text, mcpDocs);
-                            }
+                            ParseMcpDocs(text, mcpDocs);
                         }
                     }
                 }
@@ -470,6 +467,20 @@ public class ChatController : ControllerBase
             var errorBody = await response.Content.ReadAsStringAsync(ct);
             _logger.LogWarning("Azure Search fetch failed: status={Status}, body={Body}", (int)response.StatusCode, errorBody[..Math.Min(500, errorBody.Length)]);
             return Ok(new { error = $"HTTP {(int)response.StatusCode}" });
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499, new { error = "Request cancelled" });
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON while processing fetch-azure-search-content request");
+            return BadRequest(new { error = "Invalid request payload" });
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error in fetch-azure-search-content");
+            return StatusCode(502, new { error = "Upstream service request failed" });
         }
         catch (Exception ex)
         {
