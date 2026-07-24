@@ -260,6 +260,12 @@ public class ChatController : ControllerBase
             HandleCorruptConversation(convId);
             await WriteErrorAsync("An error occurred while processing the request.", ct);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
     }
 
     /// <summary>

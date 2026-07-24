@@ -190,6 +190,10 @@ namespace CsApi.Utils
                 {
                     _logger.LogError(ex, "ExpCache: Formatting error while deleting conversation");
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "ExpCache: Unexpected error while deleting conversation");
+                }
             }
         }
 

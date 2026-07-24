@@ -192,7 +192,7 @@ public class GlobalExceptionHandlerMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_TaskCanceledException_Returns499()
+    public async Task InvokeAsync_TaskCanceledException_Returns408()
     {
         // Arrange
         RequestDelegate next = context => throw new TaskCanceledException();
@@ -204,17 +204,37 @@ public class GlobalExceptionHandlerMiddlewareTests
         await middleware.InvokeAsync(httpContext);
 
         // Assert
-        Assert.Equal(499, httpContext.Response.StatusCode);
+        Assert.Equal(408, httpContext.Response.StatusCode);
     }
 
     [Fact]
-    public async Task InvokeAsync_OperationCanceledException_Returns499()
+    public async Task InvokeAsync_OperationCanceledException_Returns408()
     {
         // Arrange
         RequestDelegate next = context => throw new OperationCanceledException();
         var middleware = CreateMiddleware(next);
         var httpContext = new DefaultHttpContext();
         httpContext.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(httpContext);
+
+        // Assert
+        Assert.Equal(408, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_OperationCanceledExceptionWithClientAbort_Returns499()
+    {
+        // Arrange
+        RequestDelegate next = context => throw new OperationCanceledException();
+        var middleware = CreateMiddleware(next);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Response.Body = new MemoryStream();
+
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+        httpContext.RequestAborted = cts.Token;
 
         // Act
         await middleware.InvokeAsync(httpContext);
@@ -302,6 +322,22 @@ public class GlobalExceptionHandlerMiddlewareTests
     {
         // Arrange
         RequestDelegate next = context => throw new HttpRequestException("Request timeout occurred");
+        var middleware = CreateMiddleware(next);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(httpContext);
+
+        // Assert
+        Assert.Equal(408, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_HttpRequestExceptionWithUppercaseTimeout_Returns408()
+    {
+        // Arrange
+        RequestDelegate next = context => throw new HttpRequestException("Request Timeout occurred");
         var middleware = CreateMiddleware(next);
         var httpContext = new DefaultHttpContext();
         httpContext.Response.Body = new MemoryStream();
