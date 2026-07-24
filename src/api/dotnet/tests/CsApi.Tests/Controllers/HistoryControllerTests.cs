@@ -94,6 +94,88 @@ public class HistoryControllerTests
 
     #endregion
 
+    #region Exception Handling Tests
+
+    [Fact]
+    public async Task List_OperationCanceled_Returns499Problem()
+    {
+        _mockRepo.Setup(r => r.GetConversationsAsync("test-user-123", 0, 25, "DESC", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        var result = await _controller.List();
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(499, objectResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task Read_OperationCanceled_Returns499()
+    {
+        _mockRepo.Setup(r => r.GetConversationAsync("test-user-123", "conv1", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        var result = await _controller.Read("conv1");
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(499, objectResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task Generate_OperationCanceled_Returns499Problem()
+    {
+        var userMsg = new ChatMessage { Role = "user" };
+        userMsg.SetContentFromString("Hello test");
+
+        _mockRepo.Setup(r => r.GetConversationAsync("test-user-123", "conv1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConversationSummary { ConversationId = "conv1", Title = "Test" });
+        _mockRepo.Setup(r => r.CreateMessageAsync("test-user-123", "conv1", It.IsAny<ChatMessage>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        var req = new HistoryController.GenerateRequest
+        {
+            ConversationId = "conv1",
+            Messages = new List<ChatMessage> { userMsg }
+        };
+
+        var result = await _controller.Generate(req);
+
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(499, objectResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task Generate_TitleServiceInvalidOperation_UsesFallbackTitle()
+    {
+        var userMsg = new ChatMessage { Role = "user" };
+        userMsg.SetContentFromString("Fallback title generation test");
+
+        _mockTitleService
+            .Setup(t => t.GenerateTitleAsync(It.IsAny<List<ChatMessage>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("title generation failed"));
+
+        _mockRepo.Setup(r => r.CreateConversationAsync("test-user-123", null, "Fallback title generation test", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConversationSummary
+            {
+                ConversationId = "conv-fallback",
+                Title = "Fallback title generation test"
+            });
+
+        _mockRepo.Setup(r => r.CreateMessageAsync("test-user-123", "conv-fallback", It.IsAny<ChatMessage>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var req = new HistoryController.GenerateRequest
+        {
+            Messages = new List<ChatMessage> { userMsg }
+        };
+
+        var result = await _controller.Generate(req);
+
+        Assert.IsType<OkObjectResult>(result);
+        _mockRepo.Verify(r => r.CreateConversationAsync("test-user-123", null, "Fallback title generation test", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    #endregion
+
     #region Read Tests
 
     [Fact]

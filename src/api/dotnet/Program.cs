@@ -22,7 +22,7 @@ builder.Logging.AddFilter("Azure.Core", LogLevel.Warning);
 builder.Logging.AddFilter("OpenTelemetry", LogLevel.Warning);
 
 // CORS - allow all origins (adjust if needed)
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] {"*"};
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] { "*" };
 const string CorsPolicyName = "UiCors";
 
 builder.Services.AddCors(options =>

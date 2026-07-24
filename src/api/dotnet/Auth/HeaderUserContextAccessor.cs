@@ -111,7 +111,15 @@ public class HeaderUserContextAccessor : IUserContextAccessor
             payload = doc.RootElement.Clone();
             return true;
         }
-        catch
+        catch (FormatException)
+        {
+            return false;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+        catch (ArgumentException)
         {
             return false;
         }
