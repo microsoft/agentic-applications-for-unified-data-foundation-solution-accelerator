@@ -60,14 +60,14 @@ namespace CsApi.Utils
         {
             var expiresAt = DateTime.UtcNow.AddSeconds(_ttlSeconds);
             var item = new CacheItem(value, expiresAt);
-            
+
             _cache.AddOrUpdate(key, item, (k, v) => item);
-            
+
             // If we exceed max size, remove oldest items immediately and delete their conversations
             if (_cache.Count > _maxSize)
             {
                 var now = DateTime.UtcNow;
-                
+
                 // First, try to remove expired items
                 foreach (var kvp in _cache.Where(kvp => kvp.Value.ExpiresAt <= now))
                 {
@@ -76,7 +76,7 @@ namespace CsApi.Utils
                         Task.Run(() => DeleteConversationAsync(removedItem.Value));
                     }
                 }
-                
+
                 // If still over max size after removing expired items, remove oldest non-expired items
                 if (_cache.Count > _maxSize)
                 {
@@ -170,9 +170,29 @@ namespace CsApi.Utils
                 {
                     _logger.LogError(ex, "ExpCache: Invalid argument while deleting conversation");
                 }
-                catch (Exception ex) when (ex is not InvalidOperationException && ex is not RequestFailedException && ex is not UriFormatException && ex is not ArgumentException)
+                catch (HttpRequestException ex)
+                {
+                    _logger.LogError(ex, "ExpCache: HTTP error while deleting conversation");
+                }
+                catch (TaskCanceledException ex)
+                {
+                    _logger.LogWarning(ex, "ExpCache: Conversation deletion timed out");
+                }
+                catch (IOException ex)
+                {
+                    _logger.LogError(ex, "ExpCache: IO error while deleting conversation");
+                }
+                catch (NotSupportedException ex)
                 {
                     _logger.LogError(ex, "ExpCache: Unexpected error deleting conversation");
+                }
+                catch (FormatException ex)
+                {
+                    _logger.LogError(ex, "ExpCache: Formatting error while deleting conversation");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "ExpCache: Unexpected error while deleting conversation");
                 }
             }
         }

@@ -224,6 +224,26 @@ public class GlobalExceptionHandlerMiddlewareTests
     }
 
     [Fact]
+    public async Task InvokeAsync_OperationCanceledExceptionWithClientAbort_Returns499()
+    {
+        // Arrange
+        RequestDelegate next = context => throw new OperationCanceledException();
+        var middleware = CreateMiddleware(next);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Response.Body = new MemoryStream();
+
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+        httpContext.RequestAborted = cts.Token;
+
+        // Act
+        await middleware.InvokeAsync(httpContext);
+
+        // Assert
+        Assert.Equal(499, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
     public async Task InvokeAsync_GenericException_Returns500()
     {
         // Arrange
@@ -314,6 +334,22 @@ public class GlobalExceptionHandlerMiddlewareTests
     }
 
     [Fact]
+    public async Task InvokeAsync_HttpRequestExceptionWithUppercaseTimeout_Returns408()
+    {
+        // Arrange
+        RequestDelegate next = context => throw new HttpRequestException("Request Timeout occurred");
+        var middleware = CreateMiddleware(next);
+        var httpContext = new DefaultHttpContext();
+        httpContext.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(httpContext);
+
+        // Assert
+        Assert.Equal(408, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
     public async Task InvokeAsync_ReturnsValidJson()
     {
         // Arrange
@@ -330,7 +366,7 @@ public class GlobalExceptionHandlerMiddlewareTests
         memoryStream.Position = 0;
         using var reader = new StreamReader(memoryStream);
         var responseBody = await reader.ReadToEndAsync();
-        
+
         // Should be valid JSON
         using var jsonDoc = JsonDocument.Parse(responseBody);
         Assert.NotNull(jsonDoc);
@@ -420,7 +456,7 @@ public class DirectoryServiceExceptionTests
     {
         // Arrange
         var innerException = new Exception("Inner");
-        
+
         // Act
         var exception = new DirectoryServiceException("Outer message", innerException);
 

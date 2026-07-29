@@ -11,6 +11,10 @@ public interface IAzureCredentialFactory
 public class AzureCredentialFactory : IAzureCredentialFactory
 {
     private readonly IConfiguration _configuration;
+    private static readonly TokenCredential DeveloperCredential = new ChainedTokenCredential(
+        new AzureDeveloperCliCredential(),
+        new AzureCliCredential(),
+        new VisualStudioCredential());
 
     public AzureCredentialFactory(IConfiguration configuration)
     {
@@ -42,10 +46,10 @@ public class AzureCredentialFactory : IAzureCredentialFactory
         var appEnv = _configuration["APP_ENV"]?.ToLowerInvariant() ?? "prod";
         if (appEnv == "dev")
         {
-            return new DefaultAzureCredential(); // CodeQL [SM05137] Okay use of DefaultAzureCredential as it is only used in development
+            return DeveloperCredential;
         }
         return string.IsNullOrWhiteSpace(clientId)
-            ? new ManagedIdentityCredential()
-            : new ManagedIdentityCredential(clientId);
+            ? new ManagedIdentityCredential(new ManagedIdentityCredentialOptions())
+            : new ManagedIdentityCredential(ManagedIdentityId.FromUserAssignedClientId(clientId));
     }
 }

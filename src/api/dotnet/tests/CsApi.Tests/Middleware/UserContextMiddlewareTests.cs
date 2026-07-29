@@ -46,14 +46,14 @@ public class UserContextMiddlewareTests
     public async Task InvokeAsync_SetsUserContextInItems()
     {
         // Arrange
-        var expectedUser = new UserContext 
-        { 
+        var expectedUser = new UserContext
+        {
             UserPrincipalId = "test-user-123",
-            UserName = "test@example.com" 
+            UserName = "test@example.com"
         };
-        
+
         RequestDelegate next = context => Task.CompletedTask;
-        
+
         _mockUserContextAccessor.Setup(u => u.GetCurrentUser())
             .Returns(expectedUser);
 
@@ -76,7 +76,7 @@ public class UserContextMiddlewareTests
     {
         // Arrange
         RequestDelegate next = context => Task.CompletedTask;
-        
+
         _mockUserContextAccessor.Setup(u => u.GetCurrentUser())
             .Returns(new UserContext());
 
@@ -95,7 +95,7 @@ public class UserContextMiddlewareTests
     {
         // Arrange
         RequestDelegate next = context => throw new Exception("Test exception");
-        
+
         _mockUserContextAccessor.Setup(u => u.GetCurrentUser())
             .Returns(new UserContext());
 
@@ -116,7 +116,7 @@ public class UserContextMiddlewareTests
             nextCalled = true;
             return Task.CompletedTask;
         };
-        
+
         _mockUserContextAccessor.Setup(u => u.GetCurrentUser())
             .Returns((UserContext?)null!);
 
