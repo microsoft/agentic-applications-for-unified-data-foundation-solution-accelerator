@@ -26,7 +26,7 @@ By default this template will use the environment name as the prefix to prevent 
 | `AZURE_ENV_CONTAINER_REGISTRY_NAME`       | string  | `dataagentscontainerreg` | Name of the Azure Container Registry to pull images from.                  |
 | `AZURE_ENV_EXISTING_LOG_ANALYTICS_WORKSPACE_RID` | string | ` `               | Reuses an existing Log Analytics Workspace. Guide: [Existing Workspace ID](re-use-log-analytics.md). |
 | `AZURE_EXISTING_AIPROJECT_RESOURCE_ID`    | string  | ` `                      | Reuses an existing AI Foundry project instead of creating a new one.       |
-| `USE_USER_ACCESS_TOKEN`                   | bool    | `false`                  | Enable On-Behalf-Of (OBO) flow so the API calls downstream services using the signed-in user's token. |
+| `USE_USER_ACCESS_TOKEN`                   | bool    | `true`                  | Enable On-Behalf-Of (OBO) flow so the API calls downstream services using the signed-in user's token. |
 | `DEPLOYING_USER_PRINCIPAL_TYPE`           | string  | `User`                   | Principal type of deployer (allowed: `User`, `ServicePrincipal`).          |
 | `FABRIC_WORKSPACE_ID`                     | string  | ` `                      | Existing Fabric Workspace ID to reuse. If empty, a new workspace is created automatically. |
 | `AZURE_FABRIC_CAPACITY_NAME`             | string  | ` `                      | Name of an existing Fabric capacity to reuse. Empty auto-creates when conditions are met. |

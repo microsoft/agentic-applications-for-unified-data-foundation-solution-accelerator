@@ -1,7 +1,6 @@
 # Bring Your Own Data
 
-Place your own data files in this folder to run the workshop with custom data
-instead of the AI-generated sample data.
+Place your own data files in this folder to run the solution with custom data.
 
 ## What You Need
 
@@ -15,9 +14,12 @@ data/customdata/
     └── *.pdf                   PDF documents for AI Search
 ```
 
-The `config/` folder (with `ontology_config.json`) is **auto-generated** from
-your CSV files when you run the build script. You'll be prompted for your
-industry and use case.
+> Before running the scripts, replace the files in `data/customdata/tables/` and
+`data/customdata/documents/` with your own data files.
+
+The `config/` folder (with `ontology_config.json`) is generated from your CSV
+files the first time you run the build script. If industry and use case are not
+provided with `--industry` and `--usecase`, you'll be prompted for them.
 
 ## CSV files in `tables/`
 
@@ -58,7 +60,6 @@ You will be prompted for:
 The script will:
 1. Read your CSV files and infer column types, primary keys, and relationships
 2. Generate `config/ontology_config.json` automatically
-3. Skip step 01 (AI data generation) and run the remaining pipeline steps
 
 ## Auto-Generated Config
 
@@ -89,13 +90,13 @@ To make your custom data folder available as a named `--scenario`, add an entry 
 {
   "my_scenario": {
     "folder": "data/customdata",
-    "industry": "Healthcare",
-    "usecase": "Patient records and clinical notes",
+    "industry": "Telecommunications",
+    "usecase": "Customer accounts, service plans, network incidents, and support tickets",
     "type": "byod",
-    "description": "Custom healthcare scenario",
-    "landing_text": "Ask about patient records...",
-    "app_title": "Healthcare Agent",
-    "app_header": "Healthcare Data Assistant"
+    "description": "Custom telecommunications scenario",
+    "landing_text": "Ask about subscribers, service plans, outages, and support cases...",
+    "app_title": "Telecommunications Agent",
+    "app_header": "Telecommunications Data Assistant"
   }
 }
 ```
@@ -107,9 +108,9 @@ To make your custom data folder available as a named `--scenario`, add an entry 
 | Field | Required | Description |
 |-------|----------|-------------|
 | `folder` | Yes | Path to your data folder (relative to project root) containing `tables/` and `documents/` |
-| `industry` | Yes | Domain name (e.g. Healthcare, Retail, Manufacturing). Used for agent prompt context |
+| `industry` | Yes | Domain name (e.g. Telecommunications, Retail, Manufacturing). Used for agent prompt context |
 | `usecase` | Yes | Brief description of what the data represents. Used for agent prompt context |
-| `type` | Yes | `prebuilt` (ready-to-use data), `custom` (AI creates synthetic data for your industry/usecase), or `byod` (bring your own CSVs, auto-generates config) |
+| `type` | Yes | `prebuilt` (ready-to-use data) or `byod` (bring your own CSVs, auto-generates config) |
 | `description` | No | Human-readable summary shown with `--list-scenarios` |
 | `landing_text` | No | Welcome message shown in the chat UI |
 | `app_title` | No | Browser tab / app title |
