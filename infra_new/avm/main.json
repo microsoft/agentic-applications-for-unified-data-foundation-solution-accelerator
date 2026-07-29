@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.44.1.10279",
-      "templateHash": "8735020204507148398"
+      "version": "0.43.8.12551",
+      "templateHash": "6645487075961875933"
     }
   },
   "parameters": {
@@ -474,8 +474,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "15409334367260759139"
+              "version": "0.43.8.12551",
+              "templateHash": "15811504440232556283"
             }
           },
           "parameters": {
@@ -860,8 +860,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "3232047823815133881"
+              "version": "0.43.8.12551",
+              "templateHash": "12468750140344987427"
             }
           },
           "parameters": {
@@ -4168,8 +4168,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "5783288507350094145"
+              "version": "0.43.8.12551",
+              "templateHash": "12488236781723917894"
             }
           },
           "parameters": {
@@ -5095,8 +5095,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "17026638034178729316"
+              "version": "0.43.8.12551",
+              "templateHash": "13660885246025283651"
             }
           },
           "definitions": {
@@ -7958,8 +7958,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "13928883839220797481"
+              "version": "0.43.8.12551",
+              "templateHash": "12776036543739450475"
             }
           },
           "parameters": {
@@ -9862,8 +9862,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "1680554660663753024"
+              "version": "0.43.8.12551",
+              "templateHash": "6666926315361183021"
             }
           },
           "parameters": {
@@ -10401,8 +10401,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "10734514187033998183"
+              "version": "0.43.8.12551",
+              "templateHash": "11949257152440763149"
             }
           },
           "parameters": {
@@ -11870,8 +11870,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "14627790702698637496"
+              "version": "0.43.8.12551",
+              "templateHash": "11892877222899511910"
             }
           },
           "parameters": {
@@ -12379,8 +12379,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "11639188571768358148"
+              "version": "0.43.8.12551",
+              "templateHash": "5065664004582213565"
             }
           },
           "parameters": {
@@ -21735,8 +21735,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "8816372137748980601"
+              "version": "0.43.8.12551",
+              "templateHash": "9521660804346776602"
             }
           },
           "parameters": {
@@ -25218,8 +25218,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "15126235746263324029"
+              "version": "0.43.8.12551",
+              "templateHash": "10228853810379143368"
             }
           },
           "parameters": {
@@ -25364,8 +25364,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "14223009203414560544"
+              "version": "0.43.8.12551",
+              "templateHash": "8056952983724798817"
             }
           },
           "parameters": {
@@ -28138,8 +28138,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "14126031085782385090"
+              "version": "0.43.8.12551",
+              "templateHash": "386381294886679564"
             }
           },
           "parameters": {
@@ -28305,8 +28305,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "14126031085782385090"
+              "version": "0.43.8.12551",
+              "templateHash": "386381294886679564"
             }
           },
           "parameters": {
@@ -28478,8 +28478,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "14126031085782385090"
+              "version": "0.43.8.12551",
+              "templateHash": "386381294886679564"
             }
           },
           "parameters": {
@@ -28649,8 +28649,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "10180502016624897684"
+              "version": "0.43.8.12551",
+              "templateHash": "8590492508744195961"
             }
           },
           "parameters": {
@@ -28798,8 +28798,366 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "11864526637995139246"
+              "version": "0.43.8.12551",
+              "templateHash": "10372965642437555980"
+            }
+          },
+          "definitions": {
+            "_1.lockType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the name of lock."
+                  }
+                },
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "CanNotDelete",
+                    "None",
+                    "ReadOnly"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the type of lock."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a lock.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.privateEndpointCustomDnsConfigType": {
+              "type": "object",
+              "properties": {
+                "fqdn": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. FQDN that resolves to private endpoint IP address."
+                  }
+                },
+                "ipAddresses": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "description": "Required. A list of private IP addresses of the private endpoint."
+                  }
+                }
+              },
+              "metadata": {
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.privateEndpointIpConfigurationType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The name of the resource that is unique within a resource group."
+                  }
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "groupId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The ID of a group obtained from the remote resource that this private endpoint should connect to."
+                      }
+                    },
+                    "memberName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The member name of a group obtained from the remote resource that this private endpoint should connect to."
+                      }
+                    },
+                    "privateIPAddress": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. A private IP address obtained from the private endpoint's subnet."
+                      }
+                    }
+                  },
+                  "metadata": {
+                    "description": "Required. Properties of private endpoint IP configurations."
+                  }
+                }
+              },
+              "metadata": {
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.privateEndpointPrivateDnsZoneGroupType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name of the Private DNS Zone Group."
+                  }
+                },
+                "privateDnsZoneGroupConfigs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "nullable": true,
+                        "metadata": {
+                          "description": "Optional. The name of the private DNS Zone Group config."
+                        }
+                      },
+                      "privateDnsZoneResourceId": {
+                        "type": "string",
+                        "metadata": {
+                          "description": "Required. The resource id of the private DNS zone."
+                        }
+                      }
+                    }
+                  },
+                  "metadata": {
+                    "description": "Required. The private DNS Zone Groups to associate the Private Endpoint. A DNS Zone Group can support up to 5 DNS zones."
+                  }
+                }
+              },
+              "metadata": {
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.roleAssignmentType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name (as GUID) of the role assignment. If not provided, a GUID will be generated."
+                  }
+                },
+                "roleDefinitionIdOrName": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'."
+                  }
+                },
+                "principalId": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The principal ID of the principal (user/group/identity) to assign the role to."
+                  }
+                },
+                "principalType": {
+                  "type": "string",
+                  "allowedValues": [
+                    "Device",
+                    "ForeignGroup",
+                    "Group",
+                    "ServicePrincipal",
+                    "User"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The principal type of the assigned principal ID."
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The description of the role assignment."
+                  }
+                },
+                "condition": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase \"foo_storage_container\"."
+                  }
+                },
+                "conditionVersion": {
+                  "type": "string",
+                  "allowedValues": [
+                    "2.0"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Version of the condition."
+                  }
+                },
+                "delegatedManagedIdentityResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The Resource Id of the delegated managed identity resource."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a role assignment.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "privateEndpointSingleServiceType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name of the Private Endpoint."
+                  }
+                },
+                "location": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The location to deploy the Private Endpoint to."
+                  }
+                },
+                "privateLinkServiceConnectionName": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name of the private link connection to create."
+                  }
+                },
+                "service": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The subresource to deploy the Private Endpoint for. For example \"vault\" for a Key Vault Private Endpoint."
+                  }
+                },
+                "subnetResourceId": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. Resource ID of the subnet where the endpoint needs to be created."
+                  }
+                },
+                "resourceGroupResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The resource ID of the Resource Group the Private Endpoint will be created in. If not specified, the Resource Group of the provided Virtual Network Subnet is used."
+                  }
+                },
+                "privateDnsZoneGroup": {
+                  "$ref": "#/definitions/_1.privateEndpointPrivateDnsZoneGroupType",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The private DNS Zone Group to configure for the Private Endpoint."
+                  }
+                },
+                "isManualConnection": {
+                  "type": "bool",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. If Manual Private Link Connection is required."
+                  }
+                },
+                "manualConnectionRequestMessage": {
+                  "type": "string",
+                  "nullable": true,
+                  "maxLength": 140,
+                  "metadata": {
+                    "description": "Optional. A message passed to the owner of the remote resource with the manual connection request."
+                  }
+                },
+                "customDnsConfigs": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/_1.privateEndpointCustomDnsConfigType"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Custom DNS configurations."
+                  }
+                },
+                "ipConfigurations": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/_1.privateEndpointIpConfigurationType"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. A list of IP configurations of the Private Endpoint. This will be used to map to the first-party Service endpoints."
+                  }
+                },
+                "applicationSecurityGroupResourceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Application security groups in which the Private Endpoint IP configuration is included."
+                  }
+                },
+                "customNetworkInterfaceName": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The custom name of the network interface attached to the Private Endpoint."
+                  }
+                },
+                "lock": {
+                  "$ref": "#/definitions/_1.lockType",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the type of lock."
+                  }
+                },
+                "roleAssignments": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/_1.roleAssignmentType"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Array of role assignments to create."
+                  }
+                },
+                "tags": {
+                  "type": "object",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Tags to be applied on all resources/Resource Groups in this deployment."
+                  }
+                },
+                "enableTelemetry": {
+                  "type": "bool",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Enable/Disable usage telemetry for module."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a private endpoint. To be used if the private endpoint's default service / groupId can be assumed (i.e., for services that only have one Private Endpoint type like 'vault' for key vault).",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
             }
           },
           "parameters": {
@@ -28936,9 +29294,12 @@
             },
             "privateEndpoints": {
               "type": "array",
-              "defaultValue": [],
+              "items": {
+                "$ref": "#/definitions/privateEndpointSingleServiceType"
+              },
+              "nullable": true,
               "metadata": {
-                "description": "Private endpoint configurations."
+                "description": "Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible."
               }
             },
             "roleAssignments": {
@@ -31127,11 +31488,7 @@
               }
             ]
           },
-          "enablePrivateNetworking": {
-            "value": "[parameters('enablePrivateNetworking')]"
-          },
-          "privateEndpointSubnetId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference('virtualNetwork').outputs.backendSubnetResourceId.value), createObject('value', ''))]",
-          "privateDnsZoneResourceIds": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(reference(format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').blob)).outputs.resourceId.value)), createObject('value', createArray()))]"
+          "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-st-{0}', variables('solutionSuffix')), 'customNetworkInterfaceName', format('nic-st-{0}', variables('solutionSuffix')), 'subnetResourceId', reference('virtualNetwork').outputs.backendSubnetResourceId.value, 'service', 'blob', 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('name', 'dns-zone-blob', 'privateDnsZoneResourceId', reference(format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').blob)).outputs.resourceId.value)))))), createObject('value', createArray()))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -31140,8 +31497,366 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "1572954335278177330"
+              "version": "0.43.8.12551",
+              "templateHash": "17376598240949823383"
+            }
+          },
+          "definitions": {
+            "_1.lockType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the name of lock."
+                  }
+                },
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "CanNotDelete",
+                    "None",
+                    "ReadOnly"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the type of lock."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a lock.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.privateEndpointCustomDnsConfigType": {
+              "type": "object",
+              "properties": {
+                "fqdn": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. FQDN that resolves to private endpoint IP address."
+                  }
+                },
+                "ipAddresses": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "description": "Required. A list of private IP addresses of the private endpoint."
+                  }
+                }
+              },
+              "metadata": {
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.privateEndpointIpConfigurationType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The name of the resource that is unique within a resource group."
+                  }
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "groupId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The ID of a group obtained from the remote resource that this private endpoint should connect to."
+                      }
+                    },
+                    "memberName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The member name of a group obtained from the remote resource that this private endpoint should connect to."
+                      }
+                    },
+                    "privateIPAddress": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. A private IP address obtained from the private endpoint's subnet."
+                      }
+                    }
+                  },
+                  "metadata": {
+                    "description": "Required. Properties of private endpoint IP configurations."
+                  }
+                }
+              },
+              "metadata": {
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.privateEndpointPrivateDnsZoneGroupType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name of the Private DNS Zone Group."
+                  }
+                },
+                "privateDnsZoneGroupConfigs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "nullable": true,
+                        "metadata": {
+                          "description": "Optional. The name of the private DNS Zone Group config."
+                        }
+                      },
+                      "privateDnsZoneResourceId": {
+                        "type": "string",
+                        "metadata": {
+                          "description": "Required. The resource id of the private DNS zone."
+                        }
+                      }
+                    }
+                  },
+                  "metadata": {
+                    "description": "Required. The private DNS Zone Groups to associate the Private Endpoint. A DNS Zone Group can support up to 5 DNS zones."
+                  }
+                }
+              },
+              "metadata": {
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.roleAssignmentType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name (as GUID) of the role assignment. If not provided, a GUID will be generated."
+                  }
+                },
+                "roleDefinitionIdOrName": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'."
+                  }
+                },
+                "principalId": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The principal ID of the principal (user/group/identity) to assign the role to."
+                  }
+                },
+                "principalType": {
+                  "type": "string",
+                  "allowedValues": [
+                    "Device",
+                    "ForeignGroup",
+                    "Group",
+                    "ServicePrincipal",
+                    "User"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The principal type of the assigned principal ID."
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The description of the role assignment."
+                  }
+                },
+                "condition": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase \"foo_storage_container\"."
+                  }
+                },
+                "conditionVersion": {
+                  "type": "string",
+                  "allowedValues": [
+                    "2.0"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Version of the condition."
+                  }
+                },
+                "delegatedManagedIdentityResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The Resource Id of the delegated managed identity resource."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a role assignment.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "privateEndpointSingleServiceType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name of the Private Endpoint."
+                  }
+                },
+                "location": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The location to deploy the Private Endpoint to."
+                  }
+                },
+                "privateLinkServiceConnectionName": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name of the private link connection to create."
+                  }
+                },
+                "service": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The subresource to deploy the Private Endpoint for. For example \"vault\" for a Key Vault Private Endpoint."
+                  }
+                },
+                "subnetResourceId": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. Resource ID of the subnet where the endpoint needs to be created."
+                  }
+                },
+                "resourceGroupResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The resource ID of the Resource Group the Private Endpoint will be created in. If not specified, the Resource Group of the provided Virtual Network Subnet is used."
+                  }
+                },
+                "privateDnsZoneGroup": {
+                  "$ref": "#/definitions/_1.privateEndpointPrivateDnsZoneGroupType",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The private DNS Zone Group to configure for the Private Endpoint."
+                  }
+                },
+                "isManualConnection": {
+                  "type": "bool",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. If Manual Private Link Connection is required."
+                  }
+                },
+                "manualConnectionRequestMessage": {
+                  "type": "string",
+                  "nullable": true,
+                  "maxLength": 140,
+                  "metadata": {
+                    "description": "Optional. A message passed to the owner of the remote resource with the manual connection request."
+                  }
+                },
+                "customDnsConfigs": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/_1.privateEndpointCustomDnsConfigType"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Custom DNS configurations."
+                  }
+                },
+                "ipConfigurations": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/_1.privateEndpointIpConfigurationType"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. A list of IP configurations of the Private Endpoint. This will be used to map to the first-party Service endpoints."
+                  }
+                },
+                "applicationSecurityGroupResourceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Application security groups in which the Private Endpoint IP configuration is included."
+                  }
+                },
+                "customNetworkInterfaceName": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The custom name of the network interface attached to the Private Endpoint."
+                  }
+                },
+                "lock": {
+                  "$ref": "#/definitions/_1.lockType",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the type of lock."
+                  }
+                },
+                "roleAssignments": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/_1.roleAssignmentType"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Array of role assignments to create."
+                  }
+                },
+                "tags": {
+                  "type": "object",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Tags to be applied on all resources/Resource Groups in this deployment."
+                  }
+                },
+                "enableTelemetry": {
+                  "type": "bool",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Enable/Disable usage telemetry for module."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a private endpoint. To be used if the private endpoint's default service / groupId can be assumed (i.e., for services that only have one Private Endpoint type like 'vault' for key vault).",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
             }
           },
           "parameters": {
@@ -31260,25 +31975,14 @@
                 "description": "Network ACLs for the storage account."
               }
             },
-            "enablePrivateNetworking": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Whether to enable private networking."
-              }
-            },
-            "privateEndpointSubnetId": {
-              "type": "string",
-              "defaultValue": "",
-              "metadata": {
-                "description": "Subnet resource ID for the private endpoint."
-              }
-            },
-            "privateDnsZoneResourceIds": {
+            "privateEndpoints": {
               "type": "array",
-              "defaultValue": [],
+              "items": {
+                "$ref": "#/definitions/privateEndpointSingleServiceType"
+              },
+              "nullable": true,
               "metadata": {
-                "description": "Private DNS zone resource IDs for Storage (blob)."
+                "description": "Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible."
               }
             },
             "roleAssignments": {
@@ -31297,18 +32001,6 @@
                 "description": "Optional. Managed identities for the resource."
               }
             }
-          },
-          "variables": {
-            "copy": [
-              {
-                "name": "privateDnsZoneConfigs",
-                "count": "[length(parameters('privateDnsZoneResourceIds'))]",
-                "input": {
-                  "name": "[format('dns-zone-{0}', copyIndex('privateDnsZoneConfigs'))]",
-                  "privateDnsZoneResourceId": "[parameters('privateDnsZoneResourceIds')[copyIndex('privateDnsZoneConfigs')]]"
-                }
-              }
-            ]
           },
           "resources": {
             "storage": {
@@ -31385,7 +32077,9 @@
                     }
                   },
                   "diagnosticSettings": "[if(not(empty(parameters('diagnosticSettings'))), createObject('value', parameters('diagnosticSettings')), createObject('value', createArray()))]",
-                  "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', parameters('name')), 'customNetworkInterfaceName', format('nic-{0}', parameters('name')), 'subnetResourceId', parameters('privateEndpointSubnetId'), 'service', 'blob', 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', variables('privateDnsZoneConfigs'))))), createObject('value', createArray()))]",
+                  "privateEndpoints": {
+                    "value": "[parameters('privateEndpoints')]"
+                  },
                   "roleAssignments": "[if(not(empty(parameters('roleAssignments'))), createObject('value', parameters('roleAssignments')), createObject('value', createArray()))]"
                 },
                 "template": {
@@ -39580,11 +40274,7 @@
           "haLocation": {
             "value": "[variables('cosmosDbHaLocation')]"
           },
-          "enablePrivateNetworking": {
-            "value": "[parameters('enablePrivateNetworking')]"
-          },
-          "privateEndpointSubnetId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference('virtualNetwork').outputs.backendSubnetResourceId.value), createObject('value', ''))]",
-          "privateDnsZoneResourceIds": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(reference(format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').cosmosDb)).outputs.resourceId.value)), createObject('value', createArray()))]"
+          "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-cosmos-{0}', variables('solutionSuffix')), 'customNetworkInterfaceName', format('nic-cosmos-{0}', variables('solutionSuffix')), 'subnetResourceId', reference('virtualNetwork').outputs.backendSubnetResourceId.value, 'service', 'Sql', 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('name', 'dns-zone-cosmos', 'privateDnsZoneResourceId', reference(format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').cosmosDb)).outputs.resourceId.value)))))), createObject('value', createArray()))]"
         },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -39593,8 +40283,366 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "486166409253479101"
+              "version": "0.43.8.12551",
+              "templateHash": "8337593280000587140"
+            }
+          },
+          "definitions": {
+            "_1.lockType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the name of lock."
+                  }
+                },
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "CanNotDelete",
+                    "None",
+                    "ReadOnly"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the type of lock."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a lock.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.privateEndpointCustomDnsConfigType": {
+              "type": "object",
+              "properties": {
+                "fqdn": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. FQDN that resolves to private endpoint IP address."
+                  }
+                },
+                "ipAddresses": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "description": "Required. A list of private IP addresses of the private endpoint."
+                  }
+                }
+              },
+              "metadata": {
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.privateEndpointIpConfigurationType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The name of the resource that is unique within a resource group."
+                  }
+                },
+                "properties": {
+                  "type": "object",
+                  "properties": {
+                    "groupId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The ID of a group obtained from the remote resource that this private endpoint should connect to."
+                      }
+                    },
+                    "memberName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The member name of a group obtained from the remote resource that this private endpoint should connect to."
+                      }
+                    },
+                    "privateIPAddress": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. A private IP address obtained from the private endpoint's subnet."
+                      }
+                    }
+                  },
+                  "metadata": {
+                    "description": "Required. Properties of private endpoint IP configurations."
+                  }
+                }
+              },
+              "metadata": {
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.privateEndpointPrivateDnsZoneGroupType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name of the Private DNS Zone Group."
+                  }
+                },
+                "privateDnsZoneGroupConfigs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "nullable": true,
+                        "metadata": {
+                          "description": "Optional. The name of the private DNS Zone Group config."
+                        }
+                      },
+                      "privateDnsZoneResourceId": {
+                        "type": "string",
+                        "metadata": {
+                          "description": "Required. The resource id of the private DNS zone."
+                        }
+                      }
+                    }
+                  },
+                  "metadata": {
+                    "description": "Required. The private DNS Zone Groups to associate the Private Endpoint. A DNS Zone Group can support up to 5 DNS zones."
+                  }
+                }
+              },
+              "metadata": {
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "_1.roleAssignmentType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name (as GUID) of the role assignment. If not provided, a GUID will be generated."
+                  }
+                },
+                "roleDefinitionIdOrName": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'."
+                  }
+                },
+                "principalId": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The principal ID of the principal (user/group/identity) to assign the role to."
+                  }
+                },
+                "principalType": {
+                  "type": "string",
+                  "allowedValues": [
+                    "Device",
+                    "ForeignGroup",
+                    "Group",
+                    "ServicePrincipal",
+                    "User"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The principal type of the assigned principal ID."
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The description of the role assignment."
+                  }
+                },
+                "condition": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase \"foo_storage_container\"."
+                  }
+                },
+                "conditionVersion": {
+                  "type": "string",
+                  "allowedValues": [
+                    "2.0"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Version of the condition."
+                  }
+                },
+                "delegatedManagedIdentityResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The Resource Id of the delegated managed identity resource."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a role assignment.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
+            },
+            "privateEndpointSingleServiceType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name of the Private Endpoint."
+                  }
+                },
+                "location": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The location to deploy the Private Endpoint to."
+                  }
+                },
+                "privateLinkServiceConnectionName": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name of the private link connection to create."
+                  }
+                },
+                "service": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The subresource to deploy the Private Endpoint for. For example \"vault\" for a Key Vault Private Endpoint."
+                  }
+                },
+                "subnetResourceId": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. Resource ID of the subnet where the endpoint needs to be created."
+                  }
+                },
+                "resourceGroupResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The resource ID of the Resource Group the Private Endpoint will be created in. If not specified, the Resource Group of the provided Virtual Network Subnet is used."
+                  }
+                },
+                "privateDnsZoneGroup": {
+                  "$ref": "#/definitions/_1.privateEndpointPrivateDnsZoneGroupType",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The private DNS Zone Group to configure for the Private Endpoint."
+                  }
+                },
+                "isManualConnection": {
+                  "type": "bool",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. If Manual Private Link Connection is required."
+                  }
+                },
+                "manualConnectionRequestMessage": {
+                  "type": "string",
+                  "nullable": true,
+                  "maxLength": 140,
+                  "metadata": {
+                    "description": "Optional. A message passed to the owner of the remote resource with the manual connection request."
+                  }
+                },
+                "customDnsConfigs": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/_1.privateEndpointCustomDnsConfigType"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Custom DNS configurations."
+                  }
+                },
+                "ipConfigurations": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/_1.privateEndpointIpConfigurationType"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. A list of IP configurations of the Private Endpoint. This will be used to map to the first-party Service endpoints."
+                  }
+                },
+                "applicationSecurityGroupResourceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Application security groups in which the Private Endpoint IP configuration is included."
+                  }
+                },
+                "customNetworkInterfaceName": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The custom name of the network interface attached to the Private Endpoint."
+                  }
+                },
+                "lock": {
+                  "$ref": "#/definitions/_1.lockType",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the type of lock."
+                  }
+                },
+                "roleAssignments": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/_1.roleAssignmentType"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Array of role assignments to create."
+                  }
+                },
+                "tags": {
+                  "type": "object",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Tags to be applied on all resources/Resource Groups in this deployment."
+                  }
+                },
+                "enableTelemetry": {
+                  "type": "bool",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Enable/Disable usage telemetry for module."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a private endpoint. To be used if the private endpoint's default service / groupId can be assumed (i.e., for services that only have one Private Endpoint type like 'vault' for key vault).",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.5.1"
+                }
+              }
             }
           },
           "parameters": {
@@ -39664,25 +40712,14 @@
                 "description": "Public network access setting."
               }
             },
-            "enablePrivateNetworking": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Whether to enable private networking."
-              }
-            },
-            "privateEndpointSubnetId": {
-              "type": "string",
-              "defaultValue": "",
-              "metadata": {
-                "description": "Subnet resource ID for the private endpoint."
-              }
-            },
-            "privateDnsZoneResourceIds": {
+            "privateEndpoints": {
               "type": "array",
-              "defaultValue": [],
+              "items": {
+                "$ref": "#/definitions/privateEndpointSingleServiceType"
+              },
+              "nullable": true,
               "metadata": {
-                "description": "Private DNS zone resource IDs for Cosmos DB."
+                "description": "Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible."
               }
             },
             "zoneRedundant": {
@@ -39715,18 +40752,6 @@
                 "description": "Optional. Managed identities for the resource."
               }
             }
-          },
-          "variables": {
-            "copy": [
-              {
-                "name": "privateDnsZoneConfigs",
-                "count": "[length(parameters('privateDnsZoneResourceIds'))]",
-                "input": {
-                  "name": "[format('dns-zone-{0}', copyIndex('privateDnsZoneConfigs'))]",
-                  "privateDnsZoneResourceId": "[parameters('privateDnsZoneResourceIds')[copyIndex('privateDnsZoneConfigs')]]"
-                }
-              }
-            ]
           },
           "resources": {
             "cosmosAccount": {
@@ -39783,7 +40808,9 @@
                       "publicNetworkAccess": "[parameters('publicNetworkAccess')]"
                     }
                   },
-                  "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', parameters('name')), 'customNetworkInterfaceName', format('nic-{0}', parameters('name')), 'subnetResourceId', parameters('privateEndpointSubnetId'), 'service', 'Sql', 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', variables('privateDnsZoneConfigs'))))), createObject('value', createArray()))]",
+                  "privateEndpoints": {
+                    "value": "[parameters('privateEndpoints')]"
+                  },
                   "zoneRedundant": {
                     "value": "[parameters('zoneRedundant')]"
                   },
@@ -45787,8 +46814,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "1571277744110287631"
+              "version": "0.43.8.12551",
+              "templateHash": "13276500453841960209"
             }
           },
           "parameters": {
@@ -46724,8 +47751,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "2721583462833023327"
+              "version": "0.43.8.12551",
+              "templateHash": "9100220367743552857"
             }
           },
           "definitions": {
@@ -47258,6 +48285,40 @@
             }
           },
           "resources": {
+            "site": {
+              "existing": true,
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2025-03-01",
+              "name": "[parameters('name')]"
+            },
+            "logsConfig": {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-03-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'logs')]",
+              "properties": {
+                "applicationLogs": {
+                  "fileSystem": {
+                    "level": "Verbose"
+                  }
+                },
+                "detailedErrorMessages": {
+                  "enabled": true
+                },
+                "failedRequestsTracing": {
+                  "enabled": true
+                },
+                "httpLogs": {
+                  "fileSystem": {
+                    "enabled": true,
+                    "retentionInDays": 1,
+                    "retentionInMb": 35
+                  }
+                }
+              },
+              "dependsOn": [
+                "appService"
+              ]
+            },
             "appService": {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
@@ -47297,7 +48358,8 @@
                       "minTlsVersion": "1.2",
                       "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                       "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
-                      "appCommandLine": "[parameters('appCommandLine')]"
+                      "appCommandLine": "[parameters('appCommandLine')]",
+                      "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
                     }
                   },
                   "e2eEncryptionEnabled": {
@@ -47309,35 +48371,6 @@
                         "name": "appsettings",
                         "properties": "[parameters('appSettings')]",
                         "applicationInsightResourceId": "[if(not(empty(parameters('applicationInsightResourceId'))), parameters('applicationInsightResourceId'), null())]"
-                      },
-                      {
-                        "name": "logs",
-                        "properties": {
-                          "applicationLogs": {
-                            "fileSystem": {
-                              "level": "Verbose"
-                            }
-                          },
-                          "detailedErrorMessages": {
-                            "enabled": true
-                          },
-                          "failedRequestsTracing": {
-                            "enabled": true
-                          },
-                          "httpLogs": {
-                            "fileSystem": {
-                              "enabled": true,
-                              "retentionInDays": 1,
-                              "retentionInMb": 35
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "name": "web",
-                        "properties": {
-                          "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
-                        }
                       }
                     ]
                   },
@@ -62283,8 +63316,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "2721583462833023327"
+              "version": "0.43.8.12551",
+              "templateHash": "9100220367743552857"
             }
           },
           "definitions": {
@@ -62817,6 +63850,40 @@
             }
           },
           "resources": {
+            "site": {
+              "existing": true,
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2025-03-01",
+              "name": "[parameters('name')]"
+            },
+            "logsConfig": {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-03-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'logs')]",
+              "properties": {
+                "applicationLogs": {
+                  "fileSystem": {
+                    "level": "Verbose"
+                  }
+                },
+                "detailedErrorMessages": {
+                  "enabled": true
+                },
+                "failedRequestsTracing": {
+                  "enabled": true
+                },
+                "httpLogs": {
+                  "fileSystem": {
+                    "enabled": true,
+                    "retentionInDays": 1,
+                    "retentionInMb": 35
+                  }
+                }
+              },
+              "dependsOn": [
+                "appService"
+              ]
+            },
             "appService": {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
@@ -62856,7 +63923,8 @@
                       "minTlsVersion": "1.2",
                       "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                       "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
-                      "appCommandLine": "[parameters('appCommandLine')]"
+                      "appCommandLine": "[parameters('appCommandLine')]",
+                      "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
                     }
                   },
                   "e2eEncryptionEnabled": {
@@ -62868,35 +63936,6 @@
                         "name": "appsettings",
                         "properties": "[parameters('appSettings')]",
                         "applicationInsightResourceId": "[if(not(empty(parameters('applicationInsightResourceId'))), parameters('applicationInsightResourceId'), null())]"
-                      },
-                      {
-                        "name": "logs",
-                        "properties": {
-                          "applicationLogs": {
-                            "fileSystem": {
-                              "level": "Verbose"
-                            }
-                          },
-                          "detailedErrorMessages": {
-                            "enabled": true
-                          },
-                          "failedRequestsTracing": {
-                            "enabled": true
-                          },
-                          "httpLogs": {
-                            "fileSystem": {
-                              "enabled": true,
-                              "retentionInDays": 1,
-                              "retentionInMb": 35
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "name": "web",
-                        "properties": {
-                          "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
-                        }
                       }
                     ]
                   },
@@ -77820,8 +78859,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "2721583462833023327"
+              "version": "0.43.8.12551",
+              "templateHash": "9100220367743552857"
             }
           },
           "definitions": {
@@ -78354,6 +79393,40 @@
             }
           },
           "resources": {
+            "site": {
+              "existing": true,
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2025-03-01",
+              "name": "[parameters('name')]"
+            },
+            "logsConfig": {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2025-03-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'logs')]",
+              "properties": {
+                "applicationLogs": {
+                  "fileSystem": {
+                    "level": "Verbose"
+                  }
+                },
+                "detailedErrorMessages": {
+                  "enabled": true
+                },
+                "failedRequestsTracing": {
+                  "enabled": true
+                },
+                "httpLogs": {
+                  "fileSystem": {
+                    "enabled": true,
+                    "retentionInDays": 1,
+                    "retentionInMb": 35
+                  }
+                }
+              },
+              "dependsOn": [
+                "appService"
+              ]
+            },
             "appService": {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
@@ -78393,7 +79466,8 @@
                       "minTlsVersion": "1.2",
                       "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                       "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
-                      "appCommandLine": "[parameters('appCommandLine')]"
+                      "appCommandLine": "[parameters('appCommandLine')]",
+                      "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
                     }
                   },
                   "e2eEncryptionEnabled": {
@@ -78405,35 +79479,6 @@
                         "name": "appsettings",
                         "properties": "[parameters('appSettings')]",
                         "applicationInsightResourceId": "[if(not(empty(parameters('applicationInsightResourceId'))), parameters('applicationInsightResourceId'), null())]"
-                      },
-                      {
-                        "name": "logs",
-                        "properties": {
-                          "applicationLogs": {
-                            "fileSystem": {
-                              "level": "Verbose"
-                            }
-                          },
-                          "detailedErrorMessages": {
-                            "enabled": true
-                          },
-                          "failedRequestsTracing": {
-                            "enabled": true
-                          },
-                          "httpLogs": {
-                            "fileSystem": {
-                              "enabled": true,
-                              "retentionInDays": 1,
-                              "retentionInMb": 35
-                            }
-                          }
-                        }
-                      },
-                      {
-                        "name": "web",
-                        "properties": {
-                          "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]"
-                        }
                       }
                     ]
                   },
@@ -93341,8 +94386,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "15652761467149754710"
+              "version": "0.43.8.12551",
+              "templateHash": "10896981330923040072"
             }
           },
           "parameters": {
@@ -93571,8 +94616,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "17425188716359064959"
+                      "version": "0.43.8.12551",
+                      "templateHash": "7353258032010757384"
                     }
                   },
                   "parameters": {
@@ -93660,8 +94705,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "17425188716359064959"
+                      "version": "0.43.8.12551",
+                      "templateHash": "7353258032010757384"
                     }
                   },
                   "parameters": {

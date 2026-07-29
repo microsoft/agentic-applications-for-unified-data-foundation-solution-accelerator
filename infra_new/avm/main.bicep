@@ -185,6 +185,9 @@ param existingLogAnalyticsWorkspaceId string = ''
 @description('Optional. Resource ID of an existing AI Foundry project (empty = create new).')
 param existingFoundryProjectResourceId string = ''
 
+@description('Optional. Resource ID of an existing Azure Container Registry to reuse. If empty, a new container registry is created.')
+param existingContainerRegistryResourceId string = ''
+
 // ============================================================================
 // Parameters — Identity
 // ============================================================================
@@ -215,6 +218,10 @@ var shouldDeployApp = deployApp
 var useExistingAIProject = !empty(existingFoundryProjectResourceId)
 var useChatHistoryEnabledSetting = useChatHistoryEnabled ? 'True' : 'False'
 var useUserAccessTokenSetting = useUserAccessToken ? 'True' : 'False'
+
+// Container Registry: reuse existing when a resource ID is provided; otherwise create a new one.
+var useExistingContainerRegistry = !empty(existingContainerRegistryResourceId)
+var existingContainerRegistryName = useExistingContainerRegistry ? last(split(existingContainerRegistryResourceId, '/')) : ''
 
 // Fabric Capacity: create when createFabricWorkspace=true and no existing capacity provided
 var useExistingFabricCapacity = !empty(azureFabricCapacityName)
@@ -274,6 +281,7 @@ var privateDnsZones = [
   'privatelink.blob.core.windows.net'
   'privatelink.search.windows.net'
   'privatelink.database.windows.net'
+  'privatelink.azurecr.io'
 ]
 var dnsZoneIndex = {
   cognitiveServices: 0
@@ -283,6 +291,7 @@ var dnsZoneIndex = {
   blob: 4
   search: 5
   sqlServer: 6
+  containerRegistry: 7
 }
 
 // Resource naming (parameterized — no abbreviations.json dependency)
@@ -751,10 +760,21 @@ module storage_account './modules/data/storage-account.bicep' = {
         principalType: deployingUserPrincipalType
       }
     ]
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.blob]!.outputs.resourceId
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-st-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-st-${solutionSuffix}'
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+        service: 'blob'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'dns-zone-blob'
+              privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.blob]!.outputs.resourceId
+            }
+          ]
+        }
+      }
     ] : []
   }
 }
@@ -775,10 +795,21 @@ module cosmosDBModule './modules/data/cosmos-db-nosql.bicep' = if (shouldDeployA
     zoneRedundant: enableRedundancy
     enableAutomaticFailover: enableRedundancy
     haLocation: cosmosDbHaLocation
-    enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
-    privateDnsZoneResourceIds: enablePrivateNetworking ? [
-      privateDnsZoneDeployments[dnsZoneIndex.cosmosDb]!.outputs.resourceId
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-cosmos-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-cosmos-${solutionSuffix}'
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+        service: 'Sql'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'dns-zone-cosmos'
+              privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cosmosDb]!.outputs.resourceId
+            }
+          ]
+        }
+      }
     ] : []
   }
 }
@@ -801,6 +832,13 @@ module hostingplan './modules/compute/app-service-plan.bicep' = if (shouldDeploy
   }
 }
 
+// Placeholder image used at provision time. The real application images are built
+// and pushed to the container registry by the post-provision script, which then
+// swaps each app service over to the real image. Using a public MCR image avoids a
+// chicken-and-egg dependency on an image that does not yet exist in a freshly
+// created registry.
+var placeholderImage = 'DOCKER|mcr.microsoft.com/appsvc/staticsite:latest'
+
 // Backend API (Python)
 module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployApp && backendRuntimeStack == 'python') {
   name: take('module.app-service-pybackend.${solutionName}', 64)
@@ -810,7 +848,7 @@ module backend_docker './modules/compute/app-service.bicep' = if (shouldDeployAp
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api:${imageTag}'
+    linuxFxVersion: placeholderImage
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -860,7 +898,7 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (shouldDe
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-api-dotnet:${imageTag}'
+    linuxFxVersion: placeholderImage
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -905,7 +943,7 @@ module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployA
     tags: tags
     enableTelemetry: enableTelemetry
     serverFarmResourceId: hostingplan!.outputs.resourceId
-    linuxFxVersion: 'DOCKER|${containerRegistryName}.azurecr.io/da-app:${imageTag}'
+    linuxFxVersion: placeholderImage
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -918,6 +956,73 @@ module frontend_docker './modules/compute/app-service.bicep' = if (shouldDeployA
     }
   }
 }
+
+// ============================================================================
+// Module: Container Registry
+//   - Created only when no existing registry is provided.
+//   - When an existing registry is provided, it is reused (referenced) instead.
+//   - AcrPull is granted to the deploying principal on the resolved registry.
+// ============================================================================
+
+module container_registry './modules/compute/container-registry.bicep' = if (!useExistingContainerRegistry) {
+  name: take('module.container-registry.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    location: location
+    tags: tags
+    enableTelemetry: enableTelemetry
+    // WAF: Premium SKU is required for private endpoints. When private networking is
+    // enabled, public access is disabled and pulls flow over the private endpoint.
+    sku: enablePrivateNetworking ? 'Premium' : 'Standard'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    exportPolicyStatus: enablePrivateNetworking ? 'disabled' : 'enabled'
+    networkRuleSetDefaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
+    privateEndpoints: enablePrivateNetworking ? [
+      {
+        name: 'pep-cr-${solutionSuffix}'
+        customNetworkInterfaceName: 'nic-cr-${solutionSuffix}'
+        subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+        service: 'registry'
+        privateDnsZoneGroup: {
+          privateDnsZoneGroupConfigs: [
+            {
+              name: 'dns-zone-cr'
+              privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.containerRegistry]!.outputs.resourceId
+            }
+          ]
+        }
+      }
+    ] : []
+  }
+}
+
+// Resolved registry name — newly created or existing/reused.
+var resolvedContainerRegistryName = useExistingContainerRegistry
+  ? existingContainerRegistryName
+  : container_registry!.outputs.name
+
+// Single registry resource ID handed to role assignments (new or existing — just the ID).
+var containerRegistryResourceId = useExistingContainerRegistry
+  ? existingContainerRegistryResourceId
+  : container_registry!.outputs.resourceId
+
+// Principals that need AcrPull on the container registry: the deployer plus the
+// backend and frontend app services. Add or remove entries here to control who
+// gets pull access.
+var acrPullPrincipals = [
+  {
+    principalId: deployingUserPrincipalId
+    principalType: deployingUserPrincipalType
+  }
+  {
+    principalId: backendRuntimeStack == 'python' ? backend_docker!.outputs.identityPrincipalId : backend_csapi_docker!.outputs.identityPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+  {
+    principalId: frontend_docker!.outputs.identityPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+]
 
 // ============================================================================
 // Module: Role Assignments (centralized)
@@ -938,6 +1043,9 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
     aiFoundryResourceId: aiFoundryResourceId
     useExistingAIProject: useExistingAIProject
     existingFoundryProjectResourceId: existingFoundryProjectResourceId
+    useExistingContainerRegistry: useExistingContainerRegistry
+    containerRegistryResourceId: containerRegistryResourceId
+    acrPullPrincipals: acrPullPrincipals
   }
 }
 
@@ -1056,3 +1164,18 @@ output FABRIC_ADMIN_MEMBERS array = shouldCreateFabricCapacity ? fabricTotalAdmi
 
 @description('The unique solution suffix of the deployed resources.')
 output SOLUTION_SUFFIX string = solutionSuffix
+
+@description('The name of the container registry (newly created or existing/reused).')
+output AZURE_CONTAINER_REGISTRY_NAME string = resolvedContainerRegistryName
+
+@description('Docker image tag for the application images (consumed by the post-provision image build/swap script).')
+output IMAGE_TAG string = imageTag
+
+@description('Real backend (Python) app image to swap in after provisioning (post-provision script replaces the placeholder with this).')
+output BACKEND_APP_IMAGE string = 'DOCKER|${containerRegistryName}.azurecr.io/da-api:${imageTag}'
+
+@description('Real backend (C#) app image to swap in after provisioning (post-provision script replaces the placeholder with this).')
+output BACKEND_CSAPI_APP_IMAGE string = 'DOCKER|${containerRegistryName}.azurecr.io/da-api-dotnet:${imageTag}'
+
+@description('Real frontend app image to swap in after provisioning (post-provision script replaces the placeholder with this).')
+output FRONTEND_APP_IMAGE string = 'DOCKER|${containerRegistryName}.azurecr.io/da-app:${imageTag}'

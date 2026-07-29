@@ -21,6 +21,12 @@ param logAnalyticsWorkspaceResourceId string = ''
 @description('Subnet resource ID for VNet integration (required when enablePrivateNetworking is true).')
 param infrastructureSubnetId string = ''
 
+@description('Platform reserved CIDR for Container Apps platform components (optional).')
+param platformReservedCidr string = ''
+
+@description('Platform reserved DNS IP for Container Apps platform (must be inside platformReservedCidr).')
+param platformReservedDnsIP string = ''
+
 @description('Enable zone redundancy.')
 param zoneRedundant bool = false
 
@@ -32,6 +38,9 @@ param enablePrivateNetworking bool = false
 
 @description('Enable monitoring (Log Analytics + App Insights).')
 param enableMonitoring bool = true
+
+@description('Public network access setting.')
+param publicNetworkAccess string = 'Enabled'
 
 @description('Application Insights connection string (optional, for App Insights integration).')
 param appInsightsConnectionString string = ''
@@ -64,9 +73,11 @@ module managedEnvironment 'br/public:avm/res/app/managed-environment:0.13.3' = {
     tags: tags
     enableTelemetry: enableTelemetry
     // WAF: Private networking
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: publicNetworkAccess
     internal: enablePrivateNetworking
     infrastructureSubnetResourceId: !empty(infrastructureSubnetId) ? infrastructureSubnetId : null
+    platformReservedCidr: !empty(platformReservedCidr) ? platformReservedCidr : null
+    platformReservedDnsIP: !empty(platformReservedDnsIP) ? platformReservedDnsIP : null
     // WAF: Monitoring
     appLogsConfiguration: enableMonitoring && !empty(logAnalyticsWorkspaceResourceId)
       ? {

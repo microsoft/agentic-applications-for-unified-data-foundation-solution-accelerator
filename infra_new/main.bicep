@@ -186,6 +186,10 @@ param vmAdminPassword string?
 @description('Optional. VM size for jumpbox (AVM-WAF only). Defaults to Standard_D2s_v5.')
 param vmSize string = 'Standard_D2s_v5'
 
+@description('Optional. Resource ID of an existing Azure Container Registry to reuse. If empty, a new container registry is created.')
+param existingContainerRegistryResourceId string = ''
+
+
 // ============================================================================
 // Derived Variables
 // ============================================================================
@@ -239,6 +243,7 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     azureFabricCapacityName: azureFabricCapacityName
     fabricCapacitySku: fabricCapacitySku
     fabricAdminMembers: fabricAdminMembers
+    existingContainerRegistryResourceId: existingContainerRegistryResourceId
   }
 }
 
@@ -278,6 +283,7 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     azureFabricCapacityName: azureFabricCapacityName
     fabricCapacitySku: fabricCapacitySku
     fabricAdminMembers: fabricAdminMembers
+    existingContainerRegistryResourceId: existingContainerRegistryResourceId
   }
 }
 
@@ -401,3 +407,6 @@ output CREATE_FABRIC_WORKSPACE bool = createFabricWorkspace
 
 @description('The Fabric Workspace ID (passed through or empty if auto-creating).')
 output FABRIC_WORKSPACE_ID string = fabricWorkspaceId
+
+@description('container registry resource ID (existing or newly created).')
+output EXISTING_CONTAINER_REGISTRY_RESOURCE_ID string = existingContainerRegistryResourceId

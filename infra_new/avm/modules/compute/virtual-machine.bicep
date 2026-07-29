@@ -35,7 +35,7 @@ param subnetResourceId string
 param osType string = 'Windows'
 
 @description('Availability zone for the VM.')
-param availabilityZone int = 1
+param availabilityZone int = -1
 
 @description('Image reference for the VM.')
 param imageReference object = {
