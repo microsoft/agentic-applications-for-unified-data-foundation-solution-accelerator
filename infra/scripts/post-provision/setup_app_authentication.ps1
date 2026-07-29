@@ -183,6 +183,7 @@ Write-Host ""
 Write-Host "[2/9] Getting Azure subscription info..." -ForegroundColor Yellow
 $subscriptionId = (az account show --query id -o tsv)
 $tenantId = (az account show --query tenantId -o tsv)
+$openIdIssuer = "https://login.microsoftonline.com/$tenantId/v2.0"
 
 if (-not $subscriptionId -or -not $tenantId) {
     Write-Host "  ERROR: Failed to retrieve subscription or tenant info." -ForegroundColor Red
@@ -251,6 +252,27 @@ Write-Host "  Exposing API scope for OBO..." -ForegroundColor Gray
 # Set Application ID URI
 $appIdUri = "api://$clientId"
 az ad app update --id $clientId --identifier-uris $appIdUri --output none 2>$null
+
+# Ensure the app issues v2 access tokens so EasyAuth validation matches the
+# configured login.microsoftonline.com/v2.0 issuer.
+$requestedAccessTokenVersion = az ad app show --id $clientId --query "api.requestedAccessTokenVersion" -o tsv 2>$null
+if ($requestedAccessTokenVersion -ne "2") {
+    $appObjectId = az ad app show --id $clientId --query "id" -o tsv
+    $tokenVersionBody = @{
+        api = @{
+            requestedAccessTokenVersion = 2
+        }
+    } | ConvertTo-Json -Depth 5
+
+    $tokenVersionTempFile = [System.IO.Path]::GetTempFileName()
+    $tokenVersionBody | Out-File -FilePath $tokenVersionTempFile -Encoding utf8 -NoNewline
+    az rest --method PATCH --uri "https://graph.microsoft.com/v1.0/applications/$appObjectId" --body "@$tokenVersionTempFile" --headers "Content-Type=application/json" --output none 2>$null
+    Remove-Item $tokenVersionTempFile -Force -ErrorAction SilentlyContinue
+
+    Write-Host "  requestedAccessTokenVersion set to 2" -ForegroundColor Green
+} else {
+    Write-Host "  requestedAccessTokenVersion already set to 2" -ForegroundColor Gray
+}
 
 # Check if scope already exists
 $existingScopes = az ad app show --id $clientId --query "api.oauth2PermissionScopes" -o json 2>$null | ConvertFrom-Json
@@ -503,12 +525,16 @@ $authConfig = @{
             requireAuthentication = $true
             unauthenticatedClientAction = "RedirectToLoginPage"
             redirectToProvider = "azureactivedirectory"
+            excludedPaths = @(
+                "/api/*"
+                "/history/*"
+            )
         }
         identityProviders = @{
             azureActiveDirectory = @{
                 enabled = $true
                 registration = @{
-                    openIdIssuer = "https://sts.windows.net/$tenantId/v2.0"
+                    openIdIssuer = $openIdIssuer
                     clientId = $clientId
                     clientSecretSettingName = "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET"
                 }
@@ -602,7 +628,7 @@ if ($ApiAppName) {
                 azureActiveDirectory = @{
                     enabled = $true
                     registration = @{
-                        openIdIssuer = "https://sts.windows.net/$tenantId/v2.0"
+                        openIdIssuer = $openIdIssuer
                         clientId = $clientId
                         clientSecretSettingName = "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET"
                     }
