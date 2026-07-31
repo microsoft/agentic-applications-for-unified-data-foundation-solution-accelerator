@@ -267,9 +267,15 @@ if ($requestedAccessTokenVersion -ne "2") {
     $tokenVersionTempFile = [System.IO.Path]::GetTempFileName()
     $tokenVersionBody | Out-File -FilePath $tokenVersionTempFile -Encoding utf8 -NoNewline
     az rest --method PATCH --uri "https://graph.microsoft.com/v1.0/applications/$appObjectId" --body "@$tokenVersionTempFile" --headers "Content-Type=application/json" --output none 2>$null
+    $patchExitCode = $LASTEXITCODE
     Remove-Item $tokenVersionTempFile -Force -ErrorAction SilentlyContinue
 
-    Write-Host "  requestedAccessTokenVersion set to 2" -ForegroundColor Green
+    if ($patchExitCode -eq 0) {
+        Write-Host "  requestedAccessTokenVersion set to 2" -ForegroundColor Green
+    } else {
+        Write-Host "  ERROR: Failed to set requestedAccessTokenVersion to 2 (Graph PATCH failed)." -ForegroundColor Red
+        exit 1
+    }
 } else {
     Write-Host "  requestedAccessTokenVersion already set to 2" -ForegroundColor Gray
 }
