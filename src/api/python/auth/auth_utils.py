@@ -26,14 +26,17 @@ def get_authenticated_user_details(request_headers):
     user_object["aad_id_token"] = raw_user_object.get("x-ms-token-aad-id-token")
 
     # Access token for OBO (On-Behalf-Of) flow - needed for Work IQ Teams
-    # Try multiple sources: EasyAuth header first, then custom header from frontend
     easyauth_token = normalized_headers.get("x-ms-token-aad-access-token")
     zumo_token = normalized_headers.get("x-zumo-auth")
+    authorization = normalized_headers.get("authorization", "")
+    scheme, _, bearer_token = authorization.partition(" ")
 
     if easyauth_token:
         user_object["aad_access_token"] = easyauth_token
     elif zumo_token:
         user_object["aad_access_token"] = zumo_token
+    elif scheme.lower() == "bearer" and bearer_token.strip():
+        user_object["aad_access_token"] = bearer_token.strip()
     else:
         user_object["aad_access_token"] = None
 
