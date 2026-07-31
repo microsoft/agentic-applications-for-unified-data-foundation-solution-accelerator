@@ -161,6 +161,46 @@ public class ChatControllerTests
 
     #endregion
 
+    #region Chat Endpoint Guard Tests
+
+    [Fact]
+    public async Task Chat_EmptyQuery_WritesValidationError()
+    {
+        var request = new ChatRequest
+        {
+            Query = "",
+            ConversationId = "conv-1"
+        };
+
+        await _controller.Chat(request, Mock.Of<IAgentFrameworkService>(), CancellationToken.None);
+
+        _controller.HttpContext.Response.Body.Position = 0;
+        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
+        var output = await reader.ReadToEndAsync();
+
+        Assert.Contains("query is required", output, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Chat_EmptyConversationId_WritesValidationError()
+    {
+        var request = new ChatRequest
+        {
+            Query = "hello",
+            ConversationId = ""
+        };
+
+        await _controller.Chat(request, Mock.Of<IAgentFrameworkService>(), CancellationToken.None);
+
+        _controller.HttpContext.Response.Body.Position = 0;
+        using var reader = new StreamReader(_controller.HttpContext.Response.Body);
+        var output = await reader.ReadToEndAsync();
+
+        Assert.Contains("Conversation ID is required", output, StringComparison.OrdinalIgnoreCase);
+    }
+
+    #endregion
+
     #region DisplayChartDefault Tests
 
     [Fact]
@@ -327,12 +367,12 @@ public class ChatControllerTests
             .Setup(f => f.Create(It.IsAny<string?>(), It.IsAny<string?>()))
             .Returns(new StaticTokenCredential());
 
-        var handler = new StubHttpMessageHandler(_ =>
+        using var handler = new StubHttpMessageHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("{\"content\":\"doc body\",\"source\":\"doc-source\"}")
             });
-        var httpClient = new HttpClient(handler);
+        using var httpClient = new HttpClient(handler);
         var mockHttpFactory = new Mock<IHttpClientFactory>();
         mockHttpFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
 
@@ -365,7 +405,7 @@ public class ChatControllerTests
     }
 
     [Fact]
-    public async Task FetchAzureSearchContent_DownstreamFailure_ReturnsOkWithError()
+    public async Task FetchAzureSearchContent_DownstreamFailure_ReturnsUpstreamStatusWithError()
     {
         // Arrange
         var mockConfig = new Mock<IConfiguration>();
@@ -377,12 +417,12 @@ public class ChatControllerTests
             .Setup(f => f.Create(It.IsAny<string?>(), It.IsAny<string?>()))
             .Returns(new StaticTokenCredential());
 
-        var handler = new StubHttpMessageHandler(_ =>
+        using var handler = new StubHttpMessageHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.NotFound)
             {
                 Content = new StringContent("not found")
             });
-        var httpClient = new HttpClient(handler);
+        using var httpClient = new HttpClient(handler);
         var mockHttpFactory = new Mock<IHttpClientFactory>();
         mockHttpFactory.Setup(f => f.CreateClient(It.IsAny<string>())).Returns(httpClient);
 
@@ -408,8 +448,9 @@ public class ChatControllerTests
         var result = await controller.FetchAzureSearchContent(body, CancellationToken.None);
 
         // Assert
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var json = JsonSerializer.Serialize(ok.Value);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, objectResult.StatusCode);
+        var json = JsonSerializer.Serialize(objectResult.Value);
         Assert.Contains("HTTP 404", json);
     }
 

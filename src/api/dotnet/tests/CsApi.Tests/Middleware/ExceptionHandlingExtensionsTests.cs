@@ -15,7 +15,7 @@ public class ExceptionHandlingExtensionsTests
         serviceCollection.AddLogging();
         serviceCollection.AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>(
             new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
-        
+
         var serviceProvider = serviceCollection.BuildServiceProvider();
         var applicationBuilder = new ApplicationBuilder(serviceProvider);
 
@@ -35,7 +35,7 @@ public class ExceptionHandlingExtensionsTests
         serviceCollection.AddLogging();
         serviceCollection.AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>(
             new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
-        
+
         var serviceProvider = serviceCollection.BuildServiceProvider();
         var applicationBuilder = new ApplicationBuilder(serviceProvider);
 

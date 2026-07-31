@@ -80,12 +80,13 @@ function sanitizeJSONString(jsonString: string): string {
       sanitized = sanitized.slice(1, -1);
     }
     
-    // **STEP 3: ALWAYS unescape backslashes**
+    // **STEP 3: Unescape common escape sequences**
     sanitized = sanitized.replace(/\\"/g, '"');
-    sanitized = sanitized.replace(/\\\\/g, '\\');
     sanitized = sanitized.replace(/\\n/g, '\n');
     sanitized = sanitized.replace(/\\r/g, '\r');
     sanitized = sanitized.replace(/\\t/g, '\t');
+    // Unescape escaped backslashes last to avoid double-unescaping.
+    sanitized = sanitized.replace(/\\\\/g, '\\');
 
     // **STEP 4: Validate after basic unescaping**
     try {

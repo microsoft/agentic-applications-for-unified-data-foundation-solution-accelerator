@@ -76,7 +76,7 @@ public class ExpCacheTests
         // Arrange - Very short TTL
         using var cache = new ExpCache<string, string>(100, 0.001, _mockConfiguration.Object, _logger); // 1 millisecond TTL
         cache.Set("key1", "value1");
-        
+
         // Wait for expiration
         Thread.Sleep(10);
 
@@ -184,13 +184,13 @@ public class ExpCacheTests
 
         // Act & Assert
         Assert.Equal(0, cache.Count);
-        
+
         cache.Set("key1", "value1");
         Assert.Equal(1, cache.Count);
-        
+
         cache.Set("key2", "value2");
         Assert.Equal(2, cache.Count);
-        
+
         cache.Remove("key1");
         Assert.Equal(1, cache.Count);
     }
@@ -201,7 +201,7 @@ public class ExpCacheTests
         // Arrange
         using var cache = new ExpCache<string, string>(100, 0.001, _mockConfiguration.Object, _logger); // 1ms TTL
         cache.Set("key1", "value1");
-        
+
         // Wait for expiration
         await Task.Delay(10);
 

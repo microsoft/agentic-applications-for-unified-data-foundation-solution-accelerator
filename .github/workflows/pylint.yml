@@ -15,6 +15,9 @@ on:
       - '.github/workflows/pylint.yml'
       - '.flake8'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest

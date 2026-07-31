@@ -42,8 +42,8 @@ public class ChatController : ControllerBase
         ExpCache<string, string> conversationCache,
         IAzureCredentialFactory credentialFactory,
         IHttpClientFactory httpClientFactory)
-    { 
-        _userContextAccessor = userContextAccessor; 
+    {
+        _userContextAccessor = userContextAccessor;
         _sqlRepo = sqlRepo;
         _configuration = configuration;
         _logger = logger;
@@ -61,7 +61,7 @@ public class ChatController : ControllerBase
     public async Task Chat([FromBody] ChatRequest request, [FromServices] IAgentFrameworkService agentService, CancellationToken ct)
     {
         Response.ContentType = "application/json-lines";
-        
+
         if (string.IsNullOrWhiteSpace(request.Query))
         {
             await WriteDeltaAsync("assistant", string.Empty, ct);
@@ -75,9 +75,7 @@ public class ChatController : ControllerBase
             await WriteErrorAsync("Conversation ID is required", ct);
             return;
         }
-        
-        var user = _userContextAccessor.GetCurrentUser();
-        var userId = user.UserPrincipalId;
+
         var convId = request.ConversationId;
 
         // Sanitize user input to prevent log forging attacks
@@ -104,7 +102,7 @@ public class ChatController : ControllerBase
                 serverConvId = convSession.ConversationId;
                 if (string.IsNullOrEmpty(serverConvId))
                 {
-                    _logger.LogError("Failed to create server-side conversation for {ConversationId}", convId);
+                    _logger.LogError("Failed to create server-side conversation for {ConversationId}", sanitizedConvId);
                     await WriteErrorAsync("Failed to create conversation session", ct);
                     return;
                 }
@@ -187,7 +185,7 @@ public class ChatController : ControllerBase
             _conversationCache.Set(convId, serverConvId);
 
             _logger.LogInformation("Streaming complete for conversation {ConversationId}: response_length={ResponseLength}, mcp_doc_count={McpDocCount}",
-                convId, completeResponseBuilder.Length, mcpDocs.Count);
+                sanitizedConvId, completeResponseBuilder.Length, mcpDocs.Count);
 
             // Build and emit citations as a tool message
             var citationList = BuildCitationList(originalMarkers, mcpDocs);
@@ -212,9 +210,57 @@ public class ChatController : ControllerBase
         catch (IOException ex)
         {
             _logger.LogError(ex, "IO error in chat streaming");
-            await WriteErrorAsync(ex.Message, ct);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "JSON parsing error in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Invalid operation in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (UriFormatException ex)
+        {
+            _logger.LogError(ex, "Invalid URI in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "Unexpected error in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (NotSupportedException ex)
+        {
+            _logger.LogError(ex, "Unsupported operation in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogError(ex, "Missing key while processing chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogError(ex, "Formatting error in chat streaming");
+            HandleCorruptConversation(convId);
+            await WriteErrorAsync("An error occurred while processing the request.", ct);
+        }
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error in chat streaming");
             HandleCorruptConversation(convId);
@@ -268,20 +314,17 @@ public class ChatController : ControllerBase
         {
             // MCP results have an "Outputs" property containing items with "Text"
             var outputsProp = content.GetType().GetProperty("Outputs");
-            if (outputsProp != null)
+            if (outputsProp != null && outputsProp.GetValue(content) is System.Collections.IEnumerable outputs)
             {
-                if (outputsProp.GetValue(content) is System.Collections.IEnumerable outputs)
+                foreach (var output in outputs)
                 {
-                    foreach (var output in outputs)
+                    var textProp = output.GetType().GetProperty("Text");
+                    if (textProp != null)
                     {
-                        var textProp = output.GetType().GetProperty("Text");
-                        if (textProp != null)
+                        var text = textProp.GetValue(output) as string;
+                        if (!string.IsNullOrEmpty(text))
                         {
-                            var text = textProp.GetValue(output) as string;
-                            if (!string.IsNullOrEmpty(text))
-                            {
-                                ParseMcpDocs(text, mcpDocs);
-                            }
+                            ParseMcpDocs(text, mcpDocs);
                         }
                     }
                 }
@@ -469,11 +512,55 @@ public class ChatController : ControllerBase
 
             var errorBody = await response.Content.ReadAsStringAsync(ct);
             _logger.LogWarning("Azure Search fetch failed: status={Status}, body={Body}", (int)response.StatusCode, errorBody[..Math.Min(500, errorBody.Length)]);
-            return Ok(new { error = $"HTTP {(int)response.StatusCode}" });
+            return StatusCode((int)response.StatusCode, new { error = $"HTTP {(int)response.StatusCode}" });
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499, new { error = "Request cancelled" });
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid JSON while processing fetch-azure-search-content request");
+            return BadRequest(new { error = "Invalid request payload" });
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error in fetch-azure-search-content");
+            return StatusCode(502, new { error = "Upstream service request failed" });
+        }
+        catch (RequestFailedException ex)
+        {
+            _logger.LogError(ex, "Azure request failed in fetch-azure-search-content");
+            return StatusCode(502, new { error = "Upstream service request failed" });
+        }
+        catch (UriFormatException ex)
+        {
+            _logger.LogError(ex, "Invalid endpoint URI in fetch-azure-search-content");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Invalid operation in fetch-azure-search-content");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+        catch (ArgumentException ex)
         {
             _logger.LogError(ex, "Error in fetch-azure-search-content");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+        catch (NotSupportedException ex)
+        {
+            _logger.LogError(ex, "Unsupported operation in fetch-azure-search-content");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogError(ex, "Missing key in fetch-azure-search-content");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogError(ex, "Formatting error in fetch-azure-search-content");
             return StatusCode(500, new { error = "Internal server error" });
         }
     }
