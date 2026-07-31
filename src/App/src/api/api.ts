@@ -24,15 +24,17 @@ httpClient.addRequestInterceptor((config) => {
     (config.headers as any)['X-Ms-Client-Principal-Id'] = userId;
   }
   // Add access token for cross-domain auth and OBO flow
-  // EasyAuth accepts Bearer token in Authorization header for cross-origin requests
+  // EasyAuth accepts a raw AAD Bearer token in the Authorization header for cross-origin
+  // requests. Do NOT also send it as X-ZUMO-AUTH: that header is reserved for EasyAuth's own
+  // self-issued session token (whose iss/aud is the site's own URL), not a raw AAD access
+  // token. Sending the AAD token there causes EasyAuth's own token validator to fail with an
+  // issuer/audience mismatch exception and reject the request outright.
   const accessToken = getAccessToken();
 
   if (accessToken && config.headers) {
     (config.headers as any)['Authorization'] = `Bearer ${accessToken}`;
-    // Also send as X-ZUMO-AUTH for App Service EasyAuth compatibility
-    (config.headers as any)['X-ZUMO-AUTH'] = accessToken;
   } else if (process.env.NODE_ENV === 'development') {
-    console.log('[Request] NO token - Authorization and X-ZUMO-AUTH headers NOT added');
+    console.log('[Request] NO token - Authorization header NOT added');
   }
   return config;
 });

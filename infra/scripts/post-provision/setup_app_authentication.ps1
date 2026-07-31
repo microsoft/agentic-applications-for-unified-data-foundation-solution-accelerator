@@ -531,10 +531,6 @@ $authConfig = @{
             requireAuthentication = $true
             unauthenticatedClientAction = "RedirectToLoginPage"
             redirectToProvider = "azureactivedirectory"
-            excludedPaths = @(
-                "/api/*"
-                "/history/*"
-            )
         }
         identityProviders = @{
             azureActiveDirectory = @{
@@ -550,6 +546,12 @@ $authConfig = @{
                         "api://$clientId"
                         $clientId
                     )
+                    # IMPORTANT: without this, Azure defaults allowedApplications to an empty
+                    # array, which EasyAuth treats as a DENY-ALL policy ("this principal does
+                    # not match any of the allowed applications") - rejecting every valid token.
+                    defaultAuthorizationPolicy = @{
+                        allowedApplications = @($clientId)
+                    }
                 }
                 login = @{
                     # Request scopes needed for OBO flow
@@ -617,17 +619,22 @@ if ($ApiAppName) {
         exit 1
     }
     
-    # API auth config - AllowAnonymous mode for cross-domain compatibility
-    # Platform is enabled to parse tokens, but auth is not required
-    # This allows the frontend to send X-ZUMO-AUTH tokens without EasyAuth blocking cross-origin requests
+    # API auth config - authentication is REQUIRED (do not skip/exclude auth on the API)
+    # Platform is enabled and validates the bearer token forwarded by the frontend's
+    # reverse proxy. "Return401" is the Microsoft-recommended unauthenticatedClientAction
+    # for APIs (as opposed to "RedirectToLoginPage", which is for browser apps) - it
+    # rejects requests without a valid token/session instead of silently allowing them
+    # through, which is required for auth_utils.py's reliance on the
+    # x-ms-client-principal-id / x-ms-token-aad-access-token headers that EasyAuth injects
+    # only when it has actually validated the caller.
     $apiAuthConfig = @{
         properties = @{
             platform = @{
                 enabled = $true
             }
             globalValidation = @{
-                requireAuthentication = $false  # Don't require auth - API handles token validation
-                unauthenticatedClientAction = "AllowAnonymous"  # Allow anonymous for cross-domain
+                requireAuthentication = $true  # Require auth - do not skip validation
+                unauthenticatedClientAction = "Return401"  # Correct action for APIs (no HTML redirect)
                 redirectToProvider = "azureactivedirectory"
             }
             identityProviders = @{
@@ -643,6 +650,11 @@ if ($ApiAppName) {
                             "api://$clientId"
                             $clientId
                         )
+                        # See matching comment on the frontend config above - required to avoid
+                        # EasyAuth's deny-all default when allowedApplications is left unset.
+                        defaultAuthorizationPolicy = @{
+                            allowedApplications = @($clientId)
+                        }
                     }
                 }
             }
@@ -665,7 +677,7 @@ if ($ApiAppName) {
     Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
     
     if ($apiExitCode -eq 0) {
-        Write-Host "  API authentication configured successfully (AllowAnonymous mode)" -ForegroundColor Green
+        Write-Host "  API authentication configured successfully (authentication required)" -ForegroundColor Green
         Write-Host "  OBO environment variables set on API" -ForegroundColor Green
     } else {
         Write-Host "  Warning: Failed to configure API authentication" -ForegroundColor Yellow
