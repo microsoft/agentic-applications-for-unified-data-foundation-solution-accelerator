@@ -69,20 +69,25 @@
     "nth-check": "2.1.1",
     "serialize-javascript": "7.0.5",
     "underscore": "1.13.8",
-    "svgo": "3.3.3",
+    "svgo": "3.3.4",
     "css-select": "5.1.0",
     "postcss": "8.5.12",
     "@tootallnate/once": "3.0.1",
-    "brace-expansion": "1.1.13",
+    "brace-expansion": "1.1.16",
     "path-to-regexp": "0.1.13",
     "yaml": "2.8.3",
     "follow-redirects": "1.16.0",
     "uuid": "14.0.0",
     "@babel/plugin-transform-modules-systemjs": "7.29.4",
-    "fast-uri": "3.1.2",
+    "fast-uri": "3.1.4",
     "form-data": "3.0.5",
     "launch-editor": "2.14.1",
-    "js-yaml": "4.2.0",
+    "js-yaml": "4.3.0",
+    "shell-quote": "1.9.0",
+    "websocket-driver": "0.7.5",
+    "webpack-dev-server": {
+      "ws": "8.21.0"
+    },
     "@fluentui/react-icons": "$@fluentui/react-icons"
   }
 }
