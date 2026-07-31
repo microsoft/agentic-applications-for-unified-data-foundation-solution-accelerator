@@ -100,8 +100,8 @@ def ensure_deployer_roles():
             if count > 0:
                 print(f"  [OK] '{role_name}' already assigned")
                 continue
-        except (subprocess.CalledProcessError, ValueError):
-            pass
+        except (subprocess.CalledProcessError, ValueError) as e:
+            print(f"  [WARN] Could not verify existing '{role_name}' assignment; attempting assignment anyway: {e}")
 
         assign_cmd = (
             f'az role assignment create --assignee "{deployer_principal_id}" '

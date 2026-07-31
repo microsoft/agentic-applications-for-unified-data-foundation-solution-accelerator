@@ -371,7 +371,15 @@ def build_agent_instructions(config, schema_text, use_knowledge_base=True,
 
 - **Database queries** (counts, lists, aggregations, filtering records) → {sql_tool_ref}
 - **Document lookups** (policies, thresholds, rules, guidelines) → {search_tool_ref}  
-- **Comparisons** (data vs. policy thresholds) → {search_action} for threshold, then query with that value"""
+- **Comparisons** (data vs. policy thresholds) → {search_action} for threshold, then query with that value
+
+## Non-Negotiable Rules:
+✗ Do NOT skip tool calls for follow-up questions about the same topic
+✗ Do NOT reuse answers from previous questions in the conversation
+✗ Do NOT assume you already have the answer because you answered a similar question earlier
+✓ ALWAYS call the appropriate tool for each new question
+✓ ALWAYS treat each question as a fresh request requiring tool calls
+"""
         citation_section = """## Citation Guidelines (CRITICAL - MANDATORY)
 EVERY response that uses knowledge base information MUST contain citation markers. NO EXCEPTIONS.
 - Format: 【number:section†】  (the † character is REQUIRED, do not omit it)
@@ -509,22 +517,8 @@ def build_sql_tool(tables, data_agent_id, data_agent_name,
         print(f"  Added MicrosoftFabricPreviewTool (connection: {fabric_connection_id})")
         return tool
 
-    # Fallback: Data Agent via MCP connection (commented out — preview tool is default)
-    # if not data_agent_mcp_endpoint:
-    #     raise ValueError(
-    #         "DATA_AGENT_ID is required to build the Fabric Data Agent MCP endpoint. "
-    #         "Run 02_create_fabric_items.py or set DATA_AGENT_ID env var."
-    #     )
-    # da_tool_name = f"DataAgent_{data_agent_name}" if data_agent_name else "DataAgent"
-    # tool = MCPTool(
-    #     server_label="fabric-data-agent",
-    #     server_url=data_agent_mcp_endpoint,
-    #     require_approval="never",
-    #     allowed_tools=[da_tool_name],
-    #     project_connection_id=data_agent_mcp_connection_name,
-    # )
-    # print(f"  Added Fabric Data Agent MCP tool: {da_tool_name}")
-    # return tool
+    # MCP fallback is intentionally not used here; Fabric preview connectivity
+    # requires DATA_AGENT_ID and uses MicrosoftFabricPreviewTool.
     raise ValueError(
         "DATA_AGENT_ID is required for MicrosoftFabricPreviewTool. "
         "Run 02_create_fabric_items.py or set DATA_AGENT_ID env var."
@@ -726,23 +720,8 @@ def create_connections(credential):
             print(f"[WARN] Could not create Fabric Data Agent preview connection: {e}")
             print("       You can create it manually in the Foundry portal.")
 
-    # Data Agent MCP connection (fallback — commented out, preview tool is default)
-    # if not DATA_AGENT_MCP_ENDPOINT:
-    #     print("\n[SKIP] Data Agent MCP connection — no endpoint available (set DATA_AGENT_ID)")
-    # else:
-    #     print(f"\nCreating Data Agent MCP project connection '{DATA_AGENT_MCP_CONNECTION_NAME}'...")
-    #     try:
-    #         if create_mcp_connection(
-    #             credential, DATA_AGENT_MCP_CONNECTION_NAME,
-    #             DATA_AGENT_MCP_ENDPOINT, "https://api.fabric.microsoft.com/"
-    #         ):
-    #             print(f"[OK] Data Agent MCP connection '{DATA_AGENT_MCP_CONNECTION_NAME}' created")
-    #         else:
-    #             print("[WARN] Data Agent MCP connection creation may have failed.")
-    #             print("       You can create the connection manually in the Foundry portal.")
-    #     except Exception as e:
-    #         print(f"[WARN] Could not create Data Agent MCP connection: {e}")
-    #         print("       You can create it manually in the Foundry portal.")
+    # MCP fallback is intentionally not created here; the Fabric Data Agent preview
+    # CustomKeys connection is the default path for SQL tool connectivity.
 
     # Knowledge Base MCP connection (only if documents are available)
     if USE_KNOWLEDGE_BASE and HAS_DOCUMENT_SEARCH:

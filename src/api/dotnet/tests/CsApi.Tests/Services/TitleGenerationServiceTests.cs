@@ -59,7 +59,7 @@ public class TitleGenerationServiceTests
         // Arrange
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns((string?)null);
         _mockConfiguration.Setup(c => c["AGENT_NAME_TITLE"]).Returns((string?)null);
-        
+
         var messages = new List<ChatMessage>
         {
             new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("What is the weather today in Seattle?") }
@@ -78,7 +78,7 @@ public class TitleGenerationServiceTests
         // Arrange
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns("https://test.azure.com");
         _mockConfiguration.Setup(c => c["AGENT_NAME_TITLE"]).Returns((string?)null);
-        
+
         var messages = new List<ChatMessage>
         {
             new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("Hello world test message") }
@@ -96,7 +96,7 @@ public class TitleGenerationServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns((string?)null);
-        
+
         var messages = new List<ChatMessage>
         {
             new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("Hello") }
@@ -114,7 +114,7 @@ public class TitleGenerationServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns((string?)null);
-        
+
         var messages = new List<ChatMessage>
         {
             new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("First message here") },
@@ -134,7 +134,7 @@ public class TitleGenerationServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns((string?)null);
-        
+
         var messages = new List<ChatMessage>
         {
             new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("") }
@@ -152,7 +152,7 @@ public class TitleGenerationServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns((string?)null);
-        
+
         var messages = new List<ChatMessage>
         {
             new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("Hello\nworld\ntest\nmessage\nextra") }
@@ -170,7 +170,7 @@ public class TitleGenerationServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns((string?)null);
-        
+
         var messages = new List<ChatMessage>
         {
             new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("Hello\tworld\ttest\tmessage\textra") }
@@ -188,7 +188,7 @@ public class TitleGenerationServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns((string?)null);
-        
+
         var messages = new List<ChatMessage>
         {
             new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("One two three four five six seven") }
@@ -206,7 +206,7 @@ public class TitleGenerationServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns((string?)null);
-        
+
         var messages = new List<ChatMessage>
         {
             new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("One two three four") }
@@ -224,7 +224,7 @@ public class TitleGenerationServiceTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns((string?)null);
-        
+
         var messages = new List<ChatMessage>
         {
             new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("   \t\n  ") }
@@ -243,7 +243,7 @@ public class TitleGenerationServiceTests
         // Arrange
         _mockConfiguration.Setup(c => c["AZURE_AI_AGENT_ENDPOINT"]).Returns("https://test.azure.com");
         _mockConfiguration.Setup(c => c["AGENT_NAME_TITLE"]).Returns("test-agent");
-        
+
         var messages = new List<ChatMessage>
         {
             new ChatMessage { Role = "user", Content = JsonSerializer.SerializeToElement("Test message") }

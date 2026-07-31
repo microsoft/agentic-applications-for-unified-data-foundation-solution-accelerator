@@ -425,7 +425,7 @@ To help you get started, here are some **Sample Questions** you can ask in the a
 
 **Retail (Default) scenario pack:**
 - Show total revenue by year for last 5 years as a line chart.
-- Show top 10 products by Revenue in the last year in a table.
+- Show top 10 products by Revenue in the last 5 years in a table.
 - Show as a donut chart.
 
 **Insurance scenario pack:**
@@ -437,31 +437,3 @@ These questions serve as a great starting point to explore insights from the dat
 
 ## Create Fabric Data Agent and Publish to Teams
 1. Follow the steps in [CopilotStudioDeployment](./CopilotStudioDeployment.md)
-
-## Advanced: Deploy Local Changes
-
-If you've made local modifications to the code and want to deploy them to Azure, follow these steps to swap the configuration files:
-
-> **Note:** To set up and run the application locally for development, see the [Local Development Setup Guide](./LocalDevelopmentSetup.md).
-
-### Step 1: Rename Azure Configuration Files
-
-**In the root directory:**
-1. Rename `azure.yaml` to `azure_custom2.yaml`
-2. Rename `azure_custom.yaml` to `azure.yaml`
-
-### Step 2: Rename Infrastructure Files
-
-**In the `infra` directory:**
-1. Rename `main.bicep` to `main_custom2.bicep`
-2. Rename `main_custom.bicep` to `main.bicep`
-
-### Step 3: Deploy Changes
-
-Run the deployment command:
-```shell
-azd up
-```
-
-> **Note:** These custom files are configured to deploy your local code changes instead of pulling from the GitHub repository.
-

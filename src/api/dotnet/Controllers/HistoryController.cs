@@ -1,6 +1,9 @@
 using CsApi.Interfaces;
 using CsApi.Models;
+using Azure;
+using Microsoft.Azure.Cosmos;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace CsApi.Controllers;
@@ -55,7 +58,17 @@ public class HistoryController : ControllerBase
             // Python returns empty list (200) when no conversations — never 404
             return Ok(conversations ?? new List<ConversationSummary>());
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/list");
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
+        }
+        catch (CosmosException ex)
+        {
+            _logger.LogError(ex, "CosmosDB error in /history/list");
+            return Problem(statusCode: 500, detail: "An internal error has occurred!");
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Exception in /history/list");
             return Problem(statusCode: 500, detail: "An internal error has occurred!");
@@ -95,7 +108,17 @@ public class HistoryController : ControllerBase
 
             return Ok(new { conversation_id = id, messages = formattedMessages });
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/read");
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
+        }
+        catch (CosmosException ex)
+        {
+            _logger.LogError(ex, "CosmosDB error in /history/read");
+            return Problem(statusCode: 500, detail: "An internal error has occurred!");
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Exception in /history/read");
             return Problem(statusCode: 500, detail: "An internal error has occurred!");
@@ -142,7 +165,22 @@ public class HistoryController : ControllerBase
 
             return Ok(true);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/generate");
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
+        }
+        catch (CosmosException ex)
+        {
+            _logger.LogError(ex, "CosmosDB error in /history/generate");
+            return Problem(statusCode: 500, detail: "An internal error has occurred!");
+        }
+        catch (RequestFailedException ex)
+        {
+            _logger.LogError(ex, "Azure request error in /history/generate");
+            return Problem(statusCode: 500, detail: "An internal error has occurred!");
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Exception in /history/generate");
             return Problem(statusCode: 500, detail: "An internal error has occurred!");
@@ -207,7 +245,22 @@ public class HistoryController : ControllerBase
                 }
             });
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/update");
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
+        }
+        catch (CosmosException ex)
+        {
+            _logger.LogError(ex, "CosmosDB error in /history/update");
+            return Problem(statusCode: 500, detail: "An internal error has occurred!");
+        }
+        catch (RequestFailedException ex)
+        {
+            _logger.LogError(ex, "Azure request error in /history/update");
+            return Problem(statusCode: 500, detail: "An internal error has occurred!");
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Exception in /history/update");
             return Problem(statusCode: 500, detail: "An internal error has occurred!");
@@ -234,7 +287,17 @@ public class HistoryController : ControllerBase
 
             return Ok(new { message = $"Successfully updated message with feedback {req.MessageFeedback}", message_id = req.MessageId });
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/message_feedback");
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
+        }
+        catch (CosmosException ex)
+        {
+            _logger.LogError(ex, "CosmosDB error in /history/message_feedback");
+            return Problem(statusCode: 500, detail: "An internal error has occurred!");
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Exception in /history/message_feedback");
             return Problem(statusCode: 500, detail: "An internal error has occurred!");
@@ -259,7 +322,17 @@ public class HistoryController : ControllerBase
 
             return Ok(new { message = "Successfully deleted conversation and messages", conversation_id = id });
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/delete");
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
+        }
+        catch (CosmosException ex)
+        {
+            _logger.LogError(ex, "CosmosDB error in /history/delete");
+            return Problem(statusCode: 500, detail: "An internal error has occurred!");
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Exception in /history/delete");
             return Problem(statusCode: 500, detail: "An internal error has occurred!");
@@ -286,7 +359,17 @@ public class HistoryController : ControllerBase
 
             return Ok(new { message = $"Successfully deleted all conversations for user {userId}" });
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/delete_all");
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
+        }
+        catch (CosmosException ex)
+        {
+            _logger.LogError(ex, "CosmosDB error in /history/delete_all");
+            return Problem(statusCode: 500, detail: "An internal error has occurred!");
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Exception in /history/delete_all");
             return Problem(statusCode: 500, detail: "An internal error has occurred!");
@@ -319,7 +402,17 @@ public class HistoryController : ControllerBase
 
             return Ok(conversation);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/rename");
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
+        }
+        catch (CosmosException ex)
+        {
+            _logger.LogError(ex, "CosmosDB error in /history/rename");
+            return Problem(statusCode: 500, detail: "An internal error has occurred!");
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Exception in /history/rename");
             return Problem(statusCode: 500, detail: "An internal error has occurred!");
@@ -348,7 +441,17 @@ public class HistoryController : ControllerBase
 
             return Ok(new { message = $"Successfully cleared messages in conversation {req.ConversationId}" });
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Request cancelled in /history/clear");
+            return Problem(statusCode: 499, detail: "Request was cancelled.");
+        }
+        catch (CosmosException ex)
+        {
+            _logger.LogError(ex, "CosmosDB error in /history/clear");
+            return Problem(statusCode: 500, detail: "An internal error has occurred!");
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Exception in /history/clear");
             return Problem(statusCode: 500, detail: "An internal error has occurred!");
@@ -360,16 +463,8 @@ public class HistoryController : ControllerBase
     [HttpGet("ensure")]
     public async Task<IActionResult> Ensure(CancellationToken ct = default)
     {
-        try
-        {
-            var configured = await _cosmosRepo.EnsureConfiguredAsync();
-            return Ok(new { configured });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Exception in /history/ensure");
-            return Ok(new { configured = false, error = ex.Message });
-        }
+        var configured = await _cosmosRepo.EnsureConfiguredAsync();
+        return Ok(new { configured });
     }
 
     // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -380,9 +475,29 @@ public class HistoryController : ControllerBase
         {
             return await _titleService.GenerateTitleAsync(messages, ct);
         }
-        catch (Exception ex)
+        catch (RequestFailedException ex)
+        {
+            _logger.LogWarning(ex, "Azure request failed while generating title, using fallback");
+            return GenerateFallbackTitle(messages);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "JSON processing failed while generating title, using fallback");
+            return GenerateFallbackTitle(messages);
+        }
+        catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Failed to generate title, using fallback");
+            return GenerateFallbackTitle(messages);
+        }
+        catch (NotSupportedException ex)
+        {
+            _logger.LogWarning(ex, "Unsupported operation while generating title, using fallback");
+            return GenerateFallbackTitle(messages);
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogWarning(ex, "Formatting error while generating title, using fallback");
             return GenerateFallbackTitle(messages);
         }
     }

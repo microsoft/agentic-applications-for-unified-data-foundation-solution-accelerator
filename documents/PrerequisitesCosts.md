@@ -6,7 +6,7 @@ To deploy this solution accelerator, ensure you have:
 - **Contributor** role at the subscription level and **Role Based Access Control** role on the subscription and/or resource group level
 <!-- - A minimum **F2 Fabric capacity** — [Set up Fabric Capacity](https://learn.microsoft.com/en-us/fabric/admin/capacity-settings?tabs=fabric-capacity#create-a-new-capacity) -->
 
-Follow the steps in [Azure Account Set Up](./documents/AzureAccountSetUp.md) for detailed account configuration.
+Follow the steps in [Azure Account Set Up](./AzureAccountSetUp.md) for detailed account configuration.
 
 **Regional availability:** East US, East US2, Australia East, UK South, France Central — [Check all regions](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/?products=all&regions=all)
 
