@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -138,7 +138,7 @@ jobs:
           always() &&
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.fork == false
-        uses: MishaKav/pytest-coverage-comment@e48ae95fa406cefacc7fbdd79949122795569961  # v1.8.0
+        uses: MishaKav/pytest-coverage-comment@fd9adbdca9fdfbe2b9bfa44a7340e6a83346ce6c  # v1.10.0
         with:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: test-results.xml
