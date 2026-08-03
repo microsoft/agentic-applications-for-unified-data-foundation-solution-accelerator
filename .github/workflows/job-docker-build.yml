@@ -38,7 +38,7 @@ jobs:
       IMAGE_TAG: ${{ steps.generate_docker_tag.outputs.IMAGE_TAG }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Generate Unique Docker Image Tag
         id: generate_docker_tag
@@ -55,10 +55,10 @@ jobs:
           echo "Generated unique Docker tag: $UNIQUE_TAG"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Login to Azure using OIDC
-        uses: azure/login@v3
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -73,7 +73,7 @@ jobs:
 
       - name: Build and Push Docker Image for WebApp
         id: build_push_image_WebApp
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         env:
           DOCKER_BUILD_SUMMARY: false
         with:
@@ -86,7 +86,7 @@ jobs:
 
       - name: Build and Push Docker Image for Python API
         id: build_push_image_python_api
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         if: inputs.backend_runtime_stack == 'python'
         env:
           DOCKER_BUILD_SUMMARY: false
@@ -101,7 +101,7 @@ jobs:
       - name: Build and Push Docker Image for DotNet API
         id: build_push_image_dotnet_api
         if: inputs.backend_runtime_stack == 'dotnet'
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         env:
           DOCKER_BUILD_SUMMARY: false
         with:
