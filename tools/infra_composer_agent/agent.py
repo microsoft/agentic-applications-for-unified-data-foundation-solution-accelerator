@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import os
 import re
 import shutil
 import subprocess
@@ -39,6 +40,7 @@ from module_index import build_index, ModuleInfo
 from request_parser import match_requests
 from resolver import resolve
 from composer import copy_modules, generate_main_bicep
+from llm_interpreter import interpret_with_llm
 
 # Fixed source: the module library this agent always composes from.
 DEFAULT_SOURCE_REPO = "https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator.git"
@@ -46,14 +48,32 @@ DEFAULT_SOURCE_BRANCH = "infra-core-modules-copy"
 DEFAULT_SOURCE_PATH = "infra_new/avm/modules"
 
 
-def compose(prompt: str, source_root: Path, dest_root: Path) -> tuple[Path, list[str]]:
+def compose(prompt: str, source_root: Path, dest_root: Path,
+            use_llm: bool = False, ai_foundry_endpoint: str | None = None,
+            ai_foundry_model: str | None = None, ai_foundry_agent_id: str | None = None
+            ) -> tuple[Path, list[str]]:
     """Runs the full pipeline. Returns (main_bicep_path, human_readable_log)."""
     log: list[str] = []
 
     modules = build_index(source_root)
     log.append(f"Indexed {len(modules)} modules under {source_root}")
 
-    requests = match_requests(prompt, modules)
+    requests = None
+    if use_llm:
+        endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
+        model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
+        agent_id = ai_foundry_agent_id or os.environ.get("AI_FOUNDRY_AGENT_ID")
+        if not endpoint or not model:
+            log.append("LLM interpretation requested but AI_FOUNDRY_PROJECT_ENDPOINT/"
+                        "AI_FOUNDRY_MODEL_DEPLOYMENT are not set; falling back to deterministic matching.")
+        else:
+            log.append(f"Interpreting prompt via Azure AI Foundry agent at {endpoint} (model={model})...")
+            requests = interpret_with_llm(prompt, modules, endpoint, model, agent_id)
+            if requests is not None:
+                log.append(f"LLM identified {len(requests)} resource concept(s) from the prompt.")
+
+    if requests is None:
+        requests = match_requests(prompt, modules)
     selected: list[ModuleInfo] = []
     requested_counts: dict[str, int] = {}
     for req in requests:
@@ -157,6 +177,18 @@ def main() -> int:
                          help="Folder (relative to the target repo root) to write the composition into. "
                               "Default '.' places main.bicep/modules/README.md directly at the target repo root.")
 
+    parser.add_argument("--use-llm", action="store_true",
+                         help="Interpret --prompt with an Azure AI Foundry agent first (handles messier, "
+                              "intent-driven prompts involving RBAC/role assignments/connections), falling "
+                              "back to the deterministic matcher if AI Foundry isn't configured or fails.")
+    parser.add_argument("--ai-foundry-endpoint", default=None,
+                         help="Azure AI Foundry project endpoint. Falls back to AI_FOUNDRY_PROJECT_ENDPOINT env var.")
+    parser.add_argument("--ai-foundry-model", default=None,
+                         help="Model deployment name in the AI Foundry project (e.g. gpt-4o). "
+                              "Falls back to AI_FOUNDRY_MODEL_DEPLOYMENT env var.")
+    parser.add_argument("--ai-foundry-agent-id", default=None,
+                         help="Reuse an existing AI Foundry agent instead of creating/deleting a temporary one. "
+                              "Falls back to AI_FOUNDRY_AGENT_ID env var.")
     parser.add_argument("--validate", action="store_true", help="Run 'az bicep build' on the generated main.bicep.")
     parser.add_argument("--no-git", action="store_true",
                          help="Skip cloning/branching/pushing entirely; just generate files locally under --dest-name.")
@@ -178,7 +210,9 @@ def main() -> int:
 
         if args.no_git:
             dest_root = tmp_root / "generated-infra" if args.dest_name == "." else Path(args.dest_name).resolve()
-            main_path, log = compose(args.prompt, source_root, dest_root)
+            main_path, log = compose(args.prompt, source_root, dest_root,
+                                      use_llm=args.use_llm, ai_foundry_endpoint=args.ai_foundry_endpoint,
+                                      ai_foundry_model=args.ai_foundry_model, ai_foundry_agent_id=args.ai_foundry_agent_id)
             for line in log:
                 print(line)
             print(f"Generated locally at {dest_root} (no git operations performed).")
@@ -201,7 +235,9 @@ def main() -> int:
         git_ops.create_branch_from_base(target_clone_dir, args.target_base, branch_name)
 
         dest_root = target_clone_dir if args.dest_name == "." else target_clone_dir / args.dest_name
-        main_path, log = compose(args.prompt, source_root, dest_root)
+        main_path, log = compose(args.prompt, source_root, dest_root,
+                                  use_llm=args.use_llm, ai_foundry_endpoint=args.ai_foundry_endpoint,
+                                  ai_foundry_model=args.ai_foundry_model, ai_foundry_agent_id=args.ai_foundry_agent_id)
         for line in log:
             print(line)
 
