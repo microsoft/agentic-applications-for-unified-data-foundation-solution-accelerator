@@ -23,6 +23,7 @@ OUTPUT_RE = re.compile(
     re.MULTILINE,
 )
 AVM_MODULE_RE = re.compile(r"module\s+\w+\s+'br/public:(avm/[\w./:@-]+)'")
+LOCAL_MODULE_RE = re.compile(r"module\s+\w+\s+'(\.{1,2}/[\w./-]+\.bicep)'")
 DESCRIPTION_RE = re.compile(r"@description\('([^']*)'\)")
 
 
@@ -51,6 +52,7 @@ class ModuleInfo:
     params: list[ParamInfo] = field(default_factory=list)
     outputs: list[OutputInfo] = field(default_factory=list)
     avm_refs: list[str] = field(default_factory=list)
+    local_module_refs: list[Path] = field(default_factory=list)  # sibling .bicep files this module 'module ... = { ... }'-references by relative path
     tags: set[str] = field(default_factory=set)
 
     @property
@@ -131,6 +133,15 @@ def parse_module(path: Path, modules_root: Path) -> ModuleInfo:
         outputs.append(OutputInfo(oname, otype, description))
 
     avm_refs = AVM_MODULE_RE.findall(text)
+    # Resolve any locally-referenced sibling .bicep files (e.g. a helper
+    # module like './cross-scope-role-assignment.bicep') to absolute paths
+    # relative to this module's own folder, so they can be copied alongside
+    # it even though they're never separately requested/matched as a resource.
+    local_module_refs: list[Path] = []
+    for rel in LOCAL_MODULE_RE.findall(text):
+        candidate = (path.parent / rel).resolve()
+        if candidate.exists():
+            local_module_refs.append(candidate)
     tags = _derive_tags(name, category, avm_refs)
 
     return ModuleInfo(
@@ -141,6 +152,7 @@ def parse_module(path: Path, modules_root: Path) -> ModuleInfo:
         params=params,
         outputs=outputs,
         avm_refs=avm_refs,
+        local_module_refs=local_module_refs,
         tags=tags,
     )
 

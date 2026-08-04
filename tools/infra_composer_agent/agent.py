@@ -40,7 +40,7 @@ from module_index import build_index, ModuleInfo
 from request_parser import match_requests
 from resolver import resolve
 from composer import copy_modules, generate_main_bicep
-from llm_interpreter import interpret_with_llm
+from llm_interpreter import interpret_with_llm, DEFAULT_OLLAMA_HOST, DEFAULT_OLLAMA_MODEL
 
 # Fixed source: the module library this agent always composes from.
 DEFAULT_SOURCE_REPO = "https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator.git"
@@ -49,30 +49,33 @@ DEFAULT_SOURCE_PATH = "infra_new/avm/modules"
 
 
 def compose(prompt: str, source_root: Path, dest_root: Path,
-            use_llm: bool = False, ai_foundry_endpoint: str | None = None,
-            ai_foundry_model: str | None = None, ai_foundry_agent_id: str | None = None
-            ) -> tuple[Path, list[str]]:
+            use_llm: bool = False, llm_backend: str = "ollama",
+            ollama_host: str | None = None, ollama_model: str | None = None,
+            ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
+            ai_foundry_agent_id: str | None = None) -> tuple[Path, list[str]]:
     """Runs the full pipeline. Returns (main_bicep_path, human_readable_log)."""
     log: list[str] = []
 
     modules = build_index(source_root)
     log.append(f"Indexed {len(modules)} modules under {source_root}")
 
-    requests = None
     if use_llm:
+        host = ollama_host or os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST)
+        model = ollama_model or os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
         endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
-        model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
+        foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
         agent_id = ai_foundry_agent_id or os.environ.get("AI_FOUNDRY_AGENT_ID")
-        if not endpoint or not model:
-            log.append("LLM interpretation requested but AI_FOUNDRY_PROJECT_ENDPOINT/"
-                        "AI_FOUNDRY_MODEL_DEPLOYMENT are not set; falling back to deterministic matching.")
+        if llm_backend == "ollama":
+            log.append(f"Interpreting prompt via local Ollama model '{model}' at {host}...")
         else:
-            log.append(f"Interpreting prompt via Azure AI Foundry agent at {endpoint} (model={model})...")
-            requests = interpret_with_llm(prompt, modules, endpoint, model, agent_id)
-            if requests is not None:
-                log.append(f"LLM identified {len(requests)} resource concept(s) from the prompt.")
-
-    if requests is None:
+            log.append(f"Interpreting prompt via Azure AI Foundry agent at {endpoint} (model={foundry_model})...")
+        requests = interpret_with_llm(
+            prompt, modules, backend=llm_backend,
+            ollama_host=host, ollama_model=model,
+            project_endpoint=endpoint, model_deployment=foundry_model, agent_id=agent_id,
+        )
+        log.append(f"LLM identified {len(requests)} resource concept(s) from the prompt.")
+    else:
         requests = match_requests(prompt, modules)
     selected: list[ModuleInfo] = []
     requested_counts: dict[str, int] = {}
@@ -178,11 +181,19 @@ def main() -> int:
                               "Default '.' places main.bicep/modules/README.md directly at the target repo root.")
 
     parser.add_argument("--use-llm", action="store_true",
-                         help="Interpret --prompt with an Azure AI Foundry agent first (handles messier, "
-                              "intent-driven prompts involving RBAC/role assignments/connections), falling "
-                              "back to the deterministic matcher if AI Foundry isn't configured or fails.")
+                         help="Interpret --prompt with an LLM first (handles messier, intent-driven prompts "
+                              "involving RBAC/role assignments/connections instead of plain resource counts). "
+                              "No fallback: if the chosen backend fails, the run stops with an error.")
+    parser.add_argument("--llm-backend", default="ollama", choices=["ollama", "ai-foundry"],
+                         help="Which LLM backend to use with --use-llm (default: ollama -- local, free, offline).")
+    parser.add_argument("--ollama-host", default=None,
+                         help=f"Local Ollama server URL (default: {DEFAULT_OLLAMA_HOST}). Falls back to OLLAMA_HOST env var.")
+    parser.add_argument("--ollama-model", default=None,
+                         help=f"Ollama model to use (default: {DEFAULT_OLLAMA_MODEL}). Falls back to OLLAMA_MODEL env var. "
+                              "Must already be pulled locally (`ollama pull <model>`).")
     parser.add_argument("--ai-foundry-endpoint", default=None,
-                         help="Azure AI Foundry project endpoint. Falls back to AI_FOUNDRY_PROJECT_ENDPOINT env var.")
+                         help="Azure AI Foundry project endpoint (only used with --llm-backend ai-foundry). "
+                              "Falls back to AI_FOUNDRY_PROJECT_ENDPOINT env var.")
     parser.add_argument("--ai-foundry-model", default=None,
                          help="Model deployment name in the AI Foundry project (e.g. gpt-4o). "
                               "Falls back to AI_FOUNDRY_MODEL_DEPLOYMENT env var.")
@@ -211,7 +222,9 @@ def main() -> int:
         if args.no_git:
             dest_root = tmp_root / "generated-infra" if args.dest_name == "." else Path(args.dest_name).resolve()
             main_path, log = compose(args.prompt, source_root, dest_root,
-                                      use_llm=args.use_llm, ai_foundry_endpoint=args.ai_foundry_endpoint,
+                                      use_llm=args.use_llm, llm_backend=args.llm_backend,
+                                      ollama_host=args.ollama_host, ollama_model=args.ollama_model,
+                                      ai_foundry_endpoint=args.ai_foundry_endpoint,
                                       ai_foundry_model=args.ai_foundry_model, ai_foundry_agent_id=args.ai_foundry_agent_id)
             for line in log:
                 print(line)
@@ -236,7 +249,9 @@ def main() -> int:
 
         dest_root = target_clone_dir if args.dest_name == "." else target_clone_dir / args.dest_name
         main_path, log = compose(args.prompt, source_root, dest_root,
-                                  use_llm=args.use_llm, ai_foundry_endpoint=args.ai_foundry_endpoint,
+                                  use_llm=args.use_llm, llm_backend=args.llm_backend,
+                                  ollama_host=args.ollama_host, ollama_model=args.ollama_model,
+                                  ai_foundry_endpoint=args.ai_foundry_endpoint,
                                   ai_foundry_model=args.ai_foundry_model, ai_foundry_agent_id=args.ai_foundry_agent_id)
         for line in log:
             print(line)
