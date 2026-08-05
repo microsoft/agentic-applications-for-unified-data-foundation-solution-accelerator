@@ -28,6 +28,13 @@ The `setup_app_authentication.ps1` script automatically sets up:
     .\infra\scripts\post-provision\setup_app_authentication.ps1
     ```
 
+    PowerShell 7+ (`pwsh`) is required on Linux-based environments such as VS Code Web and GitHub Codespaces. After installing PowerShell, verify the version and run the script with:
+
+    ```bash
+    pwsh --version
+    pwsh -File ./infra/scripts/post-provision/setup_app_authentication.ps1
+    ```
+
 ## Script Parameters
 
 | Parameter | Description | Default |
