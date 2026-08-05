@@ -41,6 +41,8 @@ from request_parser import match_requests
 from resolver import resolve
 from composer import copy_modules, generate_main_bicep
 from llm_interpreter import interpret_with_llm, DEFAULT_OLLAMA_HOST, DEFAULT_OLLAMA_MODEL
+from llm_composer import generate_main_bicep_with_llm
+from bicep_validate import validate_with_az
 
 # Fixed source: the module library this agent always composes from.
 DEFAULT_SOURCE_REPO = "https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator.git"
@@ -113,9 +115,29 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     copy_modules(resolution, source_root, dest_root)
     log.append(f"Copied {len(resolution.modules)} module files into {dest_root / 'modules'}")
 
-    main_bicep = generate_main_bicep(resolution, requested_counts)
     main_path = dest_root / "main.bicep"
-    main_path.write_text(main_bicep, encoding="utf-8")
+    if use_llm:
+        log.append("Generating main.bicep with the LLM (architect-style: feature flags, conditionals, "
+                    "wired outputs) instead of the flat deterministic template...")
+        host = ollama_host or os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST)
+        model = ollama_model or os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
+        endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
+        foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
+        agent_id = ai_foundry_agent_id or os.environ.get("AI_FOUNDRY_AGENT_ID")
+        llm_code, gen_log, ok = generate_main_bicep_with_llm(
+            prompt, resolution, requested_counts, dest_root, backend=llm_backend,
+            ollama_host=host, ollama_model=model,
+            ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model, ai_foundry_agent_id=agent_id,
+        )
+        log.extend(gen_log)
+        if not ok:
+            log.append("LLM-authored main.bicep did not pass validation after all retries; falling back "
+                        "to the deterministic template generator so the output remains guaranteed-deployable.")
+            main_bicep = generate_main_bicep(resolution, requested_counts)
+            main_path.write_text(main_bicep, encoding="utf-8")
+    else:
+        main_bicep = generate_main_bicep(resolution, requested_counts)
+        main_path.write_text(main_bicep, encoding="utf-8")
     log.append(f"Generated {main_path}")
 
     readme = (
@@ -135,15 +157,6 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     log.append(f"Generated {readme_path}")
 
     return main_path, log
-
-
-def validate_with_az(main_bicep: Path) -> tuple[bool, str]:
-    az_cmd = shutil.which("az") or shutil.which("az.cmd") or "az"
-    proc = subprocess.run(
-        [az_cmd, "bicep", "build", "--file", str(main_bicep), "--stdout"],
-        capture_output=True, text=True, check=False, shell=(sys.platform == "win32"),
-    )
-    return proc.returncode == 0, (proc.stdout if proc.returncode == 0 else proc.stderr)
 
 
 def slugify(text: str, max_len: int = 40) -> str:

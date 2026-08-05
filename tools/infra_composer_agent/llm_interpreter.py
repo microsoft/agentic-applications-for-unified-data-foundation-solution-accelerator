@@ -130,7 +130,7 @@ def _call_ollama(prompt_text: str, host: str, model: str) -> str:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=300) as resp:
             body = json.loads(resp.read().decode("utf-8"))
     except urllib.error.URLError as exc:
         raise RuntimeError(
