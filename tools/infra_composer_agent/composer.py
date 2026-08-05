@@ -8,6 +8,7 @@ parameter instead of silently leaving a broken reference.
 """
 from __future__ import annotations
 
+import re
 import shutil
 from pathlib import Path
 
@@ -33,6 +34,28 @@ def _symbol_name(module: ModuleInfo, count_index: int, total_count: int) -> str:
     if total_count > 1:
         return f"{base}{count_index + 1}"
     return base
+
+
+# Bicep primitive/well-known types that are always valid to reference from
+# main.bicep without any import. Anything else is presumed to be a module-local
+# custom `type` declaration (e.g. `subnetOutputType`, possibly `@export()`-ed)
+# that main.bicep has no visibility into -- referencing it by name there is an
+# undeclared-type error (BCP302), so such types must be sanitized before being
+# copied into a param/output declaration in the generated orchestrator.
+_PRIMITIVE_TYPE_RE = re.compile(
+    r"^(string|int|bool|object|array|secureString|secureObject|resourceInput|resourceOutput|any)(\??\[\])*\??$"
+)
+
+
+def _safe_bicep_type(raw_type: str) -> str:
+    """Returns `raw_type` unchanged if it's a Bicep primitive (optionally array/
+    optional-suffixed); otherwise collapses it to the closest safe generic
+    (`array` if it ends in `[]`, else `object`) so main.bicep never references
+    an undeclared module-local custom type name."""
+    t = raw_type.strip()
+    if _PRIMITIVE_TYPE_RE.match(t):
+        return t
+    return "array" if t.endswith("[]") else "object"
 
 
 def _find_output_match(tokens: list[str], producer: ModuleInfo):
@@ -176,17 +199,54 @@ def generate_main_bicep(resolution: ResolutionResult, requested_counts: dict[str
         lines.append("// ============================================================================")
         for pname, ptype in fallback_params.items():
             lines.append("@description('Required by a module; no local module produced a matching output.')")
-            lines.append(f"param {pname} {ptype}")
+            lines.append(f"param {pname} {_safe_bicep_type(ptype)}")
             lines.append("")
 
     lines.append("")
     lines.append("// ============================================================================")
     lines.append("// Outputs")
     lines.append("// ============================================================================")
+    # Bicep hard-caps at 64 outputs (linter rule max-outputs). Large compositions
+    # (e.g. several private-endpoint/private-dns-zone instances) can easily produce
+    # far more raw outputs than that if every output of every module instance is
+    # dumped verbatim, so: (1) only surface outputs for modules the user explicitly
+    # asked for -- auto-included dependency modules (managed identity, private
+    # endpoints, role assignments, etc.) are wiring details, not top-level results
+    # the caller needs -- and (2) if that's still over the limit, keep only each
+    # instance's identifying output (resourceId/id/name/endpoint) rather than every
+    # field, dropping the rest instead of producing an invalid, oversized file.
+    MAX_OUTPUTS = 64
+    output_candidates: list[tuple[str, object]] = []  # (out_name, (sym, o))
     for key, module in resolution.modules.items():
-        for i, sym in enumerate(symbols[key]):
+        if key not in resolution.explicitly_requested:
+            continue
+        for sym in symbols[key]:
             for o in module.outputs:
-                out_name = f"{sym.upper()}_{o.name.upper()}" if len(symbols[key]) == 1 else f"{sym.upper()}_{o.name.upper()}"
-                lines.append(f"output {out_name} {o.type} = {sym}.outputs.{o.name}")
+                out_name = f"{sym.upper()}_{o.name.upper()}"
+                output_candidates.append((out_name, (sym, o)))
+
+    if len(output_candidates) > MAX_OUTPUTS:
+        # Keep only the identifying output per (module instance) -- prefer an
+        # id/resourceId-like output, else name/endpoint-like, else the first.
+        by_instance: dict[str, list[tuple[str, object]]] = {}
+        for out_name, (sym, o) in output_candidates:
+            by_instance.setdefault(sym, []).append((out_name, (sym, o)))
+        trimmed: list[tuple[str, object]] = []
+        for sym, items in by_instance.items():
+            def _rank(item):
+                name = item[1][1].name.lower()
+                if name in ("resourceid", "id"):
+                    return 0
+                if name.endswith(("id", "resourceid")):
+                    return 1
+                if name in ("name", "endpoint"):
+                    return 2
+                return 3
+            items.sort(key=_rank)
+            trimmed.append(items[0])
+        output_candidates = trimmed[:MAX_OUTPUTS]
+
+    for out_name, (sym, o) in output_candidates:
+        lines.append(f"output {out_name} {_safe_bicep_type(o.type)} = {sym}.outputs.{o.name}")
 
     return "\n".join(lines) + "\n"

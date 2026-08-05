@@ -262,3 +262,67 @@ def generate_main_bicep_with_llm(
 
     log.append(f"LLM could not produce a validating main.bicep after {max_attempts} attempts.")
     return None, log, False
+
+
+def fix_bicep_with_llm(
+    main_path: Path, validation_errors: str, backend: str = "ollama",
+    ollama_host: str = DEFAULT_OLLAMA_HOST, ollama_model: str = DEFAULT_OLLAMA_MODEL,
+    ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
+    ai_foundry_agent_id: str | None = None,
+    max_attempts: int = 2, source_label: str = "generated main.bicep",
+) -> tuple[str | None, list[str], bool]:
+    """Repair pass for a main.bicep that already failed `az bicep build` --
+    used both as a last-resort patch for the LLM-authored file and (more
+    importantly) as the safety net when the DETERMINISTIC fallback template
+    itself fails validation (e.g. too many outputs, a module's custom type
+    name copied verbatim into an output type position). Sends the real file
+    content + the real `az bicep build` errors to the persistent author agent
+    and asks it to make the minimal fix needed, re-validating after each
+    attempt exactly like generate_main_bicep_with_llm's self-correction loop.
+    Mutates main_path in place on every attempt so validate_with_az always
+    checks the latest candidate. Returns (bicep_text_or_None, log, success)."""
+    log: list[str] = []
+    current_code = main_path.read_text(encoding="utf-8")
+
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": (
+            f"Here is a {source_label} that failed `az bicep build`:\n\n"
+            f"```bicep\n{current_code}\n```\n\n"
+            f"Validation errors/warnings:\n{validation_errors}\n\n"
+            "Fix ONLY what is necessary to make this build successfully with `az bicep build` -- "
+            "preserve every existing module reference, parameter wiring, and output that is not the "
+            "direct cause of an error (e.g. if there are too many outputs, consolidate/remove the "
+            "least essential ones rather than inventing new structure; if an output/param type isn't a "
+            "valid Bicep type, replace it with the correct primitive/object type or drop that output). "
+            "Do not invent new modules or remove required functionality. Return the complete, "
+            "corrected main.bicep file (full content, not a diff)."
+        )},
+    ]
+
+    for attempt in range(1, max_attempts + 1):
+        log.append(f"Fixer-agent repair attempt {attempt}/{max_attempts} (backend={backend}) for {source_label}...")
+        raw = _call_llm_chat(messages, backend, ollama_host, ollama_model,
+                              ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
+        code = _extract_bicep(raw)
+        main_path.write_text(code, encoding="utf-8")
+
+        ok, output = validate_with_az(main_path)
+        if ok:
+            log.append(f"Fixer agent produced a validating main.bicep on attempt {attempt}.")
+            return code, log, True
+
+        log.append(f"Fixer attempt {attempt} still failed az bicep build validation.")
+        messages.append({"role": "assistant", "content": raw})
+        messages.append({
+            "role": "user",
+            "content": (
+                f"Still failing `az bicep build`:\n{output}\n\n"
+                f"Fix the errors and return the complete, corrected main.bicep file (full content, "
+                f"not a diff)."
+            ),
+        })
+
+    log.append(f"Fixer agent could not repair main.bicep after {max_attempts} attempts; "
+               f"leaving the last generated content as-is.")
+    return None, log, False

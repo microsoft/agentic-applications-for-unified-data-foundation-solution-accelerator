@@ -41,7 +41,7 @@ from request_parser import match_requests
 from resolver import resolve
 from composer import copy_modules, generate_main_bicep
 from llm_interpreter import interpret_with_llm, DEFAULT_OLLAMA_HOST, DEFAULT_OLLAMA_MODEL
-from llm_composer import generate_main_bicep_with_llm
+from llm_composer import generate_main_bicep_with_llm, fix_bicep_with_llm
 from bicep_validate import validate_with_az
 
 # Fixed source: the module library this agent always composes from.
@@ -137,6 +137,22 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
                         "to the deterministic template generator so the output remains guaranteed-deployable.")
             main_bicep = generate_main_bicep(resolution, requested_counts)
             main_path.write_text(main_bicep, encoding="utf-8")
+
+            fallback_ok, fallback_errors = validate_with_az(main_path)
+            if not fallback_ok:
+                log.append("WARNING: the deterministic fallback template also failed az bicep build "
+                            "validation -- invoking the persistent author agent as a dedicated fixer to "
+                            "patch the real errors instead of shipping an unvalidated file.")
+                _, fix_log, fixed = fix_bicep_with_llm(
+                    main_path, fallback_errors, backend=llm_backend,
+                    ollama_host=host, ollama_model=model,
+                    ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model,
+                    ai_foundry_agent_id=author_agent_id, source_label="deterministic fallback main.bicep",
+                )
+                log.extend(fix_log)
+                if not fixed:
+                    log.append("WARNING: the fixer agent could not repair main.bicep either -- the file at "
+                                f"{main_path} still fails validation and must be fixed by hand before deploying.")
     else:
         main_bicep = generate_main_bicep(resolution, requested_counts)
         main_path.write_text(main_bicep, encoding="utf-8")
