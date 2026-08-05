@@ -143,50 +143,58 @@ def _call_ollama(prompt_text: str, host: str, model: str) -> str:
     return content
 
 
+def _create_chat_completion(openai_client, model: str, messages: list[dict], json_mode: bool = False):
+    """Calls chat.completions.create, tolerating reasoning models (e.g.
+    gpt-5.x) that reject `temperature` or `response_format` overrides by
+    retrying without the unsupported kwarg. Raises on any other failure."""
+    kwargs = {"model": model, "messages": messages, "temperature": 0}
+    if json_mode:
+        kwargs["response_format"] = {"type": "json_object"}
+    try:
+        return openai_client.chat.completions.create(**kwargs)
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "temperature" in msg:
+            kwargs.pop("temperature", None)
+            try:
+                return openai_client.chat.completions.create(**kwargs)
+            except Exception as exc2:
+                if "response_format" in str(exc2).lower() and json_mode:
+                    kwargs.pop("response_format", None)
+                    return openai_client.chat.completions.create(**kwargs)
+                raise
+        if "response_format" in msg and json_mode:
+            kwargs.pop("response_format", None)
+            return openai_client.chat.completions.create(**kwargs)
+        raise
+
+
 def _call_ai_foundry_agent(prompt_text: str, project_endpoint: str, model_deployment: str,
                             agent_id: str | None) -> str:
-    """Creates (or reuses) an Azure AI Foundry agent and runs one turn.
-    Raises on any failure."""
+    """Calls an Azure AI Foundry project's deployed model via its
+    OpenAI-compatible chat completions API (azure-ai-projects >= 2.x
+    exposes this directly through get_openai_client() -- no Assistants-
+    style thread/run lifecycle needed). `agent_id` is accepted for CLI/env
+    compatibility but unused by this simpler API. Raises on any failure."""
     from azure.ai.projects import AIProjectClient
     from azure.identity import DefaultAzureCredential
 
-    client = AIProjectClient(endpoint=project_endpoint, credential=DefaultAzureCredential())
-    agents_client = client.agents
+    credential = DefaultAzureCredential()
+    client = AIProjectClient(endpoint=project_endpoint, credential=credential)
+    openai_client = client.get_openai_client()
 
-    created_agent_id = None
-    try:
-        if agent_id:
-            active_agent_id = agent_id
-        else:
-            agent = agents_client.create_agent(
-                model=model_deployment,
-                name="infra-composer-prompt-interpreter",
-                instructions=INTERPRETER_INSTRUCTIONS,
-            )
-            active_agent_id = agent.id
-            created_agent_id = agent.id
-
-        thread = agents_client.threads.create()
-        agents_client.messages.create(thread_id=thread.id, role="user", content=prompt_text)
-        run = agents_client.runs.create_and_process(thread_id=thread.id, agent_id=active_agent_id)
-
-        if run.status == "failed":
-            raise RuntimeError(f"Agent run failed: {getattr(run, 'last_error', run)}")
-
-        messages = list(agents_client.messages.list(thread_id=thread.id))
-        for msg in messages:
-            if msg.role == "assistant" and msg.content:
-                for part in msg.content:
-                    text_val = getattr(getattr(part, "text", None), "value", None)
-                    if text_val:
-                        return text_val
-        raise RuntimeError("No assistant response found in thread")
-    finally:
-        if created_agent_id:
-            try:
-                agents_client.delete_agent(created_agent_id)
-            except Exception:
-                pass  # best-effort cleanup; never fail the run over this
+    completion = _create_chat_completion(
+        openai_client, model_deployment,
+        [
+            {"role": "system", "content": INTERPRETER_INSTRUCTIONS},
+            {"role": "user", "content": prompt_text},
+        ],
+        json_mode=True,
+    )
+    content = completion.choices[0].message.content
+    if not content:
+        raise RuntimeError(f"AI Foundry model returned no content: {completion}")
+    return content
 
 
 def _resources_to_requests(resources: list[dict], modules: list[ModuleInfo]) -> list[ResourceRequest]:

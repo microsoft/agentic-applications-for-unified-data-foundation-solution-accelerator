@@ -156,52 +156,32 @@ def _call_ollama_chat(messages: list[dict], host: str, model: str) -> str:
 
 def _call_ai_foundry_chat(messages: list[dict], project_endpoint: str, model_deployment: str,
                            agent_id: str | None) -> str:
-    """Runs one multi-turn conversation against an Azure AI Foundry agent.
-    Unlike llm_interpreter's single-shot version, this replays the full
-    messages list (system + prior turns) into one thread so retry/self-
-    correction context is preserved. Raises on any failure -- no fallback."""
+    """Calls an Azure AI Foundry project's deployed model via its
+    OpenAI-compatible chat completions API (azure-ai-projects >= 2.x
+    exposes this directly through get_openai_client()). Passes the full
+    multi-turn `messages` list (system + prior attempts + validation
+    errors) so self-correction retries keep context. `agent_id` is
+    accepted for CLI/env compatibility but unused by this simpler API.
+    Raises on any failure -- no fallback."""
     from azure.ai.projects import AIProjectClient
     from azure.identity import DefaultAzureCredential
 
     client = AIProjectClient(endpoint=project_endpoint, credential=DefaultAzureCredential())
-    agents_client = client.agents
+    openai_client = client.get_openai_client()
 
-    system_content = next((m["content"] for m in messages if m["role"] == "system"), None)
-    created_agent_id = None
+    kwargs = {"model": model_deployment, "messages": messages, "temperature": 0.2}
     try:
-        if agent_id:
-            active_agent_id = agent_id
+        completion = openai_client.chat.completions.create(**kwargs)
+    except Exception as exc:
+        if "temperature" in str(exc).lower():
+            kwargs.pop("temperature", None)
+            completion = openai_client.chat.completions.create(**kwargs)
         else:
-            agent = agents_client.create_agent(
-                model=model_deployment,
-                name="infra-composer-main-bicep-author",
-                instructions=system_content or "",
-            )
-            active_agent_id = agent.id
-            created_agent_id = agent.id
-
-        thread = agents_client.threads.create()
-        for m in messages:
-            if m["role"] in ("user", "assistant"):
-                agents_client.messages.create(thread_id=thread.id, role=m["role"], content=m["content"])
-        run = agents_client.runs.create_and_process(thread_id=thread.id, agent_id=active_agent_id)
-
-        if run.status == "failed":
-            raise RuntimeError(f"Agent run failed: {getattr(run, 'last_error', run)}")
-
-        for msg in agents_client.messages.list(thread_id=thread.id):
-            if msg.role == "assistant" and msg.content:
-                for part in msg.content:
-                    text_val = getattr(getattr(part, "text", None), "value", None)
-                    if text_val:
-                        return text_val
-        raise RuntimeError("No assistant response found in thread")
-    finally:
-        if created_agent_id:
-            try:
-                agents_client.delete_agent(created_agent_id)
-            except Exception:
-                pass  # best-effort cleanup; never fail the run over this
+            raise
+    content = completion.choices[0].message.content
+    if not content:
+        raise RuntimeError(f"AI Foundry model returned no content: {completion}")
+    return content
 
 
 def _call_llm_chat(messages: list[dict], backend: str, ollama_host: str, ollama_model: str,
