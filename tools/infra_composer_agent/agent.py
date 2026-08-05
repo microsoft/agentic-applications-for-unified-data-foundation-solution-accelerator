@@ -54,7 +54,8 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
             use_llm: bool = False, llm_backend: str = "ollama",
             ollama_host: str | None = None, ollama_model: str | None = None,
             ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
-            ai_foundry_agent_id: str | None = None) -> tuple[Path, list[str]]:
+            ai_foundry_interpreter_agent_id: str | None = None,
+            ai_foundry_author_agent_id: str | None = None) -> tuple[Path, list[str]]:
     """Runs the full pipeline. Returns (main_bicep_path, human_readable_log)."""
     log: list[str] = []
 
@@ -66,15 +67,16 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
         model = ollama_model or os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
         endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
         foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
-        agent_id = ai_foundry_agent_id or os.environ.get("AI_FOUNDRY_AGENT_ID")
+        interpreter_agent_id = ai_foundry_interpreter_agent_id or os.environ.get("AI_FOUNDRY_INTERPRETER_AGENT_ID")
         if llm_backend == "ollama":
             log.append(f"Interpreting prompt via local Ollama model '{model}' at {host}...")
         else:
-            log.append(f"Interpreting prompt via Azure AI Foundry agent at {endpoint} (model={foundry_model})...")
+            log.append(f"Interpreting prompt via the persistent AI Foundry agent "
+                       f"'infra-composer-prompt-interpreter' at {endpoint}...")
         requests = interpret_with_llm(
             prompt, modules, backend=llm_backend,
             ollama_host=host, ollama_model=model,
-            project_endpoint=endpoint, model_deployment=foundry_model, agent_id=agent_id,
+            project_endpoint=endpoint, model_deployment=foundry_model, agent_id=interpreter_agent_id,
         )
         log.append(f"LLM identified {len(requests)} resource concept(s) from the prompt.")
     else:
@@ -123,11 +125,11 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
         model = ollama_model or os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
         endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
         foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
-        agent_id = ai_foundry_agent_id or os.environ.get("AI_FOUNDRY_AGENT_ID")
+        author_agent_id = ai_foundry_author_agent_id or os.environ.get("AI_FOUNDRY_AUTHOR_AGENT_ID")
         llm_code, gen_log, ok = generate_main_bicep_with_llm(
             prompt, resolution, requested_counts, dest_root, backend=llm_backend,
             ollama_host=host, ollama_model=model,
-            ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model, ai_foundry_agent_id=agent_id,
+            ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model, ai_foundry_agent_id=author_agent_id,
         )
         log.extend(gen_log)
         if not ok:
@@ -208,11 +210,19 @@ def main() -> int:
                          help="Azure AI Foundry project endpoint (only used with --llm-backend ai-foundry). "
                               "Falls back to AI_FOUNDRY_PROJECT_ENDPOINT env var.")
     parser.add_argument("--ai-foundry-model", default=None,
-                         help="Model deployment name in the AI Foundry project (e.g. gpt-4o). "
+                         help="Model deployment name (only used if creating brand-new agents; the two "
+                              "default persistent agents already have a model configured). "
                               "Falls back to AI_FOUNDRY_MODEL_DEPLOYMENT env var.")
-    parser.add_argument("--ai-foundry-agent-id", default=None,
-                         help="Reuse an existing AI Foundry agent instead of creating/deleting a temporary one. "
-                              "Falls back to AI_FOUNDRY_AGENT_ID env var.")
+    parser.add_argument("--ai-foundry-interpreter-agent-id", default=None,
+                         help="Override the persistent AI Foundry agent used for prompt interpretation "
+                              "(default: DEFAULT_INTERPRETER_AGENT_ID in llm_interpreter.py, the pre-created "
+                              "'infra-composer-prompt-interpreter' agent). Falls back to "
+                              "AI_FOUNDRY_INTERPRETER_AGENT_ID env var.")
+    parser.add_argument("--ai-foundry-author-agent-id", default=None,
+                         help="Override the persistent AI Foundry agent used to author main.bicep "
+                              "(default: DEFAULT_AUTHOR_AGENT_ID in llm_composer.py, the pre-created "
+                              "'infra-composer-main-bicep-author' agent). Falls back to "
+                              "AI_FOUNDRY_AUTHOR_AGENT_ID env var.")
     parser.add_argument("--validate", action="store_true", help="Run 'az bicep build' on the generated main.bicep.")
     parser.add_argument("--no-git", action="store_true",
                          help="Skip cloning/branching/pushing entirely; just generate files locally under --dest-name.")
@@ -238,7 +248,9 @@ def main() -> int:
                                       use_llm=args.use_llm, llm_backend=args.llm_backend,
                                       ollama_host=args.ollama_host, ollama_model=args.ollama_model,
                                       ai_foundry_endpoint=args.ai_foundry_endpoint,
-                                      ai_foundry_model=args.ai_foundry_model, ai_foundry_agent_id=args.ai_foundry_agent_id)
+                                      ai_foundry_model=args.ai_foundry_model,
+                                      ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
+                                      ai_foundry_author_agent_id=args.ai_foundry_author_agent_id)
             for line in log:
                 print(line)
             print(f"Generated locally at {dest_root} (no git operations performed).")
@@ -265,7 +277,9 @@ def main() -> int:
                                   use_llm=args.use_llm, llm_backend=args.llm_backend,
                                   ollama_host=args.ollama_host, ollama_model=args.ollama_model,
                                   ai_foundry_endpoint=args.ai_foundry_endpoint,
-                                  ai_foundry_model=args.ai_foundry_model, ai_foundry_agent_id=args.ai_foundry_agent_id)
+                                  ai_foundry_model=args.ai_foundry_model,
+                                  ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
+                                  ai_foundry_author_agent_id=args.ai_foundry_author_agent_id)
         for line in log:
             print(line)
 

@@ -11,9 +11,10 @@ merging via union(), enableTelemetry threaded through every module,
 diagnostic settings wiring, deployer()-based tag metadata, and modules
 named/conditioned to reflect real intent rather than a flat 1:1 dump.
 
-This module asks a local LLM (Ollama by default) to actually *author* the
-main.bicep body -- reasoning about the request the way an infrastructure
-architect would -- while staying safe:
+This module asks an LLM (Ollama locally, or a PERSISTENT Azure AI Foundry
+agent named "infra-composer-main-bicep-author" -- see DEFAULT_AUTHOR_AGENT_ID)
+to actually *author* the main.bicep body -- reasoning about the request the
+way an infrastructure architect would -- while staying safe:
   * The LLM is given the REAL resolved modules (exact relative paths,
     exact required/optional params, exact outputs) parsed by module_index.py.
     It cannot invent a module path or a parameter name that doesn't exist,
@@ -27,6 +28,11 @@ architect would -- while staying safe:
     fallback": the project's core success criterion is that the output
     must always be deployable without manual edits, so shipping unvalidated
     LLM output is never acceptable.
+
+With --llm-backend ai-foundry, every call opens a real thread against the
+persistent author agent (visible in the AI Foundry portal's Agents tab) and
+replays prior attempts/errors into that thread for retries -- not a
+stateless chat completion.
 """
 from __future__ import annotations
 
@@ -42,6 +48,11 @@ from bicep_validate import validate_with_az
 
 DEFAULT_OLLAMA_HOST = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "llama3.1:8b"
+
+# Persistent AI Foundry agent, created once in the project (proj-default) so every
+# run reuses the same registered agent instead of creating/deleting a temp one.
+# Visible in the AI Foundry portal's Agents tab as "infra-composer-main-bicep-author".
+DEFAULT_AUTHOR_AGENT_ID = "asst_XTQ6h2DoCHJMorowBAg9gJZb"
 
 STYLE_GUIDE = """Follow these authoring conventions (matching this repo's hand-written orchestrators):
 - Start with a header comment block describing the file as a pure orchestrator.
@@ -156,32 +167,36 @@ def _call_ollama_chat(messages: list[dict], host: str, model: str) -> str:
 
 def _call_ai_foundry_chat(messages: list[dict], project_endpoint: str, model_deployment: str,
                            agent_id: str | None) -> str:
-    """Calls an Azure AI Foundry project's deployed model via its
-    OpenAI-compatible chat completions API (azure-ai-projects >= 2.x
-    exposes this directly through get_openai_client()). Passes the full
-    multi-turn `messages` list (system + prior attempts + validation
-    errors) so self-correction retries keep context. `agent_id` is
-    accepted for CLI/env compatibility but unused by this simpler API.
-    Raises on any failure -- no fallback."""
-    from azure.ai.projects import AIProjectClient
+    """Runs one turn against a PERSISTENT Azure AI Foundry agent (created once via
+    azure-ai-agents' AgentsClient.create_agent -- visible in the AI Foundry portal's
+    Agents tab, instructions = SYSTEM_PROMPT/STYLE_GUIDE) using the real thread/
+    message/run lifecycle. Replays the full multi-turn `messages` list (skipping the
+    system message, since it's already baked into the agent's instructions) into one
+    thread so retry/self-correction context (prior attempt + validation errors) is
+    preserved. Defaults to the pre-created author agent (DEFAULT_AUTHOR_AGENT_ID)
+    unless a different agent_id is supplied. Raises on any failure -- no fallback."""
+    from azure.ai.agents import AgentsClient
     from azure.identity import DefaultAzureCredential
 
-    client = AIProjectClient(endpoint=project_endpoint, credential=DefaultAzureCredential())
-    openai_client = client.get_openai_client()
+    active_agent_id = agent_id or DEFAULT_AUTHOR_AGENT_ID
+    client = AgentsClient(endpoint=project_endpoint, credential=DefaultAzureCredential())
 
-    kwargs = {"model": model_deployment, "messages": messages, "temperature": 0.2}
-    try:
-        completion = openai_client.chat.completions.create(**kwargs)
-    except Exception as exc:
-        if "temperature" in str(exc).lower():
-            kwargs.pop("temperature", None)
-            completion = openai_client.chat.completions.create(**kwargs)
-        else:
-            raise
-    content = completion.choices[0].message.content
-    if not content:
-        raise RuntimeError(f"AI Foundry model returned no content: {completion}")
-    return content
+    thread = client.threads.create()
+    for m in messages:
+        if m["role"] in ("user", "assistant"):
+            client.messages.create(thread_id=thread.id, role=m["role"], content=m["content"])
+    run = client.runs.create_and_process(thread_id=thread.id, agent_id=active_agent_id)
+
+    if run.status != "completed":
+        raise RuntimeError(f"Agent run did not complete (status={run.status}): {getattr(run, 'last_error', '')}")
+
+    for msg in client.messages.list(thread_id=thread.id):
+        if msg.role == "assistant" and msg.content:
+            for part in msg.content:
+                text_val = getattr(getattr(part, "text", None), "value", None)
+                if text_val:
+                    return text_val
+    raise RuntimeError("No assistant response found in thread")
 
 
 def _call_llm_chat(messages: list[dict], backend: str, ollama_host: str, ollama_model: str,
@@ -190,11 +205,12 @@ def _call_llm_chat(messages: list[dict], backend: str, ollama_host: str, ollama_
     if backend == "ollama":
         return _call_ollama_chat(messages, ollama_host, ollama_model)
     if backend == "ai-foundry":
-        if not ai_foundry_endpoint or not ai_foundry_model:
+        if not ai_foundry_endpoint:
             raise RuntimeError(
-                "backend='ai-foundry' requires ai_foundry_endpoint and ai_foundry_model "
-                "(--ai-foundry-endpoint / --ai-foundry-model or AI_FOUNDRY_PROJECT_ENDPOINT / "
-                "AI_FOUNDRY_MODEL_DEPLOYMENT)."
+                "backend='ai-foundry' requires ai_foundry_endpoint "
+                "(--ai-foundry-endpoint or AI_FOUNDRY_PROJECT_ENDPOINT). ai_foundry_model is only "
+                "needed if you're creating a brand-new agent -- the default persistent agent "
+                "already has a model configured."
             )
         return _call_ai_foundry_chat(messages, ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
     raise RuntimeError(f"Unknown LLM backend '{backend}'. Use 'ollama' or 'ai-foundry'.")

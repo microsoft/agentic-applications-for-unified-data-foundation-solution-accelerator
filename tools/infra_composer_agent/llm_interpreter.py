@@ -27,22 +27,29 @@ Backends supported (pick with --llm-backend, default "ollama"):
                      (http://localhost:11434 by default). Free, offline, no
                      API key/account. Install: https://ollama.com, then
                      `ollama pull llama3.1:8b` (or any other local model).
-                     This is the primary/default backend -- no cloud
-                     account is required to use --use-llm.
-  * "ai-foundry"  -- runs via a hosted Azure AI Foundry agent (optional,
-                     for when you want a larger hosted model instead of a
-                     local one). Needs an existing AI Foundry project.
+                     No persistent "agent" concept -- each call is a
+                     stateless local chat completion.
+  * "ai-foundry"  -- runs via a PERSISTENT Azure AI Foundry agent (created
+                     once with azure-ai-agents' AgentsClient.create_agent,
+                     visible in the AI Foundry portal's Agents tab as
+                     "infra-composer-prompt-interpreter"). Every call opens
+                     a real thread, posts a user message, and runs that
+                     agent -- not a stateless chat completion. Defaults to
+                     DEFAULT_INTERPRETER_AGENT_ID below; pass --ai-foundry-
+                     agent-id to point at a different existing agent.
 
 Configuration (all optional; env vars used if CLI flags are omitted):
   OLLAMA_HOST                   default: http://localhost:11434
   OLLAMA_MODEL                  default: llama3.1:8b
   AI_FOUNDRY_PROJECT_ENDPOINT   e.g. https://<project>.services.ai.azure.com/api/projects/<project-name>
-  AI_FOUNDRY_MODEL_DEPLOYMENT   e.g. gpt-4o  (name of a model deployed in that project)
-  AI_FOUNDRY_AGENT_ID           optional: reuse an existing persistent agent instead of
-                                creating/deleting a temporary one each run.
+  AI_FOUNDRY_MODEL_DEPLOYMENT   only used when creating a NEW agent (the model is already
+                                baked into DEFAULT_INTERPRETER_AGENT_ID's config; unused
+                                once you have an existing agent_id).
+  AI_FOUNDRY_AGENT_ID           override to reuse a different existing persistent agent
+                                instead of DEFAULT_INTERPRETER_AGENT_ID.
 
 The ai-foundry backend requires (only if you actually use it):
-    pip install azure-ai-projects azure-identity
+    pip install azure-ai-agents azure-identity
 Auth uses DefaultAzureCredential (e.g. `az login` locally, or a managed
 identity/service principal in CI). The ollama backend requires no extra
 Python packages -- it talks to the local Ollama HTTP API with stdlib
@@ -84,6 +91,11 @@ Return nothing except that JSON object.
 
 DEFAULT_OLLAMA_HOST = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "llama3.1:8b"
+
+# Persistent AI Foundry agent, created once in the project (proj-default) so every
+# run reuses the same registered agent instead of creating/deleting a temp one.
+# Visible in the AI Foundry portal's Agents tab as "infra-composer-prompt-interpreter".
+DEFAULT_INTERPRETER_AGENT_ID = "asst_grJbGnsVfPJu0YfHFbubrhCG"
 
 
 @dataclass
@@ -143,58 +155,34 @@ def _call_ollama(prompt_text: str, host: str, model: str) -> str:
     return content
 
 
-def _create_chat_completion(openai_client, model: str, messages: list[dict], json_mode: bool = False):
-    """Calls chat.completions.create, tolerating reasoning models (e.g.
-    gpt-5.x) that reject `temperature` or `response_format` overrides by
-    retrying without the unsupported kwarg. Raises on any other failure."""
-    kwargs = {"model": model, "messages": messages, "temperature": 0}
-    if json_mode:
-        kwargs["response_format"] = {"type": "json_object"}
-    try:
-        return openai_client.chat.completions.create(**kwargs)
-    except Exception as exc:
-        msg = str(exc).lower()
-        if "temperature" in msg:
-            kwargs.pop("temperature", None)
-            try:
-                return openai_client.chat.completions.create(**kwargs)
-            except Exception as exc2:
-                if "response_format" in str(exc2).lower() and json_mode:
-                    kwargs.pop("response_format", None)
-                    return openai_client.chat.completions.create(**kwargs)
-                raise
-        if "response_format" in msg and json_mode:
-            kwargs.pop("response_format", None)
-            return openai_client.chat.completions.create(**kwargs)
-        raise
-
-
 def _call_ai_foundry_agent(prompt_text: str, project_endpoint: str, model_deployment: str,
                             agent_id: str | None) -> str:
-    """Calls an Azure AI Foundry project's deployed model via its
-    OpenAI-compatible chat completions API (azure-ai-projects >= 2.x
-    exposes this directly through get_openai_client() -- no Assistants-
-    style thread/run lifecycle needed). `agent_id` is accepted for CLI/env
-    compatibility but unused by this simpler API. Raises on any failure."""
-    from azure.ai.projects import AIProjectClient
+    """Runs one turn against a PERSISTENT Azure AI Foundry agent (created once via
+    azure-ai-agents' AgentsClient.create_agent -- visible in the AI Foundry portal's
+    Agents tab) using the real thread/message/run lifecycle, not a stateless chat
+    completion. Defaults to the pre-created interpreter agent
+    (DEFAULT_INTERPRETER_AGENT_ID) unless a different agent_id is supplied. Raises on
+    any failure -- no fallback."""
+    from azure.ai.agents import AgentsClient
     from azure.identity import DefaultAzureCredential
 
-    credential = DefaultAzureCredential()
-    client = AIProjectClient(endpoint=project_endpoint, credential=credential)
-    openai_client = client.get_openai_client()
+    active_agent_id = agent_id or DEFAULT_INTERPRETER_AGENT_ID
+    client = AgentsClient(endpoint=project_endpoint, credential=DefaultAzureCredential())
 
-    completion = _create_chat_completion(
-        openai_client, model_deployment,
-        [
-            {"role": "system", "content": INTERPRETER_INSTRUCTIONS},
-            {"role": "user", "content": prompt_text},
-        ],
-        json_mode=True,
-    )
-    content = completion.choices[0].message.content
-    if not content:
-        raise RuntimeError(f"AI Foundry model returned no content: {completion}")
-    return content
+    thread = client.threads.create()
+    client.messages.create(thread_id=thread.id, role="user", content=prompt_text)
+    run = client.runs.create_and_process(thread_id=thread.id, agent_id=active_agent_id)
+
+    if run.status != "completed":
+        raise RuntimeError(f"Agent run did not complete (status={run.status}): {getattr(run, 'last_error', '')}")
+
+    for msg in client.messages.list(thread_id=thread.id):
+        if msg.role == "assistant" and msg.content:
+            for part in msg.content:
+                text_val = getattr(getattr(part, "text", None), "value", None)
+                if text_val:
+                    return text_val
+    raise RuntimeError("No assistant response found in thread")
 
 
 def _resources_to_requests(resources: list[dict], modules: list[ModuleInfo]) -> list[ResourceRequest]:
@@ -238,11 +226,12 @@ def interpret_with_llm(prompt: str, modules: list[ModuleInfo], backend: str = "o
     if backend == "ollama":
         raw = _call_ollama(full_prompt, ollama_host, ollama_model)
     elif backend == "ai-foundry":
-        if not project_endpoint or not model_deployment:
+        if not project_endpoint:
             raise RuntimeError(
-                "backend='ai-foundry' requires project_endpoint and model_deployment "
-                "(--ai-foundry-endpoint / --ai-foundry-model or AI_FOUNDRY_PROJECT_ENDPOINT / "
-                "AI_FOUNDRY_MODEL_DEPLOYMENT)."
+                "backend='ai-foundry' requires project_endpoint "
+                "(--ai-foundry-endpoint or AI_FOUNDRY_PROJECT_ENDPOINT). model_deployment is only "
+                "needed if you're creating a brand-new agent -- the default persistent agent "
+                "already has a model configured."
             )
         raw = _call_ai_foundry_agent(full_prompt, project_endpoint, model_deployment, agent_id)
     else:
