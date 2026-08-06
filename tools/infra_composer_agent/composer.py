@@ -107,7 +107,20 @@ def copy_modules(resolution: ResolutionResult, source_root: Path, dest_root: Pat
     return copied
 
 
-def generate_main_bicep(resolution: ResolutionResult, requested_counts: dict[str, int]) -> str:
+def _literal_for_type(raw: str, ptype: str) -> str:
+    """Formats a user-supplied override value as a Bicep literal appropriate
+    for the param's declared type -- quotes bare strings for string-typed
+    params, leaves the value as-is (assumed to already be valid Bicep, e.g.
+    `true`, `123`, `['a','b']`) for anything else."""
+    raw = raw.strip()
+    if ptype.startswith("string") and not (raw.startswith("'") or raw.startswith('"')):
+        return f"'{raw}'"
+    return raw
+
+
+def generate_main_bicep(resolution: ResolutionResult, requested_counts: dict[str, int],
+                         param_defaults: dict[str, str] | None = None) -> str:
+    param_defaults = param_defaults or {}
     lines: list[str] = []
     # Collected here whenever a required resource-ref param has no in-project
     # module to satisfy it; declared as real top-level params later so the
@@ -176,17 +189,27 @@ def generate_main_bicep(resolution: ResolutionResult, requested_counts: dict[str
                     if resolved_value:
                         lines.append(f"    {p.name}: {resolved_value}")
                     elif p.required:
-                        fallback_name = f"{sym}_{p.name}"
-                        fallback_params[fallback_name] = p.type
-                        lines.append(f"    {p.name}: {fallback_name} // no matching module found; declared as a top-level param")
+                        override_key = f"{key}::{p.name}"
+                        if override_key in param_defaults:
+                            lines.append(f"    {p.name}: {_literal_for_type(param_defaults[override_key], p.type)} "
+                                          f"// user-supplied value (no matching module found)")
+                        else:
+                            fallback_name = f"{sym}_{p.name}"
+                            fallback_params[fallback_name] = p.type
+                            lines.append(f"    {p.name}: {fallback_name} // no matching module found; declared as a top-level param")
                 elif p.required:
                     # Required param with no default and not a resource reference
                     # (e.g. linuxFxVersion, containers, administrators): surface it
                     # as a top-level param instead of omitting it, which would
                     # otherwise produce an invalid/incomplete module call.
-                    fallback_name = f"{sym}_{p.name}"
-                    fallback_params[fallback_name] = p.type
-                    lines.append(f"    {p.name}: {fallback_name}")
+                    override_key = f"{key}::{p.name}"
+                    if override_key in param_defaults:
+                        lines.append(f"    {p.name}: {_literal_for_type(param_defaults[override_key], p.type)} "
+                                      f"// user-supplied value")
+                    else:
+                        fallback_name = f"{sym}_{p.name}"
+                        fallback_params[fallback_name] = p.type
+                        lines.append(f"    {p.name}: {fallback_name}")
             lines.append("  }")
             lines.append("}")
 

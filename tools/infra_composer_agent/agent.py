@@ -44,6 +44,8 @@ from composer import copy_modules, generate_main_bicep
 from llm_interpreter import interpret_with_llm, DEFAULT_OLLAMA_HOST, DEFAULT_OLLAMA_MODEL
 from llm_composer import generate_main_bicep_with_llm, fix_bicep_with_llm
 from bicep_validate import validate_with_az
+import interactive
+import readme_gen
 
 # Fixed source: the module library this agent always composes from.
 DEFAULT_SOURCE_REPO = "https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator.git"
@@ -51,12 +53,35 @@ DEFAULT_SOURCE_BRANCH = "infra-core-modules-copy"
 DEFAULT_SOURCE_PATH = "infra_new/avm/modules"
 
 
+def _interpret_requests(text: str, modules: list[ModuleInfo], use_llm: bool, llm_backend: str,
+                         ollama_host: str | None, ollama_model: str | None,
+                         ai_foundry_endpoint: str | None, ai_foundry_model: str | None,
+                         ai_foundry_interpreter_agent_id: str | None, log: list[str]):
+    """Runs the same prompt -> ResourceRequest interpretation (LLM or
+    deterministic matcher) used for the initial prompt, factored out so the
+    interactive 'add more resources' loop in compose() can reuse it verbatim
+    on whatever free text the user adds afterwards."""
+    if use_llm:
+        host = ollama_host or os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST)
+        model = ollama_model or os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
+        endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
+        foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
+        interpreter_agent_id = ai_foundry_interpreter_agent_id or os.environ.get("AI_FOUNDRY_INTERPRETER_AGENT_ID")
+        return interpret_with_llm(
+            text, modules, backend=llm_backend,
+            ollama_host=host, ollama_model=model,
+            project_endpoint=endpoint, model_deployment=foundry_model, agent_id=interpreter_agent_id,
+        )
+    return match_requests(text, modules)
+
+
 def compose(prompt: str, source_root: Path, dest_root: Path,
             use_llm: bool = False, llm_backend: str = "ollama",
             ollama_host: str | None = None, ollama_model: str | None = None,
             ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
             ai_foundry_interpreter_agent_id: str | None = None,
-            ai_foundry_author_agent_id: str | None = None) -> tuple[Path, list[str]]:
+            ai_foundry_author_agent_id: str | None = None,
+            non_interactive: bool = False, readme_pattern: str = "ask") -> tuple[Path, list[str]]:
     """Runs the full pipeline. Returns (main_bicep_path, human_readable_log)."""
     log: list[str] = []
 
@@ -64,24 +89,16 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     log.append(f"Indexed {len(modules)} modules under {source_root}")
 
     if use_llm:
-        host = ollama_host or os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST)
-        model = ollama_model or os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
-        endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
-        foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
-        interpreter_agent_id = ai_foundry_interpreter_agent_id or os.environ.get("AI_FOUNDRY_INTERPRETER_AGENT_ID")
-        if llm_backend == "ollama":
-            log.append(f"Interpreting prompt via local Ollama model '{model}' at {host}...")
-        else:
-            log.append(f"Interpreting prompt via the persistent AI Foundry agent "
-                       f"'infra-composer-prompt-interpreter' at {endpoint}...")
-        requests = interpret_with_llm(
-            prompt, modules, backend=llm_backend,
-            ollama_host=host, ollama_model=model,
-            project_endpoint=endpoint, model_deployment=foundry_model, agent_id=interpreter_agent_id,
-        )
+        backend_desc = ("local Ollama model" if llm_backend == "ollama"
+                         else "the persistent AI Foundry agent 'infra-composer-prompt-interpreter'")
+        log.append(f"Interpreting prompt via {backend_desc}...")
+    requests = _interpret_requests(
+        prompt, modules, use_llm, llm_backend, ollama_host, ollama_model,
+        ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
+    )
+    if use_llm:
         log.append(f"LLM identified {len(requests)} resource concept(s) from the prompt.")
-    else:
-        requests = match_requests(prompt, modules)
+
     selected: list[ModuleInfo] = []
     requested_counts: dict[str, int] = {}
     for req in requests:
@@ -104,6 +121,37 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
             log.append(f"Auto-included dependency: {key}")
     for mod_key, pname in resolution.unresolved:
         log.append(f"WARNING: {mod_key} requires '{pname}' but no matching module/output was found; surfaced as a param")
+
+    # Interactive resource-confirmation loop: show what's resolved so far and
+    # let the user add more (in plain text) before anything is copied or
+    # generated. Bounded to avoid an accidental infinite loop from repeated
+    # blank confirmations in a scripted/piped stdin scenario.
+    for _ in range(5):
+        addition_text = interactive.confirm_resources(resolution, requested_counts, non_interactive, log)
+        if not addition_text:
+            break
+        extra_requests = _interpret_requests(
+            addition_text, modules, use_llm, llm_backend, ollama_host, ollama_model,
+            ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
+        )
+        for req in extra_requests:
+            if req.matched_module is None:
+                log.append(f"WARNING: could not match added request '{req.text.strip()}' to any module (skipped)")
+                continue
+            log.append(f"Matched added request '{req.text.strip()}' -> {req.matched_module.key} (score={req.score:.2f}, count={req.count})")
+            if req.matched_module not in selected:
+                selected.append(req.matched_module)
+            existing_count = requested_counts.get(req.matched_module.key, 0)
+            requested_counts[req.matched_module.key] = existing_count + req.count
+        resolution = resolve(selected, modules)
+        for key in resolution.modules:
+            if key not in resolution.explicitly_requested:
+                log.append(f"Auto-included dependency: {key}")
+
+    # Interactive unresolved-parameter resolution: ask whether to hardcode a
+    # value for anything resolver.py couldn't wire up automatically, instead
+    # of always silently surfacing it as a bare top-level parameter.
+    param_defaults = interactive.resolve_unresolved_params(resolution, non_interactive, log)
 
     # NOTE: dest_root may be the target repo's own root (when --dest-name is
     # "."), which also contains .git -- never rmtree the whole directory.
@@ -136,7 +184,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
         if not ok:
             log.append("LLM-authored main.bicep did not pass validation after all retries; falling back "
                         "to the deterministic template generator so the output remains guaranteed-deployable.")
-            main_bicep = generate_main_bicep(resolution, requested_counts)
+            main_bicep = generate_main_bicep(resolution, requested_counts, param_defaults)
             main_path.write_text(main_bicep, encoding="utf-8")
 
             fallback_ok, fallback_errors = validate_with_az(main_path)
@@ -155,25 +203,14 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
                     log.append("WARNING: the fixer agent could not repair main.bicep either -- the file at "
                                 f"{main_path} still fails validation and must be fixed by hand before deploying.")
     else:
-        main_bicep = generate_main_bicep(resolution, requested_counts)
+        main_bicep = generate_main_bicep(resolution, requested_counts, param_defaults)
         main_path.write_text(main_bicep, encoding="utf-8")
     log.append(f"Generated {main_path}")
 
-    readme = (
-        f"# Generated infrastructure composition\n\n"
-        f"Composed automatically by `infra_composer_agent` from the request:\n\n"
-        f"> {prompt}\n\n"
-        f"## Modules included\n\n"
-        + "\n".join(f"- `{k}`" + ("" if k in resolution.explicitly_requested else "  _(auto-included dependency)_")
-                     for k in resolution.modules)
-        + "\n\nDeploy with:\n\n```\naz deployment group create --resource-group <rg> --template-file main.bicep\n```\n"
-    )
-    # Use a distinct filename (never "README.md") so this never collides with
-    # -- and never overwrites -- a pre-existing README at the destination,
-    # which matters most when dest_root is the target repo's own root.
-    readme_path = dest_root / "INFRA_COMPOSITION.md"
-    readme_path.write_text(readme, encoding="utf-8")
-    log.append(f"Generated {readme_path}")
+    chosen_pattern = interactive.choose_readme_pattern(prompt, readme_pattern, non_interactive, log)
+    doc_paths = readme_gen.generate_docs(chosen_pattern, prompt, resolution, requested_counts, dest_root)
+    for p in doc_paths:
+        log.append(f"Generated {p}")
 
     return main_path, log
 
@@ -243,6 +280,18 @@ def main() -> int:
                               "'infra-composer-main-bicep-author' agent). Falls back to "
                               "AI_FOUNDRY_AUTHOR_AGENT_ID env var.")
     parser.add_argument("--validate", action="store_true", help="Run 'az bicep build' on the generated main.bicep.")
+    parser.add_argument("--non-interactive", "--yes", dest="non_interactive", action="store_true",
+                         help="Skip every interactive prompt (README pattern choice, resource-confirmation, "
+                              "unresolved-parameter follow-ups) and use safe defaults instead. Use this for "
+                              "scripted/CI runs where no one is watching stdin.")
+    parser.add_argument("--readme-pattern", default="ask", choices=["ask", "solution-accelerator", "sample"],
+                         help="Which README/deployment-doc pattern to generate: 'solution-accelerator' "
+                              "(README.md + docs/DeploymentGuide.md, modeled on "
+                              "microsoft/Multi-Agent-Custom-Automation-Engine-Solution-Accelerator), 'sample' "
+                              "(single README.md with a Mermaid diagram, modeled on "
+                              "Azure-Samples/chat-with-your-data-solution-accelerator), or 'ask' (default -- "
+                              "prompt interactively, suggesting one based on the prompt text; falls back to "
+                              "'solution-accelerator' under --non-interactive).")
     parser.add_argument("--no-git", action="store_true",
                          help="Skip cloning/branching/pushing entirely; just generate files locally under --dest-name.")
     parser.add_argument("--no-push", action="store_true",
@@ -269,7 +318,8 @@ def main() -> int:
                                       ai_foundry_endpoint=args.ai_foundry_endpoint,
                                       ai_foundry_model=args.ai_foundry_model,
                                       ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
-                                      ai_foundry_author_agent_id=args.ai_foundry_author_agent_id)
+                                      ai_foundry_author_agent_id=args.ai_foundry_author_agent_id,
+                                      non_interactive=args.non_interactive, readme_pattern=args.readme_pattern)
             for line in log:
                 print(line)
             print(f"Generated locally at {dest_root} (no git operations performed).")
@@ -298,7 +348,8 @@ def main() -> int:
                                   ai_foundry_endpoint=args.ai_foundry_endpoint,
                                   ai_foundry_model=args.ai_foundry_model,
                                   ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
-                                  ai_foundry_author_agent_id=args.ai_foundry_author_agent_id)
+                                  ai_foundry_author_agent_id=args.ai_foundry_author_agent_id,
+                                  non_interactive=args.non_interactive, readme_pattern=args.readme_pattern)
         for line in log:
             print(line)
 
