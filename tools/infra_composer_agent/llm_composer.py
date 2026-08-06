@@ -240,7 +240,7 @@ def generate_main_bicep_with_llm(
             log.append(f"LLM-generated main.bicep validated successfully on attempt {attempt}.")
             return code, log, True
 
-        log.append(f"Attempt {attempt} failed az bicep build validation.")
+        log.append(f"Attempt {attempt} failed az bicep build validation:\n{output}")
         messages.append({"role": "assistant", "content": raw})
         messages.append({
             "role": "user",

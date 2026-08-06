@@ -238,9 +238,15 @@ def interpret_with_llm(prompt: str, modules: list[ModuleInfo], backend: str = "o
         raise RuntimeError(f"Unknown LLM backend '{backend}'. Use 'ollama' or 'ai-foundry'.")
 
     parsed = _extract_json(raw)
-    requests = _resources_to_requests(parsed.get("resources", []), modules)
-    if not requests:
+    resources = parsed.get("resources", [])
+    requests = _resources_to_requests(resources, modules)
+    # An empty "resources": [] is a legitimate answer (e.g. the leftover free
+    # text after a technical pattern already covers everything, or a prompt
+    # with nothing left to add) -- only raise when the LLM's response could
+    # not even be parsed into the expected shape, since that indicates a real
+    # backend/formatting failure rather than "nothing more to add".
+    if not requests and not resources and "resources" not in parsed:
         raise RuntimeError(
-            f"LLM backend '{backend}' returned no usable resource concepts from response: {raw!r}"
+            f"LLM backend '{backend}' returned an unparseable response (no 'resources' key found): {raw!r}"
         )
     return requests
