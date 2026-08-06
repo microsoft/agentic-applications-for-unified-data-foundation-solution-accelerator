@@ -46,6 +46,7 @@ from llm_composer import generate_main_bicep_with_llm, fix_bicep_with_llm
 from bicep_validate import validate_with_az
 import interactive
 import readme_gen
+import tech_patterns
 
 # Fixed source: the module library this agent always composes from.
 DEFAULT_SOURCE_REPO = "https://github.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator.git"
@@ -81,19 +82,37 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
             ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
             ai_foundry_interpreter_agent_id: str | None = None,
             ai_foundry_author_agent_id: str | None = None,
-            non_interactive: bool = False, readme_pattern: str = "ask") -> tuple[Path, list[str]]:
+            non_interactive: bool = False, readme_pattern: str = "ask",
+            tech_pattern: str | None = None) -> tuple[Path, list[str]]:
     """Runs the full pipeline. Returns (main_bicep_path, human_readable_log)."""
     log: list[str] = []
 
     modules = build_index(source_root)
     log.append(f"Indexed {len(modules)} modules under {source_root}")
 
+    # Technical-pattern seeding: if a predefined pattern (chat-with-data,
+    # document-processing, call-center, realtime-alerts -- see
+    # tech_patterns.py) applies, prepend its baseline resource_prompt to the
+    # user's free-text prompt *before* interpretation, so the pattern's
+    # resources are always included alongside anything the user described
+    # themselves. The user still sees and can add to/trim the resolved list
+    # via the existing confirm_resources() interactive loop below.
+    chosen_tech_pattern = interactive.choose_tech_pattern(prompt, tech_pattern, non_interactive, log)
+    effective_prompt = prompt
+    if chosen_tech_pattern:
+        pattern = tech_patterns.PATTERNS[chosen_tech_pattern]
+        log.append(
+            f"Seeding composition from the '{chosen_tech_pattern}' technical pattern "
+            f"({pattern.display_name}): {', '.join(pattern.key_resources)}."
+        )
+        effective_prompt = f"{pattern.resource_prompt}\n\n{prompt.strip()}".strip()
+
     if use_llm:
         backend_desc = ("local Ollama model" if llm_backend == "ollama"
                          else "the persistent AI Foundry agent 'infra-composer-prompt-interpreter'")
         log.append(f"Interpreting prompt via {backend_desc}...")
     requests = _interpret_requests(
-        prompt, modules, use_llm, llm_backend, ollama_host, ollama_model,
+        effective_prompt, modules, use_llm, llm_backend, ollama_host, ollama_model,
         ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
     )
     if use_llm:
@@ -176,7 +195,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
         foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
         author_agent_id = ai_foundry_author_agent_id or os.environ.get("AI_FOUNDRY_AUTHOR_AGENT_ID")
         llm_code, gen_log, ok = generate_main_bicep_with_llm(
-            prompt, resolution, requested_counts, dest_root, backend=llm_backend,
+            effective_prompt, resolution, requested_counts, dest_root, backend=llm_backend,
             ollama_host=host, ollama_model=model,
             ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model, ai_foundry_agent_id=author_agent_id,
         )
@@ -207,8 +226,9 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
         main_path.write_text(main_bicep, encoding="utf-8")
     log.append(f"Generated {main_path}")
 
-    chosen_pattern = interactive.choose_readme_pattern(prompt, readme_pattern, non_interactive, log)
-    doc_paths = readme_gen.generate_docs(chosen_pattern, prompt, resolution, requested_counts, dest_root)
+    chosen_pattern = interactive.choose_readme_pattern(effective_prompt, readme_pattern, non_interactive, log)
+    doc_paths = readme_gen.generate_docs(chosen_pattern, prompt, resolution, requested_counts, dest_root,
+                                          tech_pattern=chosen_tech_pattern)
     for p in doc_paths:
         log.append(f"Generated {p}")
 
@@ -292,6 +312,15 @@ def main() -> int:
                               "Azure-Samples/chat-with-your-data-solution-accelerator), or 'ask' (default -- "
                               "prompt interactively, suggesting one based on the prompt text; falls back to "
                               "'solution-accelerator' under --non-interactive).")
+    parser.add_argument("--tech-pattern", default=None,
+                         choices=list(tech_patterns.PATTERNS) + ["none"],
+                         help="Seed this composition from a predefined technical pattern (see "
+                              "tech_patterns.py / 001-wip-repo-structure/technical-patterns/<id>/README.md): "
+                              f"{', '.join(tech_patterns.PATTERNS)}. Its baseline resource list is prepended "
+                              "to --prompt before interpretation, and you can still add/remove resources "
+                              "interactively afterwards. Pass 'none' to disable pattern seeding entirely. "
+                              "If omitted, the agent tries to infer a pattern from --prompt and (unless "
+                              "--non-interactive) asks interactively before proceeding.")
     parser.add_argument("--no-git", action="store_true",
                          help="Skip cloning/branching/pushing entirely; just generate files locally under --dest-name.")
     parser.add_argument("--no-push", action="store_true",
@@ -319,7 +348,8 @@ def main() -> int:
                                       ai_foundry_model=args.ai_foundry_model,
                                       ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
                                       ai_foundry_author_agent_id=args.ai_foundry_author_agent_id,
-                                      non_interactive=args.non_interactive, readme_pattern=args.readme_pattern)
+                                      non_interactive=args.non_interactive, readme_pattern=args.readme_pattern,
+                                      tech_pattern=args.tech_pattern)
             for line in log:
                 print(line)
             print(f"Generated locally at {dest_root} (no git operations performed).")
@@ -349,7 +379,8 @@ def main() -> int:
                                   ai_foundry_model=args.ai_foundry_model,
                                   ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
                                   ai_foundry_author_agent_id=args.ai_foundry_author_agent_id,
-                                  non_interactive=args.non_interactive, readme_pattern=args.readme_pattern)
+                                  non_interactive=args.non_interactive, readme_pattern=args.readme_pattern,
+                                  tech_pattern=args.tech_pattern)
         for line in log:
             print(line)
 
