@@ -149,6 +149,38 @@ def choose_tech_pattern(prompt: str, requested_pattern: str | None, non_interact
     return chosen
 
 
+def confirm_pattern_plan(pattern_id: str, resources: list, source_desc: str,
+                          non_interactive: bool, log: list[str]) -> bool:
+    """Shows the resource plan read from the chosen technical pattern's
+    README (tech_patterns.get_pattern_resources()) BEFORE any module is
+    pulled from the source module library, and asks for explicit
+    confirmation to proceed. Returns True to proceed, False to abort.
+
+    Under --non-interactive this always proceeds (logged), since there's no
+    one to confirm with -- the whole point of a scripted/CI run is that it
+    completes unattended."""
+    pattern = TECH_PATTERNS[pattern_id]
+    print(f"\nBased on the '{pattern_id}' technical pattern ({pattern.display_name}), read from {source_desc}, "
+          f"I'm going to create these {len(resources)} resource(s):")
+    for r in resources:
+        print(f"  - {r.display_name} ({r.module_key}) -- {r.purpose}")
+
+    if non_interactive:
+        log.append(f"--non-interactive: proceeding automatically with the '{pattern_id}' pattern's "
+                    f"{len(resources)} resource(s) (read from {source_desc}).")
+        return True
+
+    raw = input("\nShall I proceed and pull these modules from the source library? [Y/n]: ").strip().lower()
+    proceed = raw in ("", "y", "yes")
+    if proceed:
+        log.append(f"User confirmed the '{pattern_id}' pattern's resource plan ({len(resources)} resource(s), "
+                    f"read from {source_desc}).")
+    else:
+        log.append(f"User declined the '{pattern_id}' pattern's resource plan; aborting before touching "
+                    f"the source module library.")
+    return proceed
+
+
 def confirm_resources(resolution: ResolutionResult, requested_counts: dict[str, int],
                        non_interactive: bool, log: list[str]) -> str | None:
     """Prints the resolved resource list (explicitly requested + auto-included

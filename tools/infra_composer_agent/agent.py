@@ -89,37 +89,61 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
 
     modules = build_index(source_root)
     log.append(f"Indexed {len(modules)} modules under {source_root}")
+    modules_by_key = {m.key: m for m in modules}
 
-    # Technical-pattern seeding: if a predefined pattern (chat-with-data,
-    # document-processing, call-center, realtime-alerts -- see
-    # tech_patterns.py) applies, prepend its baseline resource_prompt to the
-    # user's free-text prompt *before* interpretation, so the pattern's
-    # resources are always included alongside anything the user described
-    # themselves. The user still sees and can add to/trim the resolved list
-    # via the existing confirm_resources() interactive loop below.
+    # Technical-pattern workflow: match the user's prompt to a predefined
+    # pattern (chat-with-data, document-processing, call-center,
+    # realtime-alerts -- see tech_patterns.py), READ that pattern's own
+    # README.md (the on-disk file is the real source of truth -- hand edits
+    # to it are picked up automatically), and show the exact resource list
+    # it declares. Nothing is pulled from the source module library and no
+    # module is selected until the user explicitly confirms this plan.
     chosen_tech_pattern = interactive.choose_tech_pattern(prompt, tech_pattern, non_interactive, log)
-    effective_prompt = prompt
-    if chosen_tech_pattern:
-        pattern = tech_patterns.PATTERNS[chosen_tech_pattern]
-        log.append(
-            f"Seeding composition from the '{chosen_tech_pattern}' technical pattern "
-            f"({pattern.display_name}): {', '.join(pattern.key_resources)}."
-        )
-        effective_prompt = f"{pattern.resource_prompt}\n\n{prompt.strip()}".strip()
 
+    selected: list[ModuleInfo] = []
+    requested_counts: dict[str, int] = {}
+
+    if chosen_tech_pattern:
+        pattern_resources, source_desc = tech_patterns.get_pattern_resources(chosen_tech_pattern)
+        log.append(f"Read {len(pattern_resources)} resource(s) for pattern '{chosen_tech_pattern}' from {source_desc}.")
+
+        proceed = interactive.confirm_pattern_plan(
+            chosen_tech_pattern, pattern_resources, source_desc, non_interactive, log,
+        )
+        if not proceed:
+            raise SystemExit(
+                f"Aborted before pulling any module from the source library: the resource plan for "
+                f"'{chosen_tech_pattern}' was not confirmed. Re-run with a different --prompt/--tech-pattern, "
+                f"or edit {source_desc} and try again."
+            )
+
+        for r in pattern_resources:
+            module = modules_by_key.get(r.module_key)
+            if module is None:
+                log.append(
+                    f"WARNING: pattern resource '{r.display_name}' references module '{r.module_key}' "
+                    f"which was not found in the source library (skipped)."
+                )
+                continue
+            selected.append(module)
+            requested_counts[module.key] = requested_counts.get(module.key, 0) + 1
+
+    # Whether or not a pattern was used, still interpret the user's own
+    # --prompt text for anything extra it describes (a pattern is a
+    # starting point, not the whole answer) -- e.g. "...and also 1 more
+    # storage account for exports". If no pattern was chosen this is the
+    # ONLY source of resources, exactly as before this feature existed.
     if use_llm:
         backend_desc = ("local Ollama model" if llm_backend == "ollama"
                          else "the persistent AI Foundry agent 'infra-composer-prompt-interpreter'")
         log.append(f"Interpreting prompt via {backend_desc}...")
     requests = _interpret_requests(
-        effective_prompt, modules, use_llm, llm_backend, ollama_host, ollama_model,
+        prompt, modules, use_llm, llm_backend, ollama_host, ollama_model,
         ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
     )
     if use_llm:
         log.append(f"LLM identified {len(requests)} resource concept(s) from the prompt.")
 
-    selected: list[ModuleInfo] = []
-    requested_counts: dict[str, int] = {}
     for req in requests:
         if req.matched_module is None:
             log.append(f"WARNING: could not match request '{req.text.strip()}' to any module (skipped)")
@@ -128,11 +152,12 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
             f"Matched '{req.text.strip()}' -> {req.matched_module.key} "
             f"(score={req.score:.2f}, count={req.count})"
         )
-        selected.append(req.matched_module)
-        requested_counts[req.matched_module.key] = req.count
+        if req.matched_module not in selected:
+            selected.append(req.matched_module)
+        requested_counts[req.matched_module.key] = requested_counts.get(req.matched_module.key, 0) + req.count
 
     if not selected:
-        raise SystemExit("No resources could be matched from the prompt. Aborting.")
+        raise SystemExit("No resources could be matched from the prompt or technical pattern. Aborting.")
 
     resolution = resolve(selected, modules)
     for key in resolution.modules:
@@ -195,7 +220,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
         foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
         author_agent_id = ai_foundry_author_agent_id or os.environ.get("AI_FOUNDRY_AUTHOR_AGENT_ID")
         llm_code, gen_log, ok = generate_main_bicep_with_llm(
-            effective_prompt, resolution, requested_counts, dest_root, backend=llm_backend,
+            prompt, resolution, requested_counts, dest_root, backend=llm_backend,
             ollama_host=host, ollama_model=model,
             ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model, ai_foundry_agent_id=author_agent_id,
         )
@@ -226,7 +251,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
         main_path.write_text(main_bicep, encoding="utf-8")
     log.append(f"Generated {main_path}")
 
-    chosen_pattern = interactive.choose_readme_pattern(effective_prompt, readme_pattern, non_interactive, log)
+    chosen_pattern = interactive.choose_readme_pattern(prompt, readme_pattern, non_interactive, log)
     doc_paths = readme_gen.generate_docs(chosen_pattern, prompt, resolution, requested_counts, dest_root,
                                           tech_pattern=chosen_tech_pattern)
     for p in doc_paths:
