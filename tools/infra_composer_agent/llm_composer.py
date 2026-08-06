@@ -54,36 +54,27 @@ DEFAULT_OLLAMA_MODEL = "llama3.1:8b"
 # Visible in the AI Foundry portal's Agents tab as "infra-composer-main-bicep-author".
 DEFAULT_AUTHOR_AGENT_ID = "asst_XTQ6h2DoCHJMorowBAg9gJZb"
 
-STYLE_GUIDE = """Follow these authoring conventions (matching this repo's hand-written orchestrators):
-- Start with a header comment block describing the file as a pure orchestrator.
-- targetScope = 'resourceGroup'
-- Core params: solutionName (string, @minLength(3) @maxLength(20), default 'composedsolution'),
-  location (default resourceGroup().location), tags (object, default {}),
-  enableTelemetry (bool, default true).
-- Add WAF feature flag params where relevant to the requested resources, each defaulting to false:
-  enableMonitoring, enablePrivateNetworking, enableRedundancy, enableScalability. Only include a flag
-  if at least one selected module's behavior can meaningfully depend on it (e.g. only add
-  enablePrivateNetworking if a private-endpoint/networking module is present).
-- Derive a var solutionSuffix from solutionName (lowercased, special characters stripped) and pass
-  it as the `solutionName` param into every module instead of the raw input param, exactly like:
-  var solutionSuffix = toLower(trim(replace(replace(replace(replace(replace(replace('${solutionName}', '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))
-- Merge caller tags with resourceGroup().tags using union(), e.g.:
-  var resourceTags = union(resourceGroup().tags ?? {}, tags, {})
-- Thread enableTelemetry into every module call that declares it as a param.
-- Give each module block a deterministic name: name: take('module.<module-file-stem>.${solutionName}', 64)
-- Wire dependent params to upstream module outputs using the `!` non-null assertion, e.g.
-  workspaceResourceId: enableMonitoring ? logAnalytics!.outputs.resourceId : ''
-  Only reference a module's outputs when that module is unconditionally created, or guard the
-  reference with the same condition that guards the producing module.
-- Conditionally create a module with `if (...)` only when there is a genuine reason to (a relevant
-  feature flag, or an "existing vs new" pattern) -- otherwise create it unconditionally.
-- ALWAYS pass every required parameter for every module (no exceptions) -- required params have no
-  default and Bicep will fail to build if omitted.
-- End with an Outputs section exposing the resourceId/name/endpoint (whichever the module actually
-  outputs) of each top-level resource that was explicitly requested by the user.
-- Reference modules by their exact relative path as given (e.g. './modules/compute/app-service.bicep').
-- Do not invent parameters, outputs, or module paths that are not in the provided module list.
-"""
+SKILLS_DIR = Path(__file__).resolve().parent / "skills"
+BICEP_AUTHORING_SKILL_PATH = SKILLS_DIR / "bicep-main-authoring.md"
+
+
+def _load_skill(path: Path = BICEP_AUTHORING_SKILL_PATH) -> str:
+    """Loads a markdown 'skill' document -- a rule set the LLM author agent
+    must follow -- from disk. This is the single source of truth for
+    main.bicep authoring conventions (distilled from this repo's real
+    infra/bicep/main.bicep); edit the markdown file, not this function, to
+    change the rules. Falls back to an empty string (with a clear inline
+    marker) if the file is ever missing, so a run never silently loses the
+    style guide without at least surfacing it in the generated prompt."""
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return (
+        "(WARNING: bicep-main-authoring skill file not found at "
+        f"{path} -- no authoring rules were loaded for this run.)"
+    )
+
+
+STYLE_GUIDE = _load_skill()
 
 SYSTEM_PROMPT = f"""You are an expert Azure Bicep infrastructure architect. You write a single, deployable
 `main.bicep` orchestrator that composes ONLY the exact pre-existing local Bicep modules given to you --
