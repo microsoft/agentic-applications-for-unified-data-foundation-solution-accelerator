@@ -38,9 +38,8 @@ from pathlib import Path
 
 import git_ops
 from module_index import build_index, ModuleInfo
-from request_parser import match_requests
 from resolver import resolve
-from composer import copy_modules, generate_main_bicep
+from composer import copy_modules
 from llm_interpreter import interpret_with_llm
 from llm_composer import generate_main_bicep_with_llm, fix_bicep_with_llm
 from bicep_validate import validate_with_az
@@ -54,26 +53,23 @@ DEFAULT_SOURCE_BRANCH = "infra-core-modules-copy"
 DEFAULT_SOURCE_PATH = "infra_new/avm/modules"
 
 
-def _interpret_requests(text: str, modules: list[ModuleInfo], use_llm: bool,
+def _interpret_requests(text: str, modules: list[ModuleInfo],
                          ai_foundry_endpoint: str | None, ai_foundry_model: str | None,
                          ai_foundry_interpreter_agent_id: str | None, log: list[str]):
-    """Runs the same prompt -> ResourceRequest interpretation (LLM or
-    deterministic matcher) used for the initial prompt, factored out so the
-    interactive 'add more resources' loop in compose() can reuse it verbatim
-    on whatever free text the user adds afterwards."""
-    if use_llm:
-        endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
-        foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
-        interpreter_agent_id = ai_foundry_interpreter_agent_id or os.environ.get("AI_FOUNDRY_INTERPRETER_AGENT_ID")
-        return interpret_with_llm(
-            text, modules,
-            project_endpoint=endpoint, model_deployment=foundry_model, agent_id=interpreter_agent_id,
-        )
-    return match_requests(text, modules)
+    """Interprets free text into ResourceRequest objects via the persistent
+    Azure AI Foundry interpreter agent -- the only interpretation backend.
+    Factored out so the interactive 'add more resources' loop in compose()
+    can reuse it verbatim on whatever free text the user adds afterwards."""
+    endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
+    foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
+    interpreter_agent_id = ai_foundry_interpreter_agent_id or os.environ.get("AI_FOUNDRY_INTERPRETER_AGENT_ID")
+    return interpret_with_llm(
+        text, modules,
+        project_endpoint=endpoint, model_deployment=foundry_model, agent_id=interpreter_agent_id,
+    )
 
 
 def compose(prompt: str, source_root: Path, dest_root: Path,
-            use_llm: bool = False,
             ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
             ai_foundry_interpreter_agent_id: str | None = None,
             ai_foundry_author_agent_id: str | None = None,
@@ -142,15 +138,13 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
                     "technical pattern (nothing to add).")
         requests = []
     else:
-        if use_llm:
-            log.append("Interpreting prompt via the persistent AI Foundry agent "
-                       "'infra-composer-prompt-interpreter'...")
+        log.append("Interpreting prompt via the persistent AI Foundry agent "
+                   "'infra-composer-prompt-interpreter'...")
         requests = _interpret_requests(
-            prompt, modules, use_llm,
+            prompt, modules,
             ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
         )
-        if use_llm:
-            log.append(f"LLM identified {len(requests)} resource concept(s) from the prompt.")
+        log.append(f"LLM identified {len(requests)} resource concept(s) from the prompt.")
 
     for req in requests:
         if req.matched_module is None:
@@ -183,7 +177,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
         if not addition_text:
             break
         extra_requests = _interpret_requests(
-            addition_text, modules, use_llm,
+            addition_text, modules,
             ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
         )
         for req in extra_requests:
@@ -202,7 +196,10 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
 
     # Interactive unresolved-parameter resolution: ask whether to hardcode a
     # value for anything resolver.py couldn't wire up automatically, instead
-    # of always silently surfacing it as a bare top-level parameter.
+    # of always silently surfacing it as a bare top-level parameter. These
+    # user-supplied literals are threaded into the LLM's main.bicep authoring
+    # prompt below (build_generation_prompt) so they still take effect even
+    # though there is no deterministic template consuming them directly.
     param_defaults = interactive.resolve_unresolved_params(resolution, non_interactive, log)
 
     # NOTE: dest_root may be the target repo's own root (when --dest-name is
@@ -219,40 +216,33 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     log.append(f"Copied {len(resolution.modules)} module files into {dest_root / 'modules'}")
 
     main_path = dest_root / "main.bicep"
-    if use_llm:
-        log.append("Generating main.bicep with the LLM (architect-style: feature flags, conditionals, "
-                    "wired outputs) instead of the flat deterministic template...")
-        endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
-        foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
-        author_agent_id = ai_foundry_author_agent_id or os.environ.get("AI_FOUNDRY_AUTHOR_AGENT_ID")
-        llm_code, gen_log, ok = generate_main_bicep_with_llm(
-            prompt, resolution, requested_counts, dest_root,
-            ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model, ai_foundry_agent_id=author_agent_id,
+    log.append("Generating main.bicep with the LLM (architect-style: feature flags, conditionals, "
+                "wired outputs)...")
+    endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
+    foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
+    author_agent_id = ai_foundry_author_agent_id or os.environ.get("AI_FOUNDRY_AUTHOR_AGENT_ID")
+    llm_code, gen_log, ok = generate_main_bicep_with_llm(
+        prompt, resolution, requested_counts, dest_root, param_defaults,
+        ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model, ai_foundry_agent_id=author_agent_id,
+    )
+    log.extend(gen_log)
+    if not ok:
+        log.append("The main.bicep author agent's own self-correction retries were exhausted; making "
+                    "one more repair attempt with the dedicated fixer pass before giving up.")
+        _, last_errors = validate_with_az(main_path)
+        _, fix_log, fixed = fix_bicep_with_llm(
+            main_path, last_errors,
+            ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model,
+            ai_foundry_agent_id=author_agent_id, source_label="LLM-authored main.bicep",
         )
-        log.extend(gen_log)
-        if not ok:
-            log.append("LLM-authored main.bicep did not pass validation after all retries; falling back "
-                        "to the deterministic template generator so the output remains guaranteed-deployable.")
-            main_bicep = generate_main_bicep(resolution, requested_counts, param_defaults)
-            main_path.write_text(main_bicep, encoding="utf-8")
-
-            fallback_ok, fallback_errors = validate_with_az(main_path)
-            if not fallback_ok:
-                log.append("WARNING: the deterministic fallback template also failed az bicep build "
-                            "validation -- invoking the persistent author agent as a dedicated fixer to "
-                            "patch the real errors instead of shipping an unvalidated file.")
-                _, fix_log, fixed = fix_bicep_with_llm(
-                    main_path, fallback_errors,
-                    ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model,
-                    ai_foundry_agent_id=author_agent_id, source_label="deterministic fallback main.bicep",
-                )
-                log.extend(fix_log)
-                if not fixed:
-                    log.append("WARNING: the fixer agent could not repair main.bicep either -- the file at "
-                                f"{main_path} still fails validation and must be fixed by hand before deploying.")
-    else:
-        main_bicep = generate_main_bicep(resolution, requested_counts, param_defaults)
-        main_path.write_text(main_bicep, encoding="utf-8")
+        log.extend(fix_log)
+        if not fixed:
+            raise SystemExit(
+                f"The AI Foundry author agent could not produce a main.bicep that passes `az bicep build` "
+                f"after all retries and the dedicated repair pass. There is no deterministic fallback -- "
+                f"see the log above for the exact validation errors, then either adjust the prompt/resource "
+                f"list and re-run, or fix {main_path} by hand."
+            )
     log.append(f"Generated {main_path}")
 
     chosen_pattern = interactive.choose_readme_pattern(prompt, readme_pattern, non_interactive, log)
@@ -303,14 +293,10 @@ def main() -> int:
                               "their own subfolder instead of the target repo root. Pass '.' to write "
                               "directly at the target repo root instead.")
 
-    parser.add_argument("--use-llm", action="store_true",
-                         help="Interpret --prompt with the persistent Azure AI Foundry interpreter agent "
-                              "first (handles messier, intent-driven prompts involving RBAC/role "
-                              "assignments/connections instead of plain resource counts). No fallback: if "
-                              "the agent call fails, the run stops with an error.")
     parser.add_argument("--ai-foundry-endpoint", default=None,
-                         help="Azure AI Foundry project endpoint (required with --use-llm). "
-                              "Falls back to AI_FOUNDRY_PROJECT_ENDPOINT env var.")
+                         help="Azure AI Foundry project endpoint (required -- the agent always interprets "
+                              "prompts and authors main.bicep via the persistent AI Foundry agents, with no "
+                              "deterministic fallback). Falls back to AI_FOUNDRY_PROJECT_ENDPOINT env var.")
     parser.add_argument("--ai-foundry-model", default=None,
                          help="Model deployment name (only used if creating brand-new agents; the two "
                               "default persistent agents already have a model configured). "
@@ -355,6 +341,14 @@ def main() -> int:
                          help="Don't delete the temporary source/target clones after finishing (for inspection).")
     args = parser.parse_args()
 
+    ai_foundry_endpoint = args.ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
+    if not ai_foundry_endpoint:
+        raise SystemExit(
+            "--ai-foundry-endpoint (or AI_FOUNDRY_PROJECT_ENDPOINT env var) is required: this agent always "
+            "interprets prompts and authors main.bicep via the persistent Azure AI Foundry agents -- there "
+            "is no deterministic/local fallback backend."
+        )
+
     skip_prompt_interpretation = False
     if not args.prompt:
         if args.non_interactive:
@@ -388,7 +382,6 @@ def main() -> int:
         if args.no_git:
             dest_root = tmp_root / "generated-infra" if args.dest_name == "." else Path(args.dest_name).resolve()
             main_path, log = compose(args.prompt, source_root, dest_root,
-                                      use_llm=args.use_llm,
                                       ai_foundry_endpoint=args.ai_foundry_endpoint,
                                       ai_foundry_model=args.ai_foundry_model,
                                       ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
@@ -419,7 +412,6 @@ def main() -> int:
 
         dest_root = target_clone_dir if args.dest_name == "." else target_clone_dir / args.dest_name
         main_path, log = compose(args.prompt, source_root, dest_root,
-                                  use_llm=args.use_llm,
                                   ai_foundry_endpoint=args.ai_foundry_endpoint,
                                   ai_foundry_model=args.ai_foundry_model,
                                   ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,

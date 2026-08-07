@@ -170,7 +170,7 @@ def interpret_with_llm(prompt: str, modules: list[ModuleInfo],
     (no silent fallback) should let this propagate."""
     if not project_endpoint:
         raise RuntimeError(
-            "--use-llm requires --ai-foundry-endpoint (or AI_FOUNDRY_PROJECT_ENDPOINT). "
+            "AI Foundry interpretation requires --ai-foundry-endpoint (or AI_FOUNDRY_PROJECT_ENDPOINT). "
             "model_deployment is only needed if you're creating a brand-new agent -- the "
             "default persistent agent already has a model configured."
         )

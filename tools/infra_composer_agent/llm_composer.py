@@ -1,15 +1,15 @@
 """
 LLM-based main.bicep generator.
 
-Why this exists: the deterministic generator in composer.py produces a
-correct-but-bare orchestrator (one `module` block per resolved module,
-core params, a fallback param whenever something can't be auto-wired).
-Real hand-authored orchestrators (see infra/avm/main.bicep in this repo)
-are much richer: WAF feature flags (enableMonitoring/enablePrivateNetworking/
-enableScalability/enableRedundancy), existing-vs-new conditionals, tags
-merging via union(), enableTelemetry threaded through every module,
-diagnostic settings wiring, deployer()-based tag metadata, and modules
-named/conditioned to reflect real intent rather than a flat 1:1 dump.
+Why this exists: real hand-authored orchestrators (see infra/bicep/main.bicep
+in this repo) are rich: WAF feature flags (enableMonitoring/
+enablePrivateNetworking/enableScalability/enableRedundancy), existing-vs-new
+conditionals, tags merging via union(), enableTelemetry threaded through
+every module, diagnostic settings wiring, deployer()-based tag metadata, and
+modules named/conditioned to reflect real intent rather than a flat 1:1
+dump. A flat/static template can't reason about any of that, so main.bicep
+authoring is done entirely by the LLM -- there is no deterministic/static
+generator and no fallback to one.
 
 This module asks a PERSISTENT Azure AI Foundry agent (named
 "infra-composer-main-bicep-author" -- see DEFAULT_AUTHOR_AGENT_ID) to
@@ -23,11 +23,10 @@ way an infrastructure architect would -- while staying safe:
     If validation fails, the error output is fed back to the model for a
     self-correction retry (up to `max_attempts` times).
   * If the LLM still cannot produce a file that validates after all
-    attempts, the caller (agent.py) falls back to the deterministic
-    generator -- this is a *correctness safety net*, not a "backend
-    fallback": the project's core success criterion is that the output
-    must always be deployable without manual edits, so shipping unvalidated
-    LLM output is never acceptable.
+    attempts, the caller (agent.py) raises a clear error instead of
+    shipping unvalidated output -- the project's core success criterion is
+    that the output must always be deployable without manual edits, so
+    there is no silent, lower-quality fallback path to fall back to.
 
 With every call, a real thread is opened against the persistent author agent
 (visible in the AI Foundry portal's Agents tab) and prior attempts/errors are
@@ -101,15 +100,28 @@ def _module_catalog_text(resolution: ResolutionResult) -> str:
     return "\n".join(lines)
 
 
-def build_generation_prompt(user_prompt: str, resolution: ResolutionResult, requested_counts: dict[str, int]) -> str:
+def build_generation_prompt(user_prompt: str, resolution: ResolutionResult, requested_counts: dict[str, int],
+                             param_defaults: dict[str, str] | None = None) -> str:
     catalog = _module_catalog_text(resolution)
     counts_text = "\n".join(f"- {k}: requested count = {v}" for k, v in requested_counts.items())
+    overrides_text = ""
+    if param_defaults:
+        overrides_lines = "\n".join(f"- {k}: {v}" for k, v in param_defaults.items())
+        overrides_text = (
+            f"\nUser-supplied literal values for parameters that had no matching module/output "
+            f"(key is '<module path>::<param name>', use the literal value verbatim for that exact "
+            f"param on that exact module -- quote it if the param type is a string):\n{overrides_lines}\n"
+        )
     return (
         f"User's infrastructure request:\n{user_prompt}\n\n"
         f"Resolved modules available to use (exact paths/params/outputs -- use only these, "
         f"and use ALL of them):\n{catalog}\n\n"
         f"Requested instance counts (create this many `module` blocks for these, numbering symbol "
-        f"names 1..N and their `name` params, if count > 1):\n{counts_text}\n\n"
+        f"names 1..N and their `name` params, if count > 1):\n{counts_text}\n"
+        f"{overrides_text}\n"
+        f"For any REQUIRED module parameter that is not a resource reference wireable to another "
+        f"module's output and has no user-supplied literal value above, declare it as a top-level "
+        f"main.bicep parameter (never omit a required parameter or invent a value).\n\n"
         f"Write the complete main.bicep now."
     )
 
@@ -160,7 +172,7 @@ def _call_llm_chat(messages: list[dict], ai_foundry_endpoint: str | None, ai_fou
                     ai_foundry_agent_id: str | None) -> str:
     if not ai_foundry_endpoint:
         raise RuntimeError(
-            "--use-llm requires --ai-foundry-endpoint (or AI_FOUNDRY_PROJECT_ENDPOINT). "
+            "main.bicep authoring requires --ai-foundry-endpoint (or AI_FOUNDRY_PROJECT_ENDPOINT). "
             "ai_foundry_model is only needed if you're creating a brand-new agent -- the "
             "default persistent agent already has a model configured."
         )
@@ -169,7 +181,7 @@ def _call_llm_chat(messages: list[dict], ai_foundry_endpoint: str | None, ai_fou
 
 def generate_main_bicep_with_llm(
     user_prompt: str, resolution: ResolutionResult, requested_counts: dict[str, int],
-    dest_root: Path,
+    dest_root: Path, param_defaults: dict[str, str] | None = None,
     ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
     ai_foundry_agent_id: str | None = None,
     max_attempts: int = 2,
@@ -184,7 +196,7 @@ def generate_main_bicep_with_llm(
 
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": build_generation_prompt(user_prompt, resolution, requested_counts)},
+        {"role": "user", "content": build_generation_prompt(user_prompt, resolution, requested_counts, param_defaults)},
     ]
 
     for attempt in range(1, max_attempts + 1):
@@ -220,12 +232,12 @@ def fix_bicep_with_llm(
     max_attempts: int = 2, source_label: str = "generated main.bicep",
 ) -> tuple[str | None, list[str], bool]:
     """Repair pass for a main.bicep that already failed `az bicep build` --
-    used both as a last-resort patch for the LLM-authored file and (more
-    importantly) as the safety net when the DETERMINISTIC fallback template
-    itself fails validation (e.g. too many outputs, a module's custom type
-    name copied verbatim into an output type position). Sends the real file
-    content + the real `az bicep build` errors to the persistent author agent
-    and asks it to make the minimal fix needed, re-validating after each
+    used as a final attempt to patch the LLM-authored file when
+    generate_main_bicep_with_llm's own internal self-correction retries are
+    exhausted (e.g. too many outputs, a module's custom type name copied
+    verbatim into an output type position). Sends the real file content +
+    the real `az bicep build` errors to the persistent author agent and
+    asks it to make the minimal fix needed, re-validating after each
     attempt exactly like generate_main_bicep_with_llm's self-correction loop.
     Mutates main_path in place on every attempt so validate_with_az always
     checks the latest candidate. Returns (bicep_text_or_None, log, success)."""
