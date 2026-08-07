@@ -11,9 +11,9 @@ merging via union(), enableTelemetry threaded through every module,
 diagnostic settings wiring, deployer()-based tag metadata, and modules
 named/conditioned to reflect real intent rather than a flat 1:1 dump.
 
-This module asks an LLM (Ollama locally, or a PERSISTENT Azure AI Foundry
-agent named "infra-composer-main-bicep-author" -- see DEFAULT_AUTHOR_AGENT_ID)
-to actually *author* the main.bicep body -- reasoning about the request the
+This module asks a PERSISTENT Azure AI Foundry agent (named
+"infra-composer-main-bicep-author" -- see DEFAULT_AUTHOR_AGENT_ID) to
+actually *author* the main.bicep body -- reasoning about the request the
 way an infrastructure architect would -- while staying safe:
   * The LLM is given the REAL resolved modules (exact relative paths,
     exact required/optional params, exact outputs) parsed by module_index.py.
@@ -29,25 +29,18 @@ way an infrastructure architect would -- while staying safe:
     must always be deployable without manual edits, so shipping unvalidated
     LLM output is never acceptable.
 
-With --llm-backend ai-foundry, every call opens a real thread against the
-persistent author agent (visible in the AI Foundry portal's Agents tab) and
-replays prior attempts/errors into that thread for retries -- not a
-stateless chat completion.
+With every call, a real thread is opened against the persistent author agent
+(visible in the AI Foundry portal's Agents tab) and prior attempts/errors are
+replayed into that thread for retries -- not a stateless chat completion.
 """
 from __future__ import annotations
 
-import json
 import re
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 from module_index import ModuleInfo
 from resolver import ResolutionResult
 from bicep_validate import validate_with_az
-
-DEFAULT_OLLAMA_HOST = "http://localhost:11434"
-DEFAULT_OLLAMA_MODEL = "llama3.1:8b"
 
 # Persistent AI Foundry agent, created once in the project (proj-default) so every
 # run reuses the same registered agent instead of creating/deleting a temp one.
@@ -129,33 +122,6 @@ def _extract_bicep(text: str) -> str:
     return text + ("\n" if not text.endswith("\n") else "")
 
 
-def _call_ollama_chat(messages: list[dict], host: str, model: str) -> str:
-    payload = json.dumps({
-        "model": model,
-        "messages": messages,
-        "stream": False,
-        "options": {"temperature": 0.2},
-    }).encode("utf-8")
-    req = urllib.request.Request(
-        url=f"{host.rstrip('/')}/api/chat",
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=600) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.URLError as exc:
-        raise RuntimeError(
-            f"Could not reach local Ollama server at {host} ({exc}). "
-            f"Is Ollama running? Start it, then `ollama pull {model}`."
-        ) from exc
-    content = body.get("message", {}).get("content")
-    if not content:
-        raise RuntimeError(f"Ollama returned no message content: {body}")
-    return content
-
-
 def _call_ai_foundry_chat(messages: list[dict], project_endpoint: str, model_deployment: str,
                            agent_id: str | None) -> str:
     """Runs one turn against a PERSISTENT Azure AI Foundry agent (created once via
@@ -190,27 +156,20 @@ def _call_ai_foundry_chat(messages: list[dict], project_endpoint: str, model_dep
     raise RuntimeError("No assistant response found in thread")
 
 
-def _call_llm_chat(messages: list[dict], backend: str, ollama_host: str, ollama_model: str,
-                    ai_foundry_endpoint: str | None, ai_foundry_model: str | None,
+def _call_llm_chat(messages: list[dict], ai_foundry_endpoint: str | None, ai_foundry_model: str | None,
                     ai_foundry_agent_id: str | None) -> str:
-    if backend == "ollama":
-        return _call_ollama_chat(messages, ollama_host, ollama_model)
-    if backend == "ai-foundry":
-        if not ai_foundry_endpoint:
-            raise RuntimeError(
-                "backend='ai-foundry' requires ai_foundry_endpoint "
-                "(--ai-foundry-endpoint or AI_FOUNDRY_PROJECT_ENDPOINT). ai_foundry_model is only "
-                "needed if you're creating a brand-new agent -- the default persistent agent "
-                "already has a model configured."
-            )
-        return _call_ai_foundry_chat(messages, ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
-    raise RuntimeError(f"Unknown LLM backend '{backend}'. Use 'ollama' or 'ai-foundry'.")
+    if not ai_foundry_endpoint:
+        raise RuntimeError(
+            "--use-llm requires --ai-foundry-endpoint (or AI_FOUNDRY_PROJECT_ENDPOINT). "
+            "ai_foundry_model is only needed if you're creating a brand-new agent -- the "
+            "default persistent agent already has a model configured."
+        )
+    return _call_ai_foundry_chat(messages, ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
 
 
 def generate_main_bicep_with_llm(
     user_prompt: str, resolution: ResolutionResult, requested_counts: dict[str, int],
-    dest_root: Path, backend: str = "ollama",
-    ollama_host: str = DEFAULT_OLLAMA_HOST, ollama_model: str = DEFAULT_OLLAMA_MODEL,
+    dest_root: Path,
     ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
     ai_foundry_agent_id: str | None = None,
     max_attempts: int = 2,
@@ -229,9 +188,8 @@ def generate_main_bicep_with_llm(
     ]
 
     for attempt in range(1, max_attempts + 1):
-        log.append(f"LLM main.bicep generation attempt {attempt}/{max_attempts} (backend={backend})...")
-        raw = _call_llm_chat(messages, backend, ollama_host, ollama_model,
-                              ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
+        log.append(f"LLM main.bicep generation attempt {attempt}/{max_attempts}...")
+        raw = _call_llm_chat(messages, ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
         code = _extract_bicep(raw)
         main_path.write_text(code, encoding="utf-8")
 
@@ -256,8 +214,7 @@ def generate_main_bicep_with_llm(
 
 
 def fix_bicep_with_llm(
-    main_path: Path, validation_errors: str, backend: str = "ollama",
-    ollama_host: str = DEFAULT_OLLAMA_HOST, ollama_model: str = DEFAULT_OLLAMA_MODEL,
+    main_path: Path, validation_errors: str,
     ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
     ai_foundry_agent_id: str | None = None,
     max_attempts: int = 2, source_label: str = "generated main.bicep",
@@ -292,9 +249,8 @@ def fix_bicep_with_llm(
     ]
 
     for attempt in range(1, max_attempts + 1):
-        log.append(f"Fixer-agent repair attempt {attempt}/{max_attempts} (backend={backend}) for {source_label}...")
-        raw = _call_llm_chat(messages, backend, ollama_host, ollama_model,
-                              ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
+        log.append(f"Fixer-agent repair attempt {attempt}/{max_attempts} for {source_label}...")
+        raw = _call_llm_chat(messages, ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
         code = _extract_bicep(raw)
         main_path.write_text(code, encoding="utf-8")
 

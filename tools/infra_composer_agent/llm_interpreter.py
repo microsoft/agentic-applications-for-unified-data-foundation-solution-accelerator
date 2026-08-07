@@ -22,25 +22,14 @@ Design constraints (important -- do not relax these):
     (request_parser.py / resolver.py / composer.py), so the agent can never
     hallucinate a non-existent module or broken reference.
 
-Backends supported (pick with --llm-backend, default "ollama"):
-  * "ollama"      -- runs fully locally via a local Ollama server
-                     (http://localhost:11434 by default). Free, offline, no
-                     API key/account. Install: https://ollama.com, then
-                     `ollama pull llama3.1:8b` (or any other local model).
-                     No persistent "agent" concept -- each call is a
-                     stateless local chat completion.
-  * "ai-foundry"  -- runs via a PERSISTENT Azure AI Foundry agent (created
-                     once with azure-ai-agents' AgentsClient.create_agent,
-                     visible in the AI Foundry portal's Agents tab as
-                     "infra-composer-prompt-interpreter"). Every call opens
-                     a real thread, posts a user message, and runs that
-                     agent -- not a stateless chat completion. Defaults to
-                     DEFAULT_INTERPRETER_AGENT_ID below; pass --ai-foundry-
-                     agent-id to point at a different existing agent.
+Backend: runs via a PERSISTENT Azure AI Foundry agent (created once with
+azure-ai-agents' AgentsClient.create_agent, visible in the AI Foundry
+portal's Agents tab as "infra-composer-prompt-interpreter"). Every call
+opens a real thread, posts a user message, and runs that agent -- not a
+stateless chat completion. Defaults to DEFAULT_INTERPRETER_AGENT_ID below;
+pass --ai-foundry-agent-id to point at a different existing agent.
 
 Configuration (all optional; env vars used if CLI flags are omitted):
-  OLLAMA_HOST                   default: http://localhost:11434
-  OLLAMA_MODEL                  default: llama3.1:8b
   AI_FOUNDRY_PROJECT_ENDPOINT   e.g. https://<project>.services.ai.azure.com/api/projects/<project-name>
   AI_FOUNDRY_MODEL_DEPLOYMENT   only used when creating a NEW agent (the model is already
                                 baked into DEFAULT_INTERPRETER_AGENT_ID's config; unused
@@ -48,19 +37,15 @@ Configuration (all optional; env vars used if CLI flags are omitted):
   AI_FOUNDRY_AGENT_ID           override to reuse a different existing persistent agent
                                 instead of DEFAULT_INTERPRETER_AGENT_ID.
 
-The ai-foundry backend requires (only if you actually use it):
+Requires:
     pip install azure-ai-agents azure-identity
 Auth uses DefaultAzureCredential (e.g. `az login` locally, or a managed
-identity/service principal in CI). The ollama backend requires no extra
-Python packages -- it talks to the local Ollama HTTP API with stdlib
-urllib.
+identity/service principal in CI).
 """
 from __future__ import annotations
 
 import json
 import re
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 
 from module_index import ModuleInfo
@@ -89,9 +74,6 @@ the catalog (e.g. a specific role name), still include the closest resource conc
 Return nothing except that JSON object.
 """
 
-DEFAULT_OLLAMA_HOST = "http://localhost:11434"
-DEFAULT_OLLAMA_MODEL = "llama3.1:8b"
-
 # Persistent AI Foundry agent, created once in the project (proj-default) so every
 # run reuses the same registered agent instead of creating/deleting a temp one.
 # Visible in the AI Foundry portal's Agents tab as "infra-composer-prompt-interpreter".
@@ -119,40 +101,6 @@ def _extract_json(text: str) -> dict:
     if not match:
         raise ValueError("No JSON object found in LLM response")
     return json.loads(match.group(0))
-
-
-def _call_ollama(prompt_text: str, host: str, model: str) -> str:
-    """Calls a local Ollama server's chat endpoint. Raises on any failure
-    (server not running, model not pulled, network error, etc.) -- caller
-    decides how to handle it."""
-    payload = json.dumps({
-        "model": model,
-        "messages": [
-            {"role": "system", "content": INTERPRETER_INSTRUCTIONS},
-            {"role": "user", "content": prompt_text},
-        ],
-        "stream": False,
-        "format": "json",
-        "options": {"temperature": 0},
-    }).encode("utf-8")
-    req = urllib.request.Request(
-        url=f"{host.rstrip('/')}/api/chat",
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=300) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.URLError as exc:
-        raise RuntimeError(
-            f"Could not reach local Ollama server at {host} ({exc}). "
-            f"Is Ollama running? Start it, then `ollama pull {model}`."
-        ) from exc
-    content = body.get("message", {}).get("content")
-    if not content:
-        raise RuntimeError(f"Ollama returned no message content: {body}")
-    return content
 
 
 def _call_ai_foundry_agent(prompt_text: str, project_endpoint: str, model_deployment: str,
@@ -212,30 +160,23 @@ def _resources_to_requests(resources: list[dict], modules: list[ModuleInfo]) -> 
     return requests
 
 
-def interpret_with_llm(prompt: str, modules: list[ModuleInfo], backend: str = "ollama",
-                        ollama_host: str = DEFAULT_OLLAMA_HOST, ollama_model: str = DEFAULT_OLLAMA_MODEL,
+def interpret_with_llm(prompt: str, modules: list[ModuleInfo],
                         project_endpoint: str | None = None, model_deployment: str | None = None,
                         agent_id: str | None = None) -> list[ResourceRequest]:
     """Returns a list of ResourceRequest (matched against the real module
-    index). Raises RuntimeError with a clear message if the requested
-    backend is unavailable/misconfigured or the call fails -- callers that
-    want a hard requirement (no silent fallback) should let this propagate."""
+    index) using the persistent Azure AI Foundry interpreter agent. Raises
+    RuntimeError with a clear message if the backend is unavailable/
+    misconfigured or the call fails -- callers that want a hard requirement
+    (no silent fallback) should let this propagate."""
+    if not project_endpoint:
+        raise RuntimeError(
+            "--use-llm requires --ai-foundry-endpoint (or AI_FOUNDRY_PROJECT_ENDPOINT). "
+            "model_deployment is only needed if you're creating a brand-new agent -- the "
+            "default persistent agent already has a model configured."
+        )
     catalog = _build_catalog_text(modules)
     full_prompt = f"Available module catalog:\n{catalog}\n\nUser request:\n{prompt}"
-
-    if backend == "ollama":
-        raw = _call_ollama(full_prompt, ollama_host, ollama_model)
-    elif backend == "ai-foundry":
-        if not project_endpoint:
-            raise RuntimeError(
-                "backend='ai-foundry' requires project_endpoint "
-                "(--ai-foundry-endpoint or AI_FOUNDRY_PROJECT_ENDPOINT). model_deployment is only "
-                "needed if you're creating a brand-new agent -- the default persistent agent "
-                "already has a model configured."
-            )
-        raw = _call_ai_foundry_agent(full_prompt, project_endpoint, model_deployment, agent_id)
-    else:
-        raise RuntimeError(f"Unknown LLM backend '{backend}'. Use 'ollama' or 'ai-foundry'.")
+    raw = _call_ai_foundry_agent(full_prompt, project_endpoint, model_deployment, agent_id)
 
     parsed = _extract_json(raw)
     resources = parsed.get("resources", [])
@@ -247,6 +188,6 @@ def interpret_with_llm(prompt: str, modules: list[ModuleInfo], backend: str = "o
     # backend/formatting failure rather than "nothing more to add".
     if not requests and not resources and "resources" not in parsed:
         raise RuntimeError(
-            f"LLM backend '{backend}' returned an unparseable response (no 'resources' key found): {raw!r}"
+            f"AI Foundry backend returned an unparseable response (no 'resources' key found): {raw!r}"
         )
     return requests

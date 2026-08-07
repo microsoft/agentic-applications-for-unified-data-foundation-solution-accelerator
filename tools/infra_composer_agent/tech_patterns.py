@@ -528,12 +528,28 @@ PATTERNS: dict[str, TechPattern] = {
 
 def infer_pattern(prompt: str) -> str | None:
     """Best-effort keyword match of a free-text prompt against the pattern
-    catalog's `keywords`. Returns the pattern id with the most keyword hits,
-    or None if nothing matches (ties broken by catalog order)."""
+    catalog's `keywords` and pattern id/display name. Returns the pattern id
+    with the most keyword hits, or None if nothing matches (ties broken by
+    catalog order). Matching is hyphen/space-insensitive so both
+    "chat-with-data" and "chat with data" (or the display name) are
+    recognized when a user references a pattern by its catalog id. Uses
+    word-boundary regex matching (not raw substring) so a short keyword like
+    "rag" doesn't spuriously match inside an unrelated word such as
+    "storage"."""
     lower = prompt.lower()
+    normalized = lower.replace("-", " ")
+
+    def _contains(text: str, phrase: str) -> bool:
+        return re.search(r"\b" + re.escape(phrase) + r"\b", text) is not None
+
     best_id, best_score = None, 0
     for pid, pattern in PATTERNS.items():
-        score = sum(1 for kw in pattern.keywords if kw in lower)
+        score = sum(1 for kw in pattern.keywords if _contains(lower, kw) or _contains(normalized, kw))
+        pid_words = pid.replace("-", " ")
+        if _contains(normalized, pid_words) or _contains(lower, pid.lower()):
+            score += 1
+        if _contains(lower, pattern.display_name.lower()):
+            score += 1
         if score > best_score:
             best_id, best_score = pid, score
     return best_id

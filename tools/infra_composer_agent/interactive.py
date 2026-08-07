@@ -96,10 +96,11 @@ def choose_tech_pattern(prompt: str, requested_pattern: str | None, non_interact
     `requested_pattern` is the --tech-pattern CLI value: 'none' (or falsy)
     means "don't use a pattern at all -- interpret --prompt as-is", an
     explicit catalog id always wins outright, and None (the default when the
-    flag was omitted) means "try to infer one from --prompt, and if that
-    fails, ask interactively unless non_interactive is set (in which case
-    skip patterns entirely -- never silently guess a pattern for an
-    unattended run)."""
+    flag was omitted) means "infer one purely from the free-text prompt
+    (tech_patterns.infer_pattern) -- never force the user to pick from a
+    menu; if nothing is inferred, just compose from --prompt with no
+    pattern." `non_interactive` no longer changes this behavior (inference
+    is silent either way) but is kept for signature compatibility."""
     if requested_pattern and requested_pattern != "none":
         if requested_pattern not in TECH_PATTERNS:
             raise SystemExit(
@@ -114,39 +115,11 @@ def choose_tech_pattern(prompt: str, requested_pattern: str | None, non_interact
 
     inferred = infer_tech_pattern(prompt)
 
-    if non_interactive:
-        if inferred:
-            log.append(f"--non-interactive: inferred technical pattern '{inferred}' from the prompt text.")
-        else:
-            log.append("--non-interactive: no technical pattern inferred from the prompt; composing "
-                        "purely from --prompt.")
-        return inferred
-
-    print("\nDoes this request match one of the predefined technical patterns? Starting from a pattern "
-          "seeds a baseline resource list (which you can still add to/trim below) instead of relying "
-          "purely on free-text interpretation.")
-    keys = list(TECH_PATTERNS)
-    for i, key in enumerate(keys, start=1):
-        pattern = TECH_PATTERNS[key]
-        suggested = "   <- suggested based on your prompt" if inferred == key else ""
-        print(f"  {i}. {key} -- {pattern.summary}{suggested}")
-    none_index = len(keys) + 1
-    print(f"  {none_index}. none -- skip patterns, interpret --prompt as-is")
-    default_index = (keys.index(inferred) + 1) if inferred else none_index
-    default_label = inferred or "none"
-    raw = input(f"Choose 1-{none_index} [default {default_index}: {default_label}]: ").strip()
-    if not raw:
-        chosen = inferred
-    elif raw == str(none_index):
-        chosen = None
+    if inferred:
+        log.append(f"Inferred technical pattern '{inferred}' from your description.")
     else:
-        try:
-            chosen = keys[int(raw) - 1]
-        except (ValueError, IndexError):
-            print(f"Unrecognized choice '{raw}'; using default '{default_label}'.")
-            chosen = inferred
-    log.append(f"Technical pattern selected interactively: '{chosen or 'none'}'.")
-    return chosen
+        log.append("No technical pattern matched your description; composing purely from --prompt.")
+    return inferred
 
 
 def confirm_pattern_plan(pattern_id: str, resources: list, source_desc: str,

@@ -41,7 +41,7 @@ from module_index import build_index, ModuleInfo
 from request_parser import match_requests
 from resolver import resolve
 from composer import copy_modules, generate_main_bicep
-from llm_interpreter import interpret_with_llm, DEFAULT_OLLAMA_HOST, DEFAULT_OLLAMA_MODEL
+from llm_interpreter import interpret_with_llm
 from llm_composer import generate_main_bicep_with_llm, fix_bicep_with_llm
 from bicep_validate import validate_with_az
 import interactive
@@ -54,8 +54,7 @@ DEFAULT_SOURCE_BRANCH = "infra-core-modules-copy"
 DEFAULT_SOURCE_PATH = "infra_new/avm/modules"
 
 
-def _interpret_requests(text: str, modules: list[ModuleInfo], use_llm: bool, llm_backend: str,
-                         ollama_host: str | None, ollama_model: str | None,
+def _interpret_requests(text: str, modules: list[ModuleInfo], use_llm: bool,
                          ai_foundry_endpoint: str | None, ai_foundry_model: str | None,
                          ai_foundry_interpreter_agent_id: str | None, log: list[str]):
     """Runs the same prompt -> ResourceRequest interpretation (LLM or
@@ -63,22 +62,18 @@ def _interpret_requests(text: str, modules: list[ModuleInfo], use_llm: bool, llm
     interactive 'add more resources' loop in compose() can reuse it verbatim
     on whatever free text the user adds afterwards."""
     if use_llm:
-        host = ollama_host or os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST)
-        model = ollama_model or os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
         endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
         foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
         interpreter_agent_id = ai_foundry_interpreter_agent_id or os.environ.get("AI_FOUNDRY_INTERPRETER_AGENT_ID")
         return interpret_with_llm(
-            text, modules, backend=llm_backend,
-            ollama_host=host, ollama_model=model,
+            text, modules,
             project_endpoint=endpoint, model_deployment=foundry_model, agent_id=interpreter_agent_id,
         )
     return match_requests(text, modules)
 
 
 def compose(prompt: str, source_root: Path, dest_root: Path,
-            use_llm: bool = False, llm_backend: str = "ollama",
-            ollama_host: str | None = None, ollama_model: str | None = None,
+            use_llm: bool = False,
             ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
             ai_foundry_interpreter_agent_id: str | None = None,
             ai_foundry_author_agent_id: str | None = None,
@@ -148,11 +143,10 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
         requests = []
     else:
         if use_llm:
-            backend_desc = ("local Ollama model" if llm_backend == "ollama"
-                             else "the persistent AI Foundry agent 'infra-composer-prompt-interpreter'")
-            log.append(f"Interpreting prompt via {backend_desc}...")
+            log.append("Interpreting prompt via the persistent AI Foundry agent "
+                       "'infra-composer-prompt-interpreter'...")
         requests = _interpret_requests(
-            prompt, modules, use_llm, llm_backend, ollama_host, ollama_model,
+            prompt, modules, use_llm,
             ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
         )
         if use_llm:
@@ -189,7 +183,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
         if not addition_text:
             break
         extra_requests = _interpret_requests(
-            addition_text, modules, use_llm, llm_backend, ollama_host, ollama_model,
+            addition_text, modules, use_llm,
             ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
         )
         for req in extra_requests:
@@ -228,14 +222,11 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     if use_llm:
         log.append("Generating main.bicep with the LLM (architect-style: feature flags, conditionals, "
                     "wired outputs) instead of the flat deterministic template...")
-        host = ollama_host or os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST)
-        model = ollama_model or os.environ.get("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
         endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
         foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
         author_agent_id = ai_foundry_author_agent_id or os.environ.get("AI_FOUNDRY_AUTHOR_AGENT_ID")
         llm_code, gen_log, ok = generate_main_bicep_with_llm(
-            prompt, resolution, requested_counts, dest_root, backend=llm_backend,
-            ollama_host=host, ollama_model=model,
+            prompt, resolution, requested_counts, dest_root,
             ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model, ai_foundry_agent_id=author_agent_id,
         )
         log.extend(gen_log)
@@ -251,8 +242,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
                             "validation -- invoking the persistent author agent as a dedicated fixer to "
                             "patch the real errors instead of shipping an unvalidated file.")
                 _, fix_log, fixed = fix_bicep_with_llm(
-                    main_path, fallback_errors, backend=llm_backend,
-                    ollama_host=host, ollama_model=model,
+                    main_path, fallback_errors,
                     ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model,
                     ai_foundry_agent_id=author_agent_id, source_label="deterministic fallback main.bicep",
                 )
@@ -314,18 +304,12 @@ def main() -> int:
                               "directly at the target repo root instead.")
 
     parser.add_argument("--use-llm", action="store_true",
-                         help="Interpret --prompt with an LLM first (handles messier, intent-driven prompts "
-                              "involving RBAC/role assignments/connections instead of plain resource counts). "
-                              "No fallback: if the chosen backend fails, the run stops with an error.")
-    parser.add_argument("--llm-backend", default="ollama", choices=["ollama", "ai-foundry"],
-                         help="Which LLM backend to use with --use-llm (default: ollama -- local, free, offline).")
-    parser.add_argument("--ollama-host", default=None,
-                         help=f"Local Ollama server URL (default: {DEFAULT_OLLAMA_HOST}). Falls back to OLLAMA_HOST env var.")
-    parser.add_argument("--ollama-model", default=None,
-                         help=f"Ollama model to use (default: {DEFAULT_OLLAMA_MODEL}). Falls back to OLLAMA_MODEL env var. "
-                              "Must already be pulled locally (`ollama pull <model>`).")
+                         help="Interpret --prompt with the persistent Azure AI Foundry interpreter agent "
+                              "first (handles messier, intent-driven prompts involving RBAC/role "
+                              "assignments/connections instead of plain resource counts). No fallback: if "
+                              "the agent call fails, the run stops with an error.")
     parser.add_argument("--ai-foundry-endpoint", default=None,
-                         help="Azure AI Foundry project endpoint (only used with --llm-backend ai-foundry). "
+                         help="Azure AI Foundry project endpoint (required with --use-llm). "
                               "Falls back to AI_FOUNDRY_PROJECT_ENDPOINT env var.")
     parser.add_argument("--ai-foundry-model", default=None,
                          help="Model deployment name (only used if creating brand-new agents; the two "
@@ -375,30 +359,21 @@ def main() -> int:
     if not args.prompt:
         if args.non_interactive:
             raise SystemExit("--prompt is required when --non-interactive is set (there is no one to ask).")
-        print("\nWhich technical pattern would you like me to use as a reference, or would you rather "
-              "just describe the resources you want deployed?")
-        keys = list(tech_patterns.PATTERNS)
-        for i, key in enumerate(keys, start=1):
-            print(f"  {i}. {key} -- {tech_patterns.PATTERNS[key].summary}")
-        print(f"  {len(keys) + 1}. none -- I'll just describe the resources myself")
-        raw = input(f"Choose 1-{len(keys) + 1}, or press Enter to just describe your resources: ").strip()
-        if raw and raw != str(len(keys) + 1):
-            try:
-                args.tech_pattern = keys[int(raw) - 1]
-            except (ValueError, IndexError):
-                print(f"Unrecognized choice '{raw}'; I'll ask you to describe the resources instead.")
         prompt_text = input(
-            "\nPlease describe the infrastructure/resources you want deployed "
-            "(e.g. '2 App Services, 1 Cosmos DB, 1 Storage Account, Key Vault'), "
-            "or press Enter to rely only on the technical pattern chosen above: "
+            "\nWhat would you like me to deploy? Describe it in your own words -- you can reference a "
+            "reference solution (e.g. \"I want to follow chat-with-data but also add one more Fabric "
+            "resource\") and/or just list resources directly (e.g. '2 App Services, 1 Cosmos DB, 1 "
+            "Storage Account, Key Vault'):\n> "
         ).strip()
-        if prompt_text:
-            args.prompt = prompt_text
-        elif args.tech_pattern:
-            args.prompt = f"{args.tech_pattern} solution"
-            skip_prompt_interpretation = True
-        else:
-            raise SystemExit("No prompt provided and no technical pattern chosen -- nothing to compose.")
+        if not prompt_text:
+            raise SystemExit("No description provided -- nothing to compose.")
+        args.prompt = prompt_text
+        # No forced pattern menu: choose_tech_pattern() infers a technical
+        # pattern (if any) directly from this same free text later in
+        # compose(), and any extra resources mentioned alongside a pattern
+        # reference (e.g. "...but also add one more fabric resource") are
+        # still interpreted normally since args.prompt carries the full text.
+
 
     branch_name = args.branch_name or default_branch_name(args.prompt)
     tmp_root = Path(tempfile.mkdtemp(prefix="infra-composer-"))
@@ -413,8 +388,7 @@ def main() -> int:
         if args.no_git:
             dest_root = tmp_root / "generated-infra" if args.dest_name == "." else Path(args.dest_name).resolve()
             main_path, log = compose(args.prompt, source_root, dest_root,
-                                      use_llm=args.use_llm, llm_backend=args.llm_backend,
-                                      ollama_host=args.ollama_host, ollama_model=args.ollama_model,
+                                      use_llm=args.use_llm,
                                       ai_foundry_endpoint=args.ai_foundry_endpoint,
                                       ai_foundry_model=args.ai_foundry_model,
                                       ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
@@ -445,8 +419,7 @@ def main() -> int:
 
         dest_root = target_clone_dir if args.dest_name == "." else target_clone_dir / args.dest_name
         main_path, log = compose(args.prompt, source_root, dest_root,
-                                  use_llm=args.use_llm, llm_backend=args.llm_backend,
-                                  ollama_host=args.ollama_host, ollama_model=args.ollama_model,
+                                  use_llm=args.use_llm,
                                   ai_foundry_endpoint=args.ai_foundry_endpoint,
                                   ai_foundry_model=args.ai_foundry_model,
                                   ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
