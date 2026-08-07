@@ -1,10 +1,67 @@
-# Call Center Copilot
+# Conversation Knowledge Mining (Call Center Copilot)
 
-A real-time contact-center copilot that ingests call/voice events and gives agents AI-generated summaries, sentiment, and knowledge-base answers.
+Derive actionable insights from large volumes of conversational/call data using generative AI -- extract key phrases, model topics, and enable interactive natural language exploration across conversations, documents, and recordings.
 
-## What this pattern does
+<div align="center">
 
-Call events/recordings flow into an Event Hub and are stored in Blob Storage. A Container App (running in a dedicated Container App Environment, VNet-integrated) processes each call: it calls Azure AI Services for transcription/summarization/sentiment, looks up relevant knowledge-base articles in Azure AI Search, and calls Azure OpenAI (via an AI Foundry project) to draft next-best-action suggestions for the agent. An App Service hosts the agent-facing dashboard. Conversation state is stored in Cosmos DB, dashboards/alerts use a monitoring workbook, and every service-to-service call uses a managed identity with least-privilege RBAC role assignments instead of keys.
+[**SOLUTION OVERVIEW**](#solution-overview) &nbsp;|&nbsp; [**RESOURCES DEPLOYED**](#resources-deployed) &nbsp;|&nbsp; [**BUSINESS SCENARIO**](#business-scenario) &nbsp;|&nbsp; [**SUPPORTING DOCUMENTATION**](#supporting-documentation)
+
+</div>
+
+> [!NOTE]
+> This README is mocked/generated placeholder documentation for the `call-center` technical pattern,
+> used only so `infra_composer_agent` has a concrete pattern to read and confirm resources from. Its
+> content/structure is modeled on: https://github.com/microsoft/Conversation-Knowledge-Mining-Solution-Accelerator
+
+## Solution overview
+
+Call recordings, transcripts, and related documents land in a Storage Account. An Azure AI Services account (Content Understanding-style extraction) pulls entities, topics, and relationships out of the conversations, which are then indexed in Azure AI Search for hybrid retrieval and written to Cosmos DB for structured analytics and chat history. An App Service hosts the agent-facing web experience -- a Chat/Explore surface that routes questions to an AI Foundry-hosted agent reasoning across both semantic search and structured data, and an Insights surface with an auto-generated, LLM-planned dashboard. Every service-to-service call uses a managed identity with least-privilege RBAC role assignments instead of keys, secrets live in Key Vault, and Storage/Cosmos DB/AI Search/AI Foundry sit behind private endpoints.
+
+### Architecture
+
+```mermaid
+flowchart LR
+  U[Analyst / Agent] --> FE[App Service<br/>Home / Explore / Insights UI]
+  FE -->|questions| FDRY[Azure AI Foundry<br/>ChatAgent orchestration]
+  FDRY --> SEARCH[Azure AI Search<br/>semantic retrieval]
+  FDRY --> COSMOS[(Cosmos DB<br/>structured analytics + chat history)]
+  U -->|upload calls/docs| STORE[(Storage Account<br/>recordings + transcripts)]
+  STORE --> AISVC[Azure AI Services<br/>entity/topic extraction]
+  AISVC -->|index write| SEARCH
+  AISVC -->|write results| COSMOS
+  MI[Managed Identity + RBAC] -.-> FDRY
+  MI -.-> SEARCH
+  MI -.-> COSMOS
+  MI -.-> STORE
+  MI -.-> AISVC
+  VNET[Virtual Network] --- PE[Private Endpoints] --- SEARCH
+  PE --- COSMOS
+  PE --- STORE
+```
+
+### How it works
+
+Home -- upload call recordings, transcripts, or documents to the Storage Account, or load a sample scenario pack; processing runs in the background. Explore -- converse with your data through the App Service UI, which routes questions to an AI Foundry ChatAgent with two tools: Azure AI Search for semantic retrieval and Cosmos DB for structured analytics -- the agent reasons across both and returns grounded, cited answers. Insights -- the LLM reads the dataset's schema and plans an adaptive dashboard of KPIs and charts driven entirely by data, not hard-coded layouts.
+
+### Additional resources
+
+- [Azure AI Foundry documentation](https://learn.microsoft.com/azure/ai-foundry/)
+- [Azure AI Search documentation](https://learn.microsoft.com/azure/search/)
+- [Azure AI Content Understanding documentation](https://learn.microsoft.com/azure/ai-services/content-understanding/)
+
+### Key features
+
+<details open>
+<summary>Click to learn more about the key features this pattern enables</summary>
+
+- Mined entities and relationships -- extracts entities, topics, and relationships from unstructured conversations to build a richer knowledge base.
+- Processes high-volume conversation data at scale, generating embeddings and indexing results for fast hybrid retrieval.
+- Visualized insights -- an interactive dashboard surfaces trends, distributions, and outliers.
+- Natural language interaction -- ask contextual questions and get grounded, cited responses through an AI Foundry ChatAgent.
+- LLM-planned insights dashboard -- the system analyzes the data schema, then plans and computes relevant KPIs and charts automatically.
+- Every service-to-service call is authorized through a managed identity and Azure RBAC.
+
+</details>
 
 ## Resources deployed
 
@@ -15,17 +72,14 @@ Call events/recordings flow into an Event Hub and are stored in Blob Storage. A 
 
 | Resource | Module | Purpose |
 |---|---|---|
-| Container App Environment | `compute/container-app-environment.bicep` | Hosting environment for the processing app |
-| Container App | `compute/container-app.bicep` | Real-time call processing |
-| App Service (agent dashboard) | `compute/app-service.bicep` | Agent-facing dashboard |
+| App Service (agent/analyst UI) | `compute/app-service.bicep` | Hosts the Home/Explore/Insights web experience |
 | App Service Plan | `compute/app-service-plan.bicep` | Compute plan for the App Service |
-| Event Hub | `data/event-hub.bicep` | Call/voice event ingestion |
-| Storage Account | `data/storage-account.bicep` | Call recordings |
-| Azure AI Services | `ai/ai-services.bicep` | Transcription/sentiment analysis |
-| Azure AI Search | `ai/ai-search.bicep` | Knowledge base lookup |
-| AI Foundry Project | `ai/ai-foundry-project.bicep` | Hosts the AI Foundry project/agents |
-| AI Foundry Model Deployment | `ai/ai-foundry-model-deployment.bicep` | Deploys the summarization/chat model |
-| Cosmos DB (NoSQL) | `data/cosmos-db-nosql.bicep` | Conversation state |
+| Storage Account | `data/storage-account.bicep` | Call recordings, transcripts, and documents |
+| Azure AI Services | `ai/ai-services.bicep` | Entity/topic extraction from conversations |
+| Azure AI Search | `ai/ai-search.bicep` | Hybrid (semantic + keyword) retrieval index |
+| AI Foundry Project | `ai/ai-foundry-project.bicep` | Hosts the ChatAgent and orchestration |
+| AI Foundry Model Deployment | `ai/ai-foundry-model-deployment.bicep` | Deploys the chat/summarization model |
+| Cosmos DB (NoSQL) | `data/cosmos-db-nosql.bicep` | Structured analytics store and chat history |
 | Key Vault | `security/key-vault.bicep` | Secrets and certificates |
 | Managed Identity | `identity/managed-identity.bicep` | Identity for service-to-service auth |
 | Role Assignments | `identity/role-assignments.bicep` | Least-privilege RBAC for the identity |
@@ -36,7 +90,38 @@ Call events/recordings flow into an Event Hub and are stored in Blob Storage. A 
 | Private Endpoint | `networking/private-endpoint.bicep` | Private connectivity to data/AI services |
 | Private DNS Zone | `networking/private-dns-zone.bicep` | DNS resolution for private endpoints |
 
-## How to deploy
+## Business scenario
+
+Analysts often work with large volumes of unstructured conversational data, making it difficult to extract actionable insights quickly and accurately. Traditional tools limit interaction with data, making it hard to surface patterns or ask the right follow-up questions without extensive manual exploration.
+
+### Business value
+
+<details>
+<summary>Click to learn more about the value this pattern provides</summary>
+
+- Better decision-making -- summarized, contextualized data helps organizations make informed strategic decisions that drive operational improvements at scale.
+- Time saved -- automated insight extraction and scalable data exploration reduce manual analysis effort.
+- Interactive data insights -- employees engage directly with conversational data using natural language.
+- Scalability -- handles increasing volumes of conversational data without proportional resource increases.
+
+</details>
+
+### Use cases
+
+<details>
+<summary>Click to learn more about the use cases this pattern supports</summary>
+
+| Use case | Persona | Challenges | Summary |
+|---|---|---|---|
+| Contact Center (IT Helpdesk) | Helpdesk Analyst | High volumes of IT helpdesk call transcripts make it hard to mine sentiment, cluster recurring topics, and measure agent performance. | Sentiment analysis, topic clustering, and agent performance insights over call transcripts, with grounded chat exploration and an auto-generated dashboard. |
+| Mortgage Application Review | Loan Analyst | Reviewing lengthy housing reports and purchase contracts manually is slow and error-prone. | Document summarization, clause extraction, and risk analysis across housing reports and purchase contracts. |
+| Telecom Call Analysis | Operations Analyst | Call transcripts and audio recordings are difficult to transcribe, cluster, and act on at scale. | Transcription, sentiment breakdowns, and topic clustering across call transcripts and recordings. |
+
+</details>
+
+## Supporting documentation
+
+### How to deploy
 
 This pattern is composed from existing, previously-reviewed AVM Bicep modules using the
 [`infra_composer_agent`](../../../tools/infra_composer_agent/) tool rather than being generated from
@@ -53,6 +138,13 @@ python tools/infra_composer_agent/agent.py \
 The agent will first show you the resource table above (re-read live from this file) and ask you to
 confirm before pulling any module from the source library or generating anything -- you can still add
 or remove resources at that point.
+
+### Security guidelines
+
+Every service-to-service call in this pattern is authorized through a managed identity and Azure RBAC
+role assignments (see the `identity/managed-identity.bicep` and `identity/role-assignments.bicep` rows
+above) rather than connection strings or keys. Data services are reachable only through private
+endpoints, with public network access disabled.
 
 > This README was generated automatically as placeholder documentation for the `call-center` technical
 > pattern. Regenerate it any time with
