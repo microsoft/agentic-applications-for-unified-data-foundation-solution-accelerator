@@ -15,3 +15,22 @@
 scriptenv/
 __pycache__/
 /venv1/
+
+# Local post-provision state
+data/scenarios/*/config/agent_ids.json
+data/scenarios/*/config/data_agent_definition_parts.json
+data/scenarios/*/config/data_agent_payload_debug.json
+data/scenarios/*/config/fabric_ids.json
+data/scenarios/*/config/ontology_definition_parts.json
+data/scenarios/*/config/schema.json
+data/scenarios/*/config/schema_prompt.txt
+data/scenarios/*/config/search_ids.json
+
+# Deployment validation runtime artifacts
+deployment-validation/bootstrap-check/
+deployment-validation/final-report.md
+deployment-validation/generated-tests/playwright.config.cjs
+deployment-validation/playwright-report/
+deployment-validation/playwright-results.json
+deployment-validation/playwright-summary.json
+**/test-results/
