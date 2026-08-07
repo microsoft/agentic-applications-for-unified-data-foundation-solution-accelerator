@@ -83,8 +83,15 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
             ai_foundry_interpreter_agent_id: str | None = None,
             ai_foundry_author_agent_id: str | None = None,
             non_interactive: bool = False, readme_pattern: str = "ask",
-            tech_pattern: str | None = None) -> tuple[Path, list[str]]:
-    """Runs the full pipeline. Returns (main_bicep_path, human_readable_log)."""
+            tech_pattern: str | None = None, skip_prompt_interpretation: bool = False) -> tuple[Path, list[str]]:
+    """Runs the full pipeline. Returns (main_bicep_path, human_readable_log).
+
+    skip_prompt_interpretation: set True when `prompt` is only a synthetic
+    label (e.g. "<pattern> solution", auto-filled when the user relied purely
+    on a technical pattern and typed no resource description of their own) --
+    prevents that label's own words (like the pattern name) from being
+    re-interpreted as an extra resource request and double-counting
+    something the pattern already added."""
     log: list[str] = []
 
     modules = build_index(source_root)
@@ -133,16 +140,23 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     # starting point, not the whole answer) -- e.g. "...and also 1 more
     # storage account for exports". If no pattern was chosen this is the
     # ONLY source of resources, exactly as before this feature existed.
-    if use_llm:
-        backend_desc = ("local Ollama model" if llm_backend == "ollama"
-                         else "the persistent AI Foundry agent 'infra-composer-prompt-interpreter'")
-        log.append(f"Interpreting prompt via {backend_desc}...")
-    requests = _interpret_requests(
-        prompt, modules, use_llm, llm_backend, ollama_host, ollama_model,
-        ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
-    )
-    if use_llm:
-        log.append(f"LLM identified {len(requests)} resource concept(s) from the prompt.")
+    # Skipped entirely when the prompt is just a synthetic pattern-name
+    # label (see skip_prompt_interpretation docstring above).
+    if skip_prompt_interpretation:
+        log.append("Skipping prompt interpretation: no resource description was provided beyond the "
+                    "technical pattern (nothing to add).")
+        requests = []
+    else:
+        if use_llm:
+            backend_desc = ("local Ollama model" if llm_backend == "ollama"
+                             else "the persistent AI Foundry agent 'infra-composer-prompt-interpreter'")
+            log.append(f"Interpreting prompt via {backend_desc}...")
+        requests = _interpret_requests(
+            prompt, modules, use_llm, llm_backend, ollama_host, ollama_model,
+            ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
+        )
+        if use_llm:
+            log.append(f"LLM identified {len(requests)} resource concept(s) from the prompt.")
 
     for req in requests:
         if req.matched_module is None:
@@ -275,7 +289,10 @@ def main() -> int:
         description="Compose deployable Bicep infra from the fixed module library, "
                     "then branch/commit/push it into the ROOT of any target repo."
     )
-    parser.add_argument("--prompt", required=True, help="Natural-language infra request, e.g. '2 storage accounts and 1 app service'.")
+    parser.add_argument("--prompt", required=False, default=None,
+                         help="Natural-language infra request, e.g. '2 storage accounts and 1 app service'. "
+                              "If omitted, the agent asks for it interactively at startup (unless "
+                              "--non-interactive is set, in which case it is required).")
 
     parser.add_argument("--source-repo", default=DEFAULT_SOURCE_REPO,
                          help=f"Module library repo (fixed by default: {DEFAULT_SOURCE_REPO}).")
@@ -354,6 +371,35 @@ def main() -> int:
                          help="Don't delete the temporary source/target clones after finishing (for inspection).")
     args = parser.parse_args()
 
+    skip_prompt_interpretation = False
+    if not args.prompt:
+        if args.non_interactive:
+            raise SystemExit("--prompt is required when --non-interactive is set (there is no one to ask).")
+        print("\nWhich technical pattern would you like me to use as a reference, or would you rather "
+              "just describe the resources you want deployed?")
+        keys = list(tech_patterns.PATTERNS)
+        for i, key in enumerate(keys, start=1):
+            print(f"  {i}. {key} -- {tech_patterns.PATTERNS[key].summary}")
+        print(f"  {len(keys) + 1}. none -- I'll just describe the resources myself")
+        raw = input(f"Choose 1-{len(keys) + 1}, or press Enter to just describe your resources: ").strip()
+        if raw and raw != str(len(keys) + 1):
+            try:
+                args.tech_pattern = keys[int(raw) - 1]
+            except (ValueError, IndexError):
+                print(f"Unrecognized choice '{raw}'; I'll ask you to describe the resources instead.")
+        prompt_text = input(
+            "\nPlease describe the infrastructure/resources you want deployed "
+            "(e.g. '2 App Services, 1 Cosmos DB, 1 Storage Account, Key Vault'), "
+            "or press Enter to rely only on the technical pattern chosen above: "
+        ).strip()
+        if prompt_text:
+            args.prompt = prompt_text
+        elif args.tech_pattern:
+            args.prompt = f"{args.tech_pattern} solution"
+            skip_prompt_interpretation = True
+        else:
+            raise SystemExit("No prompt provided and no technical pattern chosen -- nothing to compose.")
+
     branch_name = args.branch_name or default_branch_name(args.prompt)
     tmp_root = Path(tempfile.mkdtemp(prefix="infra-composer-"))
     source_clone_dir = tmp_root / "source"
@@ -374,7 +420,8 @@ def main() -> int:
                                       ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
                                       ai_foundry_author_agent_id=args.ai_foundry_author_agent_id,
                                       non_interactive=args.non_interactive, readme_pattern=args.readme_pattern,
-                                      tech_pattern=args.tech_pattern)
+                                      tech_pattern=args.tech_pattern,
+                                      skip_prompt_interpretation=skip_prompt_interpretation)
             for line in log:
                 print(line)
             print(f"Generated locally at {dest_root} (no git operations performed).")
@@ -405,7 +452,8 @@ def main() -> int:
                                   ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
                                   ai_foundry_author_agent_id=args.ai_foundry_author_agent_id,
                                   non_interactive=args.non_interactive, readme_pattern=args.readme_pattern,
-                                  tech_pattern=args.tech_pattern)
+                                  tech_pattern=args.tech_pattern,
+                                  skip_prompt_interpretation=skip_prompt_interpretation)
         for line in log:
             print(line)
 
