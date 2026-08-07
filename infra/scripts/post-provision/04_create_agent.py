@@ -47,6 +47,10 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Load environment from azd + project .env
 from load_env import load_all_env, get_data_folder
+from deployment_validation_agent import (
+    DEPLOYMENT_VALIDATION_AGENT_NAME,
+    DEPLOYMENT_VALIDATION_INSTRUCTIONS,
+)
 load_all_env()
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
@@ -260,6 +264,7 @@ if USE_KNOWLEDGE_BASE:
 # Agent name
 CHAT_AGENT_NAME = "ChatAgent"
 TITLE_AGENT_NAME = "TitleAgent"
+DEPLOYMENT_AGENT_NAME = DEPLOYMENT_VALIDATION_AGENT_NAME
 
 # ============================================================================
 # Print Configuration
@@ -836,15 +841,30 @@ def create_agents(project_client, instructions, title_instructions, agent_tools)
         title_agent = project_client.agents.create_version(
             agent_name=TITLE_AGENT_NAME,
             definition=title_agent_definition
+        )        
+        print(f"\n[OK] Title agent created successfully!")
+        
+        deployment_definition = PromptAgentDefinition(
+            model=MODEL,
+            instructions=DEPLOYMENT_VALIDATION_INSTRUCTIONS,
+            tools=[]
         )
 
-        print(f"\n[OK] Title agent created successfully!")
+        deployment_agent = project_client.agents.create_version(
+            agent_name=DEPLOYMENT_AGENT_NAME,
+            definition=deployment_definition
+        )
+        print(f"\n[OK] Deployment agent created successfully!")
+        print(f"  Agent ID: {deployment_agent.id}")
+        print(f"  Agent Name: {deployment_agent.name}")
 
-    return chat_agent, title_agent
+        
+
+    return chat_agent, title_agent, deployment_agent
 
 
 try:
-    chat_agent, title_agent = create_agents(
+    chat_agent, title_agent, deployment_agent = create_agents(
         project_client, instructions, title_agent_instructions, agent_tools
     )
 except Exception as e:
@@ -858,7 +878,7 @@ except Exception as e:
 # ============================================================================
 
 
-def save_agent_config(config_dir, chat_agent, title_agent):
+def save_agent_config(config_dir, chat_agent, title_agent, deployment_agent):
     """Save agent IDs and configuration to agent_ids.json."""
     agent_ids_path = os.path.join(config_dir, "agent_ids.json")
     agent_ids = {}
@@ -870,6 +890,8 @@ def save_agent_config(config_dir, chat_agent, title_agent):
     agent_ids["chat_agent_name"] = chat_agent.name
     agent_ids["title_agent_id"] = title_agent.id
     agent_ids["title_agent_name"] = title_agent.name
+    agent_ids["deployment_agent_id"] = deployment_agent.id
+    agent_ids["deployment_agent_name"] = deployment_agent.name
     agent_ids["search_index"] = INDEX_NAME
     agent_ids["search_mode"] = "knowledge_base" if USE_KNOWLEDGE_BASE else "search_connection"
     if USE_KNOWLEDGE_BASE:
@@ -895,7 +917,7 @@ def save_agent_config(config_dir, chat_agent, title_agent):
     print(f"\n[OK] Agent config saved to: {agent_ids_path}")
 
 
-save_agent_config(config_dir, chat_agent, title_agent)
+save_agent_config(config_dir, chat_agent, title_agent, deployment_agent)
 
 # ============================================================================
 # Summary

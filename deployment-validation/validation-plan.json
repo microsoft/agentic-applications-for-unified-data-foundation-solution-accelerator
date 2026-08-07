@@ -1,0 +1,172 @@
+{
+  "applicationSummary": "A web-based agentic analytics application for the retail scenario that lets users ask natural-language questions over unified customer, product, order, invoice, payment, and location data. The solution uses Microsoft Fabric as the governed data foundation and Microsoft Foundry/Agent Framework for orchestration, with a React frontend and backend API that support conversational querying, chart/table outputs, chat history, and session persistence.",
+  "deploymentPrerequisites": [
+    "Azure subscription with permission to create resource groups, app registrations, and assign RBAC roles at the resource group/subscription level.",
+    "Fabric capacity (F2+) and tenant settings enabled for Ontology (preview), Graph (preview), and Copilot and Azure OpenAI Service.",
+    "Regional availability for Microsoft Fabric, Azure AI Foundry, GPT model capacity, Azure Container Apps, and Azure Container Registry; the docs list examples such as East US.",
+    "Azure Developer CLI azd 1.15.0+ (and note azd 1.23.9 requires provision.preflight off).",
+    "PowerShell 7+, Bicep CLI 0.33.0+, Python 3.9+, Docker Desktop, Git, and Microsoft ODBC Driver 17 for local/deployment workflows.",
+    "If using VS Code Web, Azure CLI device-code authentication is required instead of browser-based az login.",
+    "For post-deployment data/build steps, access to the deployed Azure resources and a signed-in Azure account with Foundry User role if running locally against Foundry services."
+  ],
+  "businessScenarios": [
+    "Retail sales analysis and product performance exploration using natural-language questions over unified customer, product, and sales data.",
+    "Retail inventory and sales operations with insights such as top-performing products, revenue over time, and segment growth.",
+    "Interactive charting and tabular analytics for business users who need quick answers without building dashboards.",
+    "Conversational access to governed enterprise data from a web application backed by Fabric and Azure AI services."
+  ],
+  "deploymentChecks": [
+    "Confirm the deployed site opens successfully at the provided App Service URL and the application shell renders.",
+    "Verify the user is authenticated and that the UI reflects the signed-in identity/menu state after session establishment.",
+    "Send a retail question using the Send button and verify a response appears.",
+    "Send the same or another retail question by pressing Enter and verify the message submits.",
+    "Ask at least one question that should return a text response and confirm the assistant displays readable narrative output.",
+    "Ask a retail question that should return a chart and confirm chart rendering in the conversation.",
+    "If repository documents or guidance are exposed as citations in the app, ask a question grounded in the supplied retail policy/reference material and verify citations appear; do not use structured-data-only prompts for citation validation.",
+    "Start a new chat and verify the conversation resets without affecting prior persisted chats.",
+    "Show and hide the conversation history panel and verify the UI toggles correctly.",
+    "Select an existing conversation from history and verify the prior thread loads.",
+    "Rename a conversation, cancel a rename, delete a conversation, cancel a delete, clear all conversations, and cancel clear-all confirmation; treat clear-all as destructive and use only a dedicated isolated test identity.",
+    "Refresh or reopen the app and verify conversation persistence across reload/session restoration.",
+    "Validate that the user menu is accessible and that the app remains stable during basic navigation actions."
+  ],
+  "samplePrompts": [
+    "What are my top-performing products?",
+    "Show total revenue by year for the last 5 years as a line chart.",
+    "Which segments show the highest YoY growth?",
+    "Show the top 10 products by revenue in the last year.",
+    "Show top 5 products by total quantity sold last month."
+  ],
+  "smokeTests": [
+    {
+      "name": "Authentication and session establishment",
+      "type": "authentication",
+      "prompt": "",
+      "expectedResult": "The application opens in an authenticated or sign-in-ready state and establishes a session for the current user without requiring credential automation or sign-out."
+    },
+    {
+      "name": "Authenticated UI shell loads",
+      "type": "authenticated_ui",
+      "prompt": "",
+      "expectedResult": "After authentication, the main application shell loads successfully with the retail experience visible and ready for interaction."
+    },
+    {
+      "name": "User identity menu is available",
+      "type": "user_menu",
+      "prompt": "",
+      "expectedResult": "The signed-in user identity/menu control is visible and can be opened to inspect account-related options without requiring sign-out."
+    },
+    {
+      "name": "Application shell page load",
+      "type": "page_load",
+      "prompt": "",
+      "expectedResult": "The page loads without blocking errors and the primary chat workspace, input area, and supporting layout are visible."
+    },
+    {
+      "name": "Send message by button",
+      "type": "chat_prompt",
+      "prompt": "What are my top-performing products?",
+      "expectedResult": "Clicking Send submits the message and the conversation displays an assistant response for the retail question."
+    },
+    {
+      "name": "Send message by Enter",
+      "type": "keyboard_submit",
+      "prompt": "Show total revenue by year for the last 5 years.",
+      "expectedResult": "Pressing Enter submits the message from the input box and the conversation displays a response."
+    },
+    {
+      "name": "Text response rendering",
+      "type": "chat_prompt",
+      "prompt": "Which segments show the highest YoY growth?",
+      "expectedResult": "The assistant returns a readable text-based answer in the conversation stream."
+    },
+    {
+      "name": "Chart response rendering",
+      "type": "chart_prompt",
+      "prompt": "Show total revenue by year for the last 5 years as a line chart.",
+      "expectedResult": "The assistant returns a chart visualization and it renders successfully in the response area."
+    },
+    {
+      "name": "Citation rendering from repository documents",
+      "type": "citation",
+      "prompt": "According to the deployment guide, what is the default scenario used when no scenario is specified?",
+      "expectedResult": "The response includes citations or reference markers grounded in the supplied deployment documentation, and the answer reflects the documented retail default scenario."
+    },
+    {
+      "name": "New chat starts a fresh conversation",
+      "type": "new_chat",
+      "prompt": "",
+      "expectedResult": "Starting a new chat clears the current thread state and begins a fresh conversation without deleting prior history."
+    },
+    {
+      "name": "Show and hide chat history",
+      "type": "history_select",
+      "prompt": "",
+      "expectedResult": "The chat history panel can be shown and hidden, revealing prior conversations when visible."
+    },
+    {
+      "name": "Select conversation from history",
+      "type": "history_select",
+      "prompt": "",
+      "expectedResult": "Selecting a prior conversation loads that thread and its messages into the main chat area."
+    },
+    {
+      "name": "Rename conversation",
+      "type": "history_rename",
+      "prompt": "",
+      "expectedResult": "A conversation can be renamed and the updated title is reflected in the history list."
+    },
+    {
+      "name": "Cancel rename conversation",
+      "type": "history_rename_cancel",
+      "prompt": "",
+      "expectedResult": "Cancelling rename leaves the conversation title unchanged."
+    },
+    {
+      "name": "Delete conversation",
+      "type": "history_delete",
+      "prompt": "",
+      "expectedResult": "Deleting a conversation removes it from the history list after confirmation."
+    },
+    {
+      "name": "Cancel delete conversation",
+      "type": "history_delete_cancel",
+      "prompt": "",
+      "expectedResult": "Cancelling delete keeps the conversation in history and no removal occurs."
+    },
+    {
+      "name": "Clear all conversations",
+      "type": "history_clear",
+      "prompt": "",
+      "expectedResult": "Clear-all confirmation is presented and, when confirmed in an isolated test identity, all conversations are removed from history."
+    },
+    {
+      "name": "Cancel clear all conversations",
+      "type": "history_clear_cancel",
+      "prompt": "",
+      "expectedResult": "Cancelling the clear-all confirmation leaves all existing conversations intact."
+    },
+    {
+      "name": "Conversation persistence across reload",
+      "type": "conversation_persistence",
+      "prompt": "",
+      "expectedResult": "Existing conversations and session context remain available after a page refresh or app reload."
+    },
+    {
+      "name": "Open chat history",
+      "type": "chat_history",
+      "prompt": "",
+      "expectedResult": "The chat history panel is visible."
+    }
+  ],
+  "playwrightRecommendations": [
+    "Use a dedicated isolated test identity for destructive history-clear validation.",
+    "Prefer stable UI assertions such as visible controls, conversation count changes, and presence of response containers over exact model wording.",
+    "For chat submissions, verify both the submitted user message and the appearance of an assistant response before checking content type.",
+    "Use the retail-specific prompts from the deployment guide to avoid relying on unsupported or scenario-mismatched content.",
+    "If the app exposes citations only for document-grounded answers, keep the citation test aligned to repository docs and avoid structured-data-only prompts.",
+    "Prefer resilient selectors for chat input, send button, history drawer, conversation items, rename/delete controls, and confirmation dialogs.",
+    "Allow extra time for session establishment and initial model response generation, especially on first load after deployment.",
+    "For chart prompts, assert that a chart canvas/SVG/visual container renders rather than validating every datapoint label."
+  ]
+}
