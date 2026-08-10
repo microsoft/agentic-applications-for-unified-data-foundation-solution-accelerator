@@ -9,9 +9,8 @@ A streaming telemetry pipeline that ingests high-volume events, evaluates them f
 </div>
 
 > [!NOTE]
-> This README is mocked/generated placeholder documentation for the `realtime-alerts` technical pattern,
-> used only so `infra_composer_agent` has a concrete pattern to read and confirm resources from. Its
-> content/structure is modeled on: (mocked pattern -- not modeled on a specific public repo, for internal testing only)
+> This README is mocked/generated placeholder documentation for the `realtime-alerts` technical pattern.
+> Its content/structure is modeled on: (mocked pattern -- not modeled on a specific public repo, for internal testing only)
 
 ## Solution overview
 
@@ -63,10 +62,8 @@ High-volume telemetry streams into the Event Hub. The Function App consumes each
 
 ## Resources deployed
 
-> This table is read directly by `infra_composer_agent` (see `tech_patterns.get_pattern_resources()`)
-> to build its resource plan -- edit it here and the agent will pick up your changes on its next run.
-> The `Module` column must match an exact module key from the source module library
-> (`infra_new/avm/modules/<category>/<name>.bicep` on the `infra-core-modules-copy` branch).
+> The `Module` column maps each resource to the exact module key from the underlying AVM Bicep module
+> library (`infra_new/avm/modules/<category>/<name>.bicep`).
 
 | Resource | Module | Purpose |
 |---|---|---|
@@ -118,24 +115,6 @@ Teams operating high-volume streaming/IoT workloads need to detect conditions of
 
 ## Supporting documentation
 
-### How to deploy
-
-This pattern is composed from existing, previously-reviewed AVM Bicep modules using the
-[`infra_composer_agent`](../../../tools/infra_composer_agent/) tool rather than being generated from
-scratch. To generate a deployable project for this pattern:
-
-```bash
-python tools/infra_composer_agent/agent.py \
-  --tech-pattern realtime-alerts \
-  --prompt "<describe your specific solution name/naming convention and any resources to add or remove>" \
-  --target-repo <your-target-repo-url> \
-  --validate
-```
-
-The agent will first show you the resource table above (re-read live from this file) and ask you to
-confirm before pulling any module from the source library or generating anything -- you can still add
-or remove resources at that point.
-
 ### Security guidelines
 
 Every service-to-service call in this pattern is authorized through a managed identity and Azure RBAC
@@ -144,5 +123,4 @@ above) rather than connection strings or keys. Data services are reachable only 
 endpoints, with public network access disabled.
 
 > This README was generated automatically as placeholder documentation for the `realtime-alerts` technical
-> pattern. Regenerate it any time with
-> `python tools/infra_composer_agent/generate_pattern_readmes.py`.
+> pattern.

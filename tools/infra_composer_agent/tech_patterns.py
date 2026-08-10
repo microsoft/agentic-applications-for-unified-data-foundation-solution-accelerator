@@ -10,10 +10,9 @@ Workflow (see agent.compose() / interactive.py):
   2. The prompt is matched against this catalog's `keywords` to pick a
      technical pattern (explicit --tech-pattern always wins; otherwise
      inferred, and confirmed interactively unless --non-interactive).
-  3. The pattern's own README.md -- normally the on-disk file under
-     001-wip-repo-structure/technical-patterns/<id>/README.md, generated
-     from this catalog by generate_pattern_readmes.py -- is READ and its
-     "## Resources deployed" table is parsed to get the exact list of AVM
+  3. The pattern's own README.md -- the on-disk file under
+     001-wip-repo-structure/technical-patterns/<id>/README.md -- is READ
+     and its "## Resources deployed" table is parsed to get the exact list of AVM
      module keys (e.g. "compute/app-service.bicep") this pattern uses.
      Reading the actual README (not just this Python catalog) is
      deliberate: it means the README is the real source of truth the user
@@ -24,11 +23,10 @@ Workflow (see agent.compose() / interactive.py):
      the agent pull the actual module files from the source module-library
      branch (infra-core-modules-copy) and start composing.
 
-`PATTERNS` remains the fallback/generation source (used by
-generate_pattern_readmes.py to (re)populate the on-disk READMEs, and as a
-fallback if a README is ever missing or its table can't be parsed), but at
-runtime the on-disk README is preferred whenever it exists and parses
-cleanly -- see `get_pattern_resources()`.
+`PATTERNS` remains the fallback/generation source (used to author the
+on-disk READMEs, and as a fallback if a README is ever missing or its
+table can't be parsed), but at runtime the on-disk README is preferred
+whenever it exists and parses cleanly -- see `get_pattern_resources()`.
 """
 from __future__ import annotations
 
@@ -638,9 +636,8 @@ def render_readme(pattern: TechPattern) -> str:
 </div>
 
 > [!NOTE]
-> This README is mocked/generated placeholder documentation for the `{pattern.id}` technical pattern,
-> used only so `infra_composer_agent` has a concrete pattern to read and confirm resources from. Its
-> content/structure is modeled on: {pattern.source_reference}
+> This README is mocked/generated placeholder documentation for the `{pattern.id}` technical pattern.
+> Its content/structure is modeled on: {pattern.source_reference}
 
 ## Solution overview
 
@@ -671,10 +668,8 @@ def render_readme(pattern: TechPattern) -> str:
 
 ## Resources deployed
 
-> This table is read directly by `infra_composer_agent` (see `tech_patterns.get_pattern_resources()`)
-> to build its resource plan -- edit it here and the agent will pick up your changes on its next run.
-> The `Module` column must match an exact module key from the source module library
-> (`infra_new/avm/modules/<category>/<name>.bicep` on the `infra-core-modules-copy` branch).
+> The `Module` column maps each resource to the exact module key from the underlying AVM Bicep module
+> library (`infra_new/avm/modules/<category>/<name>.bicep`).
 
 | Resource | Module | Purpose |
 |---|---|---|
@@ -706,24 +701,6 @@ def render_readme(pattern: TechPattern) -> str:
 
 ## Supporting documentation
 
-### How to deploy
-
-This pattern is composed from existing, previously-reviewed AVM Bicep modules using the
-[`infra_composer_agent`](../../../tools/infra_composer_agent/) tool rather than being generated from
-scratch. To generate a deployable project for this pattern:
-
-```bash
-python tools/infra_composer_agent/agent.py \\
-  --tech-pattern {pattern.id} \\
-  --prompt "<describe your specific solution name/naming convention and any resources to add or remove>" \\
-  --target-repo <your-target-repo-url> \\
-  --validate
-```
-
-The agent will first show you the resource table above (re-read live from this file) and ask you to
-confirm before pulling any module from the source library or generating anything -- you can still add
-or remove resources at that point.
-
 ### Security guidelines
 
 Every service-to-service call in this pattern is authorized through a managed identity and Azure RBAC
@@ -732,7 +709,6 @@ above) rather than connection strings or keys. Data services are reachable only 
 endpoints, with public network access disabled.
 
 > This README was generated automatically as placeholder documentation for the `{pattern.id}` technical
-> pattern. Regenerate it any time with
-> `python tools/infra_composer_agent/generate_pattern_readmes.py`.
+> pattern.
 """
 

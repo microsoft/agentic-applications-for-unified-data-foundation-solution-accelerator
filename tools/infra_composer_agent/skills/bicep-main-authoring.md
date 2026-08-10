@@ -1,25 +1,35 @@
 # Skill: Authoring `main.bicep` orchestrators (Azure Bicep)
 
-This is a distilled rule set extracted directly from this repository's real, hand-authored
-orchestrator: [`infra/bicep/main.bicep`](../../../infra/bicep/main.bicep). It is the authoritative
-style guide the `infra_composer_agent`'s LLM author agent must follow when generating a new
-`main.bicep` for any composed project. Every rule below is backed by a concrete example copied
-verbatim (or near-verbatim) from that file so nothing here is speculative.
+This rule set combines two sources, in this priority order when they ever conflict:
+
+1. This repository's real, hand-authored orchestrator:
+   [`infra/bicep/main.bicep`](../../../infra/bicep/main.bicep) -- concrete, proven conventions
+   actually used in this codebase (module wiring, existing-vs-new pattern, RBAC centralization,
+   etc.).
+2. Microsoft's [`hve-core` Bicep authoring instructions](https://github.com/microsoft/hve-core/blob/main/.github/instructions/coding-standards/bicep/bicep.instructions.md)
+   -- adopted in full (per explicit instruction) for everything not already pinned down by source
+   #1: file/section layout, decorators, naming, type system, outputs, and validation discipline.
+   Where hve-core's guidance differs from an old habit that was only a stylistic default (not a
+   real functional requirement of this codebase), hve-core wins and supersedes it -- these cases
+   are called out explicitly below wherever they occur.
+
+It is the authoritative style guide the `infra_composer_agent`'s LLM author agent must follow when
+generating a new `main.bicep` for any composed project. Every rule is backed either by a concrete
+example from the real repo file, or is a direct adoption of the hve-core instructions.
 
 If a generation request needs a convention not covered here, DO NOT invent one silently -- flag it
 in the run log as an open question instead of guessing.
 
 ## 1. File shape: pure orchestrator, nothing else
 
-- `targetScope = 'resourceGroup'` is the first non-comment line (unless the composition is
-  explicitly subscription-scoped -- see Section 8).
-- The file only contains: a header comment, `param` declarations, `var` declarations, one resource
-  block that tags the resource group (Section 4), `module` blocks, and `output` declarations.
-- No inline resource (`resource ... = {...}`) definitions for actual infrastructure -- every real
-  resource is deployed through a `module` block that references a local `.bicep` file under
-  `./modules/`. The only inline `resource` allowed is the resource-group tag-merge resource
-  (Section 4).
-- Open with a header comment block:
+- The file starts with Bicep `metadata` entries (hve-core File Organization), immediately before
+  `targetScope`:
+  ```bicep
+  metadata name = 'main'
+  metadata description = 'Pure orchestrator for the composed solution.'
+  ```
+  followed by a header comment block for the richer multi-line description this project already
+  uses:
   ```bicep
   // ============================================================================
   // main.bicep — Orchestrator
@@ -28,15 +38,54 @@ in the run log as an open question instead of guessing.
   //              This file only calls modules; no inline resource definitions.
   // ============================================================================
   ```
+- `targetScope = 'resourceGroup'` comes right after that (unless the composition is explicitly
+  subscription-scoped -- see Section 8).
+- The file only contains: `metadata`/header comment, `param` declarations, `var` declarations
+  (and any local `type` declarations this file itself needs), one resource block that tags the
+  resource group (Section 4), `module` blocks, and `output` declarations.
+- No inline resource (`resource ... = {...}`) definitions for actual infrastructure -- every real
+  resource is deployed through a `module` block that references a local `.bicep` file under
+  `./modules/`. The only inline `resource` allowed is the resource-group tag-merge resource
+  (Section 4).
+- Overall section order (hve-core File Organization), top to bottom:
+  1. Metadata and header comment
+  2. `targetScope`
+  3. Common/core parameters (solutionName, solutionUniqueText, location, tags)
+  4. Module-specific parameters, grouped by functional area (Section 2)
+  5. Variables (Section 3)
+  6. The resource-group tag resource (Section 4)
+  7. Module blocks (Section 5), grouped by category
+  8. Outputs (Section 10)
+- Hardcoded values for resource names, locations, or other configurable items are not permitted --
+  every name is derived from a param/var (this already matches Section 3's `solutionSuffix`
+  derivation and every AVM module's own naming parameter).
 
 ## 2. Parameters
 
-- Group parameters under `// === Parameters — <Section> ===` comment headers (e.g. Core, AI
-  Configuration, Compute, Feature Flags, Existing Resources, Identity, App Configuration) --
-  don't declare a flat, ungrouped list.
+- Group parameters under `/* Parameters — <Section> */`-style comment blocks with blank-line
+  separation (hve-core "Section headers use `/* */` comment blocks with whitespace for visual
+  separation" -- this supersedes the older `// === ... ===` single-line style for anything newly
+  generated by this agent):
+  ```bicep
+  /* ---------------------------------------------------------------------- */
+  /* Parameters — Compute                                                   */
+  /* ---------------------------------------------------------------------- */
+  ```
+  Functional groupings (hve-core), used instead of ad-hoc section names where they fit: Identity,
+  Networking, Storage, Monitoring, Compute, Security -- plus this project's own Core/Feature
+  Flags/Existing Resources groups for concerns AVM's functional buckets don't cover. Order
+  parameters alphabetically within each group.
 - **Every** `param` has an `@description('Required. ...')` or `@description('Optional. ...')`
   decorator, starting with exactly the word `Required.` or `Optional.` (matching how AVM modules
-  document parameters).
+  document parameters), written as a short sentence ending with a period. If a parameter has a
+  non-obvious effect, say so in the same sentence, e.g. `'Optional. ... (updates X when set)'`.
+- Parameter names are `camelCase`; any local `type` this file declares is `PascalCase`.
+- Boolean parameters start with `should` or `is` for anything new this agent introduces on its own
+  (hve-core) -- e.g. `shouldEnableScalability`. Existing, already-established feature-flag names
+  copied verbatim from the real repo file's own convention (`enableMonitoring`,
+  `enablePrivateNetworking`, `enableScalability`, `enableRedundancy`) are kept as-is for
+  consistency with that file -- don't rename those specific ones, but use `should`/`is` for any
+  *new* flag this agent adds that has no existing counterpart to match.
 - Core params always present:
   ```bicep
   @minLength(3)
@@ -60,7 +109,13 @@ in the run log as an open question instead of guessing.
 - Use `@minValue`/`@minLength`/`@maxLength` wherever the underlying Azure resource actually
   enforces a bound (e.g. capacity `@minValue(10)`, name length limits).
 - A parameter representing an existing resource (opt-out-of-creating-a-new-one pattern) defaults to
-  `''` (empty string) -- see Section 7.
+  `''` (empty string) -- see Section 7. This specific pattern is kept exactly as the real repo file
+  uses it (existing established convention, don't change it). For any *other*, newly-introduced
+  optional parameter that isn't part of this existing-vs-new pattern, prefer a nullable type with
+  no explicit default (`param foo string?`, whose implicit default is already `null`) over an
+  empty-string placeholder default (hve-core: "Empty string defaults are not permitted; use `null`
+  instead"). Note `BCP326`: a nullable-typed param cannot also carry an explicit `= <value>`
+  default -- its default is implicitly `null` already.
 - A region/location parameter that drives AI model deployment availability uses `@allowed([...])`
   restricted to regions known to support the required models, plus an `@metadata({ azd: { type:
   'location', usageName: [...] } })` block if this project is meant to be `azd`-deployable.
@@ -69,8 +124,12 @@ in the run log as an open question instead of guessing.
 
 ## 3. Variables
 
-- Keep a single `// === Variables ===` section, after all parameters, before the resource-group
-  tag resource.
+- Keep a single `/* Variables */`-style comment block (Section 2's `/* */` header convention),
+  after all parameters, before the resource-group tag resource.
+- Give every `var` an explicit type annotation when it holds a literal or simple expression (hve-core
+  "Use typed variables"), e.g. `var solutionSuffix string = toLower(...)` rather than an untyped
+  `var solutionSuffix = toLower(...)`, wherever Bicep's type inference alone wouldn't make the
+  intended type obvious to a reader.
 - Sanitize `solutionName` into a safe suffix used for actual resource naming -- never pass the raw
   `solutionName` param straight into a module; always derive and pass a sanitized `var`:
   ```bicep
@@ -123,25 +182,34 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2024-11-01' = {
 
 ## 5. Module blocks
 
-- One `module` block per logical resource, grouped under `// === Module: <Category> ===` comment
-  headers matching the module's folder category (Monitoring, Data, Compute, AI, Identity, etc.).
-- Deterministic, collision-safe module deployment name, always wrapped in `take(..., 64)` (ARM's
-  deployment-name length limit):
+- One `module` block per logical resource, grouped under `/* Module: <Category> */`-style comment
+  blocks (Section 2's header convention) matching the module's folder category (Monitoring, Data,
+  Compute, AI, Identity, etc.).
+- **Module deployment `name:` field**: hve-core recommends omitting it entirely so Bicep
+  auto-generates a collision-free name (its own auto-generated GUID-based name avoids concurrency
+  collisions, which matters most inside a `for` loop where a static name would collide across
+  iterations). Follow that guidance for this project going forward:
+  - For a `for`-loop module (Section 5's model-deployment example) or any module that could ever
+    run concurrently with another instance of itself, omit `name:` entirely.
+  - For a single, non-looped module block, you may still omit `name:` (the hve-core default) --
+    this is now preferred over the old habit of always setting an explicit
+    `name: take('module.<name>.${solutionName}', 64)`. Only set an explicit deterministic name if
+    the composition genuinely needs stable, re-runnable deployment names across repeated runs
+    against the same resource group (rare for this agent's one-shot compositions) -- if you do,
+    keep it wrapped in `take(..., 64)` (ARM's deployment-name length limit) exactly as before.
   ```bicep
   module <symbolicName> './modules/<category>/<name>.bicep' = {
-    name: take('module.<name>.${solutionName}', 64)
     params: { ... }
     scope: resourceGroup(resourceGroup().name)
   }
   ```
-  Use the raw `${solutionName}` param (not `solutionSuffix`) inside the `name:` deployment-name
-  string specifically -- that's what the real file does (deployment names tolerate the raw input;
-  actual Azure resource names use `solutionSuffix`).
 - Pass `solutionName: solutionSuffix` (the sanitized variable, NOT the raw param) as the module's
   own `solutionName` parameter.
 - `scope: resourceGroup(resourceGroup().name)` is explicit on every module targeting the local
   resource group -- don't omit it even though it's the implicit default, except for a module that
-  targets a genuinely different resource group/subscription (Section 8).
+  targets a genuinely different resource group/subscription (Section 8). This is already a
+  symbolic reference (a function call), not a raw resource-ID string, matching hve-core's "use
+  symbolic references for scope" rule.
 - Conditionally create a module with `if (<condition>)` only when there's a real reason to
   (existing-vs-new toggle, an opt-in feature flag) -- otherwise the module is unconditional.
 - **Non-null assertion for conditional module outputs**: when a module was declared with an `if`
@@ -150,11 +218,11 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2024-11-01' = {
   modules reference `.outputs` without `!`.
 - For repeated instances of the same module (e.g. multiple model deployments), use a `for` loop
   over an array variable, with `@batchSize(1)` if the underlying resource type doesn't tolerate
-  parallel creation:
+  parallel creation. Omit `name:` here in particular -- a static/templated name repeated across
+  loop iterations is exactly the collision case hve-core's guidance protects against:
   ```bicep
   @batchSize(1)
   module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for (item, i) in items: {
-    name: take('module.model-deployment-${i}.${solutionName}', 64)
     params: { ... }
   }]
   ```
@@ -165,6 +233,12 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2024-11-01' = {
   never hardcode a value that another module already produces.
 - Prefer ternary wiring for optional/conditional dependencies rather than duplicating module
   blocks: `workspaceResourceId: enableMonitoring ? logAnalytics!.outputs.resourceId : ''`.
+- Prefer `.?` (safe dereference) and `??` (null-coalescing) over a verbose ternary with a null
+  check wherever the value being tested is itself nullable, e.g.
+  `retentionDays: existingConfig.?retentionDays ?? 30` instead of
+  `retentionDays: !empty(existingConfig) ? existingConfig.retentionDays : 30`. Keep the ternary form
+  from the bullet above when the condition is a plain boolean flag (not a null-check), since that's
+  what this project's real file already does for feature-flag-driven wiring.
 - When a value can come from either an "existing resource" path or a "newly created" path, resolve
   it once into a `var` immediately after both branches are declared, then use that single `var`
   everywhere downstream -- don't repeat the ternary at every call site:
@@ -176,7 +250,12 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2024-11-01' = {
 
 For any resource type the user might already have (Log Analytics workspace, AI Foundry project,
 etc.):
-- Add an `existing<Thing>ResourceId` (or `existing<Thing>Name`) string param, default `''`.
+- Add an `existing<Thing>ResourceId` (or `existing<Thing>Name`) string param, default `''`. Prefer
+  a *name* parameter over a resource-ID parameter when the module/lookup can resolve everything it
+  needs from just the name (hve-core: "prefer name parameters over resource IDs" for existing
+  resources) -- fall back to a resource-ID parameter only when cross-resource-group/subscription
+  scoping information can't otherwise be derived (see Section 8, which does need the full ID to
+  `split()` out the subscription/resource-group segments).
 - Derive `useExisting<Thing> = !empty(existing<Thing>ResourceId)`.
 - Guard the "create new" module with `if (!useExisting<Thing>)`.
 - If runtime properties of the existing resource are needed (endpoints, identity principal ids),
@@ -196,10 +275,9 @@ those two values from the existing resource's ID via `split(...)`, same as Secti
 
 Do not scatter `Microsoft.Authorization/roleAssignments` resources across multiple modules. Create
 exactly one `role-assignments` module call, fed every principal ID / resource ID it needs to grant
-access to/from, e.g.:
+access to/from, e.g. (module `name:` omitted per Section 5's updated guidance):
 ```bicep
 module role_assignments './modules/identity/role-assignments.bicep' = {
-  name: take('module.role-assignments.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     <serviceX>ResourceId: <serviceXModule>.outputs.resourceId
@@ -213,19 +291,25 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
 
 ## 10. Outputs
 
-- One `// === Outputs ===`-style section at the end of the file (or grouped logically at the end),
-  after every module block.
+- One `/* Outputs */`-style comment block (Section 2's header convention) at the end of the file
+  (or grouped logically at the end), after every module block.
 - Output names are `UPPER_SNAKE_CASE` (matching `azd`/env-var conventions), not camelCase.
-- Every output has an `@description('...')` decorator.
+- Every output has an `@description('...')` decorator, written as a short sentence ending with a
+  period.
 - Output the identifying value(s) (`resourceId`, `name`, `endpoint`, connection string, etc.) of
   every module the user explicitly asked for -- prefer the most useful runtime value (an endpoint
   or connection identifier) over a bare resource ID when both exist.
+- Never output a secret/connection-string/key value directly (`outputs-should-not-contain-secrets`)
+  -- output a resource ID/name/endpoint instead and let the consumer resolve secrets via
+  `listKeys()`/a Key Vault reference at deploy time.
 - For a conditionally-created resource, the output expression itself carries the condition rather
   than the output being conditionally declared (Bicep outputs can't be conditional the way
-  resources/modules can):
+  resources/modules can). Prefer a nullable output type with `null` for the "not created" branch
+  (hve-core) over an empty-string placeholder, since `null` unambiguously signals "not applicable"
+  while `''` could be mistaken for an actual empty value:
   ```bicep
-  @description('The resource ID of the Fabric capacity.')
-  output AZURE_FABRIC_CAPACITY_RESOURCE_ID string = createFabricWorkspace ? fabricCapacity!.outputs.resourceId : ''
+  @description('The resource ID of the Fabric capacity, or null if it was not created.')
+  output AZURE_FABRIC_CAPACITY_RESOURCE_ID string? = createFabricWorkspace ? fabricCapacity!.outputs.resourceId : null
   ```
 - Stay under Bicep's 64-output linter limit (`max-outputs`) -- if the composition has many
   resources, output only the explicitly-requested modules' key values, not every auto-included
@@ -244,6 +328,78 @@ module role_assignments './modules/identity/role-assignments.bicep' = {
   the real parsed module list, don't guess a plausible-looking name.
 - Prefer explicit, readable expressions over deeply nested ternaries; if wiring logic needs more
   than two levels of nesting, resolve intermediate values into named `var`s first (see Section 6).
+
+## 12. Zero-warnings bar (validation is strict, not just "does it compile")
+
+`az bicep build` is run against every attempt, and it is treated as a **failure** if it produces
+ANY Bicep linter warning, not only on a hard compile error -- a file that compiles but has linter
+warnings is not acceptable output. The most common warnings and how to avoid them up front:
+
+- `no-unused-params`: never declare a `param` that isn't actually referenced somewhere in the file
+  (directly or via a `var` that's used). If a value turns out not to be needed once wiring is
+  finished, remove the param instead of leaving it declared.
+- `no-unused-vars`: same rule for `var` declarations -- every `var` must be used at least once.
+- `no-hardcoded-env-urls`: never hardcode a `*.azure.com`/`*.core.windows.net`/etc. endpoint string
+  literal -- always derive it from a module output, an existing-resource lookup, or an
+  `environment()` function call.
+- `prefer-interpolation`: use string interpolation (`'${a}${b}'`) rather than `concat(a, b)` calls.
+- `no-loc-expr-outside-params`: don't use `resourceGroup().location` (or any expression) as a
+  parameter's `@allowed` value or default in a place the linter flags -- only inside a plain
+  `param location string = resourceGroup().location` default is fine; check for this rule if
+  location handling looks unusual.
+- `secure-parameter-default`: a `@secure()` parameter must never have a literal default value.
+- `max-outputs` (also a hard limit, not just style): stay under 64 outputs -- see Section 10.
+- `outputs-should-not-contain-secrets`: never output a secret/connection-string/key value directly;
+  output a resource ID/name/endpoint instead and let the consumer resolve secrets via
+  `listKeys()`/Key Vault reference at deploy time, not through this file's outputs.
+
+Before finishing, mentally re-check every `param` and `var` you declared actually gets used, and
+that no literal endpoint/secret value crept in anywhere -- these are the most common causes of a
+"compiles but still has issues" result.
+
+## 13. Additional hve-core conventions: type system, functions, decorators, params files
+
+The rest of the [hve-core Bicep instructions](https://github.com/microsoft/hve-core/blob/main/.github/instructions/coding-standards/bicep/bicep.instructions.md)
+not already folded into Sections 1-12 above, adopted in full:
+
+- **Local types, if this file declares any** (rare -- most compositions need none since every real
+  resource comes from an existing module): give the type `@description()` and a `PascalCase` name;
+  use `@sealed()` to reject unexpected extra properties on a strict configuration shape; use
+  `@discriminator('propertyName')` for a type-safe union of variants; prefer
+  `resourceInput<'<type>@<apiVersion>'>`/`resourceOutput<'<type>@<apiVersion>'>` over a bare
+  `object` type when the shape mirrors a real Azure resource's input/output schema, since those
+  validate property names/types at compile time. This project doesn't generate a separate
+  `types.bicep` file (everything lives in the one `main.bicep`) -- declare any needed type inline,
+  near the top of the file, instead.
+- **Inline helper functions**, if genuinely needed (e.g. a name-sanitizing helper reused several
+  times): use lambda syntax (`func name(param type) returnType => expression`), `camelCase` naming,
+  and a `@description()`. Skip `@export()` (nothing else imports this single-file project).
+- **Built-in functions worth knowing about**: `parseUri(uri)`/`buildUri(...)` for constructing or
+  decomposing an endpoint URL instead of manual string splitting; `loadDirectoryFileInfo(path)` for
+  compile-time directory metadata (unlikely to be needed here); `deployer().userPrincipalName` is
+  already used (Section 3).
+- **`@onlyIfNotExists()`** is available on a `resource` declaration for idempotent creation (only
+  creates if the resource doesn't already exist) -- relevant only to the one inline
+  `resourceGroupTags` resource this file ever declares (Section 4); not needed there today since
+  tag-merging is already idempotent by nature, but keep it in mind if a future inline resource
+  needs the same guarantee.
+- **API versions**: the only resource this file declares directly is the resource-group tag merge
+  (Section 4) -- keep its API version consistent with what the real repo file already uses
+  (`Microsoft.Resources/tags@2024-11-01`) unless there's a specific reason to bump it. If a local
+  `resourceInput<>`/`resourceOutput<>` type is ever declared for some other resource type, use the
+  latest stable API version for it and keep every reference to that same resource type on the same
+  version throughout the file.
+- **Parameters file: generate `main.bicepparam`, not `main.parameters.json`.** This agent's
+  pipeline (`bicepparam_gen.py`) deterministically scaffolds a `main.bicepparam` after main.bicep
+  is authored and validated, containing a `using 'main.bicep'` statement plus one placeholder
+  `param <name> = <value>` line (with its `@description()` as a leading comment) for every
+  top-level parameter that has no default -- this is generated automatically, not by the LLM
+  author agent itself, precisely so it can never invent a parameter name that doesn't actually
+  exist in the file it just wrote.
+- **Validation discipline**: search this project's already-copied `./modules/` files for the exact
+  parameter/output names before wiring anything (never guess a "plausible" name); run
+  `az bicep build` and address every diagnostic -- warning or error -- before considering a run
+  done (Section 12's zero-warnings bar).
 
 ---
 This document is the single source of truth the LLM author agent (`llm_composer.py`) is instructed

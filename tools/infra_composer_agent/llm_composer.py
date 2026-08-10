@@ -184,13 +184,16 @@ def generate_main_bicep_with_llm(
     dest_root: Path, param_defaults: dict[str, str] | None = None,
     ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
     ai_foundry_agent_id: str | None = None,
-    max_attempts: int = 2,
+    max_attempts: int = 3,
 ) -> tuple[str | None, list[str], bool]:
     """Generates main.bicep by asking the LLM to author it, validating with
     `az bicep build` after every attempt, and feeding validation errors back
     for self-correction. Requires dest_root/modules to already be populated
     (copy_modules must run first) so validation can actually resolve module
-    references. Returns (bicep_text_or_None, log, success)."""
+    references. Validation is strict (see bicep_validate.validate_with_az):
+    genuine Bicep linter warnings (unused params, etc.) count as failures
+    too, not just hard compile errors, so a run only ever "succeeds" with a
+    main.bicep that has no issues at all. Returns (bicep_text_or_None, log, success)."""
     log: list[str] = []
     main_path = dest_root / "main.bicep"
 
@@ -229,7 +232,7 @@ def fix_bicep_with_llm(
     main_path: Path, validation_errors: str,
     ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
     ai_foundry_agent_id: str | None = None,
-    max_attempts: int = 2, source_label: str = "generated main.bicep",
+    max_attempts: int = 3, source_label: str = "generated main.bicep",
 ) -> tuple[str | None, list[str], bool]:
     """Repair pass for a main.bicep that already failed `az bicep build` --
     used as a final attempt to patch the LLM-authored file when

@@ -208,8 +208,8 @@ page if unsure.
 {_quick_deploy_block(main_rel_path)}
 
 Any parameter that could not be automatically wired to another module's output is declared as a
-required top-level parameter in `{main_rel_path}` -- pass it via `--parameters` (or a
-`main.parameters.json` file) as shown above.
+required top-level parameter in `{main_rel_path}` -- pass it via `--parameters` (or the generated
+`main.bicepparam` file) as shown above.
 
 ## Step 3: Verify
 
@@ -283,7 +283,8 @@ was generated from scratch.
 {_quick_deploy_block(main_rel_path)}
 
 Any parameter that could not be automatically wired to another module's output is declared as a
-required top-level parameter in `{main_rel_path}` -- pass it via `--parameters` as shown above.
+required top-level parameter in `{main_rel_path}` -- pass it via `--parameters` (or the generated
+`main.bicepparam` file) as shown above.
 
 ### Resources included
 

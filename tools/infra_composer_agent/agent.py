@@ -45,6 +45,7 @@ from llm_composer import generate_main_bicep_with_llm, fix_bicep_with_llm
 from bicep_validate import validate_with_az
 import interactive
 import readme_gen
+import bicepparam_gen
 import tech_patterns
 
 # Fixed source: the module library this agent always composes from.
@@ -244,6 +245,15 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
                 f"list and re-run, or fix {main_path} by hand."
             )
     log.append(f"Generated {main_path}")
+
+    bicepparam_path = bicepparam_gen.generate_bicepparam(main_path, dest_root)
+    if bicepparam_path:
+        log.append(f"Generated {bicepparam_path} (placeholder values for every required top-level "
+                   f"parameter -- edit before deploying, or override with `az deployment group create "
+                   f"--parameters {bicepparam_path.name}`).")
+    else:
+        log.append("No required top-level parameters without defaults -- skipping main.bicepparam "
+                   "(nothing to scaffold).")
 
     chosen_pattern = interactive.choose_readme_pattern(prompt, readme_pattern, non_interactive, log)
     doc_paths = readme_gen.generate_docs(chosen_pattern, prompt, resolution, requested_counts, dest_root,
