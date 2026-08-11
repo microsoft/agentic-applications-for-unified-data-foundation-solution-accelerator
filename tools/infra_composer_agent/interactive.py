@@ -49,42 +49,22 @@ def _infer_pattern(prompt: str) -> str | None:
 def choose_readme_pattern(prompt: str, requested_pattern: str, non_interactive: bool, log: list[str]) -> str:
     """Resolves which README pattern to generate. `requested_pattern` is the
     --readme-pattern CLI value: an explicit 'solution-accelerator'/'sample'
-    always wins outright. Otherwise: try to infer a suggestion from the
-    prompt text, but ALWAYS ask interactively (never silently guess) unless
-    non_interactive is set, in which case the inferred value (or a safe
-    default) is used automatically."""
+    always wins outright. Otherwise this is auto-decided (inferred from the
+    prompt, falling back to 'solution-accelerator') WITHOUT asking -- this is
+    a low-stakes, easy-to-change-later choice, so it doesn't warrant its own
+    interactive round-trip on every run. The choice is still announced so
+    it's never silent/invisible."""
     if requested_pattern in README_PATTERNS:
         log.append(f"Using README pattern '{requested_pattern}' (from --readme-pattern).")
         return requested_pattern
 
     inferred = _infer_pattern(prompt)
-
-    if non_interactive:
-        chosen = inferred or "solution-accelerator"
-        log.append(
-            f"--non-interactive: selected README pattern '{chosen}'"
-            + (" (inferred from prompt)" if inferred else " (default, nothing in the prompt to infer from)")
-            + "."
-        )
-        return chosen
-
-    print("\nWhich README / deployment-doc pattern should I generate for this project?")
-    keys = list(README_PATTERNS)
-    for i, key in enumerate(keys, start=1):
-        suggested = "   <- suggested based on your prompt" if inferred == key else ""
-        print(f"  {i}. {key} -- {README_PATTERNS[key]}{suggested}")
-    default_key = inferred or "solution-accelerator"
-    default_index = keys.index(default_key) + 1
-    raw = input(f"Choose 1-{len(keys)} [default {default_index}: {default_key}]: ").strip()
-    if not raw:
-        chosen = default_key
-    else:
-        try:
-            chosen = keys[int(raw) - 1]
-        except (ValueError, IndexError):
-            print(f"Unrecognized choice '{raw}'; using default '{default_key}'.")
-            chosen = default_key
-    log.append(f"README pattern selected interactively: '{chosen}'.")
+    chosen = inferred or "solution-accelerator"
+    log.append(
+        f"Using README pattern '{chosen}'"
+        + (" (inferred from prompt)" if inferred else " (default)")
+        + f" -- {README_PATTERNS[chosen]}"
+    )
     return chosen
 
 
@@ -99,13 +79,15 @@ def choose_tech_pattern(prompt: str, requested_pattern: str | None, non_interact
     CLI values AND by agent.py's main() when re-passing an already-resolved
     choice back in, to avoid asking twice).
 
-    When --tech-pattern was omitted (requested_pattern is None) and we're
-    interactive, this is a real back-and-forth: it announces the best-guess
-    pattern (with its name and a one-line summary) and asks the user to
-    confirm, pick a different one from a short list of runner-up matches, or
-    skip patterns entirely -- it never silently guesses. Under
+    When --tech-pattern was omitted (requested_pattern is None), this makes a
+    single best-guess pick from the prompt and returns it WITHOUT asking for
+    confirmation here -- the actual yes/no checkpoint happens once, later,
+    in confirm_pattern_plan() alongside the full resolved resource list, so
+    the user is never asked to confirm the same pattern choice twice. If
+    nothing matches at all, there's no guess to make silently, so this does
+    ask via a menu (the only unavoidable minimal ask). Under
     --non-interactive it falls back to the best-guess inference (or None)
-    automatically, since there's no one to ask."""
+    automatically, since there's no one to ask either way."""
     if requested_pattern and requested_pattern != "none":
         if requested_pattern not in TECH_PATTERNS:
             raise SystemExit(
@@ -140,15 +122,8 @@ def choose_tech_pattern(prompt: str, requested_pattern: str | None, non_interact
     if len(suggestions) > 1:
         others = ", ".join(f"'{pid}'" for pid, _ in suggestions[1:])
         print(f"(Other possible matches, in case that's not right: {others}.)")
-    raw = input(
-        f"Shall I use the '{best_id}' pattern as the starting point? [Y/n] "
-        f"(n lets you pick a different one, or skip patterns entirely): "
-    ).strip().lower()
-    if raw in ("", "y", "yes"):
-        log.append(f"Confirmed technical pattern '{best_id}' (best match for your description).")
-        return best_id
-
-    return _choose_pattern_from_menu(log, header="Which pattern would you like to follow instead?")
+    log.append(f"Best-guess technical pattern '{best_id}' (final confirmation happens with the resource plan).")
+    return best_id
 
 
 def _choose_pattern_from_menu(log: list[str], header: str) -> str | None:
@@ -177,14 +152,17 @@ def _choose_pattern_from_menu(log: list[str], header: str) -> str | None:
 
 def confirm_pattern_plan(pattern_id: str, resources: list, source_desc: str,
                           non_interactive: bool, log: list[str],
-                          excluded: list | None = None) -> bool:
-    """Shows the FINAL resource plan for the chosen technical pattern --
-    i.e. the pattern's README-declared baseline (tech_patterns.py's
-    get_pattern_resources()) AFTER applying any exclusions/substitutions the
-    user's own prompt asked for (see agent.compose()'s `_match_excludes`
-    call) -- BEFORE any module is pulled from the source module library, and
-    asks for explicit confirmation to proceed. Returns True to proceed,
-    False to abort.
+                          excluded: list | None = None) -> str:
+    """The single interactive checkpoint for the whole technical-pattern
+    decision: shows which pattern was picked AND the final resource plan
+    together (the pattern's README-declared baseline, from
+    tech_patterns.py's get_pattern_resources(), after applying any
+    exclusions/substitutions the user's own prompt asked for -- see
+    agent.compose()'s `_match_excludes` call) BEFORE any module is pulled
+    from the source module library, and asks for one combined confirmation.
+    Nothing about the pattern choice is asked anywhere else -- this replaces
+    the old two-step "confirm the pattern name" then "confirm the resource
+    list" flow with a single round-trip.
 
     `excluded`, when given, is the list of baseline ResourceEntry objects
     that were dropped because of something in the prompt (e.g. "no event
@@ -192,9 +170,16 @@ def confirm_pattern_plan(pattern_id: str, resources: list, source_desc: str,
     see exactly how their own wording changed the baseline plan, not just
     the pattern's raw table.
 
-    Under --non-interactive this always proceeds (logged), since there's no
-    one to confirm with -- the whole point of a scripted/CI run is that it
-    completes unattended."""
+    Returns:
+      "yes"          -- proceed with this pattern and resource list as-is.
+      "none"         -- user wants no pattern at all; caller should fall
+                        back to interpreting --prompt with no baseline.
+      "<pattern_id>" -- user wants to try a different catalog pattern
+                        instead; caller should recompute the plan for it.
+
+    Under --non-interactive this always returns "yes" (logged), since
+    there's no one to confirm with -- a scripted/CI run must complete
+    unattended."""
     pattern = TECH_PATTERNS[pattern_id]
     print(f"\nBased on the '{pattern_id}' technical pattern ({pattern.display_name}), read from {source_desc}, "
           f"adjusted for what your prompt asked for, I'm going to create these {len(resources)} resource(s):")
@@ -209,18 +194,21 @@ def confirm_pattern_plan(pattern_id: str, resources: list, source_desc: str,
         log.append(f"--non-interactive: proceeding automatically with the '{pattern_id}' pattern's "
                     f"{len(resources)} resource(s) (read from {source_desc}"
                     + (f", {len(excluded)} excluded per the prompt" if excluded else "") + ").")
-        return True
+        return "yes"
 
-    raw = input("\nShall I proceed and pull these modules from the source library? [Y/n]: ").strip().lower()
-    proceed = raw in ("", "y", "yes")
-    if proceed:
+    raw = input(
+        f"\nShall I proceed with the '{pattern_id}' pattern and pull these modules? [Y/n] "
+        f"(n lets you pick a different pattern, or skip patterns entirely): "
+    ).strip().lower()
+    if raw in ("", "y", "yes"):
         log.append(f"User confirmed the '{pattern_id}' pattern's resource plan ({len(resources)} resource(s), "
                     f"read from {source_desc}"
                     + (f", {len(excluded)} excluded per the prompt" if excluded else "") + ").")
-    else:
-        log.append(f"User declined the '{pattern_id}' pattern's resource plan; aborting before touching "
-                    f"the source module library.")
-    return proceed
+        return "yes"
+
+    log.append(f"User declined the '{pattern_id}' pattern's resource plan; choosing an alternative.")
+    alt = _choose_pattern_from_menu(log, header="Which pattern would you like to follow instead?")
+    return alt or "none"
 
 
 def confirm_resources(resolution: ResolutionResult, requested_counts: dict[str, int],

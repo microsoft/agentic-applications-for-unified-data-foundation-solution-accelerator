@@ -208,45 +208,60 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     # to it are picked up automatically), and show the exact resource list
     # it declares. Nothing is pulled from the source module library and no
     # module is selected until the user explicitly confirms this plan.
+    #
+    # The pattern choice and the resulting resource plan are confirmed
+    # TOGETHER in one round-trip (interactive.confirm_pattern_plan) instead
+    # of two separate prompts -- if the user declines, they pick a different
+    # pattern (or none) and this loop recomputes the plan for that choice.
     chosen_tech_pattern = interactive.choose_tech_pattern(prompt, tech_pattern, non_interactive, log)
 
     selected: list[ModuleInfo] = []
     requested_counts: dict[str, int] = {}
-
-    # Interpret the user's own --prompt text ONCE, up front -- whether or
-    # not a pattern was chosen. When a pattern IS in play, the pattern's own
-    # resource list is passed as `baseline` so the interpreter can also
-    # report `excludes`: baseline items the prompt explicitly said not to
-    # use (or to replace with something else), e.g. "follow document
-    # processing but no event grid and use postgres instead of cosmos" ->
-    # excludes=["Event Grid","Cosmos DB (NoSQL)"], resources=[postgres].
-    # This means the pattern's baseline table is only ever a STARTING POINT
-    # that the user's own words can trim/substitute -- never blindly applied
-    # in full regardless of what the prompt actually asked for.
     pattern_resources: list = []
+    adjusted_pattern_resources: list = []
     source_desc = ""
-    if chosen_tech_pattern:
-        pattern_resources, source_desc = tech_patterns.get_pattern_resources(chosen_tech_pattern)
-        log.append(f"Read {len(pattern_resources)} resource(s) for pattern '{chosen_tech_pattern}' from {source_desc}.")
+    requests: list = []
+    excludes: list = []
 
-    if skip_prompt_interpretation:
-        log.append("Skipping prompt interpretation: no resource description was provided beyond the "
-                    "technical pattern (nothing to add or exclude).")
-        requests, excludes = [], []
-    else:
-        log.append("Interpreting prompt via the persistent AI Foundry agent "
-                   "'infra-composer-prompt-interpreter'...")
-        baseline_pairs = [(r.display_name, r.module_key) for r in pattern_resources] or None
-        requests, excludes = _interpret_requests(
-            prompt, modules,
-            ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
-            baseline=baseline_pairs,
-        )
-        log.append(f"LLM identified {len(requests)} resource concept(s) to add"
-                   + (f" and {len(excludes)} baseline item(s) to exclude/replace" if pattern_resources else "")
-                   + " from the prompt.")
+    for _ in range(3):
+        pattern_resources, source_desc = ([], "")
+        if chosen_tech_pattern:
+            pattern_resources, source_desc = tech_patterns.get_pattern_resources(chosen_tech_pattern)
+            log.append(f"Read {len(pattern_resources)} resource(s) for pattern '{chosen_tech_pattern}' from {source_desc}.")
 
-    if chosen_tech_pattern:
+        # Interpret the user's own --prompt text -- whether or not a pattern
+        # is in play. When a pattern IS in play, the pattern's own resource
+        # list is passed as `baseline` so the interpreter can also report
+        # `excludes`: baseline items the prompt explicitly said not to use
+        # (or to replace with something else), e.g. "follow document
+        # processing but no event grid and use postgres instead of cosmos"
+        # -> excludes=["Event Grid","Cosmos DB (NoSQL)"], resources=[postgres].
+        # This means the pattern's baseline table is only ever a STARTING
+        # POINT that the user's own words can trim/substitute -- never
+        # blindly applied in full regardless of what the prompt actually
+        # asked for. Re-run every time the pattern changes (loop iteration)
+        # so `excludes` are matched against the right baseline.
+        if skip_prompt_interpretation:
+            log.append("Skipping prompt interpretation: no resource description was provided beyond the "
+                        "technical pattern (nothing to add or exclude).")
+            requests, excludes = [], []
+        else:
+            log.append("Interpreting prompt via the persistent AI Foundry agent "
+                       "'infra-composer-prompt-interpreter'...")
+            baseline_pairs = [(r.display_name, r.module_key) for r in pattern_resources] or None
+            requests, excludes = _interpret_requests(
+                prompt, modules,
+                ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
+                baseline=baseline_pairs,
+            )
+            log.append(f"LLM identified {len(requests)} resource concept(s) to add"
+                       + (f" and {len(excludes)} baseline item(s) to exclude/replace" if pattern_resources else "")
+                       + " from the prompt.")
+
+        if not chosen_tech_pattern:
+            adjusted_pattern_resources = []
+            break
+
         excluded_entries = _match_excludes(excludes, pattern_resources, modules_by_key) if excludes else []
         if excluded_entries:
             for e in excluded_entries:
@@ -254,17 +269,24 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
                            f"asked to drop or replace it.")
         adjusted_pattern_resources = [r for r in pattern_resources if r not in excluded_entries]
 
-        proceed = interactive.confirm_pattern_plan(
+        decision = interactive.confirm_pattern_plan(
             chosen_tech_pattern, adjusted_pattern_resources, source_desc, non_interactive, log,
             excluded=excluded_entries,
         )
-        if not proceed:
-            raise SystemExit(
-                f"Aborted before pulling any module from the source library: the resource plan for "
-                f"'{chosen_tech_pattern}' was not confirmed. Re-run with a different --prompt/--tech-pattern, "
-                f"or edit {source_desc} and try again."
-            )
+        if decision == "yes":
+            break
+        if decision == "none":
+            chosen_tech_pattern = None
+            continue
+        # decision is a different catalog pattern id -- recompute the plan for it.
+        chosen_tech_pattern = decision
+    else:
+        raise SystemExit(
+            "Could not agree on a resource plan after multiple attempts. Re-run with a different "
+            "--prompt/--tech-pattern."
+        )
 
+    if chosen_tech_pattern:
         for r in adjusted_pattern_resources:
             module = _resolve_pattern_module(r.module_key, modules_by_key)
             if module is None:
