@@ -13,5 +13,9 @@
 .idea
 /myenv
 scriptenv/
+# Local secrets/config for tools/infra_composer_agent (AI Foundry + GitHub
+# App credentials) -- never commit real values, only .env.example.
+.env
+*.pem
 __pycache__/
 /venv1/

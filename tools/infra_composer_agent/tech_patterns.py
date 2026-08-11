@@ -524,33 +524,66 @@ PATTERNS: dict[str, TechPattern] = {
 }
 
 
-def infer_pattern(prompt: str) -> str | None:
-    """Best-effort keyword match of a free-text prompt against the pattern
-    catalog's `keywords` and pattern id/display name. Returns the pattern id
-    with the most keyword hits, or None if nothing matches (ties broken by
-    catalog order). Matching is hyphen/space-insensitive so both
-    "chat-with-data" and "chat with data" (or the display name) are
-    recognized when a user references a pattern by its catalog id. Uses
-    word-boundary regex matching (not raw substring) so a short keyword like
-    "rag" doesn't spuriously match inside an unrelated word such as
-    "storage"."""
+def _pattern_score(prompt: str) -> dict:
+    """Returns {pattern_id: score} for every pattern, combining exact
+    phrase/word-boundary hits (worth 1.0 each, same as before) with a
+    fractional word-overlap signal so conversational, reordered, or lightly
+    reworded phrasing (e.g. "processing the document" vs. the keyword
+    phrase "document processing") still surfaces the right pattern instead
+    of scoring zero just because the words aren't adjacent/in-order."""
     lower = prompt.lower()
     normalized = lower.replace("-", " ")
+    prompt_words = set(re.findall(r"[a-z0-9]+", normalized))
 
     def _contains(text: str, phrase: str) -> bool:
         return re.search(r"\b" + re.escape(phrase) + r"\b", text) is not None
 
-    best_id, best_score = None, 0
+    def _overlap(phrase: str) -> float:
+        words = phrase.split()
+        if len(words) < 2:
+            return 0.0  # single-word keywords already handled by _contains/word-boundary check
+        hits = sum(1 for w in words if w in prompt_words)
+        return 0.5 * hits / len(words) if hits == len(words) else 0.0
+
+    scores: dict[str, float] = {}
     for pid, pattern in PATTERNS.items():
-        score = sum(1 for kw in pattern.keywords if _contains(lower, kw) or _contains(normalized, kw))
+        score = 0.0
+        for kw in pattern.keywords:
+            if _contains(lower, kw) or _contains(normalized, kw):
+                score += 1.0
+            else:
+                score += _overlap(kw)
         pid_words = pid.replace("-", " ")
         if _contains(normalized, pid_words) or _contains(lower, pid.lower()):
-            score += 1
+            score += 1.0
         if _contains(lower, pattern.display_name.lower()):
-            score += 1
+            score += 1.0
+        scores[pid] = score
+    return scores
+
+
+def infer_pattern(prompt: str) -> str | None:
+    """Best-effort match of a free-text prompt against the pattern catalog
+    (see `_pattern_score`). Returns the pattern id with the highest score,
+    or None if nothing scored above 0 (ties broken by catalog order)."""
+    scores = _pattern_score(prompt)
+    best_id, best_score = None, 0.0
+    for pid, score in scores.items():
         if score > best_score:
             best_id, best_score = pid, score
     return best_id
+
+
+def suggest_patterns(prompt: str, limit: int = 3) -> list[tuple[str, float]]:
+    """Returns up to `limit` (pattern_id, score) pairs with score > 0,
+    sorted highest first (ties broken by catalog order) -- used to offer
+    the user a short-list of likely patterns interactively instead of
+    silently picking (or silently giving up on) just one guess."""
+    scores = _pattern_score(prompt)
+    ranked = [(pid, s) for pid, s in scores.items() if s > 0]
+    ranked.sort(key=lambda pair: -pair[1])
+    return ranked[:limit]
+
 
 
 # Matches markdown table rows of the form "| Display Name | `module/key.bicep` | purpose |"

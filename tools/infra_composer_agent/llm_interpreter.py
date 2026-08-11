@@ -52,10 +52,14 @@ from module_index import ModuleInfo
 from request_parser import ResourceRequest, _tokenize, score_module
 
 INTERPRETER_INSTRUCTIONS = """You are an infrastructure request interpreter for an Azure Bicep composition \
-agent. You will be given (1) a natural-language infrastructure request and (2) a catalog of the \
-ONLY resource concepts that actually exist as reusable modules. Your job is only to identify \
-which concepts from the catalog are being requested, how many of each, and any relationships \
-between them (role assignments / RBAC, connections, dependencies) that the request implies.
+agent. You will be given (1) a natural-language infrastructure request, (2) a catalog of the ONLY \
+resource concepts that actually exist as reusable modules, and (3) OPTIONALLY a "Baseline resources \
+already planned" list -- a starting resource plan (e.g. from a predefined technical pattern like \
+"document processing") that the user's request may confirm, extend, trim, or override. Your job is \
+to identify which catalog concepts are being requested (to ADD), how many of each, any relationships \
+between them (role assignments / RBAC, connections, dependencies) that the request implies, and -- \
+whenever a baseline list is given -- which baseline items the request explicitly says NOT to use \
+(to EXCLUDE from that baseline).
 
 Rules:
 - Only ever refer to concepts that are clearly implied by the request. Do not invent resources \
@@ -63,14 +67,22 @@ that were not asked for or implied.
 - Prefer matching against the given catalog's wording; if the request describes something not in \
 the catalog (e.g. a specific role name), still include the closest resource concept (e.g. \
 "role assignment") and put the specific detail (e.g. the role name, source, target) in "detail".
+- If a baseline list is given and the request says something like "no <X>", "without <X>", \
+"remove <X>", "don't need <X>", or "instead of <X> use <Y>" / "<Y> instead of <X>", put <X>'s \
+baseline concept (using the SAME wording as the baseline list, e.g. "Cosmos DB") into "excludes", \
+and (for a substitution) still put <Y> in "resources" as a normal addition.
+- Never put anything in "excludes" that isn't explicitly negated/replaced in the request -- when in \
+doubt, leave the baseline item alone (don't exclude it).
 - Output STRICT JSON ONLY, no markdown fences, no commentary, matching exactly this schema:
 {
   "resources": [
     {"concept": "<short free-text concept, e.g. 'ai service', 'role assignment', 'private endpoint'>",
      "count": <integer, default 1>,
      "detail": "<optional short free-text note, e.g. 'Cognitive Services User role from AI Service to AI Foundry project'>"}
-  ]
+  ],
+  "excludes": ["<baseline concept text to drop, exactly as given in the baseline list, e.g. 'Cosmos DB'>"]
 }
+"excludes" must be an empty list ([]) when no baseline list was given, or when nothing was negated/replaced.
 Return nothing except that JSON object.
 """
 
@@ -91,6 +103,13 @@ def _build_catalog_text(modules: list[ModuleInfo]) -> str:
     for m in modules:
         lines.append(f"- {m.key}: tags=[{', '.join(sorted(m.tags))}]")
     return "\n".join(lines)
+
+
+def _build_baseline_text(baseline: list[tuple[str, str]]) -> str:
+    """`baseline` is a list of (display_name, module_key) pairs -- the
+    technical pattern's already-planned resources -- rendered so the LLM can
+    refer back to them by their exact display_name wording in "excludes"."""
+    return "\n".join(f"- {name} ({key})" for name, key in baseline)
 
 
 def _extract_json(text: str) -> dict:
@@ -162,10 +181,17 @@ def _resources_to_requests(resources: list[dict], modules: list[ModuleInfo]) -> 
 
 def interpret_with_llm(prompt: str, modules: list[ModuleInfo],
                         project_endpoint: str | None = None, model_deployment: str | None = None,
-                        agent_id: str | None = None) -> list[ResourceRequest]:
-    """Returns a list of ResourceRequest (matched against the real module
-    index) using the persistent Azure AI Foundry interpreter agent. Raises
-    RuntimeError with a clear message if the backend is unavailable/
+                        agent_id: str | None = None,
+                        baseline: list[tuple[str, str]] | None = None) -> tuple[list[ResourceRequest], list[str]]:
+    """Returns (requests, excludes) using the persistent Azure AI Foundry
+    interpreter agent: `requests` are resource concepts to ADD (matched
+    against the real module index, same as before), and `excludes` is a
+    list of raw baseline display_name strings the user's request explicitly
+    said to drop/replace -- only meaningful when `baseline` (a list of
+    (display_name, module_key) pairs, e.g. a technical pattern's planned
+    resources) is supplied; otherwise always [].
+
+    Raises RuntimeError with a clear message if the backend is unavailable/
     misconfigured or the call fails -- callers that want a hard requirement
     (no silent fallback) should let this propagate."""
     if not project_endpoint:
@@ -175,11 +201,16 @@ def interpret_with_llm(prompt: str, modules: list[ModuleInfo],
             "default persistent agent already has a model configured."
         )
     catalog = _build_catalog_text(modules)
-    full_prompt = f"Available module catalog:\n{catalog}\n\nUser request:\n{prompt}"
+    prompt_parts = [f"Available module catalog:\n{catalog}"]
+    if baseline:
+        prompt_parts.append(f"Baseline resources already planned:\n{_build_baseline_text(baseline)}")
+    prompt_parts.append(f"User request:\n{prompt}")
+    full_prompt = "\n\n".join(prompt_parts)
     raw = _call_ai_foundry_agent(full_prompt, project_endpoint, model_deployment, agent_id)
 
     parsed = _extract_json(raw)
     resources = parsed.get("resources", [])
+    excludes = [str(x).strip() for x in parsed.get("excludes", []) if str(x).strip()]
     requests = _resources_to_requests(resources, modules)
     # An empty "resources": [] is a legitimate answer (e.g. the leftover free
     # text after a technical pattern already covers everything, or a prompt
@@ -190,4 +221,4 @@ def interpret_with_llm(prompt: str, modules: list[ModuleInfo],
         raise RuntimeError(
             f"AI Foundry backend returned an unparseable response (no 'resources' key found): {raw!r}"
         )
-    return requests
+    return requests, excludes

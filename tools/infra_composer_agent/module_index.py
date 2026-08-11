@@ -24,6 +24,14 @@ OUTPUT_RE = re.compile(
 )
 AVM_MODULE_RE = re.compile(r"module\s+\w+\s+'br/public:(avm/[\w./:@-]+)'")
 LOCAL_MODULE_RE = re.compile(r"module\s+\w+\s+'(\.{1,2}/[\w./-]+\.bicep)'")
+# Native ARM resource type declarations, e.g.
+# `resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {`
+# -> captures "Microsoft.OperationalInsights/workspaces". These give a much
+# richer/more accurate vocabulary for tag derivation than the module's own
+# file name alone (see _derive_tags): a module named "log-analytics.bicep"
+# never mentions the word "workspace" in its name, but its real resource
+# type does -- so a request/param that says "workspace" can still match it.
+ARM_RESOURCE_TYPE_RE = re.compile(r"resource\s+\w+\s+'([A-Za-z0-9.]+/[\w/]+)@[\w.-]+'")
 DESCRIPTION_RE = re.compile(r"@description\('([^']*)'\)")
 
 
@@ -97,7 +105,7 @@ def fuzzy_overlap(token_set: set[str], tag_set: set[str]) -> set[str]:
     return overlap
 
 
-def _derive_tags(module_name: str, category: str, avm_refs: list[str]) -> set[str]:
+def _derive_tags(module_name: str, category: str, avm_refs: list[str], arm_resource_types: list[str] | None = None) -> set[str]:
     tags = set(_split_tokens(module_name))
     tags.add(module_name.lower())
     tags.add(category.lower())
@@ -107,13 +115,46 @@ def _derive_tags(module_name: str, category: str, avm_refs: list[str]) -> set[st
         for seg in segs:
             if seg not in ("avm", "res"):
                 tags.update(_split_tokens(seg))
+    for res_type in arm_resource_types or []:
+        # e.g. Microsoft.OperationalInsights/workspaces -> operationalinsights, workspace
+        # Namespace segments are dot-separated (e.g. "Microsoft.OperationalInsights"),
+        # so split on "." too and drop the "microsoft" provider prefix, otherwise
+        # it leaks in as a useless "microsoft." tag fragment.
+        for seg in res_type.split("/"):
+            for sub in seg.split("."):
+                if sub.lower() == "microsoft":
+                    continue
+                tags.update(_split_tokens(sub))
     return tags
+
+
+def _derive_category(rel_path: Path) -> str:
+    """Derives a module's category from its path relative to the scanned
+    root. Two layouts are supported so the same indexer works whether
+    `modules_root` points directly AT a modules folder (old layout,
+    category = the first path segment, e.g. 'compute/app-service.bicep' ->
+    'compute') or at a higher-level directory that contains one or more
+    projects each with their own nested '.../infra/bicep/modules/<category>/'
+    folder (new layout -- e.g. scanning the whole stable-cores/ directory so
+    every project under it, present now or added later, is picked up
+    automatically without any per-project special-casing): in that case the
+    path segment immediately AFTER the literal 'modules' folder name is used
+    as the category instead, so 'agentic-apps/infra/bicep/modules/compute/
+    app-service.bicep' still yields 'compute', not 'agentic-apps'."""
+    parts = rel_path.parts
+    lower_parts = [p.lower() for p in parts]
+    if "modules" in lower_parts:
+        idx = lower_parts.index("modules")
+        if idx + 1 < len(parts) - 1:  # category segment AND a filename after it
+            return parts[idx + 1]
+        return "uncategorized"  # file sits directly in .../modules/, no subfolder
+    return parts[0] if len(parts) > 1 else "uncategorized"
 
 
 def parse_module(path: Path, modules_root: Path) -> ModuleInfo:
     text = path.read_text(encoding="utf-8", errors="ignore")
     rel_path = path.relative_to(modules_root)
-    category = rel_path.parts[0] if len(rel_path.parts) > 1 else "uncategorized"
+    category = _derive_category(rel_path)
     name = path.stem
 
     params: list[ParamInfo] = []
@@ -133,6 +174,7 @@ def parse_module(path: Path, modules_root: Path) -> ModuleInfo:
         outputs.append(OutputInfo(oname, otype, description))
 
     avm_refs = AVM_MODULE_RE.findall(text)
+    arm_resource_types = ARM_RESOURCE_TYPE_RE.findall(text)
     # Resolve any locally-referenced sibling .bicep files (e.g. a helper
     # module like './cross-scope-role-assignment.bicep') to absolute paths
     # relative to this module's own folder, so they can be copied alongside
@@ -142,7 +184,7 @@ def parse_module(path: Path, modules_root: Path) -> ModuleInfo:
         candidate = (path.parent / rel).resolve()
         if candidate.exists():
             local_module_refs.append(candidate)
-    tags = _derive_tags(name, category, avm_refs)
+    tags = _derive_tags(name, category, avm_refs, arm_resource_types)
 
     return ModuleInfo(
         path=path,

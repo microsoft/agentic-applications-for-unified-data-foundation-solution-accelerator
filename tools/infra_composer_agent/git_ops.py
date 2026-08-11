@@ -55,7 +55,17 @@ def create_branch_from_base(repo_dir: Path, base_branch: str, new_branch: str) -
     run(["checkout", "-B", new_branch, f"origin/{base_branch}"], repo_dir)
 
 
-def commit_paths(repo_dir: Path, paths: list[Path], message: str) -> str:
+def commit_paths(repo_dir: Path, paths: list[Path], message: str,
+                  author_name: str | None = None, author_email: str | None = None) -> str:
+    """Commits `paths`. When `author_name`/`author_email` are given (e.g. a
+    GitHub App's bot identity), sets them as this repo clone's local
+    user.name/user.email first, so the commit is attributed to the app
+    rather than whatever global git identity happens to be configured on
+    the machine running the agent."""
+    if author_name:
+        run(["config", "user.name", author_name], repo_dir)
+    if author_email:
+        run(["config", "user.email", author_email], repo_dir)
     for p in paths:
         run(["add", "--", str(p)], repo_dir)
     status = run(["status", "--porcelain"], repo_dir)

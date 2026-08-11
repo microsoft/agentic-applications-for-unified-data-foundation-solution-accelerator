@@ -1,0 +1,23 @@
+# GENERATED FROM THE PROVIDED BICEP - HUMAN-REVIEW/VALIDATE BEFORE DEPLOYMENT.
+output "search_id" { value = azurerm_search_service.main.id }
+output "search_name" { value = azurerm_search_service.main.name }
+output "search_endpoint" { value = "https://${azurerm_search_service.main.name}.search.windows.net" }
+output "search_principal_id" { value = azurerm_search_service.main.identity[0].principal_id }
+output "storage_account_id" { value = azurerm_storage_account.main.id }
+output "storage_account_name" { value = azurerm_storage_account.main.name }
+output "storage_blob_endpoint" { value = azurerm_storage_account.main.primary_blob_endpoint }
+output "cosmos_account_id" { value = azurerm_cosmosdb_account.history.id }
+output "cosmos_account_name" { value = azurerm_cosmosdb_account.history.name }
+output "container_registry_id" { value = azurerm_container_registry.main.id }
+output "container_registry_login_server" { value = azurerm_container_registry.main.login_server }
+output "backend_app_id" { value = azurerm_linux_web_app.api.id }
+output "backend_app_name" { value = azurerm_linux_web_app.api.name }
+output "backend_principal_id" { value = azurerm_linux_web_app.api.identity[0].principal_id }
+output "frontend_app_id" { value = azurerm_linux_web_app.web.id }
+output "frontend_app_name" { value = azurerm_linux_web_app.web.name }
+output "frontend_principal_id" { value = azurerm_linux_web_app.web.identity[0].principal_id }
+output "web_app_url" { value = "https://${azurerm_linux_web_app.web.default_hostname}" }
+output "log_analytics_workspace_id" { value = local.log_analytics_workspace_id }
+output "application_insights_id" { value = azurerm_application_insights.main.id }
+output "application_insights_instrumentation_key" { value = azurerm_application_insights.main.instrumentation_key
+  sensitive = true }

@@ -1,0 +1,20 @@
+# GENERATED FROM THE PROVIDED BICEP - HUMAN-REVIEW/VALIDATE BEFORE DEPLOYMENT.
+variable "resource_group_id" { type = string }
+variable "location" { type = string }
+variable "solution_name" { type = string }
+variable "existing_foundry_project_resource_id" { type = string
+  default = null }
+variable "deployment_type" { type = string
+  default = "GlobalStandard" }
+variable "gpt_model_name" { type = string
+  default = "gpt-5.4-mini" }
+variable "gpt_model_version" { type = string
+  default = "2026-03-17" }
+variable "gpt_deployment_capacity" { type = number
+  default = 150 }
+variable "embedding_model_name" { type = string
+  default = "text-embedding-3-small" }
+variable "embedding_deployment_capacity" { type = number
+  default = 80 }
+variable "tags" { type = map(string)
+  default = {} }

@@ -17,7 +17,7 @@ pipeline still runs unattended in scripts/CI.
 from __future__ import annotations
 
 from resolver import ResolutionResult
-from tech_patterns import PATTERNS as TECH_PATTERNS, infer_pattern as infer_tech_pattern
+from tech_patterns import PATTERNS as TECH_PATTERNS, suggest_patterns as suggest_tech_patterns
 
 README_PATTERNS = {
     "solution-accelerator": (
@@ -95,12 +95,17 @@ def choose_tech_pattern(prompt: str, requested_pattern: str | None, non_interact
 
     `requested_pattern` is the --tech-pattern CLI value: 'none' (or falsy)
     means "don't use a pattern at all -- interpret --prompt as-is", an
-    explicit catalog id always wins outright, and None (the default when the
-    flag was omitted) means "infer one purely from the free-text prompt
-    (tech_patterns.infer_pattern) -- never force the user to pick from a
-    menu; if nothing is inferred, just compose from --prompt with no
-    pattern." `non_interactive` no longer changes this behavior (inference
-    is silent either way) but is kept for signature compatibility."""
+    explicit catalog id always wins outright (used both for real --tech-pattern
+    CLI values AND by agent.py's main() when re-passing an already-resolved
+    choice back in, to avoid asking twice).
+
+    When --tech-pattern was omitted (requested_pattern is None) and we're
+    interactive, this is a real back-and-forth: it announces the best-guess
+    pattern (with its name and a one-line summary) and asks the user to
+    confirm, pick a different one from a short list of runner-up matches, or
+    skip patterns entirely -- it never silently guesses. Under
+    --non-interactive it falls back to the best-guess inference (or None)
+    automatically, since there's no one to ask."""
     if requested_pattern and requested_pattern != "none":
         if requested_pattern not in TECH_PATTERNS:
             raise SystemExit(
@@ -113,41 +118,105 @@ def choose_tech_pattern(prompt: str, requested_pattern: str | None, non_interact
         log.append("--tech-pattern none: composing purely from --prompt, no baseline pattern used.")
         return None
 
-    inferred = infer_tech_pattern(prompt)
+    suggestions = suggest_tech_patterns(prompt, limit=3)
 
-    if inferred:
-        log.append(f"Inferred technical pattern '{inferred}' from your description.")
-    else:
-        log.append("No technical pattern matched your description; composing purely from --prompt.")
-    return inferred
+    if non_interactive:
+        chosen = suggestions[0][0] if suggestions else None
+        if chosen:
+            log.append(f"--non-interactive: inferred technical pattern '{chosen}' from your description.")
+        else:
+            log.append("--non-interactive: no technical pattern matched your description; composing purely "
+                        "from --prompt.")
+        return chosen
+
+    if not suggestions:
+        print("\nI couldn't match your description to any of the predefined technical patterns.")
+        return _choose_pattern_from_menu(log, header="Would you like to pick one of these instead?")
+
+    best_id, best_score = suggestions[0]
+    best_pattern = TECH_PATTERNS[best_id]
+    print(f"\nBased on what you described, this looks like the '{best_id}' pattern: "
+          f"{best_pattern.display_name} -- {best_pattern.summary}")
+    if len(suggestions) > 1:
+        others = ", ".join(f"'{pid}'" for pid, _ in suggestions[1:])
+        print(f"(Other possible matches, in case that's not right: {others}.)")
+    raw = input(
+        f"Shall I use the '{best_id}' pattern as the starting point? [Y/n] "
+        f"(n lets you pick a different one, or skip patterns entirely): "
+    ).strip().lower()
+    if raw in ("", "y", "yes"):
+        log.append(f"Confirmed technical pattern '{best_id}' (best match for your description).")
+        return best_id
+
+    return _choose_pattern_from_menu(log, header="Which pattern would you like to follow instead?")
+
+
+def _choose_pattern_from_menu(log: list[str], header: str) -> str | None:
+    """Shows every catalog pattern (id, display name, one-line summary) plus
+    a '0. none' option, and asks the user to pick by number. Free-text/blank/
+    unrecognized input defaults to 'none' (compose purely from the prompt)."""
+    print(f"\n{header}")
+    keys = list(TECH_PATTERNS)
+    print("  0. none -- just describe resources yourself, no predefined pattern")
+    for i, pid in enumerate(keys, start=1):
+        pattern = TECH_PATTERNS[pid]
+        print(f"  {i}. {pid} -- {pattern.display_name}: {pattern.summary}")
+    raw = input(f"Choose 0-{len(keys)} [default 0: none]: ").strip()
+    if not raw or raw == "0":
+        log.append("User chose no technical pattern; composing purely from the prompt.")
+        return None
+    try:
+        chosen = keys[int(raw) - 1]
+    except (ValueError, IndexError):
+        print(f"Unrecognized choice '{raw}'; proceeding with no pattern.")
+        log.append(f"Unrecognized pattern choice '{raw}'; composing purely from the prompt.")
+        return None
+    log.append(f"User selected technical pattern '{chosen}' from the menu.")
+    return chosen
 
 
 def confirm_pattern_plan(pattern_id: str, resources: list, source_desc: str,
-                          non_interactive: bool, log: list[str]) -> bool:
-    """Shows the resource plan read from the chosen technical pattern's
-    README (tech_patterns.get_pattern_resources()) BEFORE any module is
-    pulled from the source module library, and asks for explicit
-    confirmation to proceed. Returns True to proceed, False to abort.
+                          non_interactive: bool, log: list[str],
+                          excluded: list | None = None) -> bool:
+    """Shows the FINAL resource plan for the chosen technical pattern --
+    i.e. the pattern's README-declared baseline (tech_patterns.py's
+    get_pattern_resources()) AFTER applying any exclusions/substitutions the
+    user's own prompt asked for (see agent.compose()'s `_match_excludes`
+    call) -- BEFORE any module is pulled from the source module library, and
+    asks for explicit confirmation to proceed. Returns True to proceed,
+    False to abort.
+
+    `excluded`, when given, is the list of baseline ResourceEntry objects
+    that were dropped because of something in the prompt (e.g. "no event
+    grid", "postgres instead of cosmos") -- shown explicitly so the user can
+    see exactly how their own wording changed the baseline plan, not just
+    the pattern's raw table.
 
     Under --non-interactive this always proceeds (logged), since there's no
     one to confirm with -- the whole point of a scripted/CI run is that it
     completes unattended."""
     pattern = TECH_PATTERNS[pattern_id]
     print(f"\nBased on the '{pattern_id}' technical pattern ({pattern.display_name}), read from {source_desc}, "
-          f"I'm going to create these {len(resources)} resource(s):")
+          f"adjusted for what your prompt asked for, I'm going to create these {len(resources)} resource(s):")
     for r in resources:
         print(f"  - {r.display_name} ({r.module_key}) -- {r.purpose}")
+    if excluded:
+        print(f"  (dropped from the baseline pattern because your prompt asked to remove or replace them:)")
+        for r in excluded:
+            print(f"  - NOT included: {r.display_name} ({r.module_key})")
 
     if non_interactive:
         log.append(f"--non-interactive: proceeding automatically with the '{pattern_id}' pattern's "
-                    f"{len(resources)} resource(s) (read from {source_desc}).")
+                    f"{len(resources)} resource(s) (read from {source_desc}"
+                    + (f", {len(excluded)} excluded per the prompt" if excluded else "") + ").")
         return True
 
     raw = input("\nShall I proceed and pull these modules from the source library? [Y/n]: ").strip().lower()
     proceed = raw in ("", "y", "yes")
     if proceed:
         log.append(f"User confirmed the '{pattern_id}' pattern's resource plan ({len(resources)} resource(s), "
-                    f"read from {source_desc}).")
+                    f"read from {source_desc}"
+                    + (f", {len(excluded)} excluded per the prompt" if excluded else "") + ").")
     else:
         log.append(f"User declined the '{pattern_id}' pattern's resource plan; aborting before touching "
                     f"the source module library.")
@@ -172,8 +241,8 @@ def confirm_resources(resolution: ResolutionResult, requested_counts: dict[str, 
         return None
 
     raw = input(
-        "\nAdd any additional resources before generating? Describe them in plain text "
-        "(e.g. '1 redis cache'), or press Enter to continue with the list above: "
+        "\nWant to add, remove, or swap anything before I generate? Describe it in plain text, "
+        "or press Enter to continue with the list above: "
     ).strip()
     if raw:
         log.append(f"User requested additional resources interactively: '{raw}'")

@@ -1,0 +1,26 @@
+# GENERATED FROM THE PROVIDED BICEP - HUMAN-REVIEW/VALIDATE BEFORE DEPLOYMENT.
+variable "resource_group_name" { type = string }
+variable "location" { type = string }
+variable "solution_name" { type = string }
+variable "tenant_id" { type = string }
+variable "existing_log_analytics_workspace_id" { type = string
+  default = null }
+variable "container_registry_name" { type = string
+  default = null }
+variable "backend_runtime_stack" { type = string
+  default = "python" }
+variable "app_service_plan_sku" { type = string
+  default = "B2" }
+variable "foundry_account_name" { type = string }
+variable "foundry_account_endpoint" { type = string }
+variable "foundry_project_endpoint" { type = string }
+variable "gpt_model_name" { type = string }
+variable "embedding_model_name" { type = string }
+variable "azure_openai_api_version" { type = string }
+variable "azure_ai_agent_api_version" { type = string }
+variable "use_chat_history_enabled" { type = bool }
+variable "use_user_access_token" { type = bool }
+variable "app_title_primary" { type = string }
+variable "app_title_secondary" { type = string }
+variable "tags" { type = map(string)
+  default = {} }
