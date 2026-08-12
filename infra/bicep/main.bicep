@@ -213,7 +213,6 @@ var resourceTags = union(existingTags, tags, {
   CreatedBy: createdBy
   DeploymentName: deployment().name
   Type: 'Non-WAF'
-  SecurityControl: 'Ignore'
 })
 
 // ============================================================================

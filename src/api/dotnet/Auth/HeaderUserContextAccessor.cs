@@ -25,7 +25,9 @@ public class HeaderUserContextAccessor : IUserContextAccessor
 
         var aadAccessToken = headers.TryGetValue("x-ms-token-aad-access-token", out var easyAuthAccessToken)
             ? easyAuthAccessToken.ToString()
-            : (headers.TryGetValue("x-zumo-auth", out var zumoAuthToken) ? zumoAuthToken.ToString() : null);
+            : headers.TryGetValue("x-zumo-auth", out var zumoAuthToken)
+                ? zumoAuthToken.ToString()
+                : GetBearerToken(headers.Authorization.ToString());
 
         // If principal header is missing but a user token exists (e.g., Work IQ Teams via x-zumo-auth),
         // derive a usable user identity from token claims.
@@ -92,6 +94,14 @@ public class HeaderUserContextAccessor : IUserContextAccessor
         if (payload.TryGetProperty("email", out var email)) return email.GetString();
         if (payload.TryGetProperty("name", out var name)) return name.GetString();
         return null;
+    }
+
+    private static string? GetBearerToken(string authorization)
+    {
+        const string bearerPrefix = "Bearer ";
+        return authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase)
+            ? authorization[bearerPrefix.Length..].Trim() is { Length: > 0 } token ? token : null
+            : null;
     }
 
     private static bool TryGetJwtPayload(string token, out JsonElement payload)
