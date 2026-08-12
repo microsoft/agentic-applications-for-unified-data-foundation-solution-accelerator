@@ -108,7 +108,7 @@ def _format_param(p) -> str:
 def _module_catalog_text(resolution: ResolutionResult) -> str:
     lines = []
     for key, module in resolution.modules.items():
-        rel = f"./modules/{module.rel_path.as_posix()}"
+        rel = f"./modules/{module.flat_rel_path.as_posix()}"
         requested = " [EXPLICITLY REQUESTED BY USER]" if key in resolution.explicitly_requested else " [auto-included dependency]"
         lines.append(f"- Module path: {rel}{requested}")
         lines.append(f"  Params:")
