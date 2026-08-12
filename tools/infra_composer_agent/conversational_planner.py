@@ -57,6 +57,21 @@ Flow (see plan_resources_conversationally):
 Module keys are always validated against the real catalog (exact match,
 then a same-category-unique suffix match) -- any key the LLM invents that
 doesn't resolve is dropped with a warning, never silently kept.
+
+The planner's own rules live in skills/resource-planning.md (an
+independently editable/reviewable markdown file, matching llm_composer.py's
+bicep-main-authoring.md pattern) rather than a hardcoded Python string --
+see _load_skill below. That rule set also instructs the planner to
+explicitly ask whether the user has EXISTING infrastructure (a VNet, Key
+Vault, Log Analytics workspace, managed identity, etc.) they'd rather reuse
+instead of deploying new resources -- mirroring microsoft/CAIRA's own
+intake question ("Do they already have Foundry/OpenAI endpoints, hosting,
+identity, observability, or frontend/API code?"). Any existing-resource
+identifiers the user supplies are returned from
+plan_resources_conversationally as `existing_resource_notes` and threaded
+into llm_composer.py's generation prompt so the LLM can wire the literal
+existing resource ID into the appropriate module parameter instead of
+provisioning a new resource for that concept.
 """
 from __future__ import annotations
 
@@ -71,37 +86,42 @@ MAX_ROUNDS = 8
 
 DEFAULT_PLANNER_AGENT_NAME = "infra-composer-resource-planner"
 
-PLANNER_INSTRUCTIONS = """You are an infrastructure planning assistant helping a user compose an Azure \
-Bicep deployment entirely out of a fixed catalog of REAL, pre-existing Bicep modules (never invent a \
-module that isn't in the catalog given to you). You will receive the user's request, the full module \
-catalog (each entry: key, category, tags, required/optional parameters, outputs), and the running \
-conversation (any answers the user has already given to your prior questions).
+SKILLS_DIR = Path(__file__).resolve().parent / "skills"
+PLANNER_SKILL_PATH = SKILLS_DIR / "resource-planning.md"
 
-Your job, each turn:
-1. Decide whether you have enough information to produce a final, confident module plan. Ask \
-clarifying questions ONLY when genuinely needed to avoid guessing wrong -- e.g. ambiguous counts \
-("an app" -> how many app services?), missing but consequential choices the catalog offers \
-(private networking/private endpoints, RBAC role assignments between resources, model deployments \
-under an AI Foundry project, redundancy/scaling, diagnostic settings/monitoring). Do not ask about \
-things the request already answered, and do not ask more than 1-4 questions per turn -- keep them \
-short, concrete, and easy to answer.
-2. Once ready, produce the final plan: the exact set of module keys (copied verbatim from the given \
-catalog's "key" field) needed to satisfy the request, with a count for each and a short reason. \
-Include any module a chosen resource clearly requires to function (e.g. a managed identity if a \
-resource needs RBAC access to another, role-assignment modules to actually grant that access, an AI \
-Foundry model deployment if an AI Foundry project was requested) -- reason about real dependencies \
-like an architect would, don't just take the request's resource nouns literally.
+_FRONTMATTER_RE = re.compile(r"\A---\s*\n.*?\n---\s*\n", re.DOTALL)
 
-Output STRICT JSON ONLY, no markdown fences, no commentary, matching exactly this schema:
-{
-  "ready": <true if you are finalizing a plan this turn, false if you still need to ask questions>,
-  "questions": ["<question 1>", "<question 2>", ...],
-  "message": "<one short sentence summarizing your reasoning/plan for the user>",
-  "plan": [{"module_key": "<exact key from the catalog>", "count": <integer, default 1>, "reason": "<short reason>"}]
-}
-"questions" must be an empty list when "ready" is true. "plan" must be an empty list when "ready" is false.
-Return nothing except that JSON object.
-"""
+
+def _strip_frontmatter(text: str) -> str:
+    """Strips a leading YAML frontmatter block (--- ... ---), if present.
+    See llm_composer._strip_frontmatter for why: skill files carry
+    frontmatter for external discoverability only, not as LLM instruction
+    content."""
+    return _FRONTMATTER_RE.sub("", text, count=1).strip()
+
+
+def _load_skill(path: Path = PLANNER_SKILL_PATH) -> str:
+    """Loads the planner's rule set from skills/resource-planning.md -- the
+    single source of truth for how the conversational planner behaves,
+    kept as an independently editable/reviewable markdown file (matching
+    llm_composer.py's bicep-main-authoring.md pattern) instead of a
+    hardcoded Python string. Falls back to a minimal inline instruction set
+    (with a clear warning marker) if the file is ever missing, so a run
+    never silently loses the rules without at least surfacing it in the log."""
+    if path.exists():
+        return _strip_frontmatter(path.read_text(encoding="utf-8"))
+    return (
+        "(WARNING: resource-planning skill file not found at "
+        f"{path} -- falling back to minimal inline planner instructions.)\n\n"
+        "You are an infrastructure planning assistant. Given a user's request and a catalog of real "
+        "Bicep modules, ask clarifying questions only when genuinely needed, then output STRICT JSON "
+        "only matching: {\"ready\": bool, \"questions\": [...], \"message\": \"...\", "
+        "\"plan\": [{\"module_key\": \"...\", \"count\": 1, \"reason\": \"...\"}], "
+        "\"existing_resources\": [{\"concept\": \"...\", \"value\": \"...\"}]}"
+    )
+
+
+PLANNER_INSTRUCTIONS = _load_skill()
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -238,13 +258,19 @@ def _print_plan(plan_items: list[tuple[ModuleInfo, int, str]]) -> None:
 def plan_resources_conversationally(
     prompt: str, modules: list[ModuleInfo], ai_foundry_endpoint: str, ai_foundry_model: str,
     non_interactive: bool, log: list[str],
-) -> tuple[list[ModuleInfo], dict[str, int]]:
+) -> tuple[list[ModuleInfo], dict[str, int], list[str]]:
     """Runs the full ask-then-plan-then-confirm conversation and returns
-    (selected_modules, requested_counts) -- the same shapes agent.py's
-    compose() previously built from the tech-pattern + fuzzy-matcher
-    pipeline, so downstream code (resolver.resolve, copy_modules, etc.)
-    is unaffected. Raises SystemExit if no plan could be agreed on after
-    MAX_ROUNDS.
+    (selected_modules, requested_counts, existing_resource_notes). The first
+    two are the same shapes agent.py's compose() previously built from the
+    tech-pattern + fuzzy-matcher pipeline, so downstream code
+    (resolver.resolve, copy_modules, etc.) is unaffected.
+    existing_resource_notes is a new list of short "<concept>: <value>"
+    strings for any existing resource identifiers the user supplied when
+    asked (see skills/resource-planning.md) -- e.g. "Key Vault:
+    /subscriptions/.../vaults/myKV" -- forwarded to llm_composer.py so the
+    generated main.bicep can wire the literal existing resource ID instead
+    of provisioning a new one for that concept. Raises SystemExit if no
+    plan could be agreed on after MAX_ROUNDS.
 
     Before the module-level planning conversation starts, this first tries
     to match the request against one of the existing pattern READMEs (see
@@ -289,6 +315,7 @@ def plan_resources_conversationally(
     ]
 
     plan_items: list[tuple[ModuleInfo, int, str]] = []
+    existing_resources: list[tuple[str, str]] = []
     awaiting_confirmation = False
 
     for round_num in range(1, MAX_ROUNDS + 1):
@@ -342,6 +369,15 @@ def plan_resources_conversationally(
             reason = str(item.get("reason", "") or "")
             plan_items.append((module, count, reason))
 
+        raw_existing = parsed.get("existing_resources", []) or []
+        existing_resources = [
+            (str(item.get("concept", "")).strip(), str(item.get("value", "")).strip())
+            for item in raw_existing
+            if str(item.get("concept", "")).strip() and str(item.get("value", "")).strip()
+        ]
+        for concept, value in existing_resources:
+            log.append(f"User wants to reuse an existing {concept}: {value}")
+
         if not plan_items:
             messages.append({"role": "user", "content": (
                 "That plan didn't resolve to any real modules from the catalog. Please propose a plan "
@@ -382,4 +418,5 @@ def plan_resources_conversationally(
         else:
             log.append(f"Planned '{module.key}' x{count}")
 
-    return selected, requested_counts
+    existing_resource_notes = [f"{concept}: {value}" for concept, value in existing_resources]
+    return selected, requested_counts, existing_resource_notes

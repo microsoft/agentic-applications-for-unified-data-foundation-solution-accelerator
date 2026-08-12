@@ -107,7 +107,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     # a plan with the user in the loop until it's confirmed. See
     # conversational_planner.py for the full loop and why there's no
     # deterministic pattern-matching/fuzzy-text-scoring here anymore.
-    selected, requested_counts = plan_resources_conversationally(
+    selected, requested_counts, existing_resource_notes = plan_resources_conversationally(
         prompt, modules, endpoint, foundry_model, non_interactive, log,
     )
 
@@ -146,7 +146,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
     author_agent_id = ai_foundry_author_agent_id or os.environ.get("AI_FOUNDRY_AUTHOR_AGENT_ID")
     llm_code, gen_log, ok = generate_main_bicep_with_llm(
-        prompt, resolution, requested_counts, dest_root, param_defaults,
+        prompt, resolution, requested_counts, dest_root, param_defaults, existing_resource_notes,
         ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model, ai_foundry_agent_id=author_agent_id,
     )
     log.extend(gen_log)

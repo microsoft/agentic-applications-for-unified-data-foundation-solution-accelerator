@@ -54,6 +54,20 @@ SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 BICEP_AUTHORING_SKILL_PATH = SKILLS_DIR / "bicep-main-authoring.md"
 
 
+_FRONTMATTER_RE = re.compile(r"\A---\s*\n.*?\n---\s*\n", re.DOTALL)
+
+
+def _strip_frontmatter(text: str) -> str:
+    """Strips a leading YAML frontmatter block (--- ... ---), if present,
+    from a skill markdown file's content. Skill files carry frontmatter
+    (name/description/compatibility/metadata) purely for external
+    discoverability/portability -- e.g. so the file is self-describing the
+    same way microsoft/CAIRA's SKILL.md files are -- but that metadata is
+    not useful instruction content for the LLM prompt itself, so it's
+    removed here rather than sent verbatim as part of the system prompt."""
+    return _FRONTMATTER_RE.sub("", text, count=1).strip()
+
+
 def _load_skill(path: Path = BICEP_AUTHORING_SKILL_PATH) -> str:
     """Loads a markdown 'skill' document -- a rule set the LLM author agent
     must follow -- from disk. This is the single source of truth for
@@ -63,7 +77,7 @@ def _load_skill(path: Path = BICEP_AUTHORING_SKILL_PATH) -> str:
     marker) if the file is ever missing, so a run never silently loses the
     style guide without at least surfacing it in the generated prompt."""
     if path.exists():
-        return path.read_text(encoding="utf-8")
+        return _strip_frontmatter(path.read_text(encoding="utf-8"))
     return (
         "(WARNING: bicep-main-authoring skill file not found at "
         f"{path} -- no authoring rules were loaded for this run.)"
@@ -105,7 +119,8 @@ def _module_catalog_text(resolution: ResolutionResult) -> str:
 
 
 def build_generation_prompt(user_prompt: str, resolution: ResolutionResult, requested_counts: dict[str, int],
-                             param_defaults: dict[str, str] | None = None) -> str:
+                             param_defaults: dict[str, str] | None = None,
+                             existing_resource_notes: list[str] | None = None) -> str:
     catalog = _module_catalog_text(resolution)
     counts_text = "\n".join(f"- {k}: requested count = {v}" for k, v in requested_counts.items())
     overrides_text = ""
@@ -116,13 +131,24 @@ def build_generation_prompt(user_prompt: str, resolution: ResolutionResult, requ
             f"(key is '<module path>::<param name>', use the literal value verbatim for that exact "
             f"param on that exact module -- quote it if the param type is a string):\n{overrides_lines}\n"
         )
+    existing_resources_text = ""
+    if existing_resource_notes:
+        notes_lines = "\n".join(f"- {n}" for n in existing_resource_notes)
+        existing_resources_text = (
+            f"\nThe user wants to REUSE these existing resources instead of provisioning new ones for "
+            f"the matching concept -- wire the literal value(s) below into the relevant module's "
+            f"'existing<Thing>ResourceId' (or equivalent existing-resource) parameter, following this "
+            f"repo's existing-vs-new pattern, rather than creating a new resource for that concept:\n"
+            f"{notes_lines}\n"
+        )
     return (
         f"User's infrastructure request:\n{user_prompt}\n\n"
         f"Resolved modules available to use (exact paths/params/outputs -- use only these, "
         f"and use ALL of them):\n{catalog}\n\n"
         f"Requested instance counts (create this many `module` blocks for these, numbering symbol "
         f"names 1..N and their `name` params, if count > 1):\n{counts_text}\n"
-        f"{overrides_text}\n"
+        f"{overrides_text}"
+        f"{existing_resources_text}\n"
         f"For any REQUIRED module parameter that is not a resource reference wireable to another "
         f"module's output and has no user-supplied literal value above, declare it as a top-level "
         f"main.bicep parameter (never omit a required parameter or invent a value).\n\n"
@@ -154,6 +180,7 @@ def _call_llm_chat(messages: list[dict], ai_foundry_endpoint: str | None, ai_fou
 def generate_main_bicep_with_llm(
     user_prompt: str, resolution: ResolutionResult, requested_counts: dict[str, int],
     dest_root: Path, param_defaults: dict[str, str] | None = None,
+    existing_resource_notes: list[str] | None = None,
     ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
     ai_foundry_agent_id: str | None = None,
     max_attempts: int = 3,
@@ -171,7 +198,9 @@ def generate_main_bicep_with_llm(
 
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": build_generation_prompt(user_prompt, resolution, requested_counts, param_defaults)},
+        {"role": "user", "content": build_generation_prompt(
+            user_prompt, resolution, requested_counts, param_defaults, existing_resource_notes,
+        )},
     ]
 
     for attempt in range(1, max_attempts + 1):
