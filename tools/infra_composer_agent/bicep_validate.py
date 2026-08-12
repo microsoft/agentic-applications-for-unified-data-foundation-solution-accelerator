@@ -11,6 +11,15 @@ actually about the Bicep file's own content as a failure too, so it gets fed bac
 self-correction retry loop exactly like a hard error. CLI "nag" warnings that have nothing to do
 with the file's content (new-version-available nudges, subscription/telemetry notices) are
 filtered out so they never cause a spurious retry loop.
+
+`validate_with_az` also enforces this project's "always use managed identities/passwordless auth,
+NEVER static credentials or secrets" rule (see skills/bicep-main-authoring.md and
+skills/resource-planning.md) as a hard, programmatic gate -- not just documented guidance the LLM
+might ignore. main.bicep is scanned for the ARM/Bicep functions and literal patterns that pull or
+embed an access key/connection string (listKeys(), listConnectionStrings(), listSecrets(), or a
+literal 'AccountKey='/'SharedAccessKey='/'DefaultEndpointsProtocol=' string). Any hit fails
+validation exactly like a compile error, so the LLM's self-correction loop is forced to replace it
+with a managed-identity/RBAC-based wiring instead (see resolver.py's role-assignment auto-inclusion).
 """
 from __future__ import annotations
 
@@ -30,9 +39,42 @@ _CLI_NOISE_PATTERNS = [
     re.compile(r"^\s*$"),
 ]
 
+# ARM/Bicep functions that retrieve a static access key or connection string
+# from a resource -- the exact anti-pattern "always use managed identities,
+# never static credentials/secrets" forbids. Matched as whole function calls
+# so e.g. a module's own unrelated param named 'keyVaultName' never trips this.
+_SECRET_FUNCTION_RE = re.compile(r"\blist(?:Keys|ConnectionStrings|Secrets|AccountSas|ServiceSas)\s*\(", re.IGNORECASE)
+
+# Literal connection-string/SAS markers that indicate a hardcoded secret was
+# embedded directly in the template rather than referenced via identity/RBAC.
+_SECRET_LITERAL_RE = re.compile(
+    r"(AccountKey=|SharedAccessKey=|DefaultEndpointsProtocol=|AccessKey=)", re.IGNORECASE
+)
+
 
 def _is_cli_noise(line: str) -> bool:
     return any(p.search(line) for p in _CLI_NOISE_PATTERNS)
+
+
+def _check_no_secrets(main_bicep_text: str) -> list[str]:
+    """Scans main.bicep's own source (never the vendored/copied modules
+    under modules/, which this agent doesn't author) for access-key/
+    connection-string patterns. Returns a list of human-readable violation
+    messages (one per matched line), empty if none are found."""
+    violations: list[str] = []
+    for lineno, line in enumerate(main_bicep_text.splitlines(), start=1):
+        if _SECRET_FUNCTION_RE.search(line):
+            violations.append(
+                f"line {lineno}: uses a key/connection-string-retrieving function ('{line.strip()}') -- "
+                f"use a managed identity + RBAC role assignment instead, per the project's "
+                f"no-static-credentials rule."
+            )
+        elif _SECRET_LITERAL_RE.search(line):
+            violations.append(
+                f"line {lineno}: appears to embed a literal connection string/access key "
+                f"('{line.strip()}') -- use a managed identity + RBAC role assignment instead."
+            )
+    return violations
 
 
 def _extract_lint_warnings(stderr: str, main_bicep: Path) -> list[str]:
@@ -82,6 +124,18 @@ def validate_with_az(main_bicep: Path, strict: bool = True) -> tuple[bool, str]:
     )
     if proc.returncode != 0:
         return False, proc.stderr
+
+    # Enforced regardless of `strict`: this is a hard security rule (no
+    # static credentials/secrets), not a style preference that can be
+    # relaxed like the lint-warning check below.
+    secret_violations = _check_no_secrets(main_bicep.read_text(encoding="utf-8"))
+    if secret_violations:
+        violations_text = "\n".join(secret_violations)
+        return False, (
+            "main.bicep compiled successfully but violates the project's no-static-credentials rule "
+            f"(always use managed identities/RBAC instead of access keys or connection strings):\n"
+            f"{violations_text}"
+        )
 
     if strict:
         lint_warnings = _extract_lint_warnings(proc.stderr, main_bicep)

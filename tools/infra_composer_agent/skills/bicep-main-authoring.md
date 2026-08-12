@@ -1,3 +1,12 @@
+---
+name: infra-composer-bicep-main-authoring
+description: Authoritative style guide the infra composer agent's LLM author agent must follow when generating a new main.bicep orchestrator for any composed project (module wiring, existing-vs-new pattern, RBAC, naming, decorators, outputs).
+compatibility: Loaded by llm_composer.py as part of the Foundry author agent's system instructions.
+metadata:
+  author: infra-composer-agent
+  version: "1.0.0"
+---
+
 # Skill: Authoring `main.bicep` orchestrators (Azure Bicep)
 
 This rule set combines two sources, in this priority order when they ever conflict:
