@@ -9,11 +9,12 @@ is invoked from.
 
 The TARGET is dynamic: pass any repository URL via --target-repo. Each run
 clones that repo fresh, creates a brand-new branch off its base branch
-(default `main`), generates the composed Bicep project under an `infra-agents/`
-subfolder of that checkout (configurable via --dest-name; pass '.' to write
-at the repo root instead), commits, and pushes -- so the same command can be
-pointed at a different repo (or the same repo again) every time with
-different results, driven entirely by --prompt and --target-repo.
+(default `main`), generates the composed Bicep project under an
+`infra-agents/bicep/` subfolder of that checkout (configurable via
+--dest-name; pass '.' to write at the repo root instead), commits, and
+pushes -- so the same command can be pointed at a different repo (or the
+same repo again) every time with different results, driven entirely by
+--prompt and --target-repo.
 
 Usage (typical, fully automatic -- clones both repos, branches, generates,
 validates, commits, and pushes to the target repo):
@@ -242,11 +243,11 @@ def main() -> int:
     parser.add_argument("--target-base", default="main", help="Base branch in the target repo to branch from (default: main).")
     parser.add_argument("--branch-name", default=None,
                          help="New branch name in the target repo. Auto-generated from the prompt + timestamp if omitted.")
-    parser.add_argument("--dest-name", default="infra-agents",
+    parser.add_argument("--dest-name", default="infra-agents/bicep",
                          help="Folder (relative to the target repo root) to write the composition into. "
-                              "Default 'infra-agents' keeps the generated main.bicep/modules/README.md in "
-                              "their own subfolder instead of the target repo root. Pass '.' to write "
-                              "directly at the target repo root instead.")
+                              "Default 'infra-agents/bicep' keeps the generated main.bicep/modules/README.md "
+                              "in their own bicep/ subfolder under infra-agents/, instead of the target repo "
+                              "root. Pass '.' to write directly at the target repo root instead.")
 
     parser.add_argument("--ai-foundry-endpoint", default=None,
                          help="Azure AI Foundry project endpoint (required -- the agent always interprets "

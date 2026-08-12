@@ -67,8 +67,37 @@ class ModuleInfo:
     def key(self) -> str:
         return str(self.rel_path.as_posix())
 
+    @property
+    def flat_rel_path(self) -> Path:
+        """This module's path with any '<project>/infra/bicep/modules/'
+        style prefix stripped down to just the segment(s) after the literal
+        'modules' folder name -- see flatten_rel_path below for why. Used
+        wherever the module needs to be copied/referenced in a composed
+        project's OWN flat modules/ folder, as opposed to `rel_path`/`key`
+        (relative to the scanned source root, used for indexing/lookup)."""
+        return flatten_rel_path(self.rel_path)
+
     def required_params(self) -> list[ParamInfo]:
         return [p for p in self.params if p.required]
+
+
+def flatten_rel_path(rel_path: Path) -> Path:
+    """Strips any '<project>/infra/bicep/modules/' style prefix down to just
+    the path segment(s) after the literal 'modules' folder name, so a
+    composed project's own modules/ folder is a flat '<category>/<name>.bicep'
+    layout instead of mirroring the source library's own nested per-project
+    structure (e.g. 'agentic-apps/infra/bicep/modules/compute/app-service.bicep'
+    -> 'compute/app-service.bicep'). Falls back to rel_path unchanged when no
+    'modules' segment is present (e.g. the scanned root already points
+    directly at a flat modules folder, so there's nothing to strip)."""
+    parts = rel_path.parts
+    lower_parts = [p.lower() for p in parts]
+    if "modules" in lower_parts:
+        idx = lower_parts.index("modules")
+        remainder = parts[idx + 1:]
+        if remainder:
+            return Path(*remainder)
+    return rel_path
 
 
 def _singularize(token: str) -> str:

@@ -1,6 +1,12 @@
 """
-Copies selected + resolved modules into a destination folder, preserving
-their relative paths.
+Copies selected + resolved modules into a destination folder, flattening
+each module's path down to just its category/name (e.g.
+'agentic-apps/infra/bicep/modules/compute/app-service.bicep' ->
+'modules/compute/app-service.bicep') instead of mirroring the source
+module library's own nested per-project folder structure -- see
+module_index.flatten_rel_path for the exact rule. The composed project's
+own modules/ folder is meant to be a flat, self-contained copy, not a
+mirror of wherever the module library happens to keep things internally.
 
 Authoring the root main.bicep itself is done entirely by the LLM (see
 llm_composer.py) via the persistent Azure AI Foundry author agent -- there
@@ -14,24 +20,38 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+from module_index import flatten_rel_path
 from resolver import ResolutionResult
 
 
 def copy_modules(resolution: ResolutionResult, source_root: Path, dest_root: Path) -> dict[str, Path]:
-    """Copies each resolved module's .bicep file into dest_root/modules/<rel_path>.
-    Also transitively copies any local sibling .bicep files a module
-    references by relative path (e.g. 'module x './helper.bicep' = {...}')
-    -- these are implementation details of that module (not separately
-    selectable resources), so they're never matched/resolved as their own
-    dependency, but must still be copied or the generated project will have
-    dangling module references."""
+    """Copies each resolved module's .bicep file into dest_root/modules/<flattened path>
+    (see module docstring above). Also transitively copies any local sibling
+    .bicep files a module references by relative path (e.g. 'module x
+    './helper.bicep' = {...}') -- these are implementation details of that
+    module (not separately selectable resources), so they're never
+    matched/resolved as their own dependency, but must still be copied,
+    flattened the same way and alongside their referencing module, or the
+    generated project will have dangling module references.
+
+    If two different modules from different parts of the source library
+    would flatten to the exact same destination path (a real but rare risk
+    once more than one project populates the source library), the second
+    one is disambiguated by keeping one extra leading path segment (its
+    immediate source folder name) rather than silently overwriting the
+    first -- this is logged so it's never silent."""
     dest_modules_dir = dest_root / "modules"
     copied: dict[str, Path] = {}
     seen_local_refs: set[Path] = set()
+    dest_used: dict[Path, Path] = {}  # flattened dest-relative path -> absolute source path already placed there
 
-    def copy_one(src_path: Path) -> Path:
-        rel = src_path.relative_to(source_root)
-        target = dest_modules_dir / rel
+    def copy_to(src_path: Path, flat_rel: Path) -> Path:
+        prior_source = dest_used.get(flat_rel)
+        if prior_source is not None and prior_source != src_path:
+            rel_from_source = src_path.relative_to(source_root)
+            flat_rel = Path(rel_from_source.parts[0]) / flat_rel
+        dest_used[flat_rel] = src_path
+        target = dest_modules_dir / flat_rel
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src_path, target)
         return target
@@ -41,7 +61,8 @@ def copy_modules(resolution: ResolutionResult, source_root: Path, dest_root: Pat
             if ref_path in seen_local_refs:
                 continue
             seen_local_refs.add(ref_path)
-            copy_one(ref_path)
+            flat_rel = flatten_rel_path(ref_path.relative_to(source_root))
+            copy_to(ref_path, flat_rel)
             # A helper module can itself reference further local helpers;
             # parse it too so those are copied as well (transitive closure).
             from module_index import parse_module
@@ -49,7 +70,8 @@ def copy_modules(resolution: ResolutionResult, source_root: Path, dest_root: Pat
             copy_local_refs(nested.local_module_refs)
 
     for key, module in resolution.modules.items():
-        target = copy_one(module.path)
+        target = copy_to(module.path, module.flat_rel_path)
         copied[key] = target
         copy_local_refs(module.local_module_refs)
     return copied
+
