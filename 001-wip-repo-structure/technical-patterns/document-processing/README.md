@@ -64,27 +64,19 @@ Upload multiple documents (invoices, forms, images, contracts) to a single claim
 
 ## Resources deployed
 
-> The `Module` column maps each resource to the exact module key from the underlying AVM Bicep module
-> library (`infra_new/avm/modules/<category>/<name>.bicep`).
-
-| Resource | Module | Purpose |
-|---|---|---|
-| Storage Account | `data/storage-account.bicep` | Inbound document/claim landing zone |
-| Event Grid | `data/event-grid.bicep` | Blob-created event trigger |
-| Function App | `compute/function-app.bicep` | Extract -> Map -> Evaluate -> Save pipeline |
-| Azure AI Services | `ai/ai-services.bicep` | Content Understanding: document/data extraction |
-| Azure AI Search | `ai/ai-search.bicep` | Index of extracted content |
-| AI Foundry Project | `ai/ai-foundry-project.bicep` | Hosts summarization/gap-analysis models |
-| AI Foundry Model Deployment | `ai/ai-foundry-model-deployment.bicep` | Deploys the summarization model |
-| Cosmos DB (NoSQL) | `data/cosmos-db-nosql.bicep` | Processes, schemas, and claim results store |
-| Key Vault | `security/key-vault.bicep` | Secrets and certificates |
-| Managed Identity | `identity/managed-identity.bicep` | Identity for service-to-service auth |
-| Role Assignments | `identity/role-assignments.bicep` | Least-privilege RBAC for the identity |
-| Log Analytics Workspace | `monitoring/log-analytics.bicep` | Central log sink |
-| Application Insights | `monitoring/app-insights.bicep` | Function/app telemetry |
-| Virtual Network | `networking/virtual-network.bicep` | Network isolation boundary |
-| Private Endpoint | `networking/private-endpoint.bicep` | Private connectivity to data/AI services |
-| Private DNS Zone | `networking/private-dns-zone.bicep` | DNS resolution for private endpoints |
+| Resource | Purpose |
+|---|---|
+| Storage Account | Inbound document/claim landing zone |
+| Event Grid | Blob-created event trigger |
+| Function App | Extract -> Map -> Evaluate -> Save pipeline |
+| Azure AI Services | Content Understanding: document/data extraction |
+| Azure AI Search | Index of extracted content |
+| AI Foundry Project | Hosts summarization/gap-analysis models |
+| Cosmos DB (NoSQL) | Processes, schemas, and claim results store |
+| Key Vault | Secrets and certificates |
+| Managed Identity | Identity for service-to-service auth |
+| Log Analytics Workspace | Central log sink |
+| Application Insights | Function/app telemetry |
 
 ## Business scenario
 
@@ -119,9 +111,8 @@ Teams that process multi-document claims -- insurance claims, contract packages,
 ### Security guidelines
 
 Every service-to-service call in this pattern is authorized through a managed identity and Azure RBAC
-role assignments (see the `identity/managed-identity.bicep` and `identity/role-assignments.bicep` rows
-above) rather than connection strings or keys. Data services are reachable only through private
-endpoints, with public network access disabled.
+role assignments rather than connection strings or keys. Data services are reachable only through
+private endpoints, with public network access disabled.
 
 > This README was generated automatically as placeholder documentation for the `document-processing` technical
 > pattern.

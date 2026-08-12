@@ -38,8 +38,9 @@ def normalize_concept(param_name: str) -> list[str]:
 
 
 def _best_match(tokens: list[str], candidates: list[ModuleInfo], exclude_key: str) -> tuple[ModuleInfo | None, float]:
-    """Jaccard similarity, mirroring request_parser.score_module, so dependency
-    matching and request matching behave consistently."""
+    """Jaccard similarity over tag/name tokens, used to auto-resolve a
+    required parameter to whichever other selected module's output/name
+    best matches it."""
     best, best_score = None, 0.0
     token_set = set(tokens)
     if not token_set:

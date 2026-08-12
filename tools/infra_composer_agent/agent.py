@@ -43,13 +43,12 @@ import env_file
 from module_index import build_index, ModuleInfo
 from resolver import resolve
 from composer import copy_modules
-from llm_interpreter import interpret_with_llm
+from conversational_planner import plan_resources_conversationally
 from llm_composer import generate_main_bicep_with_llm, fix_bicep_with_llm
 from bicep_validate import validate_with_az
 import interactive
 import readme_gen
 import bicepparam_gen
-import tech_patterns
 
 # Fixed source: the module library this agent always composes from.
 #
@@ -74,26 +73,6 @@ DEFAULT_SOURCE_BRANCH = "infra-core-modules-copy"
 DEFAULT_SOURCE_PATH = "infra_new/avm/modules"
 
 
-def _interpret_requests(text: str, modules: list[ModuleInfo],
-                         ai_foundry_endpoint: str | None, ai_foundry_model: str | None,
-                         ai_foundry_interpreter_agent_id: str | None, log: list[str],
-                         baseline: list[tuple[str, str]] | None = None):
-    """Interprets free text into ResourceRequest objects (to add) plus a list
-    of raw exclude strings (baseline items to drop/replace, only meaningful
-    when `baseline` is given) via the persistent Azure AI Foundry interpreter
-    agent -- the only interpretation backend. Factored out so the
-    interactive 'add more resources' loop in compose() can reuse it verbatim
-    on whatever free text the user adds afterwards."""
-    endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
-    foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
-    interpreter_agent_id = ai_foundry_interpreter_agent_id or os.environ.get("AI_FOUNDRY_INTERPRETER_AGENT_ID")
-    return interpret_with_llm(
-        text, modules,
-        project_endpoint=endpoint, model_deployment=foundry_model, agent_id=interpreter_agent_id,
-        baseline=baseline,
-    )
-
-
 def _print_essential_log(log: list[str]) -> None:
     """Prints only the log lines that matter for troubleshooting or final
     confirmation -- warnings/errors, and the main.bicep generation outcome.
@@ -108,210 +87,29 @@ def _print_essential_log(log: list[str]) -> None:
             print(line)
 
 
-def _match_excludes(excludes: list[str], candidates: list, modules_by_key: dict | None = None) -> list:
-    """Fuzzy-matches each raw exclude string (e.g. 'Cosmos DB') against a
-    small candidate list -- either ResourceEntry objects (pattern baseline)
-    or ModuleInfo objects (already-resolved modules) -- restricted to just
-    these candidates so an exclude phrase can never accidentally remove
-    something unrelated from the wider catalog.
-
-    When `modules_by_key` is given, each ResourceEntry candidate is first
-    resolved to its REAL ModuleInfo (via _resolve_pattern_module) and scored
-    with the same tag-based score_module() used for every other match in
-    this codebase -- this matters because tag-based Jaccard similarity
-    correctly disambiguates near-duplicate names (e.g. 'App Service' matches
-    compute/app-service.bicep, not compute/app-service-plan.bicep, since the
-    Plan module's tag set includes extra 'plan'/'serverfarm' tags that lower
-    its similarity score). Falls back to raw display_name/module_key text
-    scoring only when a ResourceEntry can't be resolved to a real module
-    (already-warned-missing case) or modules_by_key wasn't supplied."""
-    from request_parser import _tokenize, score_module
-
-    matched = []
-    for phrase in excludes:
-        tokens = _tokenize(phrase)
-        if not tokens:
-            continue
-        best_score = 0.0
-        best_candidate = None
-        for c in candidates:
-            resolved_module = c if hasattr(c, "tags") else None
-            if resolved_module is None and modules_by_key is not None:
-                resolved_module = _resolve_pattern_module(c.module_key, modules_by_key)
-            if resolved_module is not None:
-                s = score_module(tokens, resolved_module)
-            else:
-                # ResourceEntry with no real module to resolve against: fall
-                # back to scoring its own display_name/module_key text directly.
-                name_tokens = set(_tokenize(f"{c.display_name} {c.module_key}"))
-                token_set = set(tokens)
-                s = len(token_set & name_tokens) / len(token_set | name_tokens) if (token_set | name_tokens) else 0.0
-            if s > best_score:
-                best_score = s
-                best_candidate = c
-        if best_candidate is not None and best_score > 0:
-            matched.append(best_candidate)
-    return matched
-
-
-
-def _resolve_pattern_module(module_key: str, modules_by_key: dict) -> "ModuleInfo | None":
-    """Resolves a technical pattern's ResourceEntry.module_key (a short,
-    category-relative key like 'compute/app-service-plan.bicep', the format
-    baked into tech_patterns.py's catalog/READMEs) against the REAL module
-    index, whose ModuleInfo.key is now the full path under the scanned
-    source root (e.g. 'agentic-apps/infra/bicep/modules/compute/app-service-plan.bicep'
-    since the stable-cores multi-project layout was adopted -- see
-    module_index.py's _derive_category). An exact key match is tried first
-    (covers any source layout that still uses short keys directly), then
-    falls back to matching any indexed module whose key ENDS WITH the short
-    key on a path-segment boundary, so pattern baselines keep working
-    regardless of which project prefix currently provides that module."""
-    exact = modules_by_key.get(module_key)
-    if exact is not None:
-        return exact
-    suffix = "/" + module_key
-    matches = [m for m in modules_by_key.values() if m.key == module_key or m.key.endswith(suffix)]
-    if not matches:
-        return None
-    # Deterministic tie-break when more than one project provides a module
-    # with the same short key: prefer the shortest full path (fewest nested
-    # project segments), then alphabetical, so re-runs are stable.
-    matches.sort(key=lambda m: (len(m.key), m.key))
-    return matches[0]
-
-
 def compose(prompt: str, source_root: Path, dest_root: Path,
             ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
             ai_foundry_interpreter_agent_id: str | None = None,
             ai_foundry_author_agent_id: str | None = None,
-            non_interactive: bool = False, readme_pattern: str = "ask",
-            tech_pattern: str | None = None, skip_prompt_interpretation: bool = False) -> tuple[Path, list[str]]:
-    """Runs the full pipeline. Returns (main_bicep_path, human_readable_log).
-
-    skip_prompt_interpretation: set True when `prompt` is only a synthetic
-    label (e.g. "<pattern> solution", auto-filled when the user relied purely
-    on a technical pattern and typed no resource description of their own) --
-    prevents that label's own words (like the pattern name) from being
-    re-interpreted as an extra resource request and double-counting
-    something the pattern already added."""
+            non_interactive: bool = False, readme_pattern: str = "ask") -> tuple[Path, list[str]]:
+    """Runs the full pipeline. Returns (main_bicep_path, human_readable_log)."""
     log: list[str] = []
 
     modules = build_index(source_root)
     log.append(f"Indexed {len(modules)} modules under {source_root}")
-    modules_by_key = {m.key: m for m in modules}
 
-    # Technical-pattern workflow: match the user's prompt to a predefined
-    # pattern (chat-with-data, document-processing, call-center,
-    # realtime-alerts -- see tech_patterns.py), READ that pattern's own
-    # README.md (the on-disk file is the real source of truth -- hand edits
-    # to it are picked up automatically), and show the exact resource list
-    # it declares. Nothing is pulled from the source module library and no
-    # module is selected until the user explicitly confirms this plan.
-    #
-    # The pattern choice and the resulting resource plan are confirmed
-    # TOGETHER in one round-trip (interactive.confirm_pattern_plan) instead
-    # of two separate prompts -- if the user declines, they pick a different
-    # pattern (or none) and this loop recomputes the plan for that choice.
-    chosen_tech_pattern = interactive.choose_tech_pattern(prompt, tech_pattern, non_interactive, log)
+    endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
+    foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
 
-    selected: list[ModuleInfo] = []
-    requested_counts: dict[str, int] = {}
-    pattern_resources: list = []
-    adjusted_pattern_resources: list = []
-    source_desc = ""
-    requests: list = []
-    excludes: list = []
-
-    for _ in range(3):
-        pattern_resources, source_desc = ([], "")
-        if chosen_tech_pattern:
-            pattern_resources, source_desc = tech_patterns.get_pattern_resources(chosen_tech_pattern)
-            log.append(f"Read {len(pattern_resources)} resource(s) for pattern '{chosen_tech_pattern}' from {source_desc}.")
-
-        # Interpret the user's own --prompt text -- whether or not a pattern
-        # is in play. When a pattern IS in play, the pattern's own resource
-        # list is passed as `baseline` so the interpreter can also report
-        # `excludes`: baseline items the prompt explicitly said not to use
-        # (or to replace with something else), e.g. "follow document
-        # processing but no event grid and use postgres instead of cosmos"
-        # -> excludes=["Event Grid","Cosmos DB (NoSQL)"], resources=[postgres].
-        # This means the pattern's baseline table is only ever a STARTING
-        # POINT that the user's own words can trim/substitute -- never
-        # blindly applied in full regardless of what the prompt actually
-        # asked for. Re-run every time the pattern changes (loop iteration)
-        # so `excludes` are matched against the right baseline.
-        if skip_prompt_interpretation:
-            log.append("Skipping prompt interpretation: no resource description was provided beyond the "
-                        "technical pattern (nothing to add or exclude).")
-            requests, excludes = [], []
-        else:
-            log.append("Interpreting prompt via the persistent AI Foundry agent "
-                       "'infra-composer-prompt-interpreter'...")
-            baseline_pairs = [(r.display_name, r.module_key) for r in pattern_resources] or None
-            requests, excludes = _interpret_requests(
-                prompt, modules,
-                ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
-                baseline=baseline_pairs,
-            )
-            log.append(f"LLM identified {len(requests)} resource concept(s) to add"
-                       + (f" and {len(excludes)} baseline item(s) to exclude/replace" if pattern_resources else "")
-                       + " from the prompt.")
-
-        if not chosen_tech_pattern:
-            adjusted_pattern_resources = []
-            break
-
-        excluded_entries = _match_excludes(excludes, pattern_resources, modules_by_key) if excludes else []
-        if excluded_entries:
-            for e in excluded_entries:
-                log.append(f"Excluding pattern resource '{e.display_name}' ({e.module_key}) -- your prompt "
-                           f"asked to drop or replace it.")
-        adjusted_pattern_resources = [r for r in pattern_resources if r not in excluded_entries]
-
-        decision = interactive.confirm_pattern_plan(
-            chosen_tech_pattern, adjusted_pattern_resources, source_desc, non_interactive, log,
-            excluded=excluded_entries,
-        )
-        if decision == "yes":
-            break
-        if decision == "none":
-            chosen_tech_pattern = None
-            continue
-        # decision is a different catalog pattern id -- recompute the plan for it.
-        chosen_tech_pattern = decision
-    else:
-        raise SystemExit(
-            "Could not agree on a resource plan after multiple attempts. Re-run with a different "
-            "--prompt/--tech-pattern."
-        )
-
-    if chosen_tech_pattern:
-        for r in adjusted_pattern_resources:
-            module = _resolve_pattern_module(r.module_key, modules_by_key)
-            if module is None:
-                log.append(
-                    f"WARNING: pattern resource '{r.display_name}' references module '{r.module_key}' "
-                    f"which was not found in the source library (skipped)."
-                )
-                continue
-            selected.append(module)
-            requested_counts[module.key] = requested_counts.get(module.key, 0) + 1
-
-    for req in requests:
-        if req.matched_module is None:
-            log.append(f"WARNING: could not match request '{req.text.strip()}' to any module (skipped)")
-            continue
-        log.append(
-            f"Matched '{req.text.strip()}' -> {req.matched_module.key} "
-            f"(score={req.score:.2f}, count={req.count})"
-        )
-        if req.matched_module not in selected:
-            selected.append(req.matched_module)
-        requested_counts[req.matched_module.key] = requested_counts.get(req.matched_module.key, 0) + req.count
-
-    if not selected:
-        raise SystemExit("No resources could be matched from the prompt or technical pattern. Aborting.")
+    # Resource selection is now entirely conversational: the LLM reads the
+    # real module catalog (never a predefined pattern catalog), asks
+    # clarifying questions when it genuinely needs to, and proposes/revises
+    # a plan with the user in the loop until it's confirmed. See
+    # conversational_planner.py for the full loop and why there's no
+    # deterministic pattern-matching/fuzzy-text-scoring here anymore.
+    selected, requested_counts = plan_resources_conversationally(
+        prompt, modules, endpoint, foundry_model, non_interactive, log,
+    )
 
     resolution = resolve(selected, modules)
     for key in resolution.modules:
@@ -319,40 +117,6 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
             log.append(f"Auto-included dependency: {key}")
     for mod_key, pname in resolution.unresolved:
         log.append(f"WARNING: {mod_key} requires '{pname}' but no matching module/output was found; surfaced as a param")
-
-    # Interactive resource-confirmation loop: show what's resolved so far and
-    # let the user add more (in plain text) before anything is copied or
-    # generated. Bounded to avoid an accidental infinite loop from repeated
-    # blank confirmations in a scripted/piped stdin scenario.
-    for _ in range(5):
-        addition_text = interactive.confirm_resources(resolution, requested_counts, non_interactive, log)
-        if not addition_text:
-            break
-        baseline_pairs = [(m.name, m.key) for m in selected] or None
-        extra_requests, extra_excludes = _interpret_requests(
-            addition_text, modules,
-            ai_foundry_endpoint, ai_foundry_model, ai_foundry_interpreter_agent_id, log,
-            baseline=baseline_pairs,
-        )
-        if extra_excludes:
-            removed = _match_excludes(extra_excludes, selected)
-            for m in removed:
-                selected.remove(m)
-                requested_counts.pop(m.key, None)
-                log.append(f"Removed '{m.name}' ({m.key}) -- you asked to drop or replace it.")
-        for req in extra_requests:
-            if req.matched_module is None:
-                log.append(f"WARNING: could not match added request '{req.text.strip()}' to any module (skipped)")
-                continue
-            log.append(f"Matched added request '{req.text.strip()}' -> {req.matched_module.key} (score={req.score:.2f}, count={req.count})")
-            if req.matched_module not in selected:
-                selected.append(req.matched_module)
-            existing_count = requested_counts.get(req.matched_module.key, 0)
-            requested_counts[req.matched_module.key] = existing_count + req.count
-        resolution = resolve(selected, modules)
-        for key in resolution.modules:
-            if key not in resolution.explicitly_requested:
-                log.append(f"Auto-included dependency: {key}")
 
     # Interactive unresolved-parameter resolution: ask whether to hardcode a
     # value for anything resolver.py couldn't wire up automatically, instead
@@ -421,8 +185,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
                    "(nothing to scaffold).")
 
     chosen_pattern = interactive.choose_readme_pattern(prompt, readme_pattern, non_interactive, log)
-    doc_paths = readme_gen.generate_docs(chosen_pattern, prompt, resolution, requested_counts, dest_root,
-                                          tech_pattern=chosen_tech_pattern)
+    doc_paths = readme_gen.generate_docs(chosen_pattern, prompt, resolution, requested_counts, dest_root)
     for p in doc_paths:
         log.append(f"Generated {p}")
 
@@ -434,16 +197,15 @@ def slugify(text: str, max_len: int = 40) -> str:
     return slug[:max_len].strip("-") or "infra"
 
 
-def default_branch_name(tech_pattern: str | None) -> str:
+def default_branch_name() -> str:
     """Simple, unique branch name -- deliberately NOT derived from the full
     --prompt text (that produced long, awkward names full of arbitrary
-    prompt words). Uses the resolved technical pattern id if one was
-    chosen (e.g. 'document-processing'), else the generic 'custom', plus a
-    timestamp and a short random suffix so re-runs never collide."""
+    prompt words). Uses a timestamp and a short random suffix so re-runs
+    never collide."""
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     short_id = uuid.uuid4().hex[:6]
-    label = tech_pattern or "custom"
-    return f"infra/{label}-{stamp}-{short_id}"
+    return f"infra/custom-{stamp}-{short_id}"
+
 
 
 def main() -> int:
@@ -488,22 +250,17 @@ def main() -> int:
 
     parser.add_argument("--ai-foundry-endpoint", default=None,
                          help="Azure AI Foundry project endpoint (required -- the agent always interprets "
-                              "prompts and authors main.bicep via the persistent AI Foundry agents, with no "
+                              "prompts and authors main.bicep via the Responses API, with no "
                               "deterministic fallback). Falls back to AI_FOUNDRY_PROJECT_ENDPOINT env var.")
     parser.add_argument("--ai-foundry-model", default=None,
-                         help="Model deployment name (only used if creating brand-new agents; the two "
-                              "default persistent agents already have a model configured). "
+                         help="Model deployment name (required -- sent on every Responses API call). "
                               "Falls back to AI_FOUNDRY_MODEL_DEPLOYMENT env var.")
     parser.add_argument("--ai-foundry-interpreter-agent-id", default=None,
-                         help="Override the persistent AI Foundry agent used for prompt interpretation "
-                              "(default: DEFAULT_INTERPRETER_AGENT_ID in llm_interpreter.py, the pre-created "
-                              "'infra-composer-prompt-interpreter' agent). Falls back to "
-                              "AI_FOUNDRY_INTERPRETER_AGENT_ID env var.")
+                         help="Unused by the Responses API backend (accepted for backward compatibility "
+                              "only). Falls back to AI_FOUNDRY_INTERPRETER_AGENT_ID env var.")
     parser.add_argument("--ai-foundry-author-agent-id", default=None,
-                         help="Override the persistent AI Foundry agent used to author main.bicep "
-                              "(default: DEFAULT_AUTHOR_AGENT_ID in llm_composer.py, the pre-created "
-                              "'infra-composer-main-bicep-author' agent). Falls back to "
-                              "AI_FOUNDRY_AUTHOR_AGENT_ID env var.")
+                         help="Unused by the Responses API backend (accepted for backward compatibility "
+                              "only). Falls back to AI_FOUNDRY_AUTHOR_AGENT_ID env var.")
     parser.add_argument("--validate", action="store_true", help="Run 'az bicep build' on the generated main.bicep.")
     parser.add_argument("--non-interactive", "--yes", dest="non_interactive", action="store_true",
                          help="Skip every interactive prompt (README pattern choice, resource-confirmation, "
@@ -517,15 +274,6 @@ def main() -> int:
                               "Azure-Samples/chat-with-your-data-solution-accelerator), or 'ask' (default -- "
                               "prompt interactively, suggesting one based on the prompt text; falls back to "
                               "'solution-accelerator' under --non-interactive).")
-    parser.add_argument("--tech-pattern", default=None,
-                         choices=list(tech_patterns.PATTERNS) + ["none"],
-                         help="Seed this composition from a predefined technical pattern (see "
-                              "tech_patterns.py / 001-wip-repo-structure/technical-patterns/<id>/README.md): "
-                              f"{', '.join(tech_patterns.PATTERNS)}. Its baseline resource list is prepended "
-                              "to --prompt before interpretation, and you can still add/remove resources "
-                              "interactively afterwards. Pass 'none' to disable pattern seeding entirely. "
-                              "If omitted, the agent tries to infer a pattern from --prompt and (unless "
-                              "--non-interactive) asks interactively before proceeding.")
     parser.add_argument("--no-git", action="store_true",
                          help="Skip cloning/branching/pushing entirely; just generate files locally under --dest-name.")
     parser.add_argument("--no-push", action="store_true",
@@ -538,24 +286,30 @@ def main() -> int:
     if not ai_foundry_endpoint:
         raise SystemExit(
             "--ai-foundry-endpoint (or AI_FOUNDRY_PROJECT_ENDPOINT env var) is required: this agent always "
-            "interprets prompts and authors main.bicep via the persistent Azure AI Foundry agents -- there "
+            "interprets prompts and authors main.bicep via Azure AI Foundry (Responses API) -- there "
             "is no deterministic/local fallback backend."
         )
+    ai_foundry_model_for_sync = args.ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
+    if not ai_foundry_model_for_sync:
+        raise SystemExit(
+            "--ai-foundry-model (or AI_FOUNDRY_MODEL_DEPLOYMENT env var) is required: the Responses API "
+            "sends the model deployment name on every call (there's no pre-created agent with a model "
+            "already baked in)."
+        )
 
-    # Keep the persistent agents' stored instructions in sync with the local
-    # source (llm_interpreter.INTERPRETER_INSTRUCTIONS / llm_composer.SYSTEM_PROMPT)
-    # on every run, so editing those files takes effect immediately without a
-    # separate `update_agent_instructions.py` step. Silent on success (this
-    # is routine bookkeeping, not something the user needs to see every run);
-    # a sync failure (e.g. no Azure credentials / offline) is still surfaced
-    # as a warning, since it's non-fatal but worth knowing about.
+    # Best-effort: publish the agent DEFINITIONS (model + instructions) to the
+    # AI Foundry portal's Agents tab for visibility, in sync with the local
+    # source (conversational_planner.PLANNER_INSTRUCTIONS / llm_composer.SYSTEM_PROMPT).
+    # This is purely for inspection -- the actual generation/interpretation calls
+    # below go straight through the Responses API and never reference this
+    # registration, so a sync failure (e.g. no Azure credentials / offline) is
+    # non-fatal and only surfaced as a warning.
     try:
         import update_agent_instructions
-        update_agent_instructions.sync_agent_instructions(ai_foundry_endpoint)
+        update_agent_instructions.sync_agent_instructions(ai_foundry_endpoint, ai_foundry_model_for_sync)
     except Exception as exc:
-        print(f"WARNING: could not sync agent instructions, continuing with live agent as-is: {exc}")
+        print(f"WARNING: could not sync agent instructions, continuing without portal registration: {exc}")
 
-    skip_prompt_interpretation = False
     if not args.prompt:
         if args.non_interactive:
             raise SystemExit("--prompt is required when --non-interactive is set (there is no one to ask).")
@@ -565,23 +319,9 @@ def main() -> int:
         if not prompt_text:
             raise SystemExit("No description provided -- nothing to compose.")
         args.prompt = prompt_text
-        # No forced pattern menu: choose_tech_pattern() infers a technical
-        # pattern (if any) directly from this same free text later in
-        # compose(), and any extra resources mentioned alongside a pattern
-        # reference (e.g. "...but also add one more fabric resource") are
-        # still interpreted normally since args.prompt carries the full text.
 
-
-    # Resolve the technical pattern (if any) up front -- purely once, here --
-    # to build a simple/unique branch name from its id. This is the ONLY
-    # place choose_tech_pattern's inference/confirmation prompt runs when
-    # --tech-pattern wasn't given explicitly; the resolved id is then passed
-    # into compose() below as an already-decided value (never None -- "none"
-    # means "confirmed no pattern") so compose() doesn't ask again.
     log: list[str] = []
-    resolved_tech_pattern = interactive.choose_tech_pattern(args.prompt, args.tech_pattern, args.non_interactive, log)
-    branch_name = args.branch_name or default_branch_name(resolved_tech_pattern)
-    tech_pattern_for_compose = resolved_tech_pattern or "none"
+    branch_name = args.branch_name or default_branch_name()
     tmp_root = Path(tempfile.mkdtemp(prefix="infra-composer-"))
     source_clone_dir = tmp_root / "source"
     target_clone_dir = tmp_root / "target"
@@ -609,9 +349,7 @@ def main() -> int:
                                       ai_foundry_model=args.ai_foundry_model,
                                       ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
                                       ai_foundry_author_agent_id=args.ai_foundry_author_agent_id,
-                                      non_interactive=args.non_interactive, readme_pattern=args.readme_pattern,
-                                      tech_pattern=tech_pattern_for_compose,
-                                      skip_prompt_interpretation=skip_prompt_interpretation)
+                                      non_interactive=args.non_interactive, readme_pattern=args.readme_pattern)
             log.extend(compose_log)
             _print_essential_log(log)
             print(f"Generated locally at {dest_root} (no git operations performed).")
@@ -626,32 +364,20 @@ def main() -> int:
         if not args.target_repo:
             raise SystemExit("--target-repo is required unless --no-git is set.")
 
-        target_repo_url = args.target_repo
-        bot_name = bot_email = None
-        if github_app_auth.is_configured():
-            print("GitHub App credentials detected (GH_APP_ID/GH_APP_INSTALLATION_ID) -- "
-                  "using an app installation token instead of the local git credential helper, "
-                  "so commits/pushes are attributed to the app's own bot identity.")
-            app_token = github_app_auth.get_installation_token()
-            target_repo_url = github_app_auth.inject_token_into_url(args.target_repo, app_token)
-            bot_name, bot_email = github_app_auth.get_app_bot_identity(token=app_token)
-
-        print(f"Cloning target repo ({args.target_repo})...")
-        git_ops.clone_repo(target_repo_url, target_clone_dir)
-
-        print(f"Creating branch '{branch_name}' in the target repo, based strictly on origin/{args.target_base} "
-              f"(no other branch's history included)...")
-        git_ops.create_branch_from_base(target_clone_dir, args.target_base, branch_name)
-
-        dest_root = target_clone_dir if args.dest_name == "." else target_clone_dir / args.dest_name
-        main_path, compose_log = compose(args.prompt, source_root, dest_root,
+        # Run the whole interactive composition + main.bicep authoring
+        # pipeline into a scratch staging directory FIRST, before touching
+        # the target repo at all. compose() is the step most likely to be
+        # aborted (declined confirmation, exhausted retry loop, main.bicep
+        # authoring giving up after all repair attempts) -- cloning and
+        # branching the target repo only after it succeeds means a failed
+        # or abandoned run never leaves a stray clone/branch behind.
+        staged_root = tmp_root / "staged"
+        main_path, compose_log = compose(args.prompt, source_root, staged_root,
                                   ai_foundry_endpoint=args.ai_foundry_endpoint,
                                   ai_foundry_model=args.ai_foundry_model,
                                   ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
                                   ai_foundry_author_agent_id=args.ai_foundry_author_agent_id,
-                                  non_interactive=args.non_interactive, readme_pattern=args.readme_pattern,
-                                  tech_pattern=tech_pattern_for_compose,
-                                  skip_prompt_interpretation=skip_prompt_interpretation)
+                                  non_interactive=args.non_interactive, readme_pattern=args.readme_pattern)
         log.extend(compose_log)
         _print_essential_log(log)
 
@@ -661,6 +387,37 @@ def main() -> int:
             if not ok:
                 print(output)
                 return 1
+
+        target_repo_url = args.target_repo
+        bot_name = bot_email = None
+        if github_app_auth.is_configured():
+            app_token = github_app_auth.get_installation_token()
+            target_repo_url = github_app_auth.inject_token_into_url(args.target_repo, app_token)
+            bot_name, bot_email = github_app_auth.get_app_bot_identity(token=app_token)
+
+        print(f"Cloning target repo ({args.target_repo})...")
+        git_ops.clone_repo(target_repo_url, target_clone_dir)
+
+        print(f"Creating branch '{branch_name}'...")
+        git_ops.create_branch_from_base(target_clone_dir, args.target_base, branch_name)
+
+        # Copy the staged output into its real destination inside the target
+        # clone. staged_root only ever contains files compose() itself wrote
+        # (modules/, main.bicep, main.bicepparam, README.md, docs/), so a
+        # wholesale copy-in is safe -- it never touches any other file
+        # already in the target repo, even when --dest-name is "." (i.e.
+        # dest_root == the repo root).
+        dest_root = target_clone_dir if args.dest_name == "." else target_clone_dir / args.dest_name
+        dest_root.mkdir(parents=True, exist_ok=True)
+        for item in staged_root.iterdir():
+            target_item = dest_root / item.name
+            if item.is_dir():
+                if target_item.exists():
+                    shutil.rmtree(target_item)
+                shutil.copytree(item, target_item)
+            else:
+                shutil.copy2(item, target_item)
+        main_path = dest_root / main_path.relative_to(staged_root)
 
         source_desc = (
             f"local module library at {local_source}"

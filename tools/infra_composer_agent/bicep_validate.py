@@ -35,15 +35,28 @@ def _is_cli_noise(line: str) -> bool:
     return any(p.search(line) for p in _CLI_NOISE_PATTERNS)
 
 
-def _extract_lint_warnings(stderr: str) -> list[str]:
-    """Picks out only the lines that are genuine Bicep linter warnings about
-    the file itself (contain a 'Warning <rule-name>:' diagnostic), ignoring
-    generic CLI nag lines."""
+def _extract_lint_warnings(stderr: str, main_bicep: Path) -> list[str]:
+    """Picks out only the lines that are genuine Bicep linter warnings ABOUT
+    main.bicep ITSELF (the file the LLM actually authors and can fix),
+    ignoring generic CLI nag lines AND warnings whose diagnostic path points
+    at a different file -- almost always one of the vendored/copied module
+    files under modules/, which the LLM never writes and has no way to
+    change. Holding the LLM's retry loop to a bar that includes pre-existing
+    warnings in someone else's module source is an impossible target (no
+    amount of main.bicep rewriting can ever silence them), so those are
+    intentionally excluded: only main.bicep's own diagnostics count toward
+    "no issues at all"."""
+    main_bicep_str = str(main_bicep)
     warnings = []
     for line in stderr.splitlines():
         if _is_cli_noise(line):
             continue
-        if "Warning" in line and ":" in line:
+        if "Warning" not in line or ":" not in line:
+            continue
+        # Diagnostic lines are formatted as "<path>(<line>,<col>) : Warning ...".
+        # Only keep the ones whose path matches main.bicep exactly.
+        file_part = line.split("(", 1)[0].strip()
+        if file_part == main_bicep_str:
             warnings.append(line.strip())
     return warnings
 
@@ -54,11 +67,14 @@ def validate_with_az(main_bicep: Path, strict: bool = True) -> tuple[bool, str]:
     On a hard compile failure, output is the raw stderr (all diagnostics).
     On a clean compile, output is stdout (the compiled ARM JSON) UNLESS
     `strict` is True (the default) and the compile produced genuine Bicep
-    linter warnings about the file's own content -- in that case success is
-    False and output lists those warnings, so the LLM retry loop treats
+    linter warnings about main.bicep's OWN content -- in that case success
+    is False and output lists those warnings, so the LLM retry loop treats
     "compiles but has linter warnings" the same as "fails to compile": this
     project's bar is a main.bicep with no issues at all, not merely one that
-    technically compiles."""
+    technically compiles. Warnings whose diagnostic points at a DIFFERENT
+    file (almost always a vendored/copied module under modules/, which the
+    LLM never authors and cannot change) are never counted here -- see
+    _extract_lint_warnings."""
     az_cmd = shutil.which("az") or shutil.which("az.cmd") or "az"
     proc = subprocess.run(
         [az_cmd, "bicep", "build", "--file", str(main_bicep), "--stdout"],
@@ -68,12 +84,12 @@ def validate_with_az(main_bicep: Path, strict: bool = True) -> tuple[bool, str]:
         return False, proc.stderr
 
     if strict:
-        lint_warnings = _extract_lint_warnings(proc.stderr)
+        lint_warnings = _extract_lint_warnings(proc.stderr, main_bicep)
         if lint_warnings:
             warnings_text = "\n".join(lint_warnings)
             return False, (
                 "`az bicep build` compiled successfully but the Bicep linter reported the following "
-                f"warning(s), which must also be fixed:\n{warnings_text}"
+                f"warning(s) in main.bicep itself, which must also be fixed:\n{warnings_text}"
             )
 
     return True, proc.stdout

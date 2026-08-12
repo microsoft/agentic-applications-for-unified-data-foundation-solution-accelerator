@@ -4,7 +4,7 @@ python-dotenv just for this).
 
 Why this exists: the agent reads several secrets/config values from the
 environment (AI_FOUNDRY_*, GH_APP_*) via os.environ.get(...) scattered
-across agent.py/llm_composer.py/llm_interpreter.py/github_app_auth.py.
+across agent.py/llm_composer.py/conversational_planner.py/github_app_auth.py.
 Rather than requiring every one of those to be exported by hand in every
 shell session, this loads a local, gitignored `.env` file (KEY=VALUE per
 line) into os.environ once at startup, so a single `.env` file next to

@@ -109,18 +109,17 @@ def _prereqs_table() -> str:
 
 def generate_solution_accelerator_docs(
     prompt: str, resolution: ResolutionResult, requested_counts: dict[str, int],
-    dest_root: Path, main_rel_path: str = "main.bicep", tech_pattern: str | None = None,
+    dest_root: Path, main_rel_path: str = "main.bicep",
 ) -> list[Path]:
     """Solution-accelerator pattern: README.md + docs/DeploymentGuide.md."""
     mermaid = _mermaid_diagram(resolution)
     features = "\n".join(f"- {b}" for b in _feature_bullets(resolution))
     resource_table = _resource_table(resolution, requested_counts)
-    pattern_blurb = _tech_pattern_blurb(tech_pattern)
 
     readme = f"""# Generated Infrastructure Composition
 
 {prompt.strip()}
-{pattern_blurb}
+
 This project was composed automatically by `infra_composer_agent` from the natural-language request
 above, by reusing existing, previously-reviewed AVM Bicep modules instead of generating infrastructure
 from scratch.
@@ -237,19 +236,18 @@ the outputs above resolve to the expected resource IDs/names/endpoints.
 
 def generate_sample_docs(
     prompt: str, resolution: ResolutionResult, requested_counts: dict[str, int],
-    dest_root: Path, main_rel_path: str = "main.bicep", tech_pattern: str | None = None,
+    dest_root: Path, main_rel_path: str = "main.bicep",
 ) -> list[Path]:
     """Sample pattern: a single README.md with a Mermaid diagram, no separate guide."""
     mermaid = _mermaid_diagram(resolution)
     features = "\n".join(f"- {b}" for b in _feature_bullets(resolution))
     resource_table = _resource_table(resolution, requested_counts)
     deploy_order = ", ".join(_humanize(m.name) for m in resolution.modules.values())
-    pattern_blurb = _tech_pattern_blurb(tech_pattern)
 
     readme = f"""# Generated Infrastructure Composition
 
 {prompt.strip()}
-{pattern_blurb}
+
 <br/>
 
 ## Solution overview
@@ -297,27 +295,14 @@ required top-level parameter in `{main_rel_path}` -- pass it via `--parameters` 
     return [readme_path]
 
 
-def _tech_pattern_blurb(tech_pattern: str | None) -> str:
-    if not tech_pattern:
-        return ""
-    from tech_patterns import PATTERNS
-    pattern = PATTERNS.get(tech_pattern)
-    if not pattern:
-        return ""
-    return (
-        f"\n> **Technical pattern:** [{pattern.display_name}]"
-        f"(../../001-wip-repo-structure/technical-patterns/{pattern.id}/README.md) -- {pattern.summary}\n"
-    )
-
-
 def generate_docs(
     pattern: str, prompt: str, resolution: ResolutionResult, requested_counts: dict[str, int],
-    dest_root: Path, main_rel_path: str = "main.bicep", tech_pattern: str | None = None,
+    dest_root: Path, main_rel_path: str = "main.bicep",
 ) -> list[Path]:
     if pattern == "solution-accelerator":
         return generate_solution_accelerator_docs(prompt, resolution, requested_counts, dest_root,
-                                                    main_rel_path, tech_pattern)
+                                                    main_rel_path)
     if pattern == "sample":
         return generate_sample_docs(prompt, resolution, requested_counts, dest_root,
-                                     main_rel_path, tech_pattern)
+                                     main_rel_path)
     raise ValueError(f"Unknown README pattern '{pattern}'. Use 'solution-accelerator' or 'sample'.")

@@ -63,27 +63,19 @@ You ask a question in natural language. The App Service frontend sends it to Azu
 
 ## Resources deployed
 
-> The `Module` column maps each resource to the exact module key from the underlying AVM Bicep module
-> library (`infra_new/avm/modules/<category>/<name>.bicep`).
-
-| Resource | Module | Purpose |
-|---|---|---|
-| App Service (chat frontend) | `compute/app-service.bicep` | Hosts the web chat UI |
-| App Service Plan | `compute/app-service-plan.bicep` | Compute plan for the App Service |
-| Storage Account | `data/storage-account.bicep` | Source documents for the knowledge base |
-| Azure AI Search | `ai/ai-search.bicep` | Vector/knowledge index for RAG retrieval |
-| Azure AI Services (Azure OpenAI) | `ai/ai-services.bicep` | Chat/completions and embeddings |
-| AI Foundry Project | `ai/ai-foundry-project.bicep` | Hosts the AI Foundry project/agents |
-| AI Foundry Model Deployment | `ai/ai-foundry-model-deployment.bicep` | Deploys the chat/embedding models |
-| Cosmos DB (NoSQL) | `data/cosmos-db-nosql.bicep` | Chat history / conversation state |
-| Key Vault | `security/key-vault.bicep` | Secrets and certificates |
-| Managed Identity | `identity/managed-identity.bicep` | Identity for service-to-service auth |
-| Role Assignments | `identity/role-assignments.bicep` | Least-privilege RBAC for the identity |
-| Log Analytics Workspace | `monitoring/log-analytics.bicep` | Central log sink |
-| Application Insights | `monitoring/app-insights.bicep` | App telemetry/tracing |
-| Virtual Network | `networking/virtual-network.bicep` | Network isolation boundary |
-| Private Endpoint | `networking/private-endpoint.bicep` | Private connectivity to data/AI services |
-| Private DNS Zone | `networking/private-dns-zone.bicep` | DNS resolution for private endpoints |
+| Resource | Purpose |
+|---|---|
+| App Service (chat frontend) | Hosts the web chat UI |
+| App Service Plan | Compute plan for the App Service |
+| Storage Account | Source documents for the knowledge base |
+| Azure AI Search | Vector/knowledge index for RAG retrieval |
+| Azure AI Services (Azure OpenAI) | Chat/completions and embeddings |
+| AI Foundry Project | Hosts the AI Foundry project/agents |
+| Cosmos DB (NoSQL) | Chat history / conversation state |
+| Key Vault | Secrets and certificates |
+| Managed Identity | Identity for service-to-service auth |
+| Log Analytics Workspace | Central log sink |
+| Application Insights | App telemetry/tracing |
 
 ## Business scenario
 
@@ -118,9 +110,8 @@ Organizations hold large volumes of unstructured content including contracts, po
 ### Security guidelines
 
 Every service-to-service call in this pattern is authorized through a managed identity and Azure RBAC
-role assignments (see the `identity/managed-identity.bicep` and `identity/role-assignments.bicep` rows
-above) rather than connection strings or keys. Data services are reachable only through private
-endpoints, with public network access disabled.
+role assignments rather than connection strings or keys. Data services are reachable only through
+private endpoints, with public network access disabled.
 
 > This README was generated automatically as placeholder documentation for the `chat-with-data` technical
 > pattern.

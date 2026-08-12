@@ -23,7 +23,7 @@ OUTPUT_RE = re.compile(
     re.MULTILINE,
 )
 AVM_MODULE_RE = re.compile(r"module\s+\w+\s+'br/public:(avm/[\w./:@-]+)'")
-LOCAL_MODULE_RE = re.compile(r"module\s+\w+\s+'(\.{1,2}/[\w./-]+\.bicep)'")
+LOCAL_MODULE_RE = re.compile(r"module\s+\w+\s+'((?:\.{1,2}/)?[\w./-]+\.bicep)'")
 # Native ARM resource type declarations, e.g.
 # `resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {`
 # -> captures "Microsoft.OperationalInsights/workspaces". These give a much
@@ -84,9 +84,21 @@ def _singularize(token: str) -> str:
 
 def _split_tokens(identifier: str) -> list[str]:
     """Split a camelCase / kebab-case / snake_case identifier into lowercase,
-    singularized tokens (so plural user phrasing matches singular module names)."""
+    singularized tokens (so plural user phrasing matches singular module names).
+
+    Acronym-aware: a boundary is only inserted where a lowercase/digit is
+    immediately followed by an uppercase letter (a new word starting), or
+    where a run of uppercase letters is followed by a lowercase letter (the
+    acronym ending and a new Titlecase word starting) -- e.g. 'OpenAI' ->
+    ['open', 'ai'], 'HTTPServer' -> ['http', 'server']. The previous naive
+    rule (insert '_' before EVERY capital not at position 0) shredded
+    all-caps acronyms like 'AI' into single letters ('a', 'i') which then
+    get filtered out downstream as too-short noise -- silently breaking
+    fuzzy matching for anything containing 'AI' (AI Search, AI Services,
+    AI Foundry, ...), which is most of this project's own module catalog."""
     s = identifier.replace("-", "_")
-    s = re.sub(r"(?<!^)(?=[A-Z])", "_", s)
+    s = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", s)
+    s = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", "_", s)
     return [_singularize(t.lower()) for t in s.split("_") if t]
 
 

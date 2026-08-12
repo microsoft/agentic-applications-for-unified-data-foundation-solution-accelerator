@@ -150,6 +150,19 @@ in the run log as an open question instead of guessing.
   var deployingUserPrincipalId = deployerInfo.objectId
   var createdBy = contains(deployerInfo, 'userPrincipalName') ? split(deployerInfo.userPrincipalName, '@')[0] : deployerInfo.objectId
   ```
+  `deployer()` never exposes a reliable "is this a user or a service principal" signal at
+  deployment time, so when a downstream module (e.g. `role-assignments.bicep`) also needs a
+  `deployerPrincipalType`-shaped value (see Section 9), declare it as its own explicitly-typed
+  `var` -- MUST match the exact restricted type/allowed literal values the target module's own
+  `@allowed(...)` param decorator declares (check the copied module source directly; do not
+  assume the values below if it differs), not a plain `string`:
+  ```bicep
+  var deployingUserPrincipalType 'ServicePrincipal' | 'User' = 'User'
+  ```
+  Passing a plain `string`-typed variable into a param the target module restricts with
+  `@allowed(...)` fails Bicep's type check (`BCP036`) even though the literal value itself
+  ('User') is valid -- the variable's own declared type must be the same restricted union, not
+  just a `string` that happens to hold an allowed value.
 - Merge existing resource-group tags with caller-supplied tags and standard metadata, don't
   overwrite either:
   ```bicep

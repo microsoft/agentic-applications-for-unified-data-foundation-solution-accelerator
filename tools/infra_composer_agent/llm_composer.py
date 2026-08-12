@@ -11,10 +11,11 @@ dump. A flat/static template can't reason about any of that, so main.bicep
 authoring is done entirely by the LLM -- there is no deterministic/static
 generator and no fallback to one.
 
-This module asks a PERSISTENT Azure AI Foundry agent (named
-"infra-composer-main-bicep-author" -- see DEFAULT_AUTHOR_AGENT_ID) to
-actually *author* the main.bicep body -- reasoning about the request the
-way an infrastructure architect would -- while staying safe:
+This module asks Azure AI Foundry (via the Responses API -- see
+foundry_client.call_responses, modeled on microsoft/CAIRA's
+foundry-client.ts) to actually *author* the main.bicep body -- reasoning
+about the request the way an infrastructure architect would -- while
+staying safe:
   * The LLM is given the REAL resolved modules (exact relative paths,
     exact required/optional params, exact outputs) parsed by module_index.py.
     It cannot invent a module path or a parameter name that doesn't exist,
@@ -28,9 +29,10 @@ way an infrastructure architect would -- while staying safe:
     that the output must always be deployable without manual edits, so
     there is no silent, lower-quality fallback path to fall back to.
 
-With every call, a real thread is opened against the persistent author agent
-(visible in the AI Foundry portal's Agents tab) and prior attempts/errors are
-replayed into that thread for retries -- not a stateless chat completion.
+Each call sends the model deployment name, the system instructions, and the
+full accumulated message history (prior attempts + validation errors) via a
+single openai.responses.create(...) call -- no thread/run lifecycle to
+manage, and no server-side state to keep in sync across retries.
 """
 from __future__ import annotations
 
@@ -40,11 +42,13 @@ from pathlib import Path
 from module_index import ModuleInfo
 from resolver import ResolutionResult
 from bicep_validate import validate_with_az
+from foundry_client import call_responses
 
-# Persistent AI Foundry agent, created once in the project (proj-default) so every
-# run reuses the same registered agent instead of creating/deleting a temp one.
-# Visible in the AI Foundry portal's Agents tab as "infra-composer-main-bicep-author".
-DEFAULT_AUTHOR_AGENT_ID = "asst_XTQ6h2DoCHJMorowBAg9gJZb"
+# Name of the Foundry agent definition registered (for portal visibility only --
+# see foundry_client.register_agent) as "infra-composer-main-bicep-author". Actual
+# generation calls go through the Responses API directly (foundry_client.call_responses)
+# and don't reference this registration.
+DEFAULT_AUTHOR_AGENT_NAME = "infra-composer-main-bicep-author"
 
 SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 BICEP_AUTHORING_SKILL_PATH = SKILLS_DIR / "bicep-main-authoring.md"
@@ -134,49 +138,17 @@ def _extract_bicep(text: str) -> str:
     return text + ("\n" if not text.endswith("\n") else "")
 
 
-def _call_ai_foundry_chat(messages: list[dict], project_endpoint: str, model_deployment: str,
-                           agent_id: str | None) -> str:
-    """Runs one turn against a PERSISTENT Azure AI Foundry agent (created once via
-    azure-ai-agents' AgentsClient.create_agent -- visible in the AI Foundry portal's
-    Agents tab, instructions = SYSTEM_PROMPT/STYLE_GUIDE) using the real thread/
-    message/run lifecycle. Replays the full multi-turn `messages` list (skipping the
-    system message, since it's already baked into the agent's instructions) into one
-    thread so retry/self-correction context (prior attempt + validation errors) is
-    preserved. Defaults to the pre-created author agent (DEFAULT_AUTHOR_AGENT_ID)
-    unless a different agent_id is supplied. Raises on any failure -- no fallback."""
-    from azure.ai.agents import AgentsClient
-    from azure.identity import DefaultAzureCredential
-
-    active_agent_id = agent_id or DEFAULT_AUTHOR_AGENT_ID
-    client = AgentsClient(endpoint=project_endpoint, credential=DefaultAzureCredential())
-
-    thread = client.threads.create()
-    for m in messages:
-        if m["role"] in ("user", "assistant"):
-            client.messages.create(thread_id=thread.id, role=m["role"], content=m["content"])
-    run = client.runs.create_and_process(thread_id=thread.id, agent_id=active_agent_id)
-
-    if run.status != "completed":
-        raise RuntimeError(f"Agent run did not complete (status={run.status}): {getattr(run, 'last_error', '')}")
-
-    for msg in client.messages.list(thread_id=thread.id):
-        if msg.role == "assistant" and msg.content:
-            for part in msg.content:
-                text_val = getattr(getattr(part, "text", None), "value", None)
-                if text_val:
-                    return text_val
-    raise RuntimeError("No assistant response found in thread")
-
-
 def _call_llm_chat(messages: list[dict], ai_foundry_endpoint: str | None, ai_foundry_model: str | None,
-                    ai_foundry_agent_id: str | None) -> str:
+                    ai_foundry_agent_id: str | None = None) -> str:
+    """Runs one turn via the Responses API (foundry_client.call_responses) --
+    replaces the old thread/run-based _call_ai_foundry_chat. `ai_foundry_agent_id`
+    is accepted for backward-compat CLI/env wiring but unused: the Responses API
+    call sends `model`/`instructions` directly and never needs an agent id."""
     if not ai_foundry_endpoint:
         raise RuntimeError(
-            "main.bicep authoring requires --ai-foundry-endpoint (or AI_FOUNDRY_PROJECT_ENDPOINT). "
-            "ai_foundry_model is only needed if you're creating a brand-new agent -- the "
-            "default persistent agent already has a model configured."
+            "main.bicep authoring requires --ai-foundry-endpoint (or AI_FOUNDRY_PROJECT_ENDPOINT)."
         )
-    return _call_ai_foundry_chat(messages, ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
+    return call_responses(messages, ai_foundry_endpoint, ai_foundry_model)
 
 
 def generate_main_bicep_with_llm(

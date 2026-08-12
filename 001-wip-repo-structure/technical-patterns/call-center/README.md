@@ -64,28 +64,20 @@ Home -- upload call recordings, transcripts, or documents to the Storage Account
 
 ## Resources deployed
 
-> The `Module` column maps each resource to the exact module key from the underlying AVM Bicep module
-> library (`infra_new/avm/modules/<category>/<name>.bicep`).
-
-| Resource | Module | Purpose |
-|---|---|---|
-| App Service (agent/analyst UI) | `compute/app-service.bicep` | Hosts the Home/Explore/Insights web experience |
-| App Service Plan | `compute/app-service-plan.bicep` | Compute plan for the App Service |
-| Storage Account | `data/storage-account.bicep` | Call recordings, transcripts, and documents |
-| Azure AI Services | `ai/ai-services.bicep` | Entity/topic extraction from conversations |
-| Azure AI Search | `ai/ai-search.bicep` | Hybrid (semantic + keyword) retrieval index |
-| AI Foundry Project | `ai/ai-foundry-project.bicep` | Hosts the ChatAgent and orchestration |
-| AI Foundry Model Deployment | `ai/ai-foundry-model-deployment.bicep` | Deploys the chat/summarization model |
-| Cosmos DB (NoSQL) | `data/cosmos-db-nosql.bicep` | Structured analytics store and chat history |
-| Key Vault | `security/key-vault.bicep` | Secrets and certificates |
-| Managed Identity | `identity/managed-identity.bicep` | Identity for service-to-service auth |
-| Role Assignments | `identity/role-assignments.bicep` | Least-privilege RBAC for the identity |
-| Log Analytics Workspace | `monitoring/log-analytics.bicep` | Central log sink |
-| Application Insights | `monitoring/app-insights.bicep` | App/container telemetry |
-| Workbook | `monitoring/workbook.bicep` | Agent/call metrics dashboard |
-| Virtual Network | `networking/virtual-network.bicep` | Network isolation boundary |
-| Private Endpoint | `networking/private-endpoint.bicep` | Private connectivity to data/AI services |
-| Private DNS Zone | `networking/private-dns-zone.bicep` | DNS resolution for private endpoints |
+| Resource | Purpose |
+|---|---|
+| App Service (agent/analyst UI) | Hosts the Home/Explore/Insights web experience |
+| App Service Plan | Compute plan for the App Service |
+| Storage Account | Call recordings, transcripts, and documents |
+| Azure AI Services | Entity/topic extraction from conversations |
+| Azure AI Search | Hybrid (semantic + keyword) retrieval index |
+| AI Foundry Project | Hosts the ChatAgent and orchestration |
+| Cosmos DB (NoSQL) | Structured analytics store and chat history |
+| Key Vault | Secrets and certificates |
+| Managed Identity | Identity for service-to-service auth |
+| Log Analytics Workspace | Central log sink |
+| Application Insights | App/container telemetry |
+| Workbook | Agent/call metrics dashboard |
 
 ## Business scenario
 
@@ -121,9 +113,8 @@ Analysts often work with large volumes of unstructured conversational data, maki
 ### Security guidelines
 
 Every service-to-service call in this pattern is authorized through a managed identity and Azure RBAC
-role assignments (see the `identity/managed-identity.bicep` and `identity/role-assignments.bicep` rows
-above) rather than connection strings or keys. Data services are reachable only through private
-endpoints, with public network access disabled.
+role assignments rather than connection strings or keys. Data services are reachable only through
+private endpoints, with public network access disabled.
 
 > This README was generated automatically as placeholder documentation for the `call-center` technical
 > pattern.

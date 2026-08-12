@@ -62,28 +62,21 @@ High-volume telemetry streams into the Event Hub. The Function App consumes each
 
 ## Resources deployed
 
-> The `Module` column maps each resource to the exact module key from the underlying AVM Bicep module
-> library (`infra_new/avm/modules/<category>/<name>.bicep`).
-
-| Resource | Module | Purpose |
-|---|---|---|
-| Event Hub | `data/event-hub.bicep` | Telemetry ingestion |
-| Function App | `compute/function-app.bicep` | Stream processing / rule evaluation |
-| Storage Account | `data/storage-account.bicep` | Raw/aggregated event data |
-| Cosmos DB (NoSQL) | `data/cosmos-db-nosql.bicep` | Alert state |
-| App Configuration | `data/app-configuration.bicep` | Alerting thresholds |
-| Event Grid | `data/event-grid.bicep` | Alert fan-out |
-| Key Vault | `security/key-vault.bicep` | Secrets and certificates |
-| Managed Identity | `identity/managed-identity.bicep` | Identity for service-to-service auth |
-| Role Assignments | `identity/role-assignments.bicep` | Least-privilege RBAC for the identity |
-| Log Analytics Workspace | `monitoring/log-analytics.bicep` | Central log sink |
-| Application Insights | `monitoring/app-insights.bicep` | Function/app telemetry |
-| Data Collection Rule | `monitoring/data-collection-rule.bicep` | Routes telemetry into Log Analytics |
-| Workbook | `monitoring/workbook.bicep` | Operational dashboards |
-| Portal Dashboard | `monitoring/portal-dashboard.bicep` | System-health summary |
-| Virtual Network | `networking/virtual-network.bicep` | Network isolation boundary |
-| Private Endpoint | `networking/private-endpoint.bicep` | Private connectivity to data services |
-| Private DNS Zone | `networking/private-dns-zone.bicep` | DNS resolution for private endpoints |
+| Resource | Purpose |
+|---|---|
+| Event Hub | Telemetry ingestion |
+| Function App | Stream processing / rule evaluation |
+| Storage Account | Raw/aggregated event data |
+| Cosmos DB (NoSQL) | Alert state |
+| App Configuration | Alerting thresholds |
+| Event Grid | Alert fan-out |
+| Key Vault | Secrets and certificates |
+| Managed Identity | Identity for service-to-service auth |
+| Log Analytics Workspace | Central log sink |
+| Application Insights | Function/app telemetry |
+| Data Collection Rule | Routes telemetry into Log Analytics |
+| Workbook | Operational dashboards |
+| Portal Dashboard | System-health summary |
 
 ## Business scenario
 
@@ -118,9 +111,8 @@ Teams operating high-volume streaming/IoT workloads need to detect conditions of
 ### Security guidelines
 
 Every service-to-service call in this pattern is authorized through a managed identity and Azure RBAC
-role assignments (see the `identity/managed-identity.bicep` and `identity/role-assignments.bicep` rows
-above) rather than connection strings or keys. Data services are reachable only through private
-endpoints, with public network access disabled.
+role assignments rather than connection strings or keys. Data services are reachable only through
+private endpoints, with public network access disabled.
 
 > This README was generated automatically as placeholder documentation for the `realtime-alerts` technical
 > pattern.
