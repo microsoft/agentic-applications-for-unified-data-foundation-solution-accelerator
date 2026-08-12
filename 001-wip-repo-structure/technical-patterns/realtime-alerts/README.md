@@ -14,7 +14,7 @@ A streaming telemetry pipeline that ingests high-volume events, evaluates them f
 
 ## Solution overview
 
-Telemetry/events stream into an Event Hub, which a Function App consumes to evaluate alerting rules and write raw/aggregated results to a Storage Account and Cosmos DB (NoSQL) for alert-state tracking. Configuration for alerting thresholds lives in App Configuration. When a condition fires, an Event Grid topic publishes an alert event for downstream routing. Operational dashboards and workbooks in Log Analytics/Application Insights give on-call teams live visibility, a portal dashboard summarizes system health, and every service-to-service call uses a managed identity with least-privilege RBAC role assignments.
+**Deciding factor: event-trigger → evaluate → notify.** Telemetry/events stream into an Event Hub, which a Function App consumes to evaluate alerting rules and write raw/aggregated results to a Storage Account and Cosmos DB (NoSQL) for alert-state tracking. Configuration for alerting thresholds lives in App Configuration. When a condition fires, an Event Grid topic publishes an alert event for downstream routing. Operational dashboards and workbooks in Log Analytics/Application Insights give on-call teams live visibility, a portal dashboard summarizes system health, and every service-to-service call uses a managed identity with least-privilege RBAC role assignments.
 
 ### Architecture
 
