@@ -46,6 +46,7 @@ from resolver import resolve
 from composer import copy_modules
 from conversational_planner import plan_resources_conversationally
 from llm_composer import generate_main_bicep_with_llm, fix_bicep_with_llm
+import llm_composer
 from bicep_validate import validate_with_az
 import interactive
 import readme_gen
@@ -74,6 +75,32 @@ DEFAULT_SOURCE_BRANCH = "infra-core-modules-copy"
 DEFAULT_SOURCE_PATH = "infra_new/avm/modules"
 
 
+def _check_az_bicep_available() -> None:
+    """Fails fast, before any LLM calls are made, if the Azure CLI (with the
+    'bicep' component) isn't available. Every main.bicep authoring attempt
+    is gated on `az bicep build` (see bicep_validate.validate_with_az), so
+    discovering a missing/broken `az` only after burning an LLM call deep
+    inside the retry loop wastes both time and (metered) model usage for a
+    problem that's entirely local-environment, not prompt/model related."""
+    az_cmd = shutil.which("az") or shutil.which("az.cmd")
+    if not az_cmd:
+        raise SystemExit(
+            "Azure CLI ('az') was not found on PATH. This agent requires `az bicep build` to validate "
+            "every generated main.bicep -- install the Azure CLI (and run 'az bicep install' if needed) "
+            "before running this command. See https://learn.microsoft.com/cli/azure/install-azure-cli."
+        )
+    proc = subprocess.run(
+        [az_cmd, "bicep", "version"], capture_output=True, text=True, check=False,
+        shell=(sys.platform == "win32"),
+    )
+    if proc.returncode != 0:
+        raise SystemExit(
+            "Azure CLI was found but the 'bicep' component isn't installed/working (`az bicep version` "
+            f"failed):\n{proc.stderr or proc.stdout}\nRun 'az bicep install' (or 'az bicep upgrade') and "
+            "retry."
+        )
+
+
 def _print_essential_log(log: list[str]) -> None:
     """Prints only the log lines that matter for troubleshooting or final
     confirmation -- warnings/errors, and the main.bicep generation outcome.
@@ -82,7 +109,7 @@ def _print_essential_log(log: list[str]) -> None:
     shown live during the interactive steps in interactive.py -- this avoids
     dumping the same information twice and keeps the console output focused
     on what actually needs attention."""
-    keep_markers = ("WARNING", "Generated ", "validated successfully", "failed az bicep build")
+    keep_markers = ("WARNING", "Generated ", "validated successfully", "failed az bicep build", "skill version")
     for line in log:
         if any(line.startswith(m) or m in line for m in keep_markers):
             print(line)
@@ -92,9 +119,12 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
             ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
             ai_foundry_interpreter_agent_id: str | None = None,
             ai_foundry_author_agent_id: str | None = None,
-            non_interactive: bool = False, readme_pattern: str = "ask") -> tuple[Path, list[str]]:
+            non_interactive: bool = False, readme_pattern: str = "ask",
+            max_attempts: int | None = None) -> tuple[Path, list[str]]:
     """Runs the full pipeline. Returns (main_bicep_path, human_readable_log)."""
     log: list[str] = []
+    if llm_composer.SKILL_VERSION:
+        log.append(f"Using bicep-main-authoring skill version {llm_composer.SKILL_VERSION}")
 
     modules = build_index(source_root)
     log.append(f"Indexed {len(modules)} modules under {source_root}")
@@ -146,9 +176,11 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     endpoint = ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
     foundry_model = ai_foundry_model or os.environ.get("AI_FOUNDRY_MODEL_DEPLOYMENT")
     author_agent_id = ai_foundry_author_agent_id or os.environ.get("AI_FOUNDRY_AUTHOR_AGENT_ID")
+    effective_max_attempts = max_attempts if max_attempts is not None else llm_composer.DEFAULT_MAX_ATTEMPTS
     llm_code, gen_log, ok = generate_main_bicep_with_llm(
         prompt, resolution, requested_counts, dest_root, param_defaults, existing_resource_notes,
         ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model, ai_foundry_agent_id=author_agent_id,
+        max_attempts=effective_max_attempts,
     )
     log.extend(gen_log)
     if not ok:
@@ -159,6 +191,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
             main_path, last_errors,
             ai_foundry_endpoint=endpoint, ai_foundry_model=foundry_model,
             ai_foundry_agent_id=author_agent_id, source_label="LLM-authored main.bicep",
+            max_attempts=effective_max_attempts,
         )
         log.extend(fix_log)
         if not fixed:
@@ -263,6 +296,11 @@ def main() -> int:
                          help="Unused by the Responses API backend (accepted for backward compatibility "
                               "only). Falls back to AI_FOUNDRY_AUTHOR_AGENT_ID env var.")
     parser.add_argument("--validate", action="store_true", help="Run 'az bicep build' on the generated main.bicep.")
+    parser.add_argument("--max-attempts", type=int, default=None,
+                         help="Self-correction retry budget for main.bicep authoring/repair (both the "
+                              "initial generation loop and the dedicated fixer pass). Defaults to "
+                              "llm_composer.DEFAULT_MAX_ATTEMPTS (3, or INFRA_COMPOSER_MAX_ATTEMPTS env "
+                              "var if set).")
     parser.add_argument("--non-interactive", "--yes", dest="non_interactive", action="store_true",
                          help="Skip every interactive prompt (README pattern choice, resource-confirmation, "
                               "unresolved-parameter follow-ups) and use safe defaults instead. Use this for "
@@ -282,6 +320,12 @@ def main() -> int:
     parser.add_argument("--keep-clones", action="store_true",
                          help="Don't delete the temporary source/target clones after finishing (for inspection).")
     args = parser.parse_args()
+
+    # Fail fast on a missing/broken Azure CLI before any LLM calls are made
+    # (every generation attempt is gated on `az bicep build`; discovering
+    # this deep inside the retry loop would waste model calls on an
+    # environment problem, not a prompt/model one).
+    _check_az_bicep_available()
 
     ai_foundry_endpoint = args.ai_foundry_endpoint or os.environ.get("AI_FOUNDRY_PROJECT_ENDPOINT")
     if not ai_foundry_endpoint:
@@ -350,7 +394,8 @@ def main() -> int:
                                       ai_foundry_model=args.ai_foundry_model,
                                       ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
                                       ai_foundry_author_agent_id=args.ai_foundry_author_agent_id,
-                                      non_interactive=args.non_interactive, readme_pattern=args.readme_pattern)
+                                      non_interactive=args.non_interactive, readme_pattern=args.readme_pattern,
+                                      max_attempts=args.max_attempts)
             log.extend(compose_log)
             _print_essential_log(log)
             print(f"Generated locally at {dest_root} (no git operations performed).")
@@ -378,7 +423,8 @@ def main() -> int:
                                   ai_foundry_model=args.ai_foundry_model,
                                   ai_foundry_interpreter_agent_id=args.ai_foundry_interpreter_agent_id,
                                   ai_foundry_author_agent_id=args.ai_foundry_author_agent_id,
-                                  non_interactive=args.non_interactive, readme_pattern=args.readme_pattern)
+                                  non_interactive=args.non_interactive, readme_pattern=args.readme_pattern,
+                                  max_attempts=args.max_attempts)
         log.extend(compose_log)
         _print_essential_log(log)
 

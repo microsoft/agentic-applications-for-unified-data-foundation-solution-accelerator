@@ -36,6 +36,7 @@ manage, and no server-side state to keep in sync across retries.
 """
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
@@ -53,8 +54,17 @@ DEFAULT_AUTHOR_AGENT_NAME = "infra-composer-main-bicep-author"
 SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 BICEP_AUTHORING_SKILL_PATH = SKILLS_DIR / "bicep-main-authoring.md"
 
+# Default self-correction retry budget for both the initial generation loop
+# and the dedicated fixer pass. Overridable per-run via
+# generate_main_bicep_with_llm/fix_bicep_with_llm's own `max_attempts` param
+# (wired to --max-attempts / INFRA_COMPOSER_MAX_ATTEMPTS in agent.py), or
+# globally by exporting INFRA_COMPOSER_MAX_ATTEMPTS before either function's
+# own default kicks in.
+DEFAULT_MAX_ATTEMPTS = int(os.environ.get("INFRA_COMPOSER_MAX_ATTEMPTS", "3"))
 
-_FRONTMATTER_RE = re.compile(r"\A---\s*\n.*?\n---\s*\n", re.DOTALL)
+
+_FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+_FRONTMATTER_VERSION_RE = re.compile(r'^\s*version:\s*["\']?([^"\'\n]+)["\']?\s*$', re.MULTILINE)
 
 
 def _strip_frontmatter(text: str) -> str:
@@ -68,23 +78,40 @@ def _strip_frontmatter(text: str) -> str:
     return _FRONTMATTER_RE.sub("", text, count=1).strip()
 
 
-def _load_skill(path: Path = BICEP_AUTHORING_SKILL_PATH) -> str:
+def _extract_frontmatter_version(text: str) -> str | None:
+    """Pulls the `version:` field out of a skill file's YAML frontmatter
+    block, if present, so a run's log can record exactly which revision of
+    the authoring rules was in effect -- useful when comparing generated
+    output across runs after the skill file itself has been edited. Returns
+    None if there's no frontmatter or no version field (never raises)."""
+    match = _FRONTMATTER_RE.match(text)
+    if not match:
+        return None
+    version_match = _FRONTMATTER_VERSION_RE.search(match.group(1))
+    return version_match.group(1).strip() if version_match else None
+
+
+def _load_skill(path: Path = BICEP_AUTHORING_SKILL_PATH) -> tuple[str, str | None]:
     """Loads a markdown 'skill' document -- a rule set the LLM author agent
     must follow -- from disk. This is the single source of truth for
     main.bicep authoring conventions (distilled from this repo's real
     infra/bicep/main.bicep); edit the markdown file, not this function, to
     change the rules. Falls back to an empty string (with a clear inline
     marker) if the file is ever missing, so a run never silently loses the
-    style guide without at least surfacing it in the generated prompt."""
+    style guide without at least surfacing it in the generated prompt.
+    Returns (stripped_content, frontmatter_version_or_None) so callers can
+    log which skill revision was actually used for a given run."""
     if path.exists():
-        return _strip_frontmatter(path.read_text(encoding="utf-8"))
+        raw = path.read_text(encoding="utf-8")
+        return _strip_frontmatter(raw), _extract_frontmatter_version(raw)
     return (
         "(WARNING: bicep-main-authoring skill file not found at "
-        f"{path} -- no authoring rules were loaded for this run.)"
+        f"{path} -- no authoring rules were loaded for this run.)",
+        None,
     )
 
 
-STYLE_GUIDE = _load_skill()
+STYLE_GUIDE, SKILL_VERSION = _load_skill()
 
 SYSTEM_PROMPT = f"""You are an expert Azure Bicep infrastructure architect. You write a single, deployable
 `main.bicep` orchestrator that composes ONLY the exact pre-existing local Bicep modules given to you --
@@ -177,13 +204,48 @@ def _call_llm_chat(messages: list[dict], ai_foundry_endpoint: str | None, ai_fou
     return call_responses(messages, ai_foundry_endpoint, ai_foundry_model)
 
 
+def _run_retry_loop(
+    messages: list[dict], main_path: Path,
+    ai_foundry_endpoint: str | None, ai_foundry_model: str | None, ai_foundry_agent_id: str | None,
+    max_attempts: int, attempt_label: str, success_label: str, failure_feedback: str,
+) -> tuple[str | None, list[str], bool]:
+    """Shared self-correction retry loop used by BOTH generate_main_bicep_with_llm
+    (first-draft authoring) and fix_bicep_with_llm (repair pass) -- the two
+    previously had near-identical, independently-maintained copies of this
+    exact loop (call LLM -> write file -> validate -> on failure, append
+    assistant+feedback messages and retry). Consolidated here so there's one
+    place to fix bugs or change retry behavior. `messages` must already
+    contain the system + initial user turn; this function only appends
+    attempt/feedback turns as it retries. Mutates main_path in place on
+    every attempt so validate_with_az always checks the latest candidate.
+    Returns (bicep_text_or_None, log, success)."""
+    log: list[str] = []
+    for attempt in range(1, max_attempts + 1):
+        log.append(f"{attempt_label} attempt {attempt}/{max_attempts}...")
+        raw = _call_llm_chat(messages, ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
+        code = _extract_bicep(raw)
+        main_path.write_text(code, encoding="utf-8")
+
+        ok, output = validate_with_az(main_path)
+        if ok:
+            log.append(f"{success_label} on attempt {attempt}.")
+            return code, log, True
+
+        log.append(f"Attempt {attempt} failed az bicep build validation:\n{output}")
+        messages.append({"role": "assistant", "content": raw})
+        messages.append({"role": "user", "content": failure_feedback.format(output=output)})
+
+    log.append(f"{attempt_label} could not produce a validating main.bicep after {max_attempts} attempts.")
+    return None, log, False
+
+
 def generate_main_bicep_with_llm(
     user_prompt: str, resolution: ResolutionResult, requested_counts: dict[str, int],
     dest_root: Path, param_defaults: dict[str, str] | None = None,
     existing_resource_notes: list[str] | None = None,
     ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
     ai_foundry_agent_id: str | None = None,
-    max_attempts: int = 3,
+    max_attempts: int = DEFAULT_MAX_ATTEMPTS,
 ) -> tuple[str | None, list[str], bool]:
     """Generates main.bicep by asking the LLM to author it, validating with
     `az bicep build` after every attempt, and feeding validation errors back
@@ -192,48 +254,32 @@ def generate_main_bicep_with_llm(
     references. Validation is strict (see bicep_validate.validate_with_az):
     genuine Bicep linter warnings (unused params, etc.) count as failures
     too, not just hard compile errors, so a run only ever "succeeds" with a
-    main.bicep that has no issues at all. Returns (bicep_text_or_None, log, success)."""
-    log: list[str] = []
+    main.bicep that has no issues at all. `max_attempts` defaults to
+    DEFAULT_MAX_ATTEMPTS (overridable via INFRA_COMPOSER_MAX_ATTEMPTS env
+    var, or --max-attempts in agent.py). Returns (bicep_text_or_None, log, success)."""
     main_path = dest_root / "main.bicep"
-
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": build_generation_prompt(
             user_prompt, resolution, requested_counts, param_defaults, existing_resource_notes,
         )},
     ]
-
-    for attempt in range(1, max_attempts + 1):
-        log.append(f"LLM main.bicep generation attempt {attempt}/{max_attempts}...")
-        raw = _call_llm_chat(messages, ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
-        code = _extract_bicep(raw)
-        main_path.write_text(code, encoding="utf-8")
-
-        ok, output = validate_with_az(main_path)
-        if ok:
-            log.append(f"LLM-generated main.bicep validated successfully on attempt {attempt}.")
-            return code, log, True
-
-        log.append(f"Attempt {attempt} failed az bicep build validation:\n{output}")
-        messages.append({"role": "assistant", "content": raw})
-        messages.append({
-            "role": "user",
-            "content": (
-                f"That main.bicep failed `az bicep build` with these errors:\n{output}\n\n"
-                f"Fix the errors and return the complete, corrected main.bicep file (full content, "
-                f"not a diff)."
-            ),
-        })
-
-    log.append(f"LLM could not produce a validating main.bicep after {max_attempts} attempts.")
-    return None, log, False
+    return _run_retry_loop(
+        messages, main_path, ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id, max_attempts,
+        attempt_label="LLM main.bicep generation",
+        success_label="LLM-generated main.bicep validated successfully",
+        failure_feedback=(
+            "That main.bicep failed `az bicep build` with these errors:\n{output}\n\n"
+            "Fix the errors and return the complete, corrected main.bicep file (full content, not a diff)."
+        ),
+    )
 
 
 def fix_bicep_with_llm(
     main_path: Path, validation_errors: str,
     ai_foundry_endpoint: str | None = None, ai_foundry_model: str | None = None,
     ai_foundry_agent_id: str | None = None,
-    max_attempts: int = 3, source_label: str = "generated main.bicep",
+    max_attempts: int = DEFAULT_MAX_ATTEMPTS, source_label: str = "generated main.bicep",
 ) -> tuple[str | None, list[str], bool]:
     """Repair pass for a main.bicep that already failed `az bicep build` --
     used as a final attempt to patch the LLM-authored file when
@@ -242,12 +288,9 @@ def fix_bicep_with_llm(
     verbatim into an output type position). Sends the real file content +
     the real `az bicep build` errors to the persistent author agent and
     asks it to make the minimal fix needed, re-validating after each
-    attempt exactly like generate_main_bicep_with_llm's self-correction loop.
-    Mutates main_path in place on every attempt so validate_with_az always
-    checks the latest candidate. Returns (bicep_text_or_None, log, success)."""
-    log: list[str] = []
+    attempt via the same shared _run_retry_loop used by
+    generate_main_bicep_with_llm. Returns (bicep_text_or_None, log, success)."""
     current_code = main_path.read_text(encoding="utf-8")
-
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": (
@@ -263,29 +306,12 @@ def fix_bicep_with_llm(
             "corrected main.bicep file (full content, not a diff)."
         )},
     ]
-
-    for attempt in range(1, max_attempts + 1):
-        log.append(f"Fixer-agent repair attempt {attempt}/{max_attempts} for {source_label}...")
-        raw = _call_llm_chat(messages, ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id)
-        code = _extract_bicep(raw)
-        main_path.write_text(code, encoding="utf-8")
-
-        ok, output = validate_with_az(main_path)
-        if ok:
-            log.append(f"Fixer agent produced a validating main.bicep on attempt {attempt}.")
-            return code, log, True
-
-        log.append(f"Fixer attempt {attempt} still failed az bicep build validation.")
-        messages.append({"role": "assistant", "content": raw})
-        messages.append({
-            "role": "user",
-            "content": (
-                f"Still failing `az bicep build`:\n{output}\n\n"
-                f"Fix the errors and return the complete, corrected main.bicep file (full content, "
-                f"not a diff)."
-            ),
-        })
-
-    log.append(f"Fixer agent could not repair main.bicep after {max_attempts} attempts; "
-               f"leaving the last generated content as-is.")
-    return None, log, False
+    return _run_retry_loop(
+        messages, main_path, ai_foundry_endpoint, ai_foundry_model, ai_foundry_agent_id, max_attempts,
+        attempt_label=f"Fixer-agent repair for {source_label}",
+        success_label="Fixer agent produced a validating main.bicep",
+        failure_feedback=(
+            "Still failing `az bicep build`:\n{output}\n\n"
+            "Fix the errors and return the complete, corrected main.bicep file (full content, not a diff)."
+        ),
+    )
