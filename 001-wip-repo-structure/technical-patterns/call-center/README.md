@@ -11,10 +11,15 @@ Derive actionable insights from large volumes of conversational/call data using 
 > [!NOTE]
 > This README is mocked/generated placeholder documentation for the `call-center` technical pattern.
 > Its content/structure is modeled on: https://github.com/microsoft/Conversation-Knowledge-Mining-Solution-Accelerator
+>
+> Scope note: despite the folder name, this pattern is **post-call/batch conversation mining and
+> analytics** over already-recorded calls/transcripts (mine → explore → visualize), not live,
+> real-time voice/telephony handling (stream-and-converse). If a live voice/streaming pattern is
+> needed later, it should be added as its own pattern rather than folded into this one.
 
 ## Solution overview
 
-Call recordings, transcripts, and related documents land in a Storage Account. An Azure AI Services account (Content Understanding-style extraction) pulls entities, topics, and relationships out of the conversations, which are then indexed in Azure AI Search for hybrid retrieval and written to Cosmos DB for structured analytics and chat history. An App Service hosts the agent-facing web experience -- a Chat/Explore surface that routes questions to an AI Foundry-hosted agent reasoning across both semantic search and structured data, and an Insights surface with an auto-generated, LLM-planned dashboard. Every service-to-service call uses a managed identity with least-privilege RBAC role assignments instead of keys, secrets live in Key Vault, and Storage/Cosmos DB/AI Search/AI Foundry sit behind private endpoints.
+**Deciding factor: mine → explore → visualize.** Call recordings, transcripts, and related documents land in a Storage Account. An Azure AI Services account (Content Understanding-style extraction) pulls entities, topics, and relationships out of the conversations, which are then indexed in Azure AI Search for hybrid retrieval and written to Cosmos DB for structured analytics and chat history. An App Service hosts the agent-facing web experience -- a Chat/Explore surface that routes questions to an AI Foundry-hosted agent reasoning across both semantic search and structured data, and an Insights surface with an auto-generated, LLM-planned dashboard. Every service-to-service call uses a managed identity with least-privilege RBAC role assignments instead of keys, secrets live in Key Vault, and Storage/Cosmos DB/AI Search/AI Foundry sit behind private endpoints.
 
 ### Architecture
 

@@ -253,6 +253,7 @@ def _print_plan(plan_items: list[tuple[ModuleInfo, int, str]]) -> None:
         suffix = f" x{count}" if count > 1 else ""
         reason_txt = f" -- {reason}" if reason else ""
         print(f"  - {module.name} ({module.category}){suffix}{reason_txt}")
+    print()
 
 
 def plan_resources_conversationally(
@@ -291,9 +292,9 @@ def plan_resources_conversationally(
     pattern_context = ""
     if matched_pattern:
         resource_lines = "\n".join(f"  - {name} -- {purpose}" for name, purpose in matched_pattern["resources"])
-        print(f"\nBased on what you described, this looks like the '{matched_pattern['id']}' pattern: "
-              f"{matched_pattern['title']} -- {matched_pattern['overview']}")
-        print(f"\nThat pattern typically uses these resources:\n{resource_lines}")
+        print(f"Based on what you described, this looks like the '{matched_pattern['id']}' pattern:")
+        print(f"  {matched_pattern['title']} -- {matched_pattern['overview']}")
+        print(f"\nThat pattern typically uses these resources:\n{resource_lines}\n")
         log.append(f"Matched technical pattern '{matched_pattern['id']}'" +
                     (f" ({match_reason})" if match_reason else "") + ".")
         pattern_context = (
@@ -346,10 +347,14 @@ def plan_resources_conversationally(
                 )})
                 continue
             print()
+            if len(questions) > 1:
+                print("A few quick questions before I finalize the plan:\n")
             answers = []
-            for q in questions:
-                ans = input(f"{q} ").strip()
+            for i, q in enumerate(questions, start=1):
+                label = f"{i}. {q}" if len(questions) > 1 else q
+                ans = input(f"{label}\n> ").strip()
                 answers.append(f"Q: {q}\nA: {ans or '(no preference -- use your best judgement)'}")
+                print()
             messages.append({"role": "user", "content": "\n\n".join(answers)})
             continue
 
@@ -390,7 +395,8 @@ def plan_resources_conversationally(
             break
 
         _print_plan(plan_items)
-        reply = input("\nShall I proceed with this? Press Enter/'yes' to continue, or describe any change: ").strip()
+        reply = input("\nShall I proceed with this? Press Enter/'yes' to continue, or describe any change:\n> ").strip()
+        print()
         if reply == "" or reply.lower() in ("y", "yes"):
             log.append("User confirmed the full plan as-is.")
             break
