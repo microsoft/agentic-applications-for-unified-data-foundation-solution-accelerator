@@ -850,6 +850,9 @@ module backend_docker './modules/compute/app-service.bicep' = if (backendRuntime
     serverFarmResourceId: hostingplan!.outputs.resourceId
     linuxFxVersion: placeholderContainerImage
     acrUseManagedIdentityCreds: true
+    corsAllowedOrigins: [
+      'https://app-${solutionSuffix}.azurewebsites.net'
+    ]
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
@@ -917,6 +920,9 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (backendR
     serverFarmResourceId: hostingplan!.outputs.resourceId
     linuxFxVersion: placeholderContainerImage
     acrUseManagedIdentityCreds: true
+    corsAllowedOrigins: [
+      'https://app-${solutionSuffix}.azurewebsites.net'
+    ]
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : ''
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false

@@ -318,6 +318,12 @@ def build_agent_instructions(config, schema_text, use_knowledge_base=True,
 
     table_names = list(tables_config.keys())
 
+    invoice_columns = set(tables_config.get("invoice", {}).get("columns", []))
+    revenue_hint = (
+        "For revenue questions, use SUM(invoice.TotalAmount) and invoice.InvoiceDate for time grouping."
+        if {"InvoiceDate", "TotalAmount"}.issubset(invoice_columns) else ""
+    )
+
     # Build relationship descriptions for JOINs
     join_hints = []
     for rel in relationships:
@@ -418,6 +424,7 @@ EVERY response that uses knowledge base information MUST contain citation marker
 {citation_section}
 
 {schema_text}
+{revenue_hint}
 
 ## Chart Generation
 If the user query is asking for a chart:

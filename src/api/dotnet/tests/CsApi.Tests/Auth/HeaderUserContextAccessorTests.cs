@@ -130,6 +130,34 @@ public class HeaderUserContextAccessorTests
     }
 
     [Fact]
+    public void GetCurrentUser_WithAuthorizationBearer_UsesBearerToken()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["x-ms-client-principal-id"] = "user-bearer";
+        httpContext.Request.Headers.Authorization = "Bearer access-token-123";
+        _mockHttpContextAccessor.Setup(h => h.HttpContext).Returns(httpContext);
+
+        var result = _accessor.GetCurrentUser();
+
+        Assert.Equal("access-token-123", result.AadAccessToken);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WithAuthorizationBearerJwt_DerivesUserFromTokenClaims()
+    {
+        var httpContext = new DefaultHttpContext();
+        var jwt = BuildJwt("{\"oid\":\"bearer-user-oid\",\"preferred_username\":\"bearer.user@contoso.com\"}");
+        httpContext.Request.Headers.Authorization = $"Bearer {jwt}";
+        _mockHttpContextAccessor.Setup(h => h.HttpContext).Returns(httpContext);
+
+        var result = _accessor.GetCurrentUser();
+
+        Assert.Equal("bearer-user-oid", result.UserPrincipalId);
+        Assert.Equal("bearer.user@contoso.com", result.UserName);
+        Assert.Equal(jwt, result.AadAccessToken);
+    }
+
+    [Fact]
     public void GetCurrentUser_WithEasyAuthAndZumo_PrefersEasyAuthToken()
     {
         // Arrange
@@ -137,6 +165,7 @@ public class HeaderUserContextAccessorTests
         httpContext.Request.Headers["x-ms-client-principal-id"] = "user-token-priority";
         httpContext.Request.Headers["x-ms-token-aad-access-token"] = "easy-auth-token";
         httpContext.Request.Headers["x-zumo-auth"] = "zumo-token";
+        httpContext.Request.Headers.Authorization = "Bearer bearer-token";
         _mockHttpContextAccessor.Setup(h => h.HttpContext).Returns(httpContext);
 
         // Act
