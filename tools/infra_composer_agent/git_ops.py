@@ -24,7 +24,7 @@ from pathlib import Path
 
 def run(args: list[str], cwd: Path | None = None) -> str:
     proc = subprocess.run(
-        ["git", *args], cwd=cwd, capture_output=True, text=True, check=False
+        ["git", *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False
     )
     if proc.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)} failed:\n{proc.stdout}\n{proc.stderr}")

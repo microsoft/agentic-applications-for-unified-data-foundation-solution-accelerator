@@ -307,6 +307,9 @@ def plan_resources_conversationally(
             f"on top of this baseline."
         )
     elif patterns:
+        print("I couldn't find any existing technical pattern that matches this request. Could you give me "
+              "more details about the infrastructure/resources you have in mind, so I can help put together "
+              "the right plan?\n")
         log.append("No existing technical pattern matched this request" +
                     (f" ({match_reason})" if match_reason else "") + " -- planning purely from the prompt.")
 
