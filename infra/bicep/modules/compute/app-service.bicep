@@ -37,6 +37,9 @@ param webSocketsEnabled bool = false
 @description('Optional. Command line for the application.')
 param appCommandLine string = ''
 
+@description('Optional. Origins allowed to make cross-origin requests to the app.')
+param corsAllowedOrigins array = []
+
 @description('Required. Type of site to deploy.')
 @allowed([
   'functionapp' // function app windows os
@@ -84,6 +87,9 @@ resource appService 'Microsoft.Web/sites@2025-05-01' = {
       webSocketsEnabled: webSocketsEnabled
       appCommandLine: appCommandLine
       acrUseManagedIdentityCreds: acrUseManagedIdentityCreds
+      cors: !empty(corsAllowedOrigins) ? {
+        allowedOrigins: corsAllowedOrigins
+      } : null
     }
     endToEndEncryptionEnabled: true
   }

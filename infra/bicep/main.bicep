@@ -497,6 +497,9 @@ module backend_docker './modules/compute/app-service.bicep' = if (backendRuntime
     serverFarmResourceId: hostingplan!.outputs.resourceId
     linuxFxVersion: backendApiImageName
     acrUseManagedIdentityCreds: true
+    corsAllowedOrigins: [
+      'https://app-${solutionSuffix}.azurewebsites.net'
+    ]
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
       REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig
@@ -551,6 +554,9 @@ module backend_csapi_docker './modules/compute/app-service.bicep' = if (backendR
     serverFarmResourceId: hostingplan!.outputs.resourceId
     linuxFxVersion: backendCsApiImageName
     acrUseManagedIdentityCreds: true
+    corsAllowedOrigins: [
+      'https://app-${solutionSuffix}.azurewebsites.net'
+    ]
     appSettings: {
       APPINSIGHTS_INSTRUMENTATIONKEY: app_insights.outputs.instrumentationKey
       REACT_APP_LAYOUT_CONFIG: reactAppLayoutConfig

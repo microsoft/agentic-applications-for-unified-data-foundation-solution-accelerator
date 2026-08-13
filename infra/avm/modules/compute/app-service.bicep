@@ -40,6 +40,9 @@ param webSocketsEnabled bool = false
 @description('Optional. Command line for the application.')
 param appCommandLine string = ''
 
+@description('Optional. Origins allowed to make cross-origin requests to the app.')
+param corsAllowedOrigins array = []
+
 @description('Required. Type of site to deploy.')
 @allowed([
   'functionapp' // function app windows os
@@ -111,6 +114,9 @@ module appService 'br/public:avm/res/web/site:0.23.1' = {
       appCommandLine: appCommandLine
       vnetRouteAllEnabled: vnetRouteAllEnabled
       acrUseManagedIdentityCreds: acrUseManagedIdentityCreds
+      cors: !empty(corsAllowedOrigins) ? {
+        allowedOrigins: corsAllowedOrigins
+      } : null
     }
     e2eEncryptionEnabled: true
     configs: [
