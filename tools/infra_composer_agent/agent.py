@@ -101,6 +101,18 @@ def _check_az_bicep_available() -> None:
         )
 
 
+def _print_banner() -> None:
+    """A short, friendly one-time header shown right before the first
+    question, so the terminal reads like the start of a conversation rather
+    than a raw stdin prompt with no context."""
+    print("=" * 60)
+    print("  Infra Composer Agent")
+    print("  Describe what you want deployed -- I'll ask a few quick")
+    print("  clarifying questions, then generate composed Bicep for it.")
+    print("=" * 60)
+    print()
+
+
 def _print_essential_log(log: list[str]) -> None:
     """Prints only the log lines that matter for troubleshooting or final
     confirmation -- warnings/errors, and the main.bicep generation outcome.
@@ -321,6 +333,25 @@ def main() -> int:
                          help="Don't delete the temporary source/target clones after finishing (for inspection).")
     args = parser.parse_args()
 
+    # Ask for the prompt FIRST, before any slow/blocking work (az CLI check,
+    # network call to sync agent instructions to the Foundry portal) --
+    # those can take several seconds and previously ran before the user ever
+    # saw a question, making the CLI feel unresponsive/frozen on startup.
+    # Asking immediately means the user is typing their answer while that
+    # background validation happens, not staring at a blank terminal.
+    if not args.prompt:
+        if args.non_interactive:
+            raise SystemExit("--prompt is required when --non-interactive is set (there is no one to ask).")
+        _print_banner()
+        prompt_text = input(
+            "Describe the Azure infrastructure you'd like to deploy (e.g. \"a chat app with "
+            "private networking and 2 storage accounts\"):\n> "
+        ).strip()
+        if not prompt_text:
+            raise SystemExit("No description provided -- nothing to compose.")
+        args.prompt = prompt_text
+        print()  # breathing room before the setup/progress messages that follow
+
     # Fail fast on a missing/broken Azure CLI before any LLM calls are made
     # (every generation attempt is gated on `az bicep build`; discovering
     # this deep inside the retry loop would waste model calls on an
@@ -353,17 +384,7 @@ def main() -> int:
         import update_agent_instructions
         update_agent_instructions.sync_agent_instructions(ai_foundry_endpoint, ai_foundry_model_for_sync)
     except Exception as exc:
-        print(f"WARNING: could not sync agent instructions, continuing without portal registration: {exc}")
-
-    if not args.prompt:
-        if args.non_interactive:
-            raise SystemExit("--prompt is required when --non-interactive is set (there is no one to ask).")
-        prompt_text = input(
-            "\nWhat would you like me to deploy? Describe it in your own words:\n> "
-        ).strip()
-        if not prompt_text:
-            raise SystemExit("No description provided -- nothing to compose.")
-        args.prompt = prompt_text
+        print(f"WARNING: could not sync agent instructions, continuing without portal registration: {exc}\n")
 
     log: list[str] = []
     branch_name = args.branch_name or default_branch_name()

@@ -89,12 +89,13 @@ def resolve_unresolved_params(resolution: ResolutionResult, non_interactive: boo
         )
         return overrides
 
-    print("\nSome required parameters have no matching local module/output:")
+    print("\nSome required parameters have no matching local module/output:\n")
     for mod_key, pname in resolution.unresolved:
         raw = input(
-            f"  - {mod_key} needs '{pname}'. Enter a literal value to hardcode it, or press Enter to "
-            f"leave it as a required top-level parameter: "
+            f"- {mod_key} needs '{pname}'. Enter a literal value to hardcode it, or press Enter to "
+            f"leave it as a required top-level parameter:\n> "
         ).strip()
+        print()
         if raw:
             overrides[f"{mod_key}::{pname}"] = raw
             log.append(f"User supplied a hardcoded value for {mod_key}::{pname}.")
