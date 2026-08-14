@@ -259,19 +259,26 @@ def _print_plan(plan_items: list[tuple[ModuleInfo, int, str]]) -> None:
 def plan_resources_conversationally(
     prompt: str, modules: list[ModuleInfo], ai_foundry_endpoint: str, ai_foundry_model: str,
     non_interactive: bool, log: list[str],
-) -> tuple[list[ModuleInfo], dict[str, int], list[str]]:
+) -> tuple[list[ModuleInfo], dict[str, int], list[str], str | None, dict[str, str]]:
     """Runs the full ask-then-plan-then-confirm conversation and returns
-    (selected_modules, requested_counts, existing_resource_notes). The first
-    two are the same shapes agent.py's compose() previously built from the
-    tech-pattern + fuzzy-matcher pipeline, so downstream code
-    (resolver.resolve, copy_modules, etc.) is unaffected.
+    (selected_modules, requested_counts, existing_resource_notes,
+    matched_pattern_id, plan_reasons). The first two are the same shapes
+    agent.py's compose() previously built from the tech-pattern +
+    fuzzy-matcher pipeline, so downstream code (resolver.resolve,
+    copy_modules, etc.) is unaffected.
     existing_resource_notes is a new list of short "<concept>: <value>"
     strings for any existing resource identifiers the user supplied when
     asked (see skills/resource-planning.md) -- e.g. "Key Vault:
     /subscriptions/.../vaults/myKV" -- forwarded to llm_composer.py so the
     generated main.bicep can wire the literal existing resource ID instead
-    of provisioning a new one for that concept. Raises SystemExit if no
-    plan could be agreed on after MAX_ROUNDS.
+    of provisioning a new one for that concept.
+    matched_pattern_id is the id of the technical-pattern README this
+    request matched (or None if none matched/no patterns exist), and
+    plan_reasons maps each planned module's key to the LLM's one-line
+    reason for including it -- both are surfaced in the persisted PLAN.md
+    build-plan document (see plan_doc.py) so the capability inventory is
+    reviewable after the run, not just visible transiently in the console.
+    Raises SystemExit if no plan could be agreed on after MAX_ROUNDS.
 
     Before the module-level planning conversation starts, this first tries
     to match the request against one of the existing pattern READMEs (see
@@ -418,14 +425,17 @@ def plan_resources_conversationally(
 
     selected: list[ModuleInfo] = []
     requested_counts: dict[str, int] = {}
+    plan_reasons: dict[str, str] = {}
     for module, count, reason in plan_items:
         if module not in selected:
             selected.append(module)
         requested_counts[module.key] = requested_counts.get(module.key, 0) + count
         if reason:
+            plan_reasons[module.key] = reason
             log.append(f"Planned '{module.key}' x{count} -- {reason}")
         else:
             log.append(f"Planned '{module.key}' x{count}")
 
     existing_resource_notes = [f"{concept}: {value}" for concept, value in existing_resources]
-    return selected, requested_counts, existing_resource_notes
+    matched_pattern_id = matched_pattern["id"] if matched_pattern else None
+    return selected, requested_counts, existing_resource_notes, matched_pattern_id, plan_reasons
