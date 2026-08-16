@@ -157,7 +157,7 @@ jobs:
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.fork == false &&
           steps.find-coverage.outputs.coverage_file != ''
-        uses: MishaKav/pytest-coverage-comment@dd5b80bde6d16941f336518e92929e89069d8451  # v1.7.2
+        uses: MishaKav/pytest-coverage-comment@e48ae95fa406cefacc7fbdd79949122795569961 # v1.8.0
         with:
           pytest-xml-coverage-path: ${{ steps.find-coverage.outputs.coverage_file }}
           title: .NET Coverage Report
@@ -170,7 +170,7 @@ jobs:
           exit 1
 
       - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
         if: always()
         with:
           files: src/api/dotnet/TestResults/**/*.trx

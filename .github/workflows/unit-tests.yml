@@ -138,14 +138,14 @@ jobs:
           always() &&
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.fork == false
-        uses: MishaKav/pytest-coverage-comment@dd5b80bde6d16941f336518e92929e89069d8451  # v1.7.2
+        uses: MishaKav/pytest-coverage-comment@e48ae95fa406cefacc7fbdd79949122795569961 # v1.8.0
         with:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: test-results.xml
           report-only-changed-files: true
 
       - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
         if: always()
         with:
           files: test-results.xml
