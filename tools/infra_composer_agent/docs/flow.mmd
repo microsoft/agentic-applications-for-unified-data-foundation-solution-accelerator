@@ -1,0 +1,39 @@
+flowchart TD
+    A(["🧑 User runs agent.py\n--prompt, --target-repo"]) --> A1["🔁 Best-effort: publish/refresh both\nregistered Foundry Agents' instructions\n(update_agent_instructions.py --\nnon-fatal if it fails/skips)"]
+    A1 --> B["📚 Build module index\n(module_index.py, deterministic --\nscans real .bicep files on disk)"]
+
+    B --> C["🧠 Planner Agent call\n(conversational_planner.py --\ngenuinely bound to the registered\nFoundry Agent 'infra-composer-resource-planner'\nvia foundry_client.ensure_agent + call_agent)"]
+    C --> C1["Step 1 (same agent, same call path):\nif input starts with 'PATTERN-MATCH TASK:',\nmatch request against a tech-pattern README\n(chat-with-data, call-center,\ndocument-processing, realtime-alerts)\n-- context only, never a separate agent"]
+    C1 --> C2["Step 2: ask clarifying questions\nNetwork exposure (public/private)\nApp topology (frontend/backend)\nMCP hosting needed?\nExisting infra to reuse?\n🚫 Region skipped -- sensible default used"]
+
+    C2 --> G["📝 Planner Agent proposes a plan:\nexact module keys + counts + reasons"]
+    G --> H{"🤔 User confirms\nor wants edits?"}
+    H -- "✏️ edit (free text)" --> C2
+    H -- "👍 confirm" --> R["🔗 Resolve dependencies\n(resolver.py, deterministic --\nauto-includes identity/monitoring/\nnetworking; flags unresolved params)"]
+
+    R --> PD["📄 Persist PLAN.md\n(plan_doc.py, deterministic)"]
+    PD --> CP["📁 Copy resolved modules\n(composer.py, deterministic --\nflattens + copies .bicep files)"]
+
+    CP --> I["🤖 Author Agent call\n(llm_composer.py --\ngenuinely bound to the registered\nFoundry Agent 'infra-composer-main-bicep-author'\nvia foundry_client.ensure_agent + call_agent)\ngenerates main.bicep"]
+
+    I --> J{"⚙️ Validate\n(bicep_validate.py runs\naz bicep build + lint +\nno-static-secrets check)"}
+    J -- "❌ fails" --> K["🔁 Feed errors back to the\nSAME Author Agent\n(bounded self-correction retries,\nthen one dedicated fixer pass)"]
+    K --> I
+    J -- "✅ pass" --> L["📁 Generate main.bicepparam +\nREADME/docs\n(bicepparam_gen.py, readme_gen.py --\ndeterministic)"]
+
+    L --> M["🌿 Clone target repo, create branch,\ncommit, push\n(git_ops.py, deterministic --\nGitHub App auth)"]
+    M --> N(["🔗 Prints branch/PR link for user\nto review & merge"])
+
+    classDef startEnd fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff,font-weight:bold
+    classDef decision fill:#FFD54F,stroke:#F57F17,stroke-width:2px,color:#333,font-weight:bold
+    classDef process fill:#90CAF9,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef info fill:#E1BEE7,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
+    classDef llm fill:#FFAB91,stroke:#D84315,stroke-width:2px,color:#3E2723,font-weight:bold
+    classDef git fill:#A5D6A7,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+
+    class A,N startEnd
+    class H,J decision
+    class B,R,PD,CP,G,L,A1 process
+    class C1,C2 info
+    class C,I,K llm
+    class M git
