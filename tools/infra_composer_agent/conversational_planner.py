@@ -127,12 +127,22 @@ def _load_skill(path: Path = PLANNER_SKILL_PATH) -> str:
     )
 
 
-PLANNER_INSTRUCTIONS = _load_skill()
-
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TECHNICAL_PATTERNS_DIR = REPO_ROOT / "001-wip-repo-structure" / "technical-patterns"
 
+# Kept as a clearly-labeled EXTRA capability appended to the registered
+# "Planner" agent's instructions (see PLANNER_INSTRUCTIONS below) rather than
+# swapped in per-call. A per-call `instructions=` override on an agent-bound
+# client does NOT reliably take precedence over the agent's own registered
+# instructions (confirmed empirically: pattern matching silently stopped
+# working once this call was converted to go through the agent-bound
+# call_agent() with an `extra_instructions` override -- the model kept
+# answering under the main resource-planning instructions instead of
+# returning the strict JSON schema below). So this task is now always part
+# of what the "Planner" agent knows how to do; which of its two jobs to run
+# for a given call is selected via the *input* message instead (see
+# _match_pattern_with_llm), since input content -- unlike a per-call
+# instructions override -- is always honored.
 PATTERN_MATCH_INSTRUCTIONS = """You are matching a user's infrastructure request to the closest one of a \
 small set of predefined technical/business patterns, each described by a title and a one-paragraph \
 solution overview. You will receive the user's request and the list of pattern candidates (id, title, \
@@ -142,6 +152,19 @@ reasonable match, say so honestly rather than forcing a pick.
 
 Output STRICT JSON ONLY, no markdown fences, no commentary, matching exactly this schema:
 {"matched_id": "<pattern id, or null if none match>", "reason": "<one short sentence explaining the match or non-match>"}
+"""
+
+PLANNER_INSTRUCTIONS = _load_skill() + f"""
+
+## Additional one-off sub-task: technical-pattern matching
+
+Sometimes a single message will ask you to do a DIFFERENT, narrower job instead of the resource-planning
+conversation above: classifying a user's request against a small list of predefined technical patterns.
+Such a message will always start with the exact marker line "PATTERN-MATCH TASK:" -- when you see that
+marker, ignore all the resource-planning instructions above for that one reply and instead follow these
+rules exactly, responding with nothing but the JSON they specify:
+
+{PATTERN_MATCH_INSTRUCTIONS}
 """
 
 
@@ -194,20 +217,23 @@ def _match_pattern_with_llm(prompt: str, patterns: list[dict], ai_foundry_endpoi
     (never a hardcoded keyword table). Returns (matched pattern dict or
     None, reason). Runs through the SAME registered "Planner" agent as the
     main planning conversation (see call_agent) -- this is an internal
-    sub-step of the Planner's own workflow, not a separate agent -- using
-    `extra_instructions` to narrow it to pattern-matching for this one call
-    instead of the agent's default resource-planning instructions."""
+    sub-step of the Planner's own workflow, not a separate agent. The
+    classification task is selected via the "PATTERN-MATCH TASK:" marker in
+    the user message (see PLANNER_INSTRUCTIONS), not a per-call instructions
+    override -- an override was tried first but does not reliably take
+    precedence over an agent-bound client's own registered instructions."""
     if not patterns:
         return None, ""
     candidates = "\n".join(
         f"- id: {p['id']} | title: {p['title']} | overview: {p['overview']}" for p in patterns
     )
     messages = [
-        {"role": "user", "content": f"Pattern candidates:\n{candidates}\n\nUser's request:\n{prompt}"},
+        {"role": "user", "content": (
+            f"PATTERN-MATCH TASK:\nPattern candidates:\n{candidates}\n\nUser's request:\n{prompt}"
+        )},
     ]
     try:
-        raw = call_agent(messages, ai_foundry_endpoint, PLANNER_AGENT_NAME,
-                          extra_instructions=PATTERN_MATCH_INSTRUCTIONS)
+        raw = call_agent(messages, ai_foundry_endpoint, PLANNER_AGENT_NAME)
         parsed = _extract_json(raw)
     except Exception:
         return None, ""

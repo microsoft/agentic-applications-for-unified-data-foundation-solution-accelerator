@@ -170,8 +170,7 @@ def ensure_agent(project_endpoint: str, agent_name: str, model: str, instruction
     _ensured_agents.add(key)
 
 
-def call_agent(messages: list[dict], project_endpoint: str, agent_name: str,
-                extra_instructions: str | None = None) -> str:
+def call_agent(messages: list[dict], project_endpoint: str, agent_name: str) -> str:
     """Runs one turn AS a registered Foundry Agent (call ensure_agent(...)
     first so the agent's published instructions are current). Unlike
     call_responses, `model` and `instructions` are never sent by the
@@ -181,17 +180,20 @@ def call_agent(messages: list[dict], project_endpoint: str, agent_name: str,
     registered instructions supersede it); all other messages are sent as
     `input` verbatim, same shape as call_responses.
 
-    `extra_instructions`, if given, is passed as a per-call `instructions`
-    override alongside the agent binding -- useful for a one-off sub-task
-    (e.g. the Planner agent's technical-pattern-matching step, which needs
-    a different, narrower instruction set than its main planning
-    instructions for that single call) without registering a second agent
-    for it. NOTE: whether a per-call `instructions` value supplements or
-    fully overrides an agent-bound client's own registered instructions is
-    Foundry Agent Service behavior that could not be verified against a
-    live project in this environment -- treat this parameter as best-effort;
-    if it turns out not to take precedence, the call still runs (just under
-    the agent's default instructions) rather than failing."""
+    NOTE: an earlier revision of this function accepted an
+    `extra_instructions` param, sent as a per-call `instructions=` override
+    alongside the agent binding, for one-off sub-tasks that need different
+    instructions than the agent's own registered ones (e.g. conversational_
+    planner.py's technical-pattern-matching step). That was removed after
+    confirming empirically (not just suspecting) that a per-call
+    `instructions=` value does NOT reliably take precedence over an
+    agent-bound client's own registered instructions -- the model kept
+    answering under the agent's default instructions and ignored the
+    override. If a caller genuinely needs the same agent to do a distinct
+    task for one call, drive it through `input` instead (see
+    conversational_planner.PLANNER_INSTRUCTIONS' "PATTERN-MATCH TASK:"
+    marker pattern for a working example), since input content -- unlike a
+    per-call instructions override -- is always honored."""
     client = get_openai_client(project_endpoint, agent_name=agent_name)
 
     input_items = []
@@ -200,11 +202,7 @@ def call_agent(messages: list[dict], project_endpoint: str, agent_name: str,
             continue
         input_items.append({"role": m["role"], "content": m["content"]})
 
-    kwargs = {"input": input_items}
-    if extra_instructions:
-        kwargs["instructions"] = extra_instructions
-
-    response = client.responses.create(**kwargs)
+    response = client.responses.create(input=input_items)
     text = (response.output_text or "").strip()
     if not text:
         raise RuntimeError(f"No assistant response text found in the '{agent_name}' agent's Responses API result")
