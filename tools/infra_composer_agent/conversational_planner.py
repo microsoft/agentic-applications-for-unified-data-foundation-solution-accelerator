@@ -85,12 +85,13 @@ from foundry_client import call_agent, ensure_agent
 MAX_ROUNDS = 8
 
 # Display name of the real, registered Azure AI Foundry Agent this module
-# calls through (see foundry_client.ensure_agent/call_agent) -- replaces the
-# old DEFAULT_PLANNER_AGENT_NAME ("infra-composer-resource-planner"), which
-# was only ever registered for portal visibility and never actually called
-# by name. Every planner turn (including the technical-pattern-matching
-# sub-step) now genuinely runs AS this agent.
-PLANNER_AGENT_NAME = "Planner"
+# calls through (see foundry_client.ensure_agent/call_agent) -- same name
+# as the pre-existing DEFAULT_PLANNER_AGENT_NAME constant this replaces,
+# kept as-is (already registered/visible in the Foundry portal) even though
+# it's now genuinely called by name instead of just published for
+# portal-visibility. Every planner turn (including the technical-pattern-
+# matching sub-step) now genuinely runs AS this agent.
+PLANNER_AGENT_NAME = "infra-composer-resource-planner"
 
 SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 PLANNER_SKILL_PATH = SKILLS_DIR / "resource-planning.md"

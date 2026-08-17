@@ -29,9 +29,10 @@ Two invocation styles are available:
     identity.
 
   * `ensure_agent` + `call_agent` -- the REAL registered-Foundry-Agent
-    path, used by this project's two actual LLM calls (the "Planner" agent
-    in conversational_planner.py, and the "Infra-Builder" agent in
-    llm_composer.py). `ensure_agent` publishes/updates a named
+    path, used by this project's two actual LLM calls (the
+    "infra-composer-resource-planner" agent in conversational_planner.py,
+    and the "infra-composer-main-bicep-author" agent in llm_composer.py).
+    `ensure_agent` publishes/updates a named
     `PromptAgentDefinition` (model + instructions) via
     `project.agents.create_version` -- run once at the start of every use
     so the registered agent's instructions always match whatever the
