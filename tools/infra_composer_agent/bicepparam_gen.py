@@ -18,7 +18,6 @@ with no risk of hallucinating a parameter name that doesn't exist.
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 from module_index import PARAM_RE, DESCRIPTION_RE

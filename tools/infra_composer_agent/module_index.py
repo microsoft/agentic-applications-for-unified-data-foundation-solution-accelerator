@@ -221,7 +221,6 @@ def parse_module(path: Path, modules_root: Path) -> ModuleInfo:
         decorators, pname, ptype, default = m.groups()
         desc_match = DESCRIPTION_RE.search(decorators or "")
         description = desc_match.group(1) if desc_match else ""
-        is_optional_type = ptype.rstrip().endswith("?") or ptype.rstrip().endswith("]")
         required = default is None and "?" not in ptype
         params.append(ParamInfo(pname, ptype, required, default, description))
 

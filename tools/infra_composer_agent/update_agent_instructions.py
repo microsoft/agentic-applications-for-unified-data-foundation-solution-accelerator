@@ -7,11 +7,11 @@ AI Foundry portal's Agents tab, and so its published instructions are
 up to date before the next run. There are two agent names this script can
 target:
 
-  - "author"      (default) -- "Infra-Builder".
+  - "author"      (default) -- "infra-composer-main-bicep-author".
                    Instructions = llm_composer.SYSTEM_PROMPT, which embeds
                    skills/bicep-main-authoring.md.
 
-  - "planner"     -- "Planner".
+  - "planner"     -- "infra-composer-resource-planner".
                    Instructions = conversational_planner.PLANNER_INSTRUCTIONS.
 
 NOTE: llm_composer.py / conversational_planner.py now call THROUGH these

@@ -132,18 +132,18 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 TECHNICAL_PATTERNS_DIR = REPO_ROOT / "001-wip-repo-structure" / "technical-patterns"
 
 # Kept as a clearly-labeled EXTRA capability appended to the registered
-# "Planner" agent's instructions (see PLANNER_INSTRUCTIONS below) rather than
-# swapped in per-call. A per-call `instructions=` override on an agent-bound
-# client does NOT reliably take precedence over the agent's own registered
-# instructions (confirmed empirically: pattern matching silently stopped
-# working once this call was converted to go through the agent-bound
-# call_agent() with an `extra_instructions` override -- the model kept
-# answering under the main resource-planning instructions instead of
-# returning the strict JSON schema below). So this task is now always part
-# of what the "Planner" agent knows how to do; which of its two jobs to run
-# for a given call is selected via the *input* message instead (see
-# _match_pattern_with_llm), since input content -- unlike a per-call
-# instructions override -- is always honored.
+# Planner agent's (PLANNER_AGENT_NAME) instructions (see PLANNER_INSTRUCTIONS
+# below) rather than swapped in per-call. A per-call `instructions=` override
+# on an agent-bound client does NOT reliably take precedence over the
+# agent's own registered instructions (confirmed empirically: pattern
+# matching silently stopped working once this call was converted to go
+# through the agent-bound call_agent() with an `extra_instructions`
+# override -- the model kept answering under the main resource-planning
+# instructions instead of returning the strict JSON schema below). So this
+# task is now always part of what the Planner agent knows how to do; which
+# of its two jobs to run for a given call is selected via the *input*
+# message instead (see _match_pattern_with_llm), since input content --
+# unlike a per-call instructions override -- is always honored.
 PATTERN_MATCH_INSTRUCTIONS = """You are matching a user's infrastructure request to the closest one of a \
 small set of predefined technical/business patterns, each described by a title and a one-paragraph \
 solution overview. You will receive the user's request and the list of pattern candidates (id, title, \
@@ -216,7 +216,8 @@ def _match_pattern_with_llm(prompt: str, patterns: list[dict], ai_foundry_endpoi
     """Asks the Planner agent which (if any) predefined pattern the request
     resembles, reasoning over each pattern's real README title/overview
     (never a hardcoded keyword table). Returns (matched pattern dict or
-    None, reason). Runs through the SAME registered "Planner" agent as the
+    None, reason). Runs through the SAME registered Planner agent
+    (PLANNER_AGENT_NAME) as the
     main planning conversation (see call_agent) -- this is an internal
     sub-step of the Planner's own workflow, not a separate agent. The
     classification task is selected via the "PATTERN-MATCH TASK:" marker in
@@ -331,11 +332,12 @@ def plan_resources_conversationally(
     modules_by_key = {m.key: m for m in modules}
     catalog = _catalog_text(modules)
 
-    # Publish/refresh the "Planner" agent's registered instructions from the
-    # current resource-planning.md skill file BEFORE any call_agent(...) use
-    # below (including the pattern-match sub-step) -- this is a no-op after
-    # the first call this process, so every turn in this conversation runs
-    # against the same, currently-published instructions.
+    # Publish/refresh the Planner agent's (PLANNER_AGENT_NAME) registered
+    # instructions from the current resource-planning.md skill file BEFORE
+    # any call_agent(...) use below (including the pattern-match sub-step) --
+    # this is a no-op after the first call this process, so every turn in
+    # this conversation runs against the same, currently-published
+    # instructions.
     ensure_agent(ai_foundry_endpoint, PLANNER_AGENT_NAME, ai_foundry_model, PLANNER_INSTRUCTIONS)
 
     patterns = _load_technical_patterns()
@@ -371,7 +373,6 @@ def plan_resources_conversationally(
 
     plan_items: list[tuple[ModuleInfo, int, str]] = []
     existing_resources: list[tuple[str, str]] = []
-    awaiting_confirmation = False
 
     for round_num in range(1, MAX_ROUNDS + 1):
         raw = call_agent(messages, ai_foundry_endpoint, PLANNER_AGENT_NAME)

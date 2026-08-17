@@ -41,7 +41,7 @@ from pathlib import Path
 import git_ops
 import github_app_auth
 import env_file
-from module_index import build_index, ModuleInfo
+from module_index import build_index
 from resolver import resolve
 from composer import copy_modules
 from conversational_planner import plan_resources_conversationally
@@ -389,7 +389,8 @@ def main() -> int:
         )
 
     # Best-effort, early publish/refresh of the two agent DEFINITIONS (model +
-    # instructions) -- "Planner" and "Infra-Builder" -- so the AI Foundry
+    # instructions) -- "infra-composer-resource-planner" and
+    # "infra-composer-main-bicep-author" -- so the AI Foundry
     # portal's Agents tab reflects the current local source
     # (conversational_planner.PLANNER_INSTRUCTIONS / llm_composer.SYSTEM_PROMPT)
     # before this run's own actual calls happen. This is now a REAL prerequisite

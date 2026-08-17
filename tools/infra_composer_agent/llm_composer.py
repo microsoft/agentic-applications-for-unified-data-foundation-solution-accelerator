@@ -12,10 +12,11 @@ authoring is done entirely by the LLM -- there is no deterministic/static
 generator and no fallback to one.
 
 This module asks Azure AI Foundry -- through a genuinely registered Foundry
-Agent named "Infra-Builder" (see foundry_client.ensure_agent/call_agent,
-modeled on microsoft/CAIRA's foundry-client.ts) -- to actually *author* the
-main.bicep body -- reasoning about the request the way an infrastructure
-architect would -- while staying safe:
+Agent named "infra-composer-main-bicep-author" (see
+foundry_client.ensure_agent/call_agent, modeled on microsoft/CAIRA's
+foundry-client.ts) -- to actually *author* the main.bicep body -- reasoning
+about the request the way an infrastructure architect would -- while
+staying safe:
   * The LLM is given the REAL resolved modules (exact relative paths,
     exact required/optional params, exact outputs) parsed by module_index.py.
     It cannot invent a module path or a parameter name that doesn't exist,
@@ -29,10 +30,11 @@ architect would -- while staying safe:
     that the output must always be deployable without manual edits, so
     there is no silent, lower-quality fallback path to fall back to.
 
-Each run calls `ensure_agent(...)` once to (re)publish the "Infra-Builder"
-agent's instructions from this module's SYSTEM_PROMPT (so the registered
-agent always matches whatever bicep-main-authoring.md currently says), then
-every turn (initial draft, self-correction retries, and the dedicated fixer
+Each run calls `ensure_agent(...)` once to (re)publish the
+"infra-composer-main-bicep-author" agent's instructions from this module's
+SYSTEM_PROMPT (so the registered agent always matches whatever
+bicep-main-authoring.md currently says), then every turn (initial draft,
+self-correction retries, and the dedicated fixer
 pass) runs through `call_agent(...)`, genuinely bound to that agent -- no
 thread/run lifecycle to manage, and no server-side state to keep in sync
 across retries beyond the in-memory message history already kept here.
@@ -43,7 +45,6 @@ import os
 import re
 from pathlib import Path
 
-from module_index import ModuleInfo
 from resolver import ResolutionResult
 from bicep_validate import validate_with_az
 from foundry_client import call_agent, ensure_agent
@@ -143,7 +144,7 @@ def _module_catalog_text(resolution: ResolutionResult) -> str:
         rel = f"./modules/{module.flat_rel_path.as_posix()}"
         requested = " [EXPLICITLY REQUESTED BY USER]" if key in resolution.explicitly_requested else " [auto-included dependency]"
         lines.append(f"- Module path: {rel}{requested}")
-        lines.append(f"  Params:")
+        lines.append("  Params:")
         for p in module.params:
             lines.append(_format_param(p))
         lines.append(f"  Outputs: {', '.join(o.name for o in module.outputs) or '(none)'}")
@@ -198,12 +199,12 @@ def _extract_bicep(text: str) -> str:
 
 def _call_llm_chat(messages: list[dict], ai_foundry_endpoint: str | None, ai_foundry_model: str | None,
                     ai_foundry_agent_id: str | None = None) -> str:
-    """Runs one turn AS the registered "Infra-Builder" Foundry Agent
-    (foundry_client.call_agent) -- replaces the old thread/run-based
-    _call_ai_foundry_chat, and before that, the raw unbound call_responses
-    path. `ai_foundry_agent_id` is accepted for backward-compat CLI/env
-    wiring but unused: the agent is now addressed by its fixed display name
-    (AUTHOR_AGENT_NAME), not by a caller-supplied id. Publishes/refreshes
+    """Runs one turn AS the registered "infra-composer-main-bicep-author"
+    Foundry Agent (foundry_client.call_agent) -- replaces the old
+    thread/run-based _call_ai_foundry_chat, and before that, the raw unbound
+    call_responses path. `ai_foundry_agent_id` is accepted for backward-compat
+    CLI/env wiring but unused: the agent is now addressed by its fixed display
+    name (AUTHOR_AGENT_NAME), not by a caller-supplied id. Publishes/refreshes
     the agent's instructions from SYSTEM_PROMPT once per process (see
     ensure_agent) before every call, so the registered agent always matches
     whatever bicep-main-authoring.md currently says on disk."""
