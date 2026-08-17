@@ -388,13 +388,16 @@ def main() -> int:
             "already baked in)."
         )
 
-    # Best-effort: publish the agent DEFINITIONS (model + instructions) to the
-    # AI Foundry portal's Agents tab for visibility, in sync with the local
-    # source (conversational_planner.PLANNER_INSTRUCTIONS / llm_composer.SYSTEM_PROMPT).
-    # This is purely for inspection -- the actual generation/interpretation calls
-    # below go straight through the Responses API and never reference this
-    # registration, so a sync failure (e.g. no Azure credentials / offline) is
-    # non-fatal and only surfaced as a warning.
+    # Best-effort, early publish/refresh of the two agent DEFINITIONS (model +
+    # instructions) -- "Planner" and "Infra-Builder" -- so the AI Foundry
+    # portal's Agents tab reflects the current local source
+    # (conversational_planner.PLANNER_INSTRUCTIONS / llm_composer.SYSTEM_PROMPT)
+    # before this run's own actual calls happen. This is now a REAL prerequisite
+    # for calling the agents by name (foundry_client.call_agent), but it's also
+    # redundant-by-design: conversational_planner.py and llm_composer.py each call
+    # foundry_client.ensure_agent(...) themselves right before their own first use,
+    # so a failure/skip here is still non-fatal -- it only means the very first
+    # real call below re-publishes the same definition anyway.
     try:
         import update_agent_instructions
         update_agent_instructions.sync_agent_instructions(ai_foundry_endpoint, ai_foundry_model_for_sync)

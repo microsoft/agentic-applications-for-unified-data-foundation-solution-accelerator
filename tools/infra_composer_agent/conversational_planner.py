@@ -80,11 +80,17 @@ import re
 from pathlib import Path
 
 from module_index import ModuleInfo
-from foundry_client import call_responses
+from foundry_client import call_agent, ensure_agent
 
 MAX_ROUNDS = 8
 
-DEFAULT_PLANNER_AGENT_NAME = "infra-composer-resource-planner"
+# Display name of the real, registered Azure AI Foundry Agent this module
+# calls through (see foundry_client.ensure_agent/call_agent) -- replaces the
+# old DEFAULT_PLANNER_AGENT_NAME ("infra-composer-resource-planner"), which
+# was only ever registered for portal visibility and never actually called
+# by name. Every planner turn (including the technical-pattern-matching
+# sub-step) now genuinely runs AS this agent.
+PLANNER_AGENT_NAME = "Planner"
 
 SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 PLANNER_SKILL_PATH = SKILLS_DIR / "resource-planning.md"
@@ -183,20 +189,25 @@ def _load_technical_patterns() -> list[dict]:
 
 def _match_pattern_with_llm(prompt: str, patterns: list[dict], ai_foundry_endpoint: str,
                              ai_foundry_model: str) -> tuple[dict | None, str]:
-    """Asks the LLM which (if any) predefined pattern the request resembles,
-    reasoning over each pattern's real README title/overview (never a
-    hardcoded keyword table). Returns (matched pattern dict or None, reason)."""
+    """Asks the Planner agent which (if any) predefined pattern the request
+    resembles, reasoning over each pattern's real README title/overview
+    (never a hardcoded keyword table). Returns (matched pattern dict or
+    None, reason). Runs through the SAME registered "Planner" agent as the
+    main planning conversation (see call_agent) -- this is an internal
+    sub-step of the Planner's own workflow, not a separate agent -- using
+    `extra_instructions` to narrow it to pattern-matching for this one call
+    instead of the agent's default resource-planning instructions."""
     if not patterns:
         return None, ""
     candidates = "\n".join(
         f"- id: {p['id']} | title: {p['title']} | overview: {p['overview']}" for p in patterns
     )
     messages = [
-        {"role": "system", "content": PATTERN_MATCH_INSTRUCTIONS},
         {"role": "user", "content": f"Pattern candidates:\n{candidates}\n\nUser's request:\n{prompt}"},
     ]
     try:
-        raw = call_responses(messages, ai_foundry_endpoint, ai_foundry_model)
+        raw = call_agent(messages, ai_foundry_endpoint, PLANNER_AGENT_NAME,
+                          extra_instructions=PATTERN_MATCH_INSTRUCTIONS)
         parsed = _extract_json(raw)
     except Exception:
         return None, ""
@@ -293,6 +304,13 @@ def plan_resources_conversationally(
     modules_by_key = {m.key: m for m in modules}
     catalog = _catalog_text(modules)
 
+    # Publish/refresh the "Planner" agent's registered instructions from the
+    # current resource-planning.md skill file BEFORE any call_agent(...) use
+    # below (including the pattern-match sub-step) -- this is a no-op after
+    # the first call this process, so every turn in this conversation runs
+    # against the same, currently-published instructions.
+    ensure_agent(ai_foundry_endpoint, PLANNER_AGENT_NAME, ai_foundry_model, PLANNER_INSTRUCTIONS)
+
     patterns = _load_technical_patterns()
     matched_pattern, match_reason = _match_pattern_with_llm(prompt, patterns, ai_foundry_endpoint, ai_foundry_model)
 
@@ -321,7 +339,6 @@ def plan_resources_conversationally(
                     (f" ({match_reason})" if match_reason else "") + " -- planning purely from the prompt.")
 
     messages: list[dict] = [
-        {"role": "system", "content": PLANNER_INSTRUCTIONS},
         {"role": "user", "content": f"Module catalog:\n{catalog}\n\nUser's request:\n{prompt}{pattern_context}"},
     ]
 
@@ -330,7 +347,7 @@ def plan_resources_conversationally(
     awaiting_confirmation = False
 
     for round_num in range(1, MAX_ROUNDS + 1):
-        raw = call_responses(messages, ai_foundry_endpoint, ai_foundry_model)
+        raw = call_agent(messages, ai_foundry_endpoint, PLANNER_AGENT_NAME)
         parsed = _extract_json(raw)
         messages.append({"role": "assistant", "content": raw})
 
