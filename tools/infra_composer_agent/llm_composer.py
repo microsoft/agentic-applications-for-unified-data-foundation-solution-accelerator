@@ -11,11 +11,11 @@ dump. A flat/static template can't reason about any of that, so main.bicep
 authoring is done entirely by the LLM -- there is no deterministic/static
 generator and no fallback to one.
 
-This module asks Azure AI Foundry (via the Responses API -- see
-foundry_client.call_responses, modeled on microsoft/CAIRA's
-foundry-client.ts) to actually *author* the main.bicep body -- reasoning
-about the request the way an infrastructure architect would -- while
-staying safe:
+This module asks Azure AI Foundry -- through a genuinely registered Foundry
+Agent named "Infra-Builder" (see foundry_client.ensure_agent/call_agent,
+modeled on microsoft/CAIRA's foundry-client.ts) -- to actually *author* the
+main.bicep body -- reasoning about the request the way an infrastructure
+architect would -- while staying safe:
   * The LLM is given the REAL resolved modules (exact relative paths,
     exact required/optional params, exact outputs) parsed by module_index.py.
     It cannot invent a module path or a parameter name that doesn't exist,
@@ -29,10 +29,13 @@ staying safe:
     that the output must always be deployable without manual edits, so
     there is no silent, lower-quality fallback path to fall back to.
 
-Each call sends the model deployment name, the system instructions, and the
-full accumulated message history (prior attempts + validation errors) via a
-single openai.responses.create(...) call -- no thread/run lifecycle to
-manage, and no server-side state to keep in sync across retries.
+Each run calls `ensure_agent(...)` once to (re)publish the "Infra-Builder"
+agent's instructions from this module's SYSTEM_PROMPT (so the registered
+agent always matches whatever bicep-main-authoring.md currently says), then
+every turn (initial draft, self-correction retries, and the dedicated fixer
+pass) runs through `call_agent(...)`, genuinely bound to that agent -- no
+thread/run lifecycle to manage, and no server-side state to keep in sync
+across retries beyond the in-memory message history already kept here.
 """
 from __future__ import annotations
 
@@ -43,13 +46,15 @@ from pathlib import Path
 from module_index import ModuleInfo
 from resolver import ResolutionResult
 from bicep_validate import validate_with_az
-from foundry_client import call_responses
+from foundry_client import call_agent, ensure_agent
 
-# Name of the Foundry agent definition registered (for portal visibility only --
-# see foundry_client.register_agent) as "infra-composer-main-bicep-author". Actual
-# generation calls go through the Responses API directly (foundry_client.call_responses)
-# and don't reference this registration.
-DEFAULT_AUTHOR_AGENT_NAME = "infra-composer-main-bicep-author"
+# Display name of the real, registered Azure AI Foundry Agent this module
+# calls through (see foundry_client.ensure_agent/call_agent) -- same name
+# as the pre-existing DEFAULT_AUTHOR_AGENT_NAME constant this replaces, kept
+# as-is (already registered/visible in the Foundry portal) even though it's
+# now genuinely called by name instead of just published for portal-
+# visibility. Every authoring/fixer turn now genuinely runs AS this agent.
+AUTHOR_AGENT_NAME = "infra-composer-main-bicep-author"
 
 SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 BICEP_AUTHORING_SKILL_PATH = SKILLS_DIR / "bicep-main-authoring.md"
@@ -193,15 +198,21 @@ def _extract_bicep(text: str) -> str:
 
 def _call_llm_chat(messages: list[dict], ai_foundry_endpoint: str | None, ai_foundry_model: str | None,
                     ai_foundry_agent_id: str | None = None) -> str:
-    """Runs one turn via the Responses API (foundry_client.call_responses) --
-    replaces the old thread/run-based _call_ai_foundry_chat. `ai_foundry_agent_id`
-    is accepted for backward-compat CLI/env wiring but unused: the Responses API
-    call sends `model`/`instructions` directly and never needs an agent id."""
+    """Runs one turn AS the registered "Infra-Builder" Foundry Agent
+    (foundry_client.call_agent) -- replaces the old thread/run-based
+    _call_ai_foundry_chat, and before that, the raw unbound call_responses
+    path. `ai_foundry_agent_id` is accepted for backward-compat CLI/env
+    wiring but unused: the agent is now addressed by its fixed display name
+    (AUTHOR_AGENT_NAME), not by a caller-supplied id. Publishes/refreshes
+    the agent's instructions from SYSTEM_PROMPT once per process (see
+    ensure_agent) before every call, so the registered agent always matches
+    whatever bicep-main-authoring.md currently says on disk."""
     if not ai_foundry_endpoint:
         raise RuntimeError(
             "main.bicep authoring requires --ai-foundry-endpoint (or AI_FOUNDRY_PROJECT_ENDPOINT)."
         )
-    return call_responses(messages, ai_foundry_endpoint, ai_foundry_model)
+    ensure_agent(ai_foundry_endpoint, AUTHOR_AGENT_NAME, ai_foundry_model, SYSTEM_PROMPT)
+    return call_agent(messages, ai_foundry_endpoint, AUTHOR_AGENT_NAME)
 
 
 def _run_retry_loop(

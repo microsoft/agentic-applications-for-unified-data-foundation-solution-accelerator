@@ -34,6 +34,24 @@ LOCAL_MODULE_RE = re.compile(r"module\s+\w+\s+'((?:\.{1,2}/)?[\w./-]+\.bicep)'")
 ARM_RESOURCE_TYPE_RE = re.compile(r"resource\s+\w+\s+'([A-Za-z0-9.]+/[\w/]+)@[\w.-]+'")
 DESCRIPTION_RE = re.compile(r"@description\('([^']*)'\)")
 
+# CI/repo-bootstrap modules that live alongside real app-infra modules in the
+# source library but are NOT resources an application deployment should ever
+# provision -- they configure the CI/CD pipeline's own permissions/state, not
+# anything the deployed app itself needs. Excluding them by exact file name
+# keeps them out of the catalog shown to the planner entirely, so they can
+# never be mistakenly selected for an unrelated app request (this was found
+# via a real run where the planner picked up state-storage-permissions.bicep
+# -- a module that grants CI's managed identity access to *Terraform state*
+# storage -- purely because "storage"/"permissions" fuzzy-matched the
+# request, then got stuck asking for a `principalId` with no real answer).
+# Add to this set (by exact .bicep file name) as more CI-only modules are
+# discovered, rather than trying to infer "is this CI-only" from text.
+CI_BOOTSTRAP_MODULE_NAMES = {
+    "ci-credentials.bicep",           # GitHub OIDC workload identity for the CI pipeline itself
+    "cost-guardrail.bicep",           # resource-group budget alerts, not an app resource
+    "state-storage-permissions.bicep",  # RBAC for Terraform's own state storage account
+}
+
 
 @dataclass
 class ParamInfo:
@@ -244,6 +262,8 @@ def build_index(modules_root: Path) -> list[ModuleInfo]:
     modules = []
     for bicep_file in sorted(modules_root.rglob("*.bicep")):
         if bicep_file.name in ("main.bicep",):
+            continue
+        if bicep_file.name in CI_BOOTSTRAP_MODULE_NAMES:
             continue
         modules.append(parse_module(bicep_file, modules_root))
     return modules

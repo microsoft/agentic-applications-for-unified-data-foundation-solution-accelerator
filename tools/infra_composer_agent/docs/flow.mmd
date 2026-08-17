@@ -1,0 +1,36 @@
+flowchart TD
+    A(["🧑 User describes desired infra"]) --> B["📚 Scan source repo & build\nan index of available modules"]
+
+    B --> C["🧠 infra-composer-resource-planner (Foundry Agent)\nMatches request to a known technical pattern, if any"]
+    C -- "no match" --> C0["Falls back to the full module catalog\n(no pattern baseline applied)"]
+    C0 --> C2
+    C -- "match found" --> C2["Asks clarifying questions\n(network, topology, tools needed, etc.)"]
+
+    C2 --> G["📝 Composes proposed plan:\nBicep modules + purpose of each"]
+    G --> H{"🤔 User confirms\nor requests edits?"}
+    H -- "✏️ edit" --> C2
+    H -- "👍 confirm" --> R["🔗 Resolve dependencies → Save the plan →\nCopy the required modules"]
+
+    R --> I["🤖 infra-composer-main-bicep-author (Foundry Agent)\nGenerates the deployable template"]
+
+    I --> J{"⚙️ Runs az bicep build validation"}
+    J -- "❌ fails" --> K["🔁 Feed errors back for\nself-correction"]
+    K --> I
+    J -- "✅ pass" --> L["📁 Generate parameters + docs"]
+
+    L --> M["🌿 Create branch, commit, push"]
+    M --> N(["🔗 Returns branch/PR link\nfor review & merge"])
+
+    classDef startEnd fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff,font-weight:bold
+    classDef decision fill:#FFD54F,stroke:#F57F17,stroke-width:2px,color:#333,font-weight:bold
+    classDef process fill:#90CAF9,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef info fill:#E1BEE7,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
+    classDef llm fill:#FFAB91,stroke:#D84315,stroke-width:2px,color:#3E2723,font-weight:bold
+    classDef git fill:#A5D6A7,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+
+    class A,N startEnd
+    class H,J decision
+    class B,R,G,L process
+    class C0,C2 info
+    class C,I,K llm
+    class M git

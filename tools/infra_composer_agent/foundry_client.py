@@ -21,39 +21,62 @@ Why the switch:
   * This is the API surface Azure AI Foundry is investing in going
     forward; Threads/Runs (Assistants API) is the legacy pattern.
 
-Agent registration (`register_agent` below, using `project.agents.get` /
-`project.agents.create_version`) is OPTIONAL -- it only publishes an agent
-definition so it's visible/inspectable in the AI Foundry portal's Agents
-tab for governance/audit purposes, exactly like CAIRA's `registerAgents()`.
-The actual model calls (`call_responses`) never reference that registered
-agent by ID/name; they send `model` + `instructions` directly on every
-call, matching CAIRA's own foundry-client.ts (which also passes
-model/instructions/tools per-call rather than routing through the
-registered agent's ID). This project doesn't need server-side thread
-state either -- callers already keep the full message history in memory
-across self-correction retries and simply replay it as `input` each call.
+Two invocation styles are available:
+
+  * `call_responses` -- a raw, unbound model call: `model` + `instructions`
+    are sent directly on every request, with no registered Foundry Agent
+    involved at all. Kept for callers that don't want a persisted agent
+    identity.
+
+  * `ensure_agent` + `call_agent` -- the REAL registered-Foundry-Agent
+    path, used by this project's two actual LLM calls (the
+    "infra-composer-resource-planner" agent in conversational_planner.py,
+    and the "infra-composer-main-bicep-author" agent in llm_composer.py).
+    `ensure_agent` publishes/updates a named
+    `PromptAgentDefinition` (model + instructions) via
+    `project.agents.create_version` -- run once at the start of every use
+    so the registered agent's instructions always match whatever the
+    current skill markdown file on disk says, the same freshness guarantee
+    the old raw-call approach had. `call_agent` then gets an OpenAI client
+    BOUND to that agent name (`project.get_openai_client(agent_name=...)`)
+    and calls `responses.create(...)` on it -- the agent's own registered
+    model/instructions apply server-side; the caller only ever sends the
+    user/assistant conversation turns, never `model`/`instructions` again.
+    This is genuinely running "as" a named Foundry Agent, visible/
+    addressable in the AI Foundry portal's Agents tab, not just a
+    portal-visibility registration that the real calls ignore.
 """
 from __future__ import annotations
 
-# Cache OpenAI clients per project endpoint so repeated calls within one run
-# (e.g. every self-correction retry attempt) don't re-authenticate each time.
-_client_cache: dict[str, object] = {}
+# Cache OpenAI clients per (project_endpoint, agent_name) so repeated calls
+# within one run (e.g. every self-correction retry attempt) don't
+# re-authenticate/re-bind each time. agent_name is None for the
+# non-agent-bound client (kept for any caller that still wants a raw
+# model+instructions call via call_responses()).
+_client_cache: dict[tuple[str, str | None], object] = {}
 
 
-def get_openai_client(project_endpoint: str):
+def get_openai_client(project_endpoint: str, agent_name: str | None = None):
     """Returns (and caches) a standard OpenAI client authenticated against the
     given Azure AI Foundry project endpoint, via azure-ai-projects'
     AIProjectClient.get_openai_client() -- the same mechanism CAIRA's
-    foundry-client.ts uses (`project.getOpenAIClient()`)."""
-    cached = _client_cache.get(project_endpoint)
+    foundry-client.ts uses (`project.getOpenAIClient()`).
+
+    When `agent_name` is given, the returned client is bound to that
+    registered Foundry Agent (`project.get_openai_client(agent_name=...)`) --
+    every `responses.create(...)` call made with it runs AS that agent (the
+    agent's own registered model + instructions apply), instead of a raw,
+    unbound model call."""
+    cache_key = (project_endpoint, agent_name)
+    cached = _client_cache.get(cache_key)
     if cached is not None:
         return cached
     from azure.ai.projects import AIProjectClient
     from azure.identity import DefaultAzureCredential
 
     project = AIProjectClient(endpoint=project_endpoint, credential=DefaultAzureCredential())
-    client = project.get_openai_client()
-    _client_cache[project_endpoint] = client
+    client = project.get_openai_client(agent_name=agent_name) if agent_name else project.get_openai_client()
+    _client_cache[cache_key] = client
     return client
 
 
@@ -92,14 +115,17 @@ def call_responses(messages: list[dict], project_endpoint: str, model: str | Non
 
 def register_agent(project_endpoint: str, agent_name: str, model: str, instructions: str) -> str:
     """Registers (creates, or publishes a new version of) a persistent
-    Foundry agent definition -- purely for portal visibility/governance,
-    mirroring CAIRA's foundry-client.ts registerAgents() get-or-create
-    pattern (project.agents.get(), then project.agents.create_version() to
-    publish -- create_version() creates the agent itself if `agent_name`
-    doesn't exist yet, and a new version if it does). This project's actual
-    model calls (call_responses above) never reference this registration --
-    it's safe for callers to treat failures here as non-fatal warnings.
-    Returns a short status string for logging."""
+    Foundry agent definition, mirroring CAIRA's foundry-client.ts
+    registerAgents() get-or-create pattern (project.agents.get(), then
+    project.agents.create_version() to publish -- create_version() creates
+    the agent itself if `agent_name` doesn't exist yet, and a new version if
+    it does). Returns a short status string for logging.
+
+    This is the low-level primitive `ensure_agent` below wraps for the
+    project's real, agent-bound calls (call_agent) -- it's also still usable
+    standalone (see update_agent_instructions.py) purely for portal
+    visibility/governance when a caller only wants the definition published,
+    without necessarily calling through it."""
     from azure.ai.projects import AIProjectClient
     from azure.ai.projects.models import PromptAgentDefinition
     from azure.core.exceptions import ResourceNotFoundError
@@ -115,3 +141,70 @@ def register_agent(project_endpoint: str, agent_name: str, model: str, instructi
         status = "created"
     project.agents.create_version(agent_name, definition=definition)
     return f"{status} agent '{agent_name}' ({len(instructions)} chars of instructions, model={model})"
+
+
+# Tracks which (project_endpoint, agent_name) pairs have already been
+# ensure_agent()-ed THIS PROCESS, so a run with many retry-loop calls (e.g.
+# generate_main_bicep_with_llm's self-correction attempts) only republishes
+# the agent definition once per run, not once per attempt.
+_ensured_agents: set[tuple[str, str]] = set()
+
+
+def ensure_agent(project_endpoint: str, agent_name: str, model: str, instructions: str) -> None:
+    """Publishes/updates the named agent's definition (model + instructions)
+    exactly once per (endpoint, agent_name) for the lifetime of this
+    process, then no-ops on subsequent calls. Callers should invoke this
+    once at the start of a conversation/generation run, BEFORE the first
+    call_agent(...) call, so the registered agent's instructions always
+    reflect whatever the current skill markdown file on disk says right
+    now -- the same "always fresh, edit-the-markdown-not-the-code"
+    guarantee the old raw call_responses() path had, now carried over to a
+    real registered agent instead of a per-call instructions string.
+    Registration failures are NOT swallowed here (unlike register_agent's
+    own callers in update_agent_instructions.py) -- if the agent can't be
+    published, call_agent would otherwise run against a stale or
+    nonexistent agent definition, which is worse than failing loudly."""
+    key = (project_endpoint, agent_name)
+    if key in _ensured_agents:
+        return
+    register_agent(project_endpoint, agent_name, model, instructions)
+    _ensured_agents.add(key)
+
+
+def call_agent(messages: list[dict], project_endpoint: str, agent_name: str) -> str:
+    """Runs one turn AS a registered Foundry Agent (call ensure_agent(...)
+    first so the agent's published instructions are current). Unlike
+    call_responses, `model` and `instructions` are never sent by the
+    caller -- they come from the agent's own registered definition,
+    resolved server-side by Azure AI Foundry from `agent_name`. Any
+    `{"role": "system", ...}` message in `messages` is dropped (the agent's
+    registered instructions supersede it); all other messages are sent as
+    `input` verbatim, same shape as call_responses.
+
+    NOTE: an earlier revision of this function accepted an
+    `extra_instructions` param, sent as a per-call `instructions=` override
+    alongside the agent binding, for one-off sub-tasks that need different
+    instructions than the agent's own registered ones (e.g. conversational_
+    planner.py's technical-pattern-matching step). That was removed after
+    confirming empirically (not just suspecting) that a per-call
+    `instructions=` value does NOT reliably take precedence over an
+    agent-bound client's own registered instructions -- the model kept
+    answering under the agent's default instructions and ignored the
+    override. If a caller genuinely needs the same agent to do a distinct
+    task for one call, drive it through `input` instead (see
+    conversational_planner.PLANNER_INSTRUCTIONS' "PATTERN-MATCH TASK:"
+    marker pattern for a working example), since input content -- unlike a
+    per-call instructions override -- is always honored."""
+    client = get_openai_client(project_endpoint, agent_name=agent_name)
+
+    input_items = []
+    for m in messages:
+        if m["role"] == "system":
+            continue
+        input_items.append({"role": m["role"], "content": m["content"]})
+
+    response = client.responses.create(input=input_items)
+    text = (response.output_text or "").strip()
+    if not text:
+        raise RuntimeError(f"No assistant response text found in the '{agent_name}' agent's Responses API result")
+    return text

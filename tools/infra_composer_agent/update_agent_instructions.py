@@ -1,24 +1,29 @@
 """
-One-off script to publish each Foundry agent DEFINITION (model + system
-instructions) via the new Responses-API-era Azure AI Foundry SDK
+One-off/manual script to publish each Foundry agent DEFINITION (model +
+system instructions) via the Responses-API-era Azure AI Foundry SDK
 (azure-ai-projects' project.agents.get/create_version -- see
-foundry_client.register_agent), purely so the agent is visible/inspectable
-in the AI Foundry portal's Agents tab for governance/audit purposes. There
-are two independent agent names this script can target:
+foundry_client.register_agent), so the agent is visible/inspectable in the
+AI Foundry portal's Agents tab, and so its published instructions are
+up to date before the next run. There are two agent names this script can
+target:
 
-  - "author"      (default) -- infra-composer-main-bicep-author.
+  - "author"      (default) -- "Infra-Builder".
                    Instructions = llm_composer.SYSTEM_PROMPT, which embeds
                    skills/bicep-main-authoring.md.
 
-  - "planner"     -- infra-composer-resource-planner.
+  - "planner"     -- "Planner".
                    Instructions = conversational_planner.PLANNER_INSTRUCTIONS.
 
-IMPORTANT: this registration is entirely optional for the agent to work --
-llm_composer.py / conversational_planner.py call the Responses API directly
-(foundry_client.call_responses) with `model` + `instructions` on every
-request; they never look up or reference this registered agent definition.
-Run this only when you want the AI Foundry portal's Agents tab to reflect
-the current instructions for inspection purposes.
+NOTE: llm_composer.py / conversational_planner.py now call THROUGH these
+same two registered agents by name (foundry_client.call_agent), and each
+one already calls foundry_client.ensure_agent(...) automatically at the
+start of every real run to keep the registered instructions current -- so
+running this script manually beforehand is no longer required for the
+agents to work correctly. It remains useful for:
+  * `--dry-run` inspection of exactly what instructions would be published,
+    without waiting for/triggering a real planning or authoring run.
+  * Explicitly publishing to the portal ahead of time, e.g. for a demo or
+    to eyeball the Agents tab, independent of running the CLI.
 
 Requires:
   - An Azure AI Foundry project endpoint (--endpoint, or AI_FOUNDRY_PROJECT_ENDPOINT in
@@ -39,9 +44,10 @@ Usage:
     python update_agent_instructions.py --target planner
         # publishes ONLY the planner agent definition, if you only want one
 
-Run this again any time skills/bicep-main-authoring.md or
+Run this any time skills/bicep-main-authoring.md or
 conversational_planner.PLANNER_INSTRUCTIONS changes and you want the portal's
-agent definition to reflect the update.
+agent definition to reflect the update immediately, without waiting for the
+next real run's automatic ensure_agent() call.
 """
 from __future__ import annotations
 
@@ -50,19 +56,19 @@ import os
 
 from env_file import load_env_file
 from foundry_client import register_agent
-from llm_composer import DEFAULT_AUTHOR_AGENT_NAME, SYSTEM_PROMPT, _load_skill, BICEP_AUTHORING_SKILL_PATH
-from conversational_planner import DEFAULT_PLANNER_AGENT_NAME, PLANNER_INSTRUCTIONS
+from llm_composer import AUTHOR_AGENT_NAME, SYSTEM_PROMPT, _load_skill, BICEP_AUTHORING_SKILL_PATH
+from conversational_planner import PLANNER_AGENT_NAME, PLANNER_INSTRUCTIONS
 
 load_env_file()
 
 TARGETS = {
     "author": {
-        "agent_name": DEFAULT_AUTHOR_AGENT_NAME,
+        "agent_name": AUTHOR_AGENT_NAME,
         "instructions": SYSTEM_PROMPT,
         "describe": lambda: f"Loaded skill from {BICEP_AUTHORING_SKILL_PATH} ({len(_load_skill())} chars).",
     },
     "planner": {
-        "agent_name": DEFAULT_PLANNER_AGENT_NAME,
+        "agent_name": PLANNER_AGENT_NAME,
         "instructions": PLANNER_INSTRUCTIONS,
         "describe": lambda: f"Loaded PLANNER_INSTRUCTIONS from conversational_planner.py ({len(PLANNER_INSTRUCTIONS)} chars).",
     },
@@ -73,13 +79,12 @@ TARGETS = {
 def sync_agent_instructions(endpoint: str, model: str | None = None,
                              targets: list[str] | None = None) -> list[str]:
     """Publishes local instructions to the given persistent agent definition(s)
-    (default: both), via foundry_client.register_agent. Reused by both the
-    standalone CLI below and agent.py's main(), which calls this automatically
-    at the start of every run so the portal-visible agent definitions stay in
-    sync with the local instruction sources. Returns a short log of what was
-    updated. Raises on failure (caller decides whether that should block the
-    run) -- but this registration itself is unused by the actual generation/
-    interpretation calls, so a failure here is safe to treat as a warning."""
+    (default: both), via foundry_client.register_agent -- the same underlying
+    call foundry_client.ensure_agent makes automatically at the start of every
+    real planning/authoring run. Useful here for an explicit, on-demand sync
+    (e.g. right after editing a skill file, before the next run happens) or
+    for --dry-run inspection. Returns a short log of what was updated. Raises
+    on failure (caller decides whether that should block)."""
     if not model:
         raise RuntimeError(
             "Registering an agent definition requires a model deployment name "

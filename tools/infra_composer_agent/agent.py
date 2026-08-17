@@ -46,6 +46,7 @@ from resolver import resolve
 from composer import copy_modules
 from conversational_planner import plan_resources_conversationally
 from llm_composer import generate_main_bicep_with_llm, fix_bicep_with_llm
+import plan_doc
 import llm_composer
 from bicep_validate import validate_with_az
 import interactive
@@ -150,7 +151,7 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     # a plan with the user in the loop until it's confirmed. See
     # conversational_planner.py for the full loop and why there's no
     # deterministic pattern-matching/fuzzy-text-scoring here anymore.
-    selected, requested_counts, existing_resource_notes = plan_resources_conversationally(
+    selected, requested_counts, existing_resource_notes, matched_pattern_id, plan_reasons = plan_resources_conversationally(
         prompt, modules, endpoint, foundry_model, non_interactive, log,
     )
 
@@ -168,6 +169,20 @@ def compose(prompt: str, source_root: Path, dest_root: Path,
     # prompt below (build_generation_prompt) so they still take effect even
     # though there is no deterministic template consuming them directly.
     param_defaults = interactive.resolve_unresolved_params(resolution, non_interactive, log)
+
+    # Persist a human-reviewable build plan (PLAN.md) into the solution's own
+    # output folder before main.bicep is authored -- see plan_doc.py for why
+    # this mirrors microsoft/frontier-accelerator-factory's Planner Agent
+    # writing solutions/<slug>/PLAN.md as a review boundary. Written into
+    # dest_root (the staged output, same place main.bicep/README.md land) so
+    # it travels with the generated solution rather than only existing in
+    # this run's transient console/log output.
+    dest_root.mkdir(parents=True, exist_ok=True)
+    plan_path = plan_doc.write_plan_document(
+        dest_root, prompt, matched_pattern_id, requested_counts, plan_reasons,
+        resolution, param_defaults, existing_resource_notes,
+    )
+    log.append(f"Generated {plan_path}")
 
     # NOTE: dest_root may be the target repo's own root (when --dest-name is
     # "."), which also contains .git -- never rmtree the whole directory.
@@ -373,13 +388,16 @@ def main() -> int:
             "already baked in)."
         )
 
-    # Best-effort: publish the agent DEFINITIONS (model + instructions) to the
-    # AI Foundry portal's Agents tab for visibility, in sync with the local
-    # source (conversational_planner.PLANNER_INSTRUCTIONS / llm_composer.SYSTEM_PROMPT).
-    # This is purely for inspection -- the actual generation/interpretation calls
-    # below go straight through the Responses API and never reference this
-    # registration, so a sync failure (e.g. no Azure credentials / offline) is
-    # non-fatal and only surfaced as a warning.
+    # Best-effort, early publish/refresh of the two agent DEFINITIONS (model +
+    # instructions) -- "Planner" and "Infra-Builder" -- so the AI Foundry
+    # portal's Agents tab reflects the current local source
+    # (conversational_planner.PLANNER_INSTRUCTIONS / llm_composer.SYSTEM_PROMPT)
+    # before this run's own actual calls happen. This is now a REAL prerequisite
+    # for calling the agents by name (foundry_client.call_agent), but it's also
+    # redundant-by-design: conversational_planner.py and llm_composer.py each call
+    # foundry_client.ensure_agent(...) themselves right before their own first use,
+    # so a failure/skip here is still non-fatal -- it only means the very first
+    # real call below re-publishes the same definition anyway.
     try:
         import update_agent_instructions
         update_agent_instructions.sync_agent_instructions(ai_foundry_endpoint, ai_foundry_model_for_sync)

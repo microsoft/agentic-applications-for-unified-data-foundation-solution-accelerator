@@ -80,11 +80,18 @@ import re
 from pathlib import Path
 
 from module_index import ModuleInfo
-from foundry_client import call_responses
+from foundry_client import call_agent, ensure_agent
 
 MAX_ROUNDS = 8
 
-DEFAULT_PLANNER_AGENT_NAME = "infra-composer-resource-planner"
+# Display name of the real, registered Azure AI Foundry Agent this module
+# calls through (see foundry_client.ensure_agent/call_agent) -- same name
+# as the pre-existing DEFAULT_PLANNER_AGENT_NAME constant this replaces,
+# kept as-is (already registered/visible in the Foundry portal) even though
+# it's now genuinely called by name instead of just published for
+# portal-visibility. Every planner turn (including the technical-pattern-
+# matching sub-step) now genuinely runs AS this agent.
+PLANNER_AGENT_NAME = "infra-composer-resource-planner"
 
 SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 PLANNER_SKILL_PATH = SKILLS_DIR / "resource-planning.md"
@@ -121,12 +128,22 @@ def _load_skill(path: Path = PLANNER_SKILL_PATH) -> str:
     )
 
 
-PLANNER_INSTRUCTIONS = _load_skill()
-
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TECHNICAL_PATTERNS_DIR = REPO_ROOT / "001-wip-repo-structure" / "technical-patterns"
 
+# Kept as a clearly-labeled EXTRA capability appended to the registered
+# "Planner" agent's instructions (see PLANNER_INSTRUCTIONS below) rather than
+# swapped in per-call. A per-call `instructions=` override on an agent-bound
+# client does NOT reliably take precedence over the agent's own registered
+# instructions (confirmed empirically: pattern matching silently stopped
+# working once this call was converted to go through the agent-bound
+# call_agent() with an `extra_instructions` override -- the model kept
+# answering under the main resource-planning instructions instead of
+# returning the strict JSON schema below). So this task is now always part
+# of what the "Planner" agent knows how to do; which of its two jobs to run
+# for a given call is selected via the *input* message instead (see
+# _match_pattern_with_llm), since input content -- unlike a per-call
+# instructions override -- is always honored.
 PATTERN_MATCH_INSTRUCTIONS = """You are matching a user's infrastructure request to the closest one of a \
 small set of predefined technical/business patterns, each described by a title and a one-paragraph \
 solution overview. You will receive the user's request and the list of pattern candidates (id, title, \
@@ -136,6 +153,19 @@ reasonable match, say so honestly rather than forcing a pick.
 
 Output STRICT JSON ONLY, no markdown fences, no commentary, matching exactly this schema:
 {"matched_id": "<pattern id, or null if none match>", "reason": "<one short sentence explaining the match or non-match>"}
+"""
+
+PLANNER_INSTRUCTIONS = _load_skill() + f"""
+
+## Additional one-off sub-task: technical-pattern matching
+
+Sometimes a single message will ask you to do a DIFFERENT, narrower job instead of the resource-planning
+conversation above: classifying a user's request against a small list of predefined technical patterns.
+Such a message will always start with the exact marker line "PATTERN-MATCH TASK:" -- when you see that
+marker, ignore all the resource-planning instructions above for that one reply and instead follow these
+rules exactly, responding with nothing but the JSON they specify:
+
+{PATTERN_MATCH_INSTRUCTIONS}
 """
 
 
@@ -183,20 +213,28 @@ def _load_technical_patterns() -> list[dict]:
 
 def _match_pattern_with_llm(prompt: str, patterns: list[dict], ai_foundry_endpoint: str,
                              ai_foundry_model: str) -> tuple[dict | None, str]:
-    """Asks the LLM which (if any) predefined pattern the request resembles,
-    reasoning over each pattern's real README title/overview (never a
-    hardcoded keyword table). Returns (matched pattern dict or None, reason)."""
+    """Asks the Planner agent which (if any) predefined pattern the request
+    resembles, reasoning over each pattern's real README title/overview
+    (never a hardcoded keyword table). Returns (matched pattern dict or
+    None, reason). Runs through the SAME registered "Planner" agent as the
+    main planning conversation (see call_agent) -- this is an internal
+    sub-step of the Planner's own workflow, not a separate agent. The
+    classification task is selected via the "PATTERN-MATCH TASK:" marker in
+    the user message (see PLANNER_INSTRUCTIONS), not a per-call instructions
+    override -- an override was tried first but does not reliably take
+    precedence over an agent-bound client's own registered instructions."""
     if not patterns:
         return None, ""
     candidates = "\n".join(
         f"- id: {p['id']} | title: {p['title']} | overview: {p['overview']}" for p in patterns
     )
     messages = [
-        {"role": "system", "content": PATTERN_MATCH_INSTRUCTIONS},
-        {"role": "user", "content": f"Pattern candidates:\n{candidates}\n\nUser's request:\n{prompt}"},
+        {"role": "user", "content": (
+            f"PATTERN-MATCH TASK:\nPattern candidates:\n{candidates}\n\nUser's request:\n{prompt}"
+        )},
     ]
     try:
-        raw = call_responses(messages, ai_foundry_endpoint, ai_foundry_model)
+        raw = call_agent(messages, ai_foundry_endpoint, PLANNER_AGENT_NAME)
         parsed = _extract_json(raw)
     except Exception:
         return None, ""
@@ -259,19 +297,26 @@ def _print_plan(plan_items: list[tuple[ModuleInfo, int, str]]) -> None:
 def plan_resources_conversationally(
     prompt: str, modules: list[ModuleInfo], ai_foundry_endpoint: str, ai_foundry_model: str,
     non_interactive: bool, log: list[str],
-) -> tuple[list[ModuleInfo], dict[str, int], list[str]]:
+) -> tuple[list[ModuleInfo], dict[str, int], list[str], str | None, dict[str, str]]:
     """Runs the full ask-then-plan-then-confirm conversation and returns
-    (selected_modules, requested_counts, existing_resource_notes). The first
-    two are the same shapes agent.py's compose() previously built from the
-    tech-pattern + fuzzy-matcher pipeline, so downstream code
-    (resolver.resolve, copy_modules, etc.) is unaffected.
+    (selected_modules, requested_counts, existing_resource_notes,
+    matched_pattern_id, plan_reasons). The first two are the same shapes
+    agent.py's compose() previously built from the tech-pattern +
+    fuzzy-matcher pipeline, so downstream code (resolver.resolve,
+    copy_modules, etc.) is unaffected.
     existing_resource_notes is a new list of short "<concept>: <value>"
     strings for any existing resource identifiers the user supplied when
     asked (see skills/resource-planning.md) -- e.g. "Key Vault:
     /subscriptions/.../vaults/myKV" -- forwarded to llm_composer.py so the
     generated main.bicep can wire the literal existing resource ID instead
-    of provisioning a new one for that concept. Raises SystemExit if no
-    plan could be agreed on after MAX_ROUNDS.
+    of provisioning a new one for that concept.
+    matched_pattern_id is the id of the technical-pattern README this
+    request matched (or None if none matched/no patterns exist), and
+    plan_reasons maps each planned module's key to the LLM's one-line
+    reason for including it -- both are surfaced in the persisted PLAN.md
+    build-plan document (see plan_doc.py) so the capability inventory is
+    reviewable after the run, not just visible transiently in the console.
+    Raises SystemExit if no plan could be agreed on after MAX_ROUNDS.
 
     Before the module-level planning conversation starts, this first tries
     to match the request against one of the existing pattern READMEs (see
@@ -285,6 +330,13 @@ def plan_resources_conversationally(
     planning proceeds purely from the free-text request as before."""
     modules_by_key = {m.key: m for m in modules}
     catalog = _catalog_text(modules)
+
+    # Publish/refresh the "Planner" agent's registered instructions from the
+    # current resource-planning.md skill file BEFORE any call_agent(...) use
+    # below (including the pattern-match sub-step) -- this is a no-op after
+    # the first call this process, so every turn in this conversation runs
+    # against the same, currently-published instructions.
+    ensure_agent(ai_foundry_endpoint, PLANNER_AGENT_NAME, ai_foundry_model, PLANNER_INSTRUCTIONS)
 
     patterns = _load_technical_patterns()
     matched_pattern, match_reason = _match_pattern_with_llm(prompt, patterns, ai_foundry_endpoint, ai_foundry_model)
@@ -307,11 +359,13 @@ def plan_resources_conversationally(
             f"on top of this baseline."
         )
     elif patterns:
+        print("I couldn't find any existing technical pattern that matches this request. Could you give me "
+              "more details about the infrastructure/resources you have in mind, so I can help put together "
+              "the right plan?\n")
         log.append("No existing technical pattern matched this request" +
                     (f" ({match_reason})" if match_reason else "") + " -- planning purely from the prompt.")
 
     messages: list[dict] = [
-        {"role": "system", "content": PLANNER_INSTRUCTIONS},
         {"role": "user", "content": f"Module catalog:\n{catalog}\n\nUser's request:\n{prompt}{pattern_context}"},
     ]
 
@@ -320,7 +374,7 @@ def plan_resources_conversationally(
     awaiting_confirmation = False
 
     for round_num in range(1, MAX_ROUNDS + 1):
-        raw = call_responses(messages, ai_foundry_endpoint, ai_foundry_model)
+        raw = call_agent(messages, ai_foundry_endpoint, PLANNER_AGENT_NAME)
         parsed = _extract_json(raw)
         messages.append({"role": "assistant", "content": raw})
 
@@ -415,14 +469,17 @@ def plan_resources_conversationally(
 
     selected: list[ModuleInfo] = []
     requested_counts: dict[str, int] = {}
+    plan_reasons: dict[str, str] = {}
     for module, count, reason in plan_items:
         if module not in selected:
             selected.append(module)
         requested_counts[module.key] = requested_counts.get(module.key, 0) + count
         if reason:
+            plan_reasons[module.key] = reason
             log.append(f"Planned '{module.key}' x{count} -- {reason}")
         else:
             log.append(f"Planned '{module.key}' x{count}")
 
     existing_resource_notes = [f"{concept}: {value}" for concept, value in existing_resources]
-    return selected, requested_counts, existing_resource_notes
+    matched_pattern_id = matched_pattern["id"] if matched_pattern else None
+    return selected, requested_counts, existing_resource_notes, matched_pattern_id, plan_reasons
