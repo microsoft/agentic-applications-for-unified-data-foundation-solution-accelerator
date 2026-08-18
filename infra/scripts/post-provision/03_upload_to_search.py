@@ -264,7 +264,10 @@ print(f"Data Folder: {data_dir}")
 def get_openai_client():
     """Create Azure OpenAI client using AI endpoint."""
     if not AZURE_AI_ENDPOINT:
-        raise ValueError("AZURE_OPENAI_ENDPOINT or AZURE_AI_AGENT_ENDPOINT not set")
+        raise ValueError(
+            "AZURE_OPENAI_ENDPOINT, AZURE_AI_ENDPOINT, or "
+            "AZURE_AI_AGENT_ENDPOINT not set"
+        )
     
     credential = DefaultAzureCredential()
     token = credential.get_token("https://cognitiveservices.azure.com/.default")
@@ -599,4 +602,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
