@@ -401,7 +401,7 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 
     | Scenario | Sample Questions |
     |----------|-----------------|
-    | **Retail (Default)** | "Show the top 5 products by total quantity sold last month?"<br /> "Show total revenue by year for last 5 years" <br /> "Show top 10 products by Revenue in the last year" |
+    | **Retail (Default)** | "Show the top 5 products by total quantity sold"<br /> "Show total revenue by year for last 5 years" <br /> "Show top 10 products by Revenue" |
     | **Insurance** | "I'm meeting Ida Abolina. Can you summarize her customer information and tell me the number of claims, payments, and communications she's had?" <br /> "Can you provide details of her communications?" <br /> "Based on Ida's policy data has she ever missed a payment?" |
 
 11. Once the build has completed successfully, go to the deployed resource group, find the App Service, and get the app URL from `Default domain`.
