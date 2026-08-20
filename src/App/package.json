@@ -87,6 +87,7 @@
     "websocket-driver": "0.7.5",
     "http-proxy-middleware": "2.0.10",
     "body-parser": "1.20.6",
+    "nanoid": "3.3.18",
     "webpack-dev-server": {
       "ws": "8.21.0"
     },
