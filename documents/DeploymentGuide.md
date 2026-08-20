@@ -359,7 +359,8 @@ Once you've opened the project in [Codespaces](#github-codespaces), [Dev Contain
 7. Install dependencies:
 
     ```shell
-    pip install uv && uv pip install -r infra/scripts/post-provision/requirements.txt
+    python -m pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ uv
+    uv pip install --default-index https://packagefeedproxy.microsoft.io/pypi/simple/ -r infra/scripts/post-provision/requirements.txt
     ```
 
 8. Login to Azure:

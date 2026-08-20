@@ -40,7 +40,7 @@ jobs:
       - name: Restore dependencies
         run: |
           cd src/api/dotnet
-          dotnet restore
+          dotnet restore --configfile nuget.config
 
       - name: Build solution
         run: |

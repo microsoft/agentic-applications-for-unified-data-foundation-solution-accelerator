@@ -356,7 +356,7 @@ source .venv/bin/activate  # Linux
 .venv\Scripts\activate  # Windows PowerShell
 
 # Install dependencies
-pip install -r requirements.txt
+python -m pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ -r requirements.txt
 ```
 
 #### 4A.4. Run the Python Backend API
@@ -527,7 +527,7 @@ python -m venv .venv
 # Activate and reinstall
 source .venv/bin/activate  # Linux
 # or .venv\Scripts\Activate.ps1  # Windows
-pip install -r requirements.txt
+python -m pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ -r requirements.txt
 ```
 
 #### Permission Issues (Linux)
@@ -546,8 +546,8 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 # Long path support (Windows 10 1607+, run as Administrator)
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
 
-# SSL certificate issues
-pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org uv
+# Install uv through the Microsoft package feed proxy
+python -m pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ uv
 ```
 
 ### Environment Variable Issues

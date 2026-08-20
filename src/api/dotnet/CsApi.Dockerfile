@@ -13,8 +13,8 @@ WORKDIR /app
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:10.0-preview-alpine AS build
 WORKDIR /src
-COPY CsApi.csproj ./
-RUN dotnet restore "CsApi.csproj"
+COPY CsApi.csproj nuget.config ./
+RUN dotnet restore "CsApi.csproj" --configfile nuget.config
 COPY . .
 RUN dotnet publish "CsApi.csproj" -c Release -o /app/publish /p:UseAppHost=false
 

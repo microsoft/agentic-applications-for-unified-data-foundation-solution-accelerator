@@ -1,5 +1,5 @@
 # Fabric Ontology Lab - Requirements
-# Install with: pip install -r infra/scripts/post-provision/requirements.txt
+# Install with: python -m pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ -r infra/scripts/post-provision/requirements.txt
 # Versions locked for workshop consistency (April 2026)
 
 --index-url https://packagefeedproxy.microsoft.io/pypi/simple/

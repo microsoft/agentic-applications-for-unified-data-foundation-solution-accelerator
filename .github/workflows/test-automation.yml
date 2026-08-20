@@ -15,6 +15,7 @@ on:
 env:
     url: ${{ inputs.WEB_URL }}
     accelerator_name: "Fabric SQL"
+    PIP_INDEX_URL: https://packagefeedproxy.microsoft.io/pypi/simple/
 
 jobs:
   test:

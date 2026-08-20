@@ -26,9 +26,11 @@ WORKDIR /app
 # Copy only the requirements file first to leverage Docker layer caching
 COPY ./requirements.txt .
 
-# Install Python dependencies
+ENV PIP_INDEX_URL=https://packagefeedproxy.microsoft.io/pypi/simple/
+
 RUN pip install --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir -r requirements.txt && rm -rf /root/.cache
+    && pip install --no-cache-dir -r requirements.txt \
+    && rm -rf /root/.cache
 
 # Copy the backend application code into the container
 COPY ./ .
