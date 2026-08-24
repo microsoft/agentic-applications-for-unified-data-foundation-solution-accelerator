@@ -8,6 +8,8 @@ set "AZURE_FOLDER=%ROOT_DIR%\.azure"
 set "CONFIG_FILE=%AZURE_FOLDER%\config.json"
 set "API_PYTHON_ENV_FILE=%ROOT_DIR%\src\api\python\.env"
 set "API_DOTNET_DIR=%ROOT_DIR%\src\api\dotnet"
+if not defined PIP_INDEX_URL set "PIP_INDEX_URL=https://packagefeedproxy.microsoft.io/pypi/simple/"
+if not defined UV_DEFAULT_INDEX set "UV_DEFAULT_INDEX=https://packagefeedproxy.microsoft.io/pypi/simple/"
 
 REM ============================================================
 REM  Locate .env file (Azure deployment or local fallback)
@@ -414,7 +416,7 @@ if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" (
     echo.
     echo Restoring dotnet backend packages...
     cd "%ROOT_DIR%\src\api\dotnet"
-    call dotnet restore --verbosity quiet
+    call dotnet restore --configfile nuget.config --verbosity quiet
     if errorlevel 1 (
         echo Failed to restore dotnet backend packages
         exit /b 1

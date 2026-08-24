@@ -98,7 +98,7 @@ jobs:
     - name: Build C# project
       if: matrix.language == 'csharp'
       run: |
-        dotnet restore src/api/dotnet/CsApi.csproj
+        dotnet restore src/api/dotnet/CsApi.csproj --configfile src/api/dotnet/nuget.config
         dotnet build src/api/dotnet/CsApi.csproj --configuration Release --no-restore
 
     - name: Perform CodeQL Analysis

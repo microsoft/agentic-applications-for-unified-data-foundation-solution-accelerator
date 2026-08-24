@@ -15,6 +15,9 @@ on:
       - '.github/workflows/pylint.yml'
       - '.flake8'
 
+env:
+  PIP_INDEX_URL: https://packagefeedproxy.microsoft.io/pypi/simple/
+
 permissions:
   contents: read
 
