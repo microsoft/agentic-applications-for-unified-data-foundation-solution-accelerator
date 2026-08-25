@@ -33,7 +33,7 @@ User id resolved from header `x-ms-client-principal-id`.
 
 ## Run
 ```
-dotnet restore
+dotnet restore --configfile nuget.config
 dotnet run --project src/api/cs-api/CsApi/CsApi.csproj
 ```
 Service listens on http://localhost:8000.

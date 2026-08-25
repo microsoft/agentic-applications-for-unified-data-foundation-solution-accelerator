@@ -352,7 +352,11 @@ def assign_cosmos_role():
             print(f"  [OK] Cosmos DB Data Contributor role assigned to current user ({user_object_id})")
 
     except ImportError:
-        print("  [WARN] azure-mgmt-cosmosdb not installed. Run: pip install azure-mgmt-cosmosdb")
+        print(
+            "  [WARN] azure-mgmt-cosmosdb not installed. Run: "
+            "python -m pip install --index-url "
+            "https://packagefeedproxy.microsoft.io/pypi/simple/ azure-mgmt-cosmosdb"
+        )
     except Exception as e:
         print(f"  [WARN] Cosmos DB role assignment failed: {e}")
         print("         This is non-critical - continuing...")

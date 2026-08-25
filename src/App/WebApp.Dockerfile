@@ -1,7 +1,7 @@
 FROM node:24-alpine AS build
 WORKDIR /home/node/app
 
-COPY ./package*.json ./
+COPY ./package*.json ./.npmrc ./
 
 RUN npm ci --omit=dev
 

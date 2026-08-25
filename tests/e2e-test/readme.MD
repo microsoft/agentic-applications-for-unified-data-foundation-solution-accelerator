@@ -19,7 +19,7 @@ This will create a virtual environment directory named microsoft inside your cur
 
 Installing Playwright Pytest from Virtual Environment
 
-- To install libraries run "pip install -r requirements.txt"
+- To install libraries, run `python -m pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ -r requirements.txt`.
 - Install the required browsers "playwright install"
 
 Run test cases
