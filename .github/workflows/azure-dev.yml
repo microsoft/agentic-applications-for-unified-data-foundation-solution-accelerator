@@ -22,7 +22,7 @@ jobs:
       DEPLOYING_USER_PRINCIPAL_TYPE: ServicePrincipal
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v7
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       
       - name: Set timestamp and env name
         run: |

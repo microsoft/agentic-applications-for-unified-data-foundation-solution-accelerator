@@ -29,10 +29,10 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up .NET ${{ env.DOTNET_VERSION }}
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           dotnet-quality: 'preview'
@@ -157,7 +157,7 @@ jobs:
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.fork == false &&
           steps.find-coverage.outputs.coverage_file != ''
-        uses: MishaKav/pytest-coverage-comment@fd9adbdca9fdfbe2b9bfa44a7340e6a83346ce6c  # v1.10.0
+        uses: MishaKav/pytest-coverage-comment@dd5b80bde6d16941f336518e92929e89069d8451  # v1.7.2
         with:
           pytest-xml-coverage-path: ${{ steps.find-coverage.outputs.coverage_file }}
           title: .NET Coverage Report
