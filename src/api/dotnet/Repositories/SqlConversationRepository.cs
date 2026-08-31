@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.Common;
 using System.Data.Odbc;
+using Azure.Core;
 using CsApi.Models;
 using System.Text.Json;
 
@@ -16,18 +17,19 @@ public interface ISqlConversationRepository
     Task<bool?> DeleteAsync(string? userId, string conversationId, CancellationToken ct);
     Task<int?> DeleteAllAsync(string? userId, CancellationToken ct);
     Task<bool?> RenameAsync(string? userId, string conversationId, string title, CancellationToken ct);
-    Task<string> ExecuteChatQuery(string query, CancellationToken ct);
 }
 
 public class SqlConversationRepository : ISqlConversationRepository
 {
     private readonly IConfiguration _config;
     private readonly ILogger<SqlConversationRepository> _logger;
+    private readonly CsApi.Auth.IAzureCredentialFactory _credentialFactory;
 
-    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger)
-    { 
-        _config = config; 
-        _logger = logger; 
+    public SqlConversationRepository(IConfiguration config, ILogger<SqlConversationRepository> logger, CsApi.Auth.IAzureCredentialFactory credentialFactory)
+    {
+        _config = config;
+        _logger = logger;
+        _credentialFactory = credentialFactory;
     }
 
     private async Task<IDbConnection> CreateConnectionAsync()
@@ -39,7 +41,49 @@ public class SqlConversationRepository : ISqlConversationRepository
             {
                 return await CreateConnectionCoreAsync();
             }
-            catch (Exception ex)
+            catch (OdbcException ex)
+            {
+                _logger.LogWarning("Database connection attempt {Attempt}/{MaxRetries} failed: {Error}", attempt, maxRetries, ex.Message);
+                if (attempt < maxRetries)
+                {
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt)); // Exponential backoff: 2s, 4s
+                    await Task.Delay(delay);
+                }
+                else
+                {
+                    _logger.LogError(ex, "Failed to establish database connection after {MaxRetries} attempts", maxRetries);
+                    throw;
+                }
+            }
+            catch (DbException ex)
+            {
+                _logger.LogWarning("Database connection attempt {Attempt}/{MaxRetries} failed: {Error}", attempt, maxRetries, ex.Message);
+                if (attempt < maxRetries)
+                {
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt)); // Exponential backoff: 2s, 4s
+                    await Task.Delay(delay);
+                }
+                else
+                {
+                    _logger.LogError(ex, "Failed to establish database connection after {MaxRetries} attempts", maxRetries);
+                    throw;
+                }
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogWarning("Database connection attempt {Attempt}/{MaxRetries} timed out: {Error}", attempt, maxRetries, ex.Message);
+                if (attempt < maxRetries)
+                {
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt)); // Exponential backoff: 2s, 4s
+                    await Task.Delay(delay);
+                }
+                else
+                {
+                    _logger.LogError(ex, "Failed to establish database connection after {MaxRetries} attempts", maxRetries);
+                    throw;
+                }
+            }
+            catch (InvalidOperationException ex)
             {
                 _logger.LogWarning("Database connection attempt {Attempt}/{MaxRetries} failed: {Error}", attempt, maxRetries, ex.Message);
                 if (attempt < maxRetries)
@@ -59,6 +103,15 @@ public class SqlConversationRepository : ISqlConversationRepository
     }
 
     private async Task<IDbConnection> CreateConnectionCoreAsync()
+    {
+        // History/conversation storage always uses Fabric SQL
+        return await CreateFabricSqlConnectionAsync();
+    }
+
+    /// <summary>
+    /// Connect to Fabric Lakehouse SQL via ODBC.
+    /// </summary>
+    private async Task<IDbConnection> CreateFabricSqlConnectionAsync()
     {
         var appEnv = (_config["APP_ENV"] ?? "prod").ToLower();
 
@@ -103,25 +156,27 @@ public class SqlConversationRepository : ISqlConversationRepository
     {
         var id = conversationId ?? Guid.NewGuid().ToString();
         using var conn = await CreateConnectionAsync();
-        
-        _logger.LogInformation("EnsureConversationAsync - Input: userId={UserId}, conversationId={ConversationId}, generatedId={GeneratedId}", 
-            userId ?? "NULL", conversationId ?? "NULL", id);
-        
+
+        _logger.LogInformation(
+            "EnsureConversationAsync - Input: hasUserContext={HasUserContext}, hasProvidedConversationId={HasProvidedConversationId}",
+            !string.IsNullOrEmpty(userId),
+            !string.IsNullOrEmpty(conversationId));
+
         // Check if conversation exists
         const string existsSql = "SELECT userId FROM hst_conversations WHERE conversation_id=?";
         using (var check = new OdbcCommand(existsSql, (OdbcConnection)conn))
         {
             check.Parameters.AddWithValue("", id);
-            
+
             var result = check.ExecuteScalar();
             if (result != null)
             {
-                 return (id, false); // Conversation exists and user has permission
+                return (id, false); // Conversation exists and user has permission
             }
         }
-        
+
         // Conversation doesn't exist, create it
-        _logger.LogInformation("EnsureConversationAsync - Creating NEW conversation with id={ConversationId}", id);
+        _logger.LogInformation("EnsureConversationAsync - Creating new conversation");
         const string insertSql = "INSERT INTO hst_conversations (userId, conversation_id, title, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)";
         var now = DateTime.UtcNow.ToString("o");
         using (var cmd = new OdbcCommand(insertSql, (OdbcConnection)conn))
@@ -141,7 +196,7 @@ public class SqlConversationRepository : ISqlConversationRepository
     {
         using var conn = await CreateConnectionAsync();
         string sql;
-        
+
         if (!string.IsNullOrEmpty(userId))
         {
             sql = "UPDATE hst_conversations SET title=?, updatedAt=? WHERE userId=? AND conversation_id=?";
@@ -167,13 +222,13 @@ public class SqlConversationRepository : ISqlConversationRepository
     {
         var now = DateTime.UtcNow.ToString("o");
         using var conn = await CreateConnectionAsync();
-        
+
         // Get citations as JSON string for storage (matches Python behavior)
         var citationsJson = message.GetCitationsAsJsonString();
-        
+
         // Get content as JSON string for storage - this preserves chart data structure
         var contentJson = message.GetContentAsJsonString();
-        
+
         if (!string.IsNullOrEmpty(userId))
         {
             // INSERT message
@@ -228,14 +283,12 @@ public class SqlConversationRepository : ISqlConversationRepository
     public async Task<IReadOnlyList<ConversationSummary>> ListAsync(string? userId, int offset, int limit, string sortOrder, CancellationToken ct)
     {
         var list = new List<ConversationSummary>();
+        bool filterByUser = !string.IsNullOrEmpty(userId);
         try
         {
             var order = sortOrder.Equals("asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
             using var conn = await CreateConnectionAsync();
             string sql;
-            bool filterByUser = !string.IsNullOrEmpty(userId);
-            // REDUNDANT: Detailed user listing logging
-            // Console.WriteLine($"Listing conversations for user '{userId}' (filterByUser={filterByUser})");
             sql = filterByUser
                 ? $"SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations WHERE userId=? ORDER BY updatedAt {order} OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
                 : $"SELECT conversation_id, title, createdAt, updatedAt FROM hst_conversations ORDER BY updatedAt {order} OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -251,13 +304,13 @@ public class SqlConversationRepository : ISqlConversationRepository
                     var title = reader.IsDBNull(reader.GetOrdinal("title")) ? "New Conversation" : reader.GetString("title");
                     var createdAt = reader.IsDBNull(reader.GetOrdinal("createdAt")) ? DateTime.UtcNow : reader.GetDateTime("createdAt");
                     var updatedAt = reader.IsDBNull(reader.GetOrdinal("updatedAt")) ? DateTime.UtcNow : reader.GetDateTime("updatedAt");
-                    
+
                     // Ensure title is not empty
                     if (string.IsNullOrWhiteSpace(title))
                     {
                         title = "New Conversation";
                     }
-                    
+
                     list.Add(new ConversationSummary
                     {
                         ConversationId = reader.GetString("conversation_id"),
@@ -267,33 +320,22 @@ public class SqlConversationRepository : ISqlConversationRepository
                     });
                 }
             }
-            // REDUNDANT: Verbose logging can be reduced in production
-            // Console.WriteLine($"Retrieved {list.Count} conversations from database");
-            // foreach (var conv in list)
-            // {
-            //     Console.WriteLine($"  - {conv.ConversationId}: '{conv.Title}' (user: {conv.UserId}) [created: {conv.CreatedAt}, updated: {conv.UpdatedAt}]");
-            // }
         }
         catch (OdbcException ex)
         {
-            _logger.LogError(ex, "SQL error listing conversations for user {UserId}", userId);
+            _logger.LogError(ex, "SQL error listing conversations (hasUserContext={HasUserContext})", filterByUser);
         }
         catch (DbException ex)
         {
-            _logger.LogError(ex, "Database error listing conversations for user {UserId}", userId);
+            _logger.LogError(ex, "Database error listing conversations (hasUserContext={HasUserContext})", filterByUser);
         }
         catch (TimeoutException ex)
         {
-            _logger.LogWarning(ex, "Timeout listing conversations for user {UserId}", userId);
+            _logger.LogWarning(ex, "Timeout listing conversations (hasUserContext={HasUserContext})", filterByUser);
         }
         catch (OperationCanceledException)
         {
             // Request was cancelled, no logging needed
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException && ex is not OdbcException && ex is not DbException && ex is not TimeoutException)
-        {
-            _logger.LogError(ex, "Unexpected error listing conversations for user {UserId}", userId);
-            throw;
         }
         return list;
     }
@@ -303,8 +345,6 @@ public class SqlConversationRepository : ISqlConversationRepository
         var order = sortOrder.Equals("asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
         string sql;
         bool filterByUser = !string.IsNullOrEmpty(userId);
-        // REDUNDANT: Detailed message reading logging
-        // Console.WriteLine($"Reading messages for user '{userId}' and conversation '{conversationId}' (filterByUser={filterByUser})");
         if (string.IsNullOrEmpty(conversationId))
             return new List<ChatMessage>();
         sql = filterByUser
@@ -324,34 +364,34 @@ public class SqlConversationRepository : ISqlConversationRepository
                 var contentRaw = reader.IsDBNull(reader.GetOrdinal("content")) ? null : reader.GetString("content");
                 var citationsStr = reader.IsDBNull(reader.GetOrdinal("citations")) ? null : reader.GetString("citations");
                 var feedback = reader.IsDBNull(reader.GetOrdinal("feedback")) ? null : reader.GetString("feedback");
-                
+
                 // Parse content from JSON string back to JsonElement (matches Python behavior)
                 // This is crucial for chart data to be properly structured instead of string
                 JsonElement content = JsonSerializer.SerializeToElement(string.Empty);
                 if (!string.IsNullOrWhiteSpace(contentRaw))
                 {
-                    try 
-                    { 
+                    try
+                    {
                         // Try to deserialize content as JSON first
                         content = JsonSerializer.Deserialize<JsonElement>(contentRaw);
-                    } 
+                    }
                     catch (JsonException)
-                    { 
+                    {
                         // If parsing fails, treat as string
                         content = JsonSerializer.SerializeToElement(contentRaw);
                     }
                 }
-                
+
                 // Parse citations as JsonElement to maintain flexibility (matches Python behavior)
                 JsonElement? citations = null;
                 if (!string.IsNullOrWhiteSpace(citationsStr))
                 {
-                    try 
-                    { 
+                    try
+                    {
                         citations = JsonSerializer.Deserialize<JsonElement>(citationsStr);
-                    } 
+                    }
                     catch (JsonException)
-                    { 
+                    {
                         // If parsing fails, treat as null
                         citations = null;
                     }
@@ -361,7 +401,7 @@ public class SqlConversationRepository : ISqlConversationRepository
                         citations = null;
                     }
                 }
-                
+
                 list.Add(new ChatMessage
                 {
                     Role = role ?? string.Empty,
@@ -371,8 +411,6 @@ public class SqlConversationRepository : ISqlConversationRepository
                 });
             }
         }
-        // REDUNDANT: Message count logging
-        // Console.WriteLine($"Read {list.Count} messages for conversation '{conversationId}'");
         return list;
     }
 
@@ -382,7 +420,7 @@ public class SqlConversationRepository : ISqlConversationRepository
         const string checkSql = "SELECT userId FROM hst_conversations WHERE conversation_id=?";
         using var conn = await CreateConnectionAsync();
         string? foundUserId;
-        
+
         using (var checkCmd = new OdbcCommand(checkSql, (OdbcConnection)conn))
         {
             checkCmd.Parameters.AddWithValue("", conversationId);
@@ -423,7 +461,7 @@ public class SqlConversationRepository : ISqlConversationRepository
     public async Task<int?> DeleteAllAsync(string? userId, CancellationToken ct)
     {
         using var conn = await CreateConnectionAsync();
-        
+
         // If userId is provided, delete only that user's conversations
         // If userId is null/empty, allow global delete (all conversations)
         string deleteMessagesSql = !string.IsNullOrEmpty(userId)
@@ -484,91 +522,5 @@ public class SqlConversationRepository : ISqlConversationRepository
 
         var rows = updateCmd.ExecuteNonQuery();
         return rows > 0;
-    }
-
-    public async Task<string> ExecuteChatQuery(string query, CancellationToken ct)
-    {
-        _logger.LogInformation("Chat Agent - Executing SQL query: {Query}", query);
-        var results = new List<Dictionary<string, object?>>();
-        using var conn = await CreateConnectionAsync();
-        using var cmd = new OdbcCommand(query, (OdbcConnection)conn);
-        try
-        {
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                var row = new Dictionary<string, object?>();
-                for (int i = 0; i < reader.FieldCount; i++)
-                {
-                    var colName = reader.GetName(i);
-                    var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                
-                    // Handle data type conversions to match Python SqlQueryTool behavior
-                    if (value != null)
-                    {
-                        // Convert DateTime, DateOnly, and TimeOnly to ISO format string like Python
-                        if (value is DateTime dateTime)
-                        {
-                            row[colName] = dateTime.ToString("O"); // ISO 8601 format (matches Python .isoformat())
-                        }
-                        else if (value is DateOnly dateOnly)
-                        {
-                            row[colName] = dateOnly.ToString("yyyy-MM-dd"); // ISO date format
-                        }
-                        else if (value is TimeOnly timeOnly)
-                        {
-                            row[colName] = timeOnly.ToString("HH:mm:ss"); // ISO time format
-                        }
-                        // Convert Decimal to double like Python converts to float
-                        else if (value is decimal decimalValue)
-                        {
-                            row[colName] = (double)decimalValue;
-                        }
-                        // Handle other numeric types consistently
-                        else if (value is float floatValue)
-                        {
-                            row[colName] = (double)floatValue;
-                        }
-                        // Handle GUID as string for JSON serialization
-                        else if (value is Guid guidValue)
-                        {
-                            row[colName] = guidValue.ToString();
-                        }
-                        else
-                        {
-                            row[colName] = value;
-                        }
-                    }
-                    else
-                    {
-                        row[colName] = null;
-                    }
-                }
-                results.Add(row);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Preserve cancellation semantics for callers
-            throw;
-        }
-        catch (OdbcException ex)
-        {
-            _logger.LogError(ex, "SQL error executing chat query");
-            throw;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException && ex is not OdbcException)
-        {
-            _logger.LogError(ex, "Chat Agent - Error executing SQL query: {Query}", query);
-            throw;
-        }
-        if (results.Count == 0)
-        {
-            _logger.LogInformation("Chat Agent - SQL query returned no results.");
-            return "No results found.";            
-        }
-        var json = JsonSerializer.Serialize(results);
-        _logger.LogInformation("Chat Agent - Result of SQL query: {Result}", json);
-        return json;
     }
 }

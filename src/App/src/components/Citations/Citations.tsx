@@ -16,22 +16,22 @@ const Citations = memo(({ answer, index }: Props) => {
     
     const dispatch = useAppDispatch();
     const selectedConversationId = useAppSelector((state) => state.app.selectedConversationId);
+    const generatedConversationId = useAppSelector((state) => state.app.generatedConversationId);
+    const conversationId = selectedConversationId || generatedConversationId || "default";
     const parsedAnswer = useMemo(() => parseAnswer(answer), [answer]);
     const createCitationFilepath = (
         citation: Citation,
         index: number,
         truncate: boolean = false
     ) => {
-        let citationFilename = "";
-            citationFilename =  citation.title ? (citation.title ?? `Citation ${index}`) : `Citation ${index}`;
-        return citationFilename;
+        return citation.id || citation.source || citation.title || `Citation ${index}`;
     };
 
     const onCitationClicked = useCallback(async (
         citation: Citation
     ) => {
-        dispatch(fetchCitationContent({ citation, conversationId: selectedConversationId }));
-    }, [dispatch, selectedConversationId]);
+        dispatch(fetchCitationContent({ citation, conversationId }));
+    }, [dispatch, conversationId]);
 
 
     return (

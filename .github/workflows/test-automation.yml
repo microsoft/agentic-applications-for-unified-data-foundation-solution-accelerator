@@ -15,6 +15,7 @@ on:
 env:
     url: ${{ inputs.WEB_URL }}
     accelerator_name: "Fabric SQL"
+    PIP_INDEX_URL: https://packagefeedproxy.microsoft.io/pypi/simple/
 
 jobs:
   test:
@@ -86,7 +87,7 @@ jobs:
 
       - name: Upload test report
         id: upload_report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ !cancelled() }}
         with:
           name: test-report

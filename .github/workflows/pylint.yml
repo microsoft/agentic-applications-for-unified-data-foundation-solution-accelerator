@@ -7,6 +7,19 @@ on:
       - 'infra/scripts/**/*.py'
       - '.github/workflows/pylint.yml'
       - '.flake8'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'src/api/python/**'
+      - 'infra/scripts/**/*.py'
+      - '.github/workflows/pylint.yml'
+      - '.flake8'
+
+env:
+  PIP_INDEX_URL: https://packagefeedproxy.microsoft.io/pypi/simple/
+
+permissions:
+  contents: read
 
 jobs:
   build:

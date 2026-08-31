@@ -5,10 +5,10 @@ import {
   Subtitle2,
   Body2,
   webLightTheme,
-  Avatar,
 } from "@fluentui/react-components";
 import "./App.css";
 import { ChatHistoryPanel } from "./components/ChatHistoryPanel/ChatHistoryPanel";
+import LoginButton from "./components/LoginButton/LoginButton";
 
 
 import { useAppDispatch, useAppSelector } from "./store/hooks";
@@ -23,6 +23,7 @@ import { setMessages, clearChat } from "./store/chatSlice";
 import { AppLogo } from "./components/Svg/Svg";
 import CustomSpinner from "./components/CustomSpinner/CustomSpinner";
 import CitationPanel from "./components/CitationPanel/CitationPanel";
+import { getAppTitlePrimary, getAppTitleSecondary } from "./config";
 const panels = {
   CHAT: "CHAT",
   CHATHISTORY: "CHATHISTORY",
@@ -58,17 +59,11 @@ const Dashboard: React.FC = () => {
   const [offset, setOffset] = useState<number>(0);
   const OFFSET_INCREMENT = 25;
   const [hasMoreRecords, setHasMoreRecords] = useState<boolean>(true);
-  const [name, setName] = useState<string>("");
   const isInitialFetchStarted = useRef(false);
 
   useEffect(() => {
-    dispatch(fetchUserInfo()).unwrap().then((res) => {
-      const name: string = res[0]?.user_claims?.find((claim: any) => claim.typ === 'name')?.val ?? ''
-      setName(name)
-    }).catch(() => {
-      // Error fetching user info - silent fail
-    })
-  }, []);
+    dispatch(fetchUserInfo());
+  }, [dispatch]);
 
   const updateLayoutWidths = (newState: Record<string, boolean>) => {
     const noOfWidgetsOpen = Object.values(newState).filter((val) => val).length;
@@ -109,7 +104,9 @@ const Dashboard: React.FC = () => {
   }, [appConfig]);
 
   const onHandlePanelStates = (panelName: string) => {
-    dispatch(clearCitation());
+    if (panelName !== panels.CHATHISTORY) {
+      dispatch(clearCitation());
+    }
     const newState = {
       ...panelShowStates,
       [panelName]: !panelShowStates[panelName],
@@ -200,13 +197,11 @@ const Dashboard: React.FC = () => {
         <div className="header-left-section">
           <AppLogo />
           <Subtitle2>
-            Contoso <Body2 style={{ gap: "10px" }}>| Unified Data Analysis Agents</Body2>
+            {getAppTitlePrimary()} <Body2 style={{ gap: "10px" }}>{getAppTitleSecondary()}</Body2>
           </Subtitle2>
         </div>
         <div className="header-right-section">
-          <div>
-            <Avatar name={name} title={name} />
-          </div>
+          <LoginButton />
         </div>
       </div>
       <div className="main-container">

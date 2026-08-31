@@ -2,7 +2,10 @@ using Azure;
 using CsApi.Interfaces;
 using CsApi.Auth;
 using Azure.AI.Projects;
+using Azure.AI.Extensions.OpenAI;
 using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Foundry;
+using System.Text.Json;
 
 namespace CsApi.Services;
 
@@ -23,7 +26,7 @@ public class TitleGenerationService : ITitleGenerationService
 
     public async Task<string> GenerateTitleAsync(List<Models.ChatMessage> messages, CancellationToken cancellationToken = default)
     {
-        
+
         try
         {
             var userMessages = messages.Where(m => m.Role == "user").ToList();
@@ -68,9 +71,34 @@ public class TitleGenerationService : ITitleGenerationService
             _logger.LogWarning(ex, "Invalid operation while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
             return GenerateFallbackTitle(messages);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException && ex is not RequestFailedException && ex is not InvalidOperationException)
+        catch (UriFormatException ex)
+        {
+            _logger.LogWarning(ex, "Invalid endpoint URI while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "JSON processing error while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "HTTP error while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Error generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (NotSupportedException ex)
+        {
+            _logger.LogWarning(ex, "Unsupported operation while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogWarning(ex, "Formatting error while generating title with Azure AI Foundry agent: {ErrorMessage}", ex.Message);
             return GenerateFallbackTitle(messages);
         }
     }
@@ -82,7 +110,7 @@ public class TitleGenerationService : ITitleGenerationService
         {
             var lastUserMessage = userMessages.Last();
             var content = lastUserMessage.GetContentAsString();
-            
+
             if (!string.IsNullOrEmpty(content))
             {
                 // Take first 4 words like the prompt asks for
@@ -118,9 +146,10 @@ public class TitleGenerationService : ITitleGenerationService
         {
             var credentialFactory = new AzureCredentialFactory(_configuration);
             var credential = credentialFactory.Create();
-           
+
             var projectClient = new AIProjectClient(new Uri(_endpoint), credential);
-            AIAgent titleAgent = projectClient.GetAIAgent(titleAgentName);
+            var agentReference = new AgentReference(titleAgentName);
+            FoundryAgent titleAgent = projectClient.AsAIAgent(agentReference);
 
             var userMessages = messages.Where(m => m.Role == "user").ToList();
             if (userMessages.Count == 0)
@@ -130,7 +159,7 @@ public class TitleGenerationService : ITitleGenerationService
             }
 
             var lastUserMessage = userMessages.Last();
-            var content = lastUserMessage.GetContentAsString();            
+            var content = lastUserMessage.GetContentAsString();
             if (string.IsNullOrEmpty(content))
             {
                 _logger.LogWarning("Last user message is empty for title generation with agent {titleAgentName}", titleAgentName);
@@ -174,9 +203,29 @@ public class TitleGenerationService : ITitleGenerationService
             _logger.LogError(ex, "Invalid endpoint URI generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
             return GenerateFallbackTitle(messages);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException && ex is not RequestFailedException && ex is not InvalidOperationException && ex is not UriFormatException)
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "JSON processing error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (ArgumentException ex)
         {
             _logger.LogError(ex, "Unexpected error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (NotSupportedException ex)
+        {
+            _logger.LogError(ex, "Unsupported operation generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
+            return GenerateFallbackTitle(messages);
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogError(ex, "Formatting error generating title with agent {titleAgentName}: {ErrorMessage}", titleAgentName, ex.Message);
             return GenerateFallbackTitle(messages);
         }
     }

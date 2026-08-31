@@ -230,11 +230,11 @@ jobs:
           sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
 
       - name: Install azd
-        uses: Azure/setup-azd@v2
+        uses: Azure/setup-azd@0b7e3a35ab00f2eee7080c845eb39c3f0ebfa553 # v2
           
       - name: Login to Azure using OIDC
         id: login-azure
-        uses: azure/login@v3
+        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -278,12 +278,11 @@ jobs:
           azd env set BACKEND_RUNTIME_STACK="$BACKEND_RUNTIME_STACK"
           azd env set USE_CASE="$USE_CASE"
           azd env set DEPLOYING_USER_PRINCIPAL_TYPE="ServicePrincipal"
-          azd env set IS_WORKSHOP false
           
           # Set ACR name only when building Docker image
           if [[ "$BUILD_DOCKER_IMAGE" == "true" ]]; then
             # Extract ACR name from login server and set as environment variable
-            ACR_NAME=$(echo "${{ secrets.ACR_TEST_LOGIN_SERVER }}" | cut -d'.' -f1)
+            ACR_NAME=$(echo "${{ vars.ACR_TEST_LOGIN_SERVER }}" | cut -d'.' -f1)
             azd env set AZURE_ENV_CONTAINER_REGISTRY_NAME="$ACR_NAME"
             echo "Set ACR name to: $ACR_NAME"
           else
@@ -332,7 +331,7 @@ jobs:
           echo "API_PID=${API_PID}" >> $GITHUB_OUTPUT
 
       - name: Re-authenticate with Azure (refresh OIDC token)
-        uses: azure/login@v3
+        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}

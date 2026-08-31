@@ -8,27 +8,33 @@ import {
   ConversationRequest,
 } from "../types/AppTypes";
 import { ApiErrorHandler } from "../utils/errorHandler";
-import { getApiBaseUrl, isWorkShopDeployment } from "../config";
+import { getApiBaseUrl } from "../config";
 import { httpClient } from "../utils/httpClient";
-import { getUserId, setUserId, createErrorResponse } from "../utils/apiUtils";
+import { getUserId, setUserId, getAccessToken, setAccessToken, createErrorResponse } from "../utils/apiUtils";
 
 const baseURL = getApiBaseUrl(); // base API URL
-
-// Get history base path based on deployment mode
-function getHistoryBasePath(): string {
-  const isWorkshop = isWorkShopDeployment();
-  const basePath = isWorkshop ? '/history' : '/historyfab';
-  return basePath;
-}
 
 // Initialize HTTP client with base URL
 httpClient.setBaseURL(baseURL);
 
-// Add user ID to all requests via interceptor
+// Add user ID and access token to all requests via interceptor
 httpClient.addRequestInterceptor((config) => {
   const userId = getUserId();
   if (userId && config.headers) {
     (config.headers as any)['X-Ms-Client-Principal-Id'] = userId;
+  }
+  // Add access token for cross-domain auth and OBO flow
+  // EasyAuth accepts a raw AAD Bearer token in the Authorization header for cross-origin
+  // requests. Do NOT also send it as X-ZUMO-AUTH: that header is reserved for EasyAuth's own
+  // self-issued session token (whose iss/aud is the site's own URL), not a raw AAD access
+  // token. Sending the AAD token there causes EasyAuth's own token validator to fail with an
+  // issuer/audience mismatch exception and reject the request outright.
+  const accessToken = getAccessToken();
+
+  if (accessToken && config.headers) {
+    (config.headers as any)['Authorization'] = `Bearer ${accessToken}`;
+  } else if (process.env.NODE_ENV === 'development') {
+    console.log('[Request] NO token - Authorization header NOT added');
   }
   return config;
 });
@@ -43,7 +49,9 @@ export type UserInfo = {
 };
 
 export async function getUserInfo(): Promise<UserInfo[]> {
-  const response = await fetch(`/.auth/me`);
+  const response = await fetch(`/.auth/me`, {
+    credentials: 'include'  // Ensure cookies are sent for EasyAuth session
+  });
   if (!response.ok) {
     // Use new error handling system
     await ApiErrorHandler.handleApiError(response, '/.auth/me');
@@ -51,6 +59,7 @@ export async function getUserInfo(): Promise<UserInfo[]> {
     return [];
   }
   const payload = await response.json();
+  
   const userClaims = payload[0]?.user_claims || [];
   const objectIdClaim = userClaims.find(
     (claim: any) =>
@@ -60,11 +69,18 @@ export async function getUserInfo(): Promise<UserInfo[]> {
   if (userId) {
     setUserId(userId);
   }
+  // Store access token for OBO flow (needed for Work IQ Teams)
+  const accessToken = payload[0]?.access_token;
+  if (accessToken) {
+    setAccessToken(accessToken);
+  } else if (process.env.NODE_ENV === 'development') {
+    console.log('[Auth] NO access_token to store!');
+  }
   return payload;
 }
 
 export const historyRead = async (convId: string): Promise<ChatMessage[]> => {
-  const endpoint = `${getHistoryBasePath()}/read`;
+  const endpoint = `/history/read`;
   
   try {
     const response = await httpClient.get(endpoint, {
@@ -113,7 +129,7 @@ export const historyList = async (
   offset = 0,
   limit = 25
 ): Promise<Conversation[] | null> => {
-  const endpoint = `${getHistoryBasePath()}/list`;
+  const endpoint = `/history/list`;
   
   try {
     const response = await httpClient.get(endpoint, {
@@ -174,7 +190,7 @@ export const historyUpdate = async (
   newMessages: ChatMessage[],
   convId: string
 ): Promise<Response> => {
-  const endpoint = `${getHistoryBasePath()}/update`;
+  const endpoint = `/history/update`;
   
   try {
     const response = await httpClient.post(endpoint, {
@@ -231,7 +247,7 @@ export const historyRename = async (
   convId: string,
   title: string
 ): Promise<Response> => {
-  const endpoint = `${getHistoryBasePath()}/rename`;
+  const endpoint = `/history/rename`;
   
   try {
     const response = await httpClient.post(endpoint, {
@@ -248,7 +264,7 @@ export const historyRename = async (
 };
 
 export const historyDelete = async (convId: string): Promise<Response> => {
-  const endpoint = `${getHistoryBasePath()}/delete`;
+  const endpoint = `/history/delete`;
   
   try {
     const response = await httpClient.delete(endpoint, {
@@ -264,7 +280,7 @@ export const historyDelete = async (convId: string): Promise<Response> => {
 };
 
 export const historyDeleteAll = async (): Promise<Response> => {
-  const endpoint = `${getHistoryBasePath()}/delete_all`;
+  const endpoint = `/history/delete_all`;
   
   try {
     const response = await httpClient.delete(endpoint, {

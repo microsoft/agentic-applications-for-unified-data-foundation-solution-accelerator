@@ -22,22 +22,23 @@ class TestGetAuthenticatedUserDetails:
             "X-Ms-Client-Principal": "base64principal",
         }
         result = get_authenticated_user_details(headers)
-        
-        # raw_user_object uses request_headers directly, then .get() with lowercase keys returns None
-        assert result["user_principal_id"] is None
-        assert result["user_name"] is None
-        assert result["auth_provider"] is None
-        assert result["auth_token"] is None
-        assert result["aad_id_token"] is None
-        assert result["client_principal_b64"] is None
+
+        # Headers are normalized to lowercase, so values are found
+        assert result["user_principal_id"] == "user-123"
+        assert result["user_name"] == "user@example.com"
+        assert result["auth_provider"] == "aad"
+        assert result["auth_token"] == "token123"
+        assert result["aad_id_token"] == "token123"
+        assert result["client_principal_b64"] == "base64principal"
+        assert result["aad_access_token"] is None
 
     def test_development_mode_without_principal_id(self):
         """Test development mode when principal ID header is missing."""
         headers = {"Content-Type": "application/json"}
-        
+
         # Import will happen and use actual sample_user from module
         result = get_authenticated_user_details(headers)
-        
+
         # sample_user has capitalized headers, but get() uses lowercase keys
         # Since sample_user has "X-Ms-Client-Principal-Id" and we call .get("x-ms-client-principal-id"),
         # it returns None due to case sensitivity
@@ -51,7 +52,7 @@ class TestGetAuthenticatedUserDetails:
             "x-ms-client-principal-name": "admin@test.com",
         }
         result = get_authenticated_user_details(headers)
-        
+
         # With lowercase keys in headers, .get() will find them
         assert result["user_principal_id"] == "user-456"
         assert result["user_name"] == "admin@test.com"
@@ -62,7 +63,7 @@ class TestGetAuthenticatedUserDetails:
             "x-ms-client-principal-id": "user-789",
         }
         result = get_authenticated_user_details(headers)
-        
+
         assert result["user_principal_id"] == "user-789"
         assert result["user_name"] is None
         assert result["auth_provider"] is None
@@ -70,10 +71,10 @@ class TestGetAuthenticatedUserDetails:
     def test_empty_headers(self):
         """Test with empty headers dictionary."""
         headers = {}
-        
+
         # Will use sample_user module since no principal ID header
         result = get_authenticated_user_details(headers)
-        
+
         # sample_user has capitalized headers, but the code does case-sensitive .get()
         # so values will be None
         assert "user_principal_id" in result
@@ -91,7 +92,7 @@ class TestGetAuthenticatedUserDetails:
         """Test that all expected fields are present in the result."""
         headers = {"X-Ms-Client-Principal-Id": "test"}
         result = get_authenticated_user_details(headers)
-        
+
         expected_fields = [
             "user_principal_id",
             "user_name",
@@ -99,8 +100,9 @@ class TestGetAuthenticatedUserDetails:
             "auth_token",
             "client_principal_b64",
             "aad_id_token",
+            "aad_access_token",
         ]
-        
+
         for field in expected_fields:
             assert field in result
 
@@ -149,7 +151,7 @@ class TestGetTenantId:
         """Test with base64 string that has padding."""
         token_data = {"tid": "tenant-with-padding"}
         encoded = base64.b64encode(json.dumps(token_data).encode()).decode()
-        
+
         result = get_tenantid(encoded)
         assert result == "tenant-with-padding"
 
@@ -157,7 +159,7 @@ class TestGetTenantId:
         """Test with base64 string without padding."""
         token_data = {"tid": "tenant-no-pad"}
         encoded = base64.b64encode(json.dumps(token_data).encode()).decode().rstrip("=")
-        
+
         # May fail or return empty string
         result = get_tenantid(encoded)
         assert isinstance(result, str)
@@ -172,7 +174,7 @@ class TestGetTenantId:
         """Test with Unicode characters in tenant ID."""
         token_data = {"tid": "tenant-ñ-日本"}
         encoded = base64.b64encode(json.dumps(token_data).encode("utf-8")).decode()
-        
+
         result = get_tenantid(encoded)
         assert result == "tenant-ñ-日本"
 
@@ -180,7 +182,7 @@ class TestGetTenantId:
         """Test when tid field is empty string."""
         token_data = {"tid": ""}
         encoded = base64.b64encode(json.dumps(token_data).encode()).decode()
-        
+
         result = get_tenantid(encoded)
         assert result == ""
 
@@ -188,7 +190,7 @@ class TestGetTenantId:
         """Test tenant ID with special characters."""
         token_data = {"tid": "tenant-123-abc-xyz"}
         encoded = base64.b64encode(json.dumps(token_data).encode()).decode()
-        
+
         result = get_tenantid(encoded)
         assert result == "tenant-123-abc-xyz"
 
@@ -198,10 +200,10 @@ class TestGetTenantId:
         token_data = {"tid": "test-tenant"}
         encoded = base64.b64encode(json.dumps(token_data).encode()).decode()
         assert isinstance(get_tenantid(encoded), str)
-        
+
         # None case
         assert isinstance(get_tenantid(None), str)
-        
+
         # Invalid case
         assert isinstance(get_tenantid("invalid"), str)
 
@@ -215,7 +217,6 @@ class TestGetTenantId:
             "exp": 1234567890,
         }
         encoded = base64.b64encode(json.dumps(token_data).encode()).decode()
-        
+
         result = get_tenantid(encoded)
         assert result == "main-tenant"
-

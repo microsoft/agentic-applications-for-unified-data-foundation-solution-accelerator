@@ -1,7 +1,7 @@
 ## Check Quota Availability Before Deployment
 
 Before deploying the accelerator, **ensure sufficient quota availability** for the required model.
-> **We recommend increasing the capacity to 100k tokens for optimal performance.**
+> **We recommend increasing the capacity to 20k tokens for optimal performance.**
 
 ### Login if you have not done so already
 ```
@@ -10,7 +10,7 @@ azd auth login
 
 ### 📌 Default Models & Capacities:
 ```
-gpt-4o:150, gpt-4o-mini:150, gpt-4:150
+gpt4.1-mini:20,text-embedding-3-small:80
 ```
 ### 📌 Default Regions:
 ```
@@ -36,7 +36,7 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
    ```
 ✔️ Check specific model(s) in default regions:
   ```
-  ./quota_check_params.sh --models gpt-4o:150
+  ./quota_check_params.sh --models gpt4.1-mini:20
   ```
 ✔️ Check default models in specific region(s):
   ```
@@ -44,11 +44,11 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
   ```
 ✔️ Passing Both models and regions:  
   ```
-  ./quota_check_params.sh --models gpt-4o:150 --regions eastus,westus2
+  ./quota_check_params.sh --models gpt4.1-mini:20 --regions eastus,westus2
   ```
 ✔️ All parameters combined:
   ```
- ./quota_check_params.sh --models gpt-4:150,gpt-4o-mini:150 --regions eastus,westus --verbose
+ ./quota_check_params.sh --models text-embedding-3-small:80,gpt4.1-mini:20 --regions eastus,westus --verbose
   ```
 
 ### **Sample Output**
@@ -66,7 +66,7 @@ The final table lists regions with available quota. You can select any of these 
    **To check quota for the deployment**  
 
     ```sh
-    curl -L -o quota_check_params.sh "https://raw.githubusercontent.com/microsoft/Conversation-Knowledge-Mining-Solution-Accelerator/main/infra/scripts/quota_check_params.sh"
+    curl -L -o quota_check_params.sh "https://raw.githubusercontent.com/microsoft/agentic-applications-for-unified-data-foundation-solution-accelerator/main/infra/scripts/pre-provision/quota_check_params.sh"
     chmod +x quota_check_params.sh
     ./quota_check_params.sh
     ```
@@ -78,7 +78,7 @@ The final table lists regions with available quota. You can select any of these 
    ![git_bash](Images/git_bash.png)
 3. Navigate to the `scripts` folder where the script files are located and make the script as executable:
    ```sh
-    cd infra/scripts
+    cd infra/scripts/pre-provision
     chmod +x quota_check_params.sh
     ```
 4. Run the appropriate script based on your requirement:  

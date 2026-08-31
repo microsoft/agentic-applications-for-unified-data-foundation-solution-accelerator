@@ -17,7 +17,7 @@ public class AzureCredentialFactoryTests
     }
 
     [Fact]
-    public void Create_DevEnvironment_ReturnsDefaultAzureCredential()
+    public void Create_DevEnvironment_ReturnsDeveloperCredentialChain()
     {
         // Arrange
         _mockConfiguration.Setup(c => c["APP_ENV"]).Returns("dev");
@@ -27,11 +27,11 @@ public class AzureCredentialFactoryTests
         var result = factory.Create();
 
         // Assert
-        Assert.IsType<DefaultAzureCredential>(result);
+        Assert.IsType<ChainedTokenCredential>(result);
     }
 
     [Fact]
-    public void Create_DevEnvironmentUpperCase_ReturnsDefaultAzureCredential()
+    public void Create_DevEnvironmentUpperCase_ReturnsDeveloperCredentialChain()
     {
         // Arrange
         _mockConfiguration.Setup(c => c["APP_ENV"]).Returns("DEV");
@@ -41,11 +41,11 @@ public class AzureCredentialFactoryTests
         var result = factory.Create();
 
         // Assert
-        Assert.IsType<DefaultAzureCredential>(result);
+        Assert.IsType<ChainedTokenCredential>(result);
     }
 
     [Fact]
-    public void Create_DevEnvironmentMixedCase_ReturnsDefaultAzureCredential()
+    public void Create_DevEnvironmentMixedCase_ReturnsDeveloperCredentialChain()
     {
         // Arrange
         _mockConfiguration.Setup(c => c["APP_ENV"]).Returns("Dev");
@@ -55,7 +55,7 @@ public class AzureCredentialFactoryTests
         var result = factory.Create();
 
         // Assert
-        Assert.IsType<DefaultAzureCredential>(result);
+        Assert.IsType<ChainedTokenCredential>(result);
     }
 
     [Fact]
@@ -186,7 +186,7 @@ public class AzureCredentialFactoryTests
     }
 
     [Fact]
-    public void Create_DevWithClientId_ReturnsDefaultAzureCredentialIgnoringClientId()
+    public void Create_DevWithClientId_ReturnsDeveloperCredentialChainIgnoringClientId()
     {
         // Arrange
         _mockConfiguration.Setup(c => c["APP_ENV"]).Returns("dev");
@@ -196,7 +196,7 @@ public class AzureCredentialFactoryTests
         var result = factory.Create("test-client-id");
 
         // Assert
-        Assert.IsType<DefaultAzureCredential>(result);
+        Assert.IsType<ChainedTokenCredential>(result);
     }
 
     [Fact]
@@ -204,7 +204,7 @@ public class AzureCredentialFactoryTests
     {
         // Arrange
         _mockConfiguration.Setup(c => c["APP_ENV"]).Returns("prod");
-        
+
         // Act
         IAzureCredentialFactory factory = new AzureCredentialFactory(_mockConfiguration.Object);
 
@@ -225,5 +225,39 @@ public class AzureCredentialFactoryTests
 
         // Assert
         Assert.IsAssignableFrom<TokenCredential>(result);
+    }
+
+    [Fact]
+    public void Create_WithUserAssertionAndOboConfig_ReturnsOnBehalfOfCredential()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["APP_ENV"]).Returns("prod");
+        _mockConfiguration.Setup(c => c["OBO_CLIENT_ID"]).Returns("obo-client-id");
+        _mockConfiguration.Setup(c => c["OBO_CLIENT_SECRET"]).Returns("obo-client-secret");
+        _mockConfiguration.Setup(c => c["OBO_TENANT_ID"]).Returns("obo-tenant-id");
+        var factory = new AzureCredentialFactory(_mockConfiguration.Object);
+
+        // Act
+        var result = factory.Create(userAssertion: "user-assertion-token");
+
+        // Assert
+        Assert.IsType<OnBehalfOfCredential>(result);
+    }
+
+    [Fact]
+    public void Create_WithUserAssertionButMissingOboConfig_FallsBackToManagedIdentityCredential()
+    {
+        // Arrange
+        _mockConfiguration.Setup(c => c["APP_ENV"]).Returns("prod");
+        _mockConfiguration.Setup(c => c["OBO_CLIENT_ID"]).Returns("obo-client-id");
+        _mockConfiguration.Setup(c => c["OBO_CLIENT_SECRET"]).Returns((string?)null);
+        _mockConfiguration.Setup(c => c["OBO_TENANT_ID"]).Returns("obo-tenant-id");
+        var factory = new AzureCredentialFactory(_mockConfiguration.Object);
+
+        // Act
+        var result = factory.Create(userAssertion: "user-assertion-token");
+
+        // Assert
+        Assert.IsType<ManagedIdentityCredential>(result);
     }
 }

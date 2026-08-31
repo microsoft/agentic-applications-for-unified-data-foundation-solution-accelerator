@@ -9,7 +9,7 @@
     "@azure/msal-browser": "^4.13.0",
     "@reduxjs/toolkit": "^2.5.0",
     "@testing-library/jest-dom": "^6.6.3",
-    "@fluentui/react-icons": "^2.0.305",
+    "@fluentui/react-icons": "2.0.323",
     "@fluentui/react-components": "^9.66.5",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.1",
@@ -69,12 +69,28 @@
     "nth-check": "2.1.1",
     "serialize-javascript": "7.0.5",
     "underscore": "1.13.8",
-    "svgo": "3.3.3",
+    "svgo": "3.3.4",
     "css-select": "5.1.0",
-    "postcss": "8.5.8",
+    "postcss": "8.5.18",
     "@tootallnate/once": "3.0.1",
-    "brace-expansion": "1.1.13",
+    "brace-expansion": "1.1.18",
     "path-to-regexp": "0.1.13",
-    "yaml": "2.8.3"
+    "yaml": "2.8.3",
+    "follow-redirects": "1.16.0",
+    "uuid": "14.0.0",
+    "@babel/plugin-transform-modules-systemjs": "7.29.4",
+    "fast-uri": "3.1.5",
+    "form-data": "3.0.5",
+    "launch-editor": "2.14.1",
+    "js-yaml": "4.3.1",
+    "shell-quote": "1.9.0",
+    "websocket-driver": "0.7.5",
+    "http-proxy-middleware": "2.0.10",
+    "body-parser": "1.20.6",
+    "nanoid": "3.3.18",
+    "webpack-dev-server": {
+      "ws": "8.21.0"
+    },
+    "@fluentui/react-icons": "$@fluentui/react-icons"
   }
 }

@@ -42,7 +42,7 @@ Handles orchestration and intelligent function/tool calling for contextualized r
 Hosts the web application and API layer that interfaces with the AI services and storage layers. Manages user sessions and handles REST calls.
 
 ### Container Registry  
-Stores containerized deployments for use in the hosting environment.
+Dedicated Azure Container Registry (Standard SKU) that stores the API and frontend container images. Images are pulled by the App Services using a user-assigned managed identity (AcrPull role); admin user and anonymous pull are disabled for identity-based authentication only.
 
 ### Web Front-End  
 An interactive UI where users can explore call insights, visualize trends, ask questions in natural language, and generate charts. Connects directly to SQL Database in Fabric and App Services for real-time interaction.

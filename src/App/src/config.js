@@ -11,7 +11,7 @@ function getRuntimeConfigValue(runtimeKey, envKey, defaultValue) {
   return defaultValue;
 }
 export function getApiBaseUrl() {
-  return getRuntimeConfigValue("APP_API_BASE_URL", "REACT_APP_API_BASE_URL", "http://127.0.0.1:8000");
+  return getRuntimeConfigValue("APP_API_BASE_URL", "REACT_APP_API_BASE_URL", "");
 }
 export function getChatLandingText() {
   return getRuntimeConfigValue(
@@ -21,13 +21,18 @@ export function getChatLandingText() {
   );
 }
 
-export function isWorkShopDeployment() {
-  const rawValue = getRuntimeConfigValue(
-    "IS_WORKSHOP",
-    "REACT_APP_IS_WORKSHOP",
-    "false"
+export function getAppTitlePrimary() {
+  return getRuntimeConfigValue(
+    "APP_TITLE_PRIMARY",
+    "REACT_APP_APP_TITLE_PRIMARY",
+    "Contoso"
   );
-  // Strip quotes and whitespace that might be included
-  const value = rawValue.replace(/['"]/g, '').trim().toLowerCase();
-  return value === "true";
+}
+
+export function getAppTitleSecondary() {
+  return getRuntimeConfigValue(
+    "APP_TITLE_SECONDARY",
+    "REACT_APP_APP_TITLE_SECONDARY",
+    "| Unified Data Analysis Agents"
+  );
 }

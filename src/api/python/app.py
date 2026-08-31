@@ -21,7 +21,6 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from chat import router as chat_router
 from history import router as history_router
-from history_sql import router as history_sql_router
 
 conversation_id_var: ContextVar[str] = ContextVar("conversation_id", default="")
 user_id_var: ContextVar[str] = ContextVar("user_id", default="")
@@ -117,14 +116,17 @@ def build_app() -> FastAPI:
                         conversation_id_var.set(cid)
                         if span and span.is_recording():
                             span.set_attribute("conversation_id", cid)
-            except Exception as ex:
-                logging.warning("Failed to parse request body for conversation_id: %s", ex)
+            except Exception:
+                # Intentionally fail open: trace enrichment must not break request handling.
+                logging.debug(
+                    "Failed to parse request body for trace attribute enrichment.",
+                    exc_info=True,
+                )
         return await call_next(request)
 
     # Include routers
     fastapi_app.include_router(chat_router, prefix="/api", tags=["chat"])
     fastapi_app.include_router(history_router, prefix="/history", tags=["history"])
-    fastapi_app.include_router(history_sql_router, prefix="/historyfab", tags=["historyfab"])
 
     @fastapi_app.get("/health")
     async def health_check():

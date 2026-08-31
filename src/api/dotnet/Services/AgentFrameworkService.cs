@@ -1,114 +1,57 @@
 using Azure.AI.Projects;
-using Azure.AI.Projects.OpenAI;
+using Azure.AI.Extensions.OpenAI;
 using CsApi.Auth;
-using CsApi.Repositories;
+using CsApi.Interfaces;
 using Microsoft.Agents.AI;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.AI;
-using System.Data.Common;
+using Microsoft.Agents.AI.Foundry;
 
 namespace CsApi.Services
 {
     public interface IAgentFrameworkService
     {
-        AIAgent Agent { get; }
+        FoundryAgent Agent { get; }
         AIProjectClient ProjectClient { get; }
         string ChatAgentName { get; }
-        AITool SqlTool { get; }
-        Task<string> run_sql_query(string input);
     }
 
     public class AgentFrameworkService : IAgentFrameworkService
     {
-        private readonly AIAgent _agent;
+        private readonly FoundryAgent _agent;
         private readonly AIProjectClient _projectClient;
-        private readonly IConfiguration _config;
         private readonly ILogger<AgentFrameworkService> _logger;
-        private readonly ISqlConversationRepository _sqlRepo;
         private readonly string _chatAgentName;
-        private readonly AITool _sqlTool;
 
-        public AIAgent Agent => _agent;
+        public FoundryAgent Agent => _agent;
         public AIProjectClient ProjectClient => _projectClient;
         public string ChatAgentName => _chatAgentName;
-        public AITool SqlTool => _sqlTool;
 
         public AgentFrameworkService(
-            IConfiguration config, 
-            ILogger<AgentFrameworkService> logger,
-            ISqlConversationRepository sqlRepo)
+            IConfiguration config,
+                ILogger<AgentFrameworkService> logger,
+                IUserContextAccessor userContextAccessor,
+                IAzureCredentialFactory credentialFactory)
         {
-            _config = config;
             _logger = logger;
-            _sqlRepo = sqlRepo;
 
-            // Create Agent Framework client similar to Python implementation
-            var endpoint = config["AZURE_AI_AGENT_ENDPOINT"] 
+            var endpoint = config["AZURE_AI_AGENT_ENDPOINT"]
                 ?? throw new InvalidOperationException("AZURE_AI_AGENT_ENDPOINT is required");
 
             _chatAgentName = config["AGENT_NAME_CHAT"]
                 ?? throw new InvalidOperationException("AGENT_NAME_CHAT is required");
 
-            // Create function tools for SQL operations like Python SqlQueryTool
-            _sqlTool = AIFunctionFactory.Create(run_sql_query);
+            var useUserAccessToken = string.Equals(config["USE_USER_ACCESS_TOKEN"], "true", StringComparison.OrdinalIgnoreCase);
+            var user = userContextAccessor.GetCurrentUser();
+            var userAssertion = useUserAccessToken ? user.AadAccessToken : null;
 
-            var credentialFactory = new AzureCredentialFactory(_config);
-            var credential = credentialFactory.Create();
+            var credential = credentialFactory.Create(userAssertion: userAssertion);
 
-            // Use Azure AI Projects client (Foundry v2 approach)
+            // Use Azure AI Projects client (Foundry approach)
             _projectClient = new AIProjectClient(new Uri(endpoint), credential);
 
-            // Get the existing Azure AI Foundry agent by name with latest version
-            _agent = _projectClient.GetAIAgent(name: _chatAgentName, tools: [_sqlTool]);
+            // Create FoundryAgent — SQL handled server-side via Fabric Data Agent (MCP)
+            var agentReference = new AgentReference(_chatAgentName);
+            _logger.LogInformation("Using Fabric Data Agent (MCP) for SQL queries");
+            _agent = _projectClient.AsAIAgent(agentReference);
         }
-
-        /// <summary>
-        /// Function tool for SQL database queries - directly executes SQL like Python SqlQueryTool
-        /// </summary>
-        [System.ComponentModel.Description("Execute parameterized SQL query and return results as list of dictionaries.")]
-        public async Task<string> run_sql_query(
-            [System.ComponentModel.Description("Valid T-SQL query to execute against the SQL database in Fabric.")] string sql_query)
-        {
-            try
-            {
-                // Clean up the SQL query similar to the original implementation
-                var cleanedQuery = sql_query.Replace("```sql", string.Empty).Replace("```", string.Empty).Trim();
-                
-                // Execute SQL query directly like Python SqlQueryTool
-                var answerRaw = await _sqlRepo.ExecuteChatQuery(cleanedQuery, CancellationToken.None);
-                string answer = answerRaw?.Length > 20000 ? answerRaw.Substring(0, 20000) : answerRaw ?? string.Empty;
-
-                if (string.IsNullOrWhiteSpace(answer))
-                    answer = "No results found.";
-
-                return answer;
-            }
-            catch (SqlException ex)
-            {
-                _logger.LogError(ex, "SQL query execution error");
-                return $"SQL Error: {ex.Message}. Please check the query syntax.";
-            }
-            catch (DbException ex)
-            {
-                _logger.LogError(ex, "Database query execution error");
-                return $"Database Error: {ex.Message}";
-            }
-            catch (TimeoutException ex)
-            {
-                _logger.LogWarning(ex, "SQL query timeout");
-                return "Query timed out. Please simplify the query or add filters.";
-            }
-            catch (OperationCanceledException)
-            {
-                return "Query was cancelled.";
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException && ex is not SqlException && ex is not DbException && ex is not TimeoutException)
-            {
-                _logger.LogError(ex, "Unexpected SQL query execution error");
-                return $"SQL query failed with error: {ex.Message}. Please fix the query and try again.";
-            }
-        }
-
-
     }
 }

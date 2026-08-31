@@ -8,6 +8,8 @@ set "AZURE_FOLDER=%ROOT_DIR%\.azure"
 set "CONFIG_FILE=%AZURE_FOLDER%\config.json"
 set "API_PYTHON_ENV_FILE=%ROOT_DIR%\src\api\python\.env"
 set "API_DOTNET_DIR=%ROOT_DIR%\src\api\dotnet"
+if not defined PIP_INDEX_URL set "PIP_INDEX_URL=https://packagefeedproxy.microsoft.io/pypi/simple/"
+if not defined UV_DEFAULT_INDEX set "UV_DEFAULT_INDEX=https://packagefeedproxy.microsoft.io/pypi/simple/"
 
 REM ============================================================
 REM  Locate .env file (Azure deployment or local fallback)
@@ -107,9 +109,10 @@ REM ============================================================
 for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
     if "%%A"=="AZURE_RESOURCE_GROUP" set "AZURE_RESOURCE_GROUP=%%~B"
     if "%%A"=="AZURE_COSMOSDB_ACCOUNT" set "AZURE_COSMOSDB_ACCOUNT=%%~B"
+    if "%%A"=="AZURE_COSMOSDB_DATABASE" set "AZURE_COSMOSDB_DATABASE=%%~B"
+    if "%%A"=="AZURE_COSMOSDB_CONVERSATIONS_CONTAINER" set "AZURE_COSMOSDB_CONVERSATIONS_CONTAINER=%%~B"
+    if "%%A"=="AZURE_COSMOSDB_ENABLE_FEEDBACK" set "AZURE_COSMOSDB_ENABLE_FEEDBACK=%%~B"
     if "%%A"=="BACKEND_RUNTIME_STACK" set "BACKEND_RUNTIME_STACK=%%~B"
-    if "%%A"=="IS_WORKSHOP" set "IS_WORKSHOP=%%~B"
-    if "%%A"=="AZURE_ENV_ONLY" set "AZURE_ENV_ONLY=%%~B"
     if "%%A"=="AGENT_NAME_CHAT" set "AGENT_NAME_CHAT=%%~B"
     if "%%A"=="AGENT_NAME_TITLE" set "AGENT_NAME_TITLE=%%~B"
     if "%%A"=="AI_FOUNDRY_RESOURCE_ID" set "AI_FOUNDRY_RESOURCE_ID=%%~B"
@@ -137,10 +140,14 @@ for /f "tokens=1,* delims==" %%A in ('type "%ENV_FILE%"') do (
         set "AZURE_SQLDB_SERVER=%%~B"
         for /f "tokens=1 delims=." %%C in ("%%~B") do set "AZURE_SQLDB_SERVER_NAME=%%C"
     )
+    if "%%A"=="AZURE_SQLDB_DATABASE" set "AZURE_SQLDB_DATABASE=%%~B"
     if "%%A"=="SQLDB_SERVER" (
         set "SQLDB_SERVER=%%~B"
         for /f "tokens=1 delims=." %%C in ("%%~B") do set "SQLDB_SERVER_NAME=%%C"
     )
+    if "%%A"=="SQLDB_DATABASE" set "SQLDB_DATABASE=%%~B"
+    if "%%A"=="AZURE_AI_SEARCH_ENDPOINT" set "AZURE_AI_SEARCH_ENDPOINT=%%~B"
+    if "%%A"=="AZURE_AI_SEARCH_INDEX" set "AZURE_AI_SEARCH_INDEX=%%~B"
 )
 
 REM Fallback: AZURE_ENV_GPT_MODEL_NAME falls back to AZURE_OPENAI_DEPLOYMENT_MODEL
@@ -161,9 +168,12 @@ if not defined AZURE_SQLDB_SERVER (
     )
 )
 
+REM Fallback: AZURE_SQLDB_DATABASE falls back to SQLDB_DATABASE
+if not defined AZURE_SQLDB_DATABASE (
+    if defined SQLDB_DATABASE set "AZURE_SQLDB_DATABASE=!SQLDB_DATABASE!"
+)
+
 REM Normalize booleans to lowercase
-if /i "!IS_WORKSHOP!"=="true" (set "IS_WORKSHOP=true") else (set "IS_WORKSHOP=false")
-if /i "!AZURE_ENV_ONLY!"=="true" (set "AZURE_ENV_ONLY=true") else (set "AZURE_ENV_ONLY=false")
 
 REM Default USE_CHAT_HISTORY_ENABLED to true if not set (for existing deployments)
 if not defined USE_CHAT_HISTORY_ENABLED (
@@ -178,8 +188,6 @@ if not defined BACKEND_RUNTIME_STACK set "BACKEND_RUNTIME_STACK=python"
 echo.
 echo Configuration:
 echo   BACKEND_RUNTIME_STACK=%BACKEND_RUNTIME_STACK%
-echo   IS_WORKSHOP=%IS_WORKSHOP%
-echo   AZURE_ENV_ONLY=%AZURE_ENV_ONLY%
 echo   USE_CHAT_HISTORY_ENABLED=%USE_CHAT_HISTORY_ENABLED%
 echo.
 
@@ -202,26 +210,17 @@ if not defined AGENT_NAME_CHAT (
     echo Loaded agent names from env: AGENT_NAME_CHAT=!AGENT_NAME_CHAT!, AGENT_NAME_TITLE=!AGENT_NAME_TITLE!
 )
 
-REM Load Fabric SQL settings (needed unless workshop + azure-only mode)
-REM Python code: get_db_connection() uses Azure SQL only when IS_WORKSHOP=true AND AZURE_ENV_ONLY=true
-REM All other combinations use Fabric SQL
-set "USE_FABRIC_SQL=true"
-if "%IS_WORKSHOP%"=="true" if "%AZURE_ENV_ONLY%"=="true" set "USE_FABRIC_SQL=false"
-
-if "%USE_FABRIC_SQL%"=="true" (
-    if not defined FABRIC_SQL_SERVER (
-        if exist "%FABRIC_IDS_FILE%" (
-            for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).sql_endpoint"') do set "FABRIC_SQL_SERVER=%%i"
-            for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).lakehouse_name"') do set "FABRIC_SQL_DATABASE=%%i"
-            echo Loaded Fabric SQL from fabric_ids.json: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
-        ) else (
-            echo [WARN] Fabric SQL mode required but fabric_ids.json not found. Database connections may fail.
-        )
+REM Load Fabric SQL settings
+if not defined FABRIC_SQL_SERVER (
+    if exist "%FABRIC_IDS_FILE%" (
+        for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).sql_endpoint"') do set "FABRIC_SQL_SERVER=%%i"
+        for /f "delims=" %%i in ('powershell -command "(Get-Content '%FABRIC_IDS_FILE%' | ConvertFrom-Json).lakehouse_name"') do set "FABRIC_SQL_DATABASE=%%i"
+        echo Loaded Fabric SQL from fabric_ids.json: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
     ) else (
-        echo Loaded Fabric SQL from env: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
+        echo [WARN] Fabric SQL mode required but fabric_ids.json not found. Database connections may fail.
     )
 ) else (
-    echo Using Azure SQL mode ^(IS_WORKSHOP=true, AZURE_ENV_ONLY=true^). AZURE_SQLDB_SERVER=%AZURE_SQLDB_SERVER%
+    echo Loaded Fabric SQL from env: SERVER=!FABRIC_SQL_SERVER!, DATABASE=!FABRIC_SQL_DATABASE!
 )
 
 REM ============================================================
@@ -244,7 +243,7 @@ if /i "%BACKEND_RUNTIME_STACK%"=="python" (
         call :upsert_env "AGENT_NAME_TITLE" "!AGENT_NAME_TITLE!" "%API_PYTHON_ENV_FILE%"
     )
     REM Upsert Fabric SQL settings when needed
-    if "%USE_FABRIC_SQL%"=="true" if defined FABRIC_SQL_SERVER (
+    if defined FABRIC_SQL_SERVER (
         call :upsert_env "FABRIC_SQL_SERVER" "!FABRIC_SQL_SERVER!" "%API_PYTHON_ENV_FILE%"
         call :upsert_env "FABRIC_SQL_DATABASE" "!FABRIC_SQL_DATABASE!" "%API_PYTHON_ENV_FILE%"
     )
@@ -289,6 +288,12 @@ if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" if exist "%API_DOTNET_DIR%" (
             "$json.'SOLUTION_NAME' = '!SOLUTION_NAME!';" ^
             "$json.'USE_AI_PROJECT_CLIENT' = '!USE_AI_PROJECT_CLIENT!';" ^
             "$json.'USE_CHAT_HISTORY_ENABLED' = '!USE_CHAT_HISTORY_ENABLED!';" ^
+            "$json.'AZURE_COSMOSDB_ACCOUNT' = '!AZURE_COSMOSDB_ACCOUNT!';" ^
+            "$json.'AZURE_COSMOSDB_DATABASE' = '!AZURE_COSMOSDB_DATABASE!';" ^
+            "$json.'AZURE_COSMOSDB_CONVERSATIONS_CONTAINER' = '!AZURE_COSMOSDB_CONVERSATIONS_CONTAINER!';" ^
+            "$json.'AZURE_COSMOSDB_ENABLE_FEEDBACK' = '!AZURE_COSMOSDB_ENABLE_FEEDBACK!';" ^
+            "$json.'AZURE_AI_SEARCH_ENDPOINT' = '!AZURE_AI_SEARCH_ENDPOINT!';" ^
+            "$json.'AZURE_AI_SEARCH_INDEX' = '!AZURE_AI_SEARCH_INDEX!';" ^
             "$json | ConvertTo-Json -Depth 10 | Set-Content '!API_DOTNET_DIR!\appsettings.json' -Encoding UTF8"
 
         echo Configured src\api\dotnet\appsettings.json with environment values
@@ -304,7 +309,6 @@ REM ============================================================
 set "APP_ENV_FILE=%ROOT_DIR%\src\App\.env"
 (
     echo REACT_APP_API_BASE_URL=http://127.0.0.1:8000
-    echo REACT_APP_IS_WORKSHOP=%IS_WORKSHOP%
     echo REACT_APP_CHAT_LANDING_TEXT=You can ask questions around sales, products and orders.
 ) > "%APP_ENV_FILE%"
 echo Updated src\App\.env with frontend configuration
@@ -378,25 +382,25 @@ echo [INFO] No Azure SQL Server configured, skipping admin role assignment.
 :done_sql
 
 REM ============================================================
-REM  Azure AI User role assignment (only when AI_FOUNDRY_RESOURCE_ID is set)
+REM  Foundry User role assignment (only when AI_FOUNDRY_RESOURCE_ID is set)
 REM ============================================================
 if not defined AI_FOUNDRY_RESOURCE_ID goto :skip_aiuser
 if "!AI_FOUNDRY_RESOURCE_ID!"=="" goto :skip_aiuser
 
 FOR /F "delims=" %%s IN ('az account show --query id -o tsv') DO set "subscription_id=%%s"
 
-echo Checking Azure AI User role assignment...
+echo Checking Foundry User role assignment...
 FOR /F "delims=" %%i IN ('az role assignment list --assignee %signed_user_id% --role "53ca6127-db72-4b80-b1b0-d745d6d5456d" --scope "%AI_FOUNDRY_RESOURCE_ID%" --query "[0].id" -o tsv 2^>nul') DO set "aiUserRoleExists=%%i"
 if defined aiUserRoleExists (
-    echo User already has the Azure AI User role.
+    echo User already has the Foundry User role.
 ) else (
-    echo Assigning Azure AI User role to AI Foundry account...
+    echo Assigning Foundry User role to AI Foundry account...
     call az role assignment create ^
         --assignee %signed_user_id% ^
         --role "53ca6127-db72-4b80-b1b0-d745d6d5456d" ^
         --scope "%AI_FOUNDRY_RESOURCE_ID%" ^
         --output none
-    echo Azure AI User role assigned successfully.
+    echo Foundry User role assigned successfully.
 )
 goto :done_aiuser
 
@@ -412,7 +416,7 @@ if /i "%BACKEND_RUNTIME_STACK%"=="dotnet" (
     echo.
     echo Restoring dotnet backend packages...
     cd "%ROOT_DIR%\src\api\dotnet"
-    call dotnet restore --verbosity quiet
+    call dotnet restore --configfile nuget.config --verbosity quiet
     if errorlevel 1 (
         echo Failed to restore dotnet backend packages
         exit /b 1

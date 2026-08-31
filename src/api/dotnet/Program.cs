@@ -5,7 +5,6 @@ using CsApi.Repositories;
 using CsApi.Services;
 using CsApi.Converters;
 using CsApi.Utils;
-using Microsoft.Agents.AI;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 
@@ -23,7 +22,7 @@ builder.Logging.AddFilter("Azure.Core", LogLevel.Warning);
 builder.Logging.AddFilter("OpenTelemetry", LogLevel.Warning);
 
 // CORS - allow all origins (adjust if needed)
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] {"*"};
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] { "*" };
 const string CorsPolicyName = "UiCors";
 
 builder.Services.AddCors(options =>
@@ -63,14 +62,19 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IUserContextAccessor, HeaderUserContextAccessor>();
 builder.Services.AddScoped<ISqlConversationRepository, SqlConversationRepository>();
 builder.Services.AddScoped<ITitleGenerationService, TitleGenerationService>();
-builder.Services.AddSingleton<IAgentFrameworkService, AgentFrameworkService>();
+builder.Services.AddScoped<IAgentFrameworkService, AgentFrameworkService>();
 builder.Services.AddSingleton<IAzureCredentialFactory, AzureCredentialFactory>();
+builder.Services.AddHttpClient();
+
+
+builder.Services.AddSingleton<IConversationRepository, CosmosConversationRepository>();
+
 builder.Services.AddSingleton(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    var logger = sp.GetRequiredService<ILogger<ExpCache<string, AgentThread>>>();
+    var logger = sp.GetRequiredService<ILogger<ExpCache<string, string>>>();
     var endpoint = configuration["AZURE_AI_AGENT_ENDPOINT"] ?? string.Empty;
-    return new ExpCache<string, AgentThread>(
+    return new ExpCache<string, string>(
         maxSize: 1000,
         ttlSeconds: 3600.0,
         configuration,

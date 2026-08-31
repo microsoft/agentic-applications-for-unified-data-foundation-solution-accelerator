@@ -144,22 +144,26 @@ export type HistoryMetaData = {
 
 export type ParsedChunk = {
   error?: string;
-  id: string;
-  model: string;
-  created: number;
-  object: string;
+  id?: string;
+  model?: string;
+  created?: number;
+  object?: string;
   choices: [
     {
-      messages: [
+      delta?: {
+        role: string;
+        content: string;
+      };
+      messages?: [
         {
           content: string;
           role: string;
         }
       ];
-      history_metadata: object;
+      history_metadata?: object;
     }
   ];
-  "apim-request-id": string;
+  "apim-request-id"?: string;
 };
 
 export type ToolMessageContent = {
@@ -170,6 +174,7 @@ export type Citation = {
   content: string;
   id: string;
   title: string | null;
+  source: string | null;
   filepath: string | null;
   url: string | null;
   metadata: string | null;

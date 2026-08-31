@@ -39,6 +39,19 @@ agentic-applications-for-unified-data-foundation-solution-accelerator/    ← Re
 │   └── App/                           
 │       ├── node_modules/                    
 │       └── .env                     ← Frontend config file
+├── infra/                           ← Azure infrastructure (modular Bicep)
+│   ├── avm/                         ← Azure Verified Modules (production/WAF)
+│   │   ├── main.bicep               ← AVM orchestrator template
+│   │   └── modules/                 ← AVM service modules (ai, compute, data, networking, etc.)
+│   ├── bicep/                       ← Vanilla Bicep modules (dev/test)
+│   │   └── modules/                 ← Simplified service modules
+│   ├── scripts/                     ← Deployment scripts
+│   │   ├── post-provision/          ← Post-deployment data and setup scripts
+│   │   ├── pre-provision/           ← Pre-deployment preparation (quota checks)
+│   │   └── utilities/               ← Helper scripts and utilities
+│   ├── main.bicep                   ← Main orchestrator (references avm or bicep modules)
+│   ├── main.parameters.json         ← Default deployment configuration (bicep mode)
+│   └── main.waf.parameters.json     ← WAF deployment configuration (avm-waf mode)
 └── documents/                       ← Documentation (you are here)
 ```
 
@@ -233,7 +246,7 @@ The startup scripts automate environment configuration, Azure authentication, ro
 
 ### Script Behavior by Deployment Scenario
 
-The scripts auto-detect configuration from the `.env` file. Key flags: `BACKEND_RUNTIME_STACK` (`python`|`dotnet`) and `IS_WORKSHOP` (`true`|`false`). Defaults to Python backend if not set.
+The scripts auto-detect configuration from the `.env` file. Key flag: `BACKEND_RUNTIME_STACK` (`python`|`dotnet`). Defaults to Python backend if not set.
 
 | Scenario | Python Backend | .NET Backend |
 |----------|---------------|--------------|
@@ -241,10 +254,9 @@ The scripts auto-detect configuration from the `.env` file. Key flags: `BACKEND_
 | **Dependencies** | Creates `.venv`, installs `requirements.txt` | Runs `dotnet restore` |
 | **API docs** | `http://localhost:8000/docs` | `http://localhost:8000/swagger` |
 
-| Database Mode | When | Environment Variables |
-|--------------|------|----------------------|
-| **Fabric SQL** | `IS_WORKSHOP=false`, or `AZURE_ENV_ONLY=false` | `FABRIC_SQL_SERVER`, `FABRIC_SQL_DATABASE` |
-| **Azure SQL** | `IS_WORKSHOP=true` **and** `AZURE_ENV_ONLY=true` | `AZURE_SQLDB_SERVER`, `AZURE_SQLDB_DATABASE` |
+| Database Mode | Environment Variables |
+|--------------|----------------------|
+| **Fabric SQL** | `FABRIC_SQL_SERVER`, `FABRIC_SQL_DATABASE` |
 
 ---
 
@@ -278,10 +290,10 @@ To run the application locally, your Azure account needs the following role assi
 # Get your principal ID
 PRINCIPAL_ID=$(az ad signed-in-user show --query id -o tsv)
 
-# Assign Azure AI User role
+# Assign Foundry User role
 az role assignment create \
   --assignee $PRINCIPAL_ID \
-  --role "Azure AI User" \
+  --role "Foundry User" \
   --scope "\subscriptions\<subscription-id>\resourceGroups\<resource-group>\providers\Microsoft.CognitiveServices\accounts\<ai-foundry-account>"
 ```
 
@@ -290,10 +302,10 @@ az role assignment create \
 # Get your principal ID
 $PRINCIPAL_ID = az ad signed-in-user show --query id -o tsv
 
-# Assign Azure AI User role
+# Assign Foundry User role
 az role assignment create `
   --assignee $PRINCIPAL_ID `
-  --role "Azure AI User" `
+  --role "Foundry User" `
   --scope "/subscriptions/<subscription-id>/resourceGroups/<resource-group>/providers/Microsoft.CognitiveServices/accounts/<ai-foundry-account>"
 ```
 
@@ -344,7 +356,7 @@ source .venv/bin/activate  # Linux
 .venv\Scripts\activate  # Windows PowerShell
 
 # Install dependencies
-pip install -r requirements.txt
+python -m pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ -r requirements.txt
 ```
 
 #### 4A.4. Run the Python Backend API
@@ -515,7 +527,7 @@ python -m venv .venv
 # Activate and reinstall
 source .venv/bin/activate  # Linux
 # or .venv\Scripts\Activate.ps1  # Windows
-pip install -r requirements.txt
+python -m pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ -r requirements.txt
 ```
 
 #### Permission Issues (Linux)
@@ -534,8 +546,8 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 # Long path support (Windows 10 1607+, run as Administrator)
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
 
-# SSL certificate issues
-pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org uv
+# Install uv through the Microsoft package feed proxy
+python -m pip install --index-url https://packagefeedproxy.microsoft.io/pypi/simple/ uv
 ```
 
 ### Environment Variable Issues

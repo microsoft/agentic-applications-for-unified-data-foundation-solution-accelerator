@@ -6,16 +6,17 @@ import logging
 def get_authenticated_user_details(request_headers):
     user_object = {}
 
+    # Normalize all headers to lowercase for consistent lookup
     normalized_headers = {k.lower(): v for k, v in request_headers.items()}
 
     if "x-ms-client-principal-id" not in normalized_headers:
         # if it's not, assume we're in development mode and return a default user
         from . import sample_user
 
-        raw_user_object = sample_user.sample_user
+        raw_user_object = {k.lower(): v for k, v in sample_user.sample_user.items()}
     else:
-        # if it is, get the user details from the EasyAuth headers
-        raw_user_object = {k: v for k, v in request_headers.items()}
+        # Use normalized headers for consistent key lookup
+        raw_user_object = normalized_headers
 
     user_object["user_principal_id"] = raw_user_object.get("x-ms-client-principal-id")
     user_object["user_name"] = raw_user_object.get("x-ms-client-principal-name")
@@ -23,6 +24,21 @@ def get_authenticated_user_details(request_headers):
     user_object["auth_token"] = raw_user_object.get("x-ms-token-aad-id-token")
     user_object["client_principal_b64"] = raw_user_object.get("x-ms-client-principal")
     user_object["aad_id_token"] = raw_user_object.get("x-ms-token-aad-id-token")
+
+    # Access token for OBO (On-Behalf-Of) flow - needed for Work IQ Teams
+    easyauth_token = normalized_headers.get("x-ms-token-aad-access-token")
+    zumo_token = normalized_headers.get("x-zumo-auth")
+    authorization = normalized_headers.get("authorization", "")
+    scheme, _, bearer_token = authorization.partition(" ")
+
+    if easyauth_token:
+        user_object["aad_access_token"] = easyauth_token
+    elif zumo_token:
+        user_object["aad_access_token"] = zumo_token
+    elif scheme.lower() == "bearer" and bearer_token.strip():
+        user_object["aad_access_token"] = bearer_token.strip()
+    else:
+        user_object["aad_access_token"] = None
 
     return user_object
 
