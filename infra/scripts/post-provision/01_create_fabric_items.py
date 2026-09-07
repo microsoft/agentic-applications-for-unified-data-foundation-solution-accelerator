@@ -176,6 +176,22 @@ def wait_for_lro(operation_url, operation_name="Operation", timeout=300):
         time.sleep(3)
     raise TimeoutError(f"{operation_name} timed out")
 
+def wait_for_lro_result(operation_url, operation_name="Operation", timeout=300):
+    """Wait for a long-running operation and return its result response."""
+    start = time.time()
+    while time.time() - start < timeout:
+        operation_resp = make_request("GET", operation_url)
+        if operation_resp.status_code == 200:
+            status = operation_resp.json().get("status", "").lower()
+            if status in ["succeeded", "completed"]:
+                result_resp = make_request("GET", operation_url.rstrip("/") + "/result")
+                if result_resp.status_code == 200:
+                    return result_resp
+            elif status == "failed":
+                raise Exception(f"{operation_name} failed: {operation_resp.text[:300]}")
+        time.sleep(3)
+    raise TimeoutError(f"{operation_name} timed out")
+
 def find_item(item_type, display_name):
     """Find a Fabric item by type and name"""
     url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/items?type={item_type}"
@@ -219,19 +235,20 @@ def delete_ontology(ontology_id, ontology_name):
         return False
 
 def build_lakehouse_elements(tables_config: dict) -> list:
-    """Build the full Fabric element hierarchy for a lakehouse datasource.
+    """Build the Fabric element hierarchy for a lakehouse tables datasource.
 
-    Returns the element tree: [Files, Tables > dbo > tables > columns]
-    with all tables and columns marked as selected.
+    Returns the same grouping hierarchy emitted by Fabric after table selection.
     """
-    files_node = {
-        "id": str(uuid.uuid4()),
-        "display_name": "Files",
-        "type": "lakehouse_files",
-        "is_selected": False,
-        "children": []
+    sql_type_map = {
+        "String": "varchar",
+        "BigInt": "int",
+        "Int": "int",
+        "Double": "float",
+        "Float": "float",
+        "Boolean": "bit",
+        "Date": "date",
+        "DateTime": "datetime2",
     }
-
     table_nodes = []
     for table_name, table_def in tables_config.items():
         col_nodes = [
@@ -240,6 +257,11 @@ def build_lakehouse_elements(tables_config: dict) -> list:
                 "display_name": col_name,
                 "type": "lakehouse_tables.column",
                 "is_selected": True,
+                "data_type": sql_type_map.get(
+                    table_def.get("types", {}).get(col_name),
+                    table_def.get("types", {}).get(col_name)
+                ),
+                "description": None,
                 "children": []
             }
             for col_name in table_def["columns"]
@@ -249,6 +271,7 @@ def build_lakehouse_elements(tables_config: dict) -> list:
             "display_name": table_name,
             "type": "lakehouse_tables.table",
             "is_selected": True,
+            "description": None,
             "children": col_nodes
         })
 
@@ -256,19 +279,39 @@ def build_lakehouse_elements(tables_config: dict) -> list:
         "id": str(uuid.uuid4()),
         "display_name": "dbo",
         "type": "lakehouse_tables.schema",
-        "is_selected": True,
+        "is_selected": False,
+        "description": None,
         "children": table_nodes
     }
 
     tables_node = {
         "id": str(uuid.uuid4()),
         "display_name": "Tables",
-        "type": "lakehouse_tables",
-        "is_selected": True,
+        "type": "table_grouping",
+        "is_selected": False,
+        "description": None,
+        "children": table_nodes
+    }
+    dbo_node["children"] = [tables_node]
+
+    schemas_node = {
+        "id": str(uuid.uuid4()),
+        "display_name": "Schemas",
+        "type": "schema_grouping",
+        "is_selected": False,
+        "description": None,
         "children": [dbo_node]
     }
+    files_node = {
+        "id": str(uuid.uuid4()),
+        "display_name": "Files",
+        "type": "lakehouse_files",
+        "is_selected": False,
+        "description": None,
+        "children": []
+    }
 
-    return [files_node, tables_node]
+    return [schemas_node, files_node]
 
 
 def b64encode(content):
@@ -1008,6 +1051,64 @@ if not args.skip_data_agent:
     if existing_da:
         data_agent_id = existing_da["id"]
         print(f"  [OK] Using existing Data Agent: {data_agent_name} ({data_agent_id})")
+
+        # Refresh the draft datasource so rerunning the pipeline also repairs
+        # table selection on an existing Data Agent.
+        if use_lakehouse_datasource:
+            try:
+                get_def_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents/{data_agent_id}/getDefinition"
+                get_def_resp = make_request("POST", get_def_url)
+                if get_def_resp.status_code == 202:
+                    operation_url = get_def_resp.headers.get("Location")
+                    if not operation_url:
+                        raise Exception("Data Agent definition request did not return an operation URL")
+                    get_def_resp = wait_for_lro_result(operation_url, "Get Data Agent definition")
+
+                if get_def_resp.status_code != 200:
+                    raise Exception(f"Failed to get definition: {get_def_resp.status_code} {get_def_resp.text[:300]}")
+
+                current_parts = get_def_resp.json().get("definition", {}).get("parts", [])
+                datasource_part = next(
+                    (part for part in current_parts
+                     if "/draft/" in part.get("path", "")
+                     and part.get("path", "").endswith("/datasource.json")),
+                    None
+                )
+                if not datasource_part:
+                    raise Exception("Could not find draft lakehouse datasource part")
+
+                datasource = {
+                    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/dataSource/1.0.0/schema.json",
+                    "artifactId": lakehouse_id,
+                    "workspaceId": WORKSPACE_ID,
+                    "dataSourceInstructions": None,
+                    "displayName": lakehouse_name,
+                    "type": "lakehouse_tables",
+                    "userDescription": None,
+                    "metadata": {},
+                    "elements": build_lakehouse_elements(ontology_config["tables"])
+                }
+                refreshed_parts = [
+                    {**part, "payload": b64encode(datasource)}
+                    if part is datasource_part else part
+                    for part in current_parts
+                ]
+
+                update_def_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents/{data_agent_id}/updateDefinition"
+                update_resp = make_request(
+                    "POST", update_def_url,
+                    json={"definition": {"parts": refreshed_parts}}
+                )
+                if update_resp.status_code == 202:
+                    operation_url = update_resp.headers.get("Location")
+                    if operation_url:
+                        wait_for_lro(operation_url, "Data Agent datasource refresh")
+                elif update_resp.status_code != 200:
+                    raise Exception(f"Datasource refresh failed: {update_resp.status_code} {update_resp.text[:300]}")
+
+                print(f"  [OK] Refreshed draft datasource ({len(ontology_config['tables'])} tables pre-selected)")
+            except Exception as e:
+                print(f"  [WARN] Could not refresh existing Data Agent datasource: {e}")
     else:
         # Schema URL base for Data Agent definition parts
         DA_SCHEMA_BASE = "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition"
@@ -1042,7 +1143,7 @@ if not args.skip_data_agent:
                 "workspaceId": WORKSPACE_ID,
                 "dataSourceInstructions": None,
                 "displayName": lakehouse_name,
-                "type": "lakehouse",
+                "type": "lakehouse_tables",
                 "userDescription": None,
                 "metadata": {},
                 "elements": elements
@@ -1206,87 +1307,86 @@ else:
 
 if not args.skip_data_agent and data_agent_id:
     step += 1
-    print(f"\n[{step}/{total_steps}] Publishing Data Agent as MCP server...")
+    print(f"\n[{step}/{total_steps}] Republishing Data Agent with current draft...")
 
     try:
-        # Get current definition
         get_def_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents/{data_agent_id}/getDefinition"
         get_def_resp = make_request("POST", get_def_url)
 
         if get_def_resp.status_code == 202:
             op_url = get_def_resp.headers.get("Location")
-            time.sleep(3)
-            get_def_resp = make_request("GET", op_url + "/result")
+            if not op_url:
+                raise Exception("Data Agent definition request did not return an operation URL")
+            get_def_resp = wait_for_lro_result(op_url, "Get Data Agent definition")
 
         if get_def_resp.status_code != 200:
             raise Exception(f"Failed to get definition: {get_def_resp.status_code} {get_def_resp.text[:300]}")
 
         current_parts = get_def_resp.json().get("definition", {}).get("parts", [])
-        print(f"  Current definition: {len(current_parts)} parts")
+        draft_stage_config = None
+        draft_datasource = None
+        datasource_folder = None
+        draft_fewshots = None
 
-        # Check if already published
-        already_published = any("publish_info.json" in p.get("path", "") for p in current_parts)
-        if already_published:
-            print(f"  [OK] Data Agent already published")
-        else:
-            # Find draft parts to copy to published folder
-            draft_stage_config = None
-            datasource_folder = None
-            draft_datasource = None
-            draft_fewshots = None
+        for part in current_parts:
+            path = part.get("path", "")
+            if path.endswith("draft/stage_config.json"):
+                draft_stage_config = part["payload"]
+            elif "/draft/" in path and path.endswith("/datasource.json"):
+                draft_datasource = part["payload"]
+                segments = path.split("/")
+                datasource_folder = segments[segments.index("draft") + 1]
+            elif "/draft/" in path and path.endswith("/fewshots.json"):
+                draft_fewshots = part["payload"]
 
-            for p in current_parts:
-                path = p.get("path", "")
-                if "draft/stage_config.json" in path:
-                    draft_stage_config = p["payload"]
-                elif "draft/" in path and "datasource.json" in path:
-                    draft_datasource = p["payload"]
-                    segs = path.split("/")
-                    idx = segs.index("draft")
-                    datasource_folder = segs[idx + 1]
-                elif "draft/" in path and "fewshots.json" in path:
-                    draft_fewshots = p["payload"]
+        if not (draft_stage_config and draft_datasource and datasource_folder):
+            raise Exception("Could not find draft stage_config or datasource parts")
 
-            if not (draft_stage_config and draft_datasource and datasource_folder):
-                raise Exception("Could not find draft parts to publish")
-
-            # Build publish parts
-            DA_SCHEMA_BASE_PUB = "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition"
-            publish_info = {
-                "$schema": f"{DA_SCHEMA_BASE_PUB}/publishInfo/1.0.0/schema.json",
-                "description": ontology_config.get("description", f"Data Agent for {ontology_config.get('name', 'data analysis')}")
+        publish_info = {
+            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/publishInfo/1.0.0/schema.json",
+            "description": ontology_config.get("description", "Data Agent")
+        }
+        publish_parts = {
+            "Files/Config/publish_info.json": {
+                "path": "Files/Config/publish_info.json",
+                "payload": b64encode(publish_info),
+                "payloadType": "InlineBase64"
+            },
+            "Files/Config/published/stage_config.json": {
+                "path": "Files/Config/published/stage_config.json",
+                "payload": draft_stage_config,
+                "payloadType": "InlineBase64"
+            },
+            f"Files/Config/published/{datasource_folder}/datasource.json": {
+                "path": f"Files/Config/published/{datasource_folder}/datasource.json",
+                "payload": draft_datasource,
+                "payloadType": "InlineBase64"
+            }
+        }
+        if draft_fewshots:
+            publish_parts[f"Files/Config/published/{datasource_folder}/fewshots.json"] = {
+                "path": f"Files/Config/published/{datasource_folder}/fewshots.json",
+                "payload": draft_fewshots,
+                "payloadType": "InlineBase64"
             }
 
-            new_parts = list(current_parts)
-            new_parts.append({"path": "Files/Config/publish_info.json", "payload": b64encode(publish_info), "payloadType": "InlineBase64"})
-            new_parts.append({"path": "Files/Config/published/stage_config.json", "payload": draft_stage_config, "payloadType": "InlineBase64"})
-            new_parts.append({"path": f"Files/Config/published/{datasource_folder}/datasource.json", "payload": draft_datasource, "payloadType": "InlineBase64"})
-            if draft_fewshots:
-                new_parts.append({"path": f"Files/Config/published/{datasource_folder}/fewshots.json", "payload": draft_fewshots, "payloadType": "InlineBase64"})
+        new_parts = [part for part in current_parts if part.get("path") not in publish_parts]
+        new_parts.extend(publish_parts.values())
+        update_def_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents/{data_agent_id}/updateDefinition"
+        update_resp = make_request("POST", update_def_url, json={"definition": {"parts": new_parts}})
 
-            print(f"  Publishing with {len(new_parts)} parts (added {len(new_parts) - len(current_parts)} publish parts)...")
+        if update_resp.status_code == 202:
+            op_url = update_resp.headers.get("Location")
+            if op_url:
+                wait_for_lro(op_url, "Data Agent republish")
+        elif update_resp.status_code != 200:
+            raise Exception(f"Republish failed: {update_resp.status_code} {update_resp.text[:300]}")
 
-            update_def_url = f"{FABRIC_API}/workspaces/{WORKSPACE_ID}/dataAgents/{data_agent_id}/updateDefinition"
-            update_resp = make_request("POST", update_def_url, json={"definition": {"parts": new_parts}})
-
-            if update_resp.status_code == 200:
-                print(f"  [OK] Data Agent published")
-            elif update_resp.status_code == 202:
-                op_url = update_resp.headers.get("Location")
-                if op_url:
-                    _ = wait_for_lro(op_url, "Data Agent publish")
-                print(f"  [OK] Data Agent published")
-            else:
-                raise Exception(f"Publish failed: {update_resp.status_code} {update_resp.text[:300]}")
-
-            # Build MCP endpoint URL
-            mcp_endpoint = f"https://api.fabric.microsoft.com/v1/mcp/workspaces/{WORKSPACE_ID}/dataagents/{data_agent_id}/agent"
-            print(f"  MCP Endpoint: {mcp_endpoint}")
+        print(f"  [OK] Data Agent republished with {len(publish_parts)} refreshed publish parts")
 
     except Exception as e:
-        print(f"  [WARN] Failed to publish Data Agent: {e}")
-        print(f"         You can publish manually in the Fabric portal")
-        print(f"         Open the Data Agent > Home tab > Publish")
+        print(f"  [WARN] Failed to republish Data Agent: {e}")
+        print("         You can publish manually in the Fabric portal")
 
 if not args.skip_data_agent and not data_agent_id:
     step += 1
