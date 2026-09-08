@@ -241,7 +241,7 @@ def build_lakehouse_elements(tables_config: dict) -> list:
     """
     sql_type_map = {
         "String": "varchar",
-        "BigInt": "int",
+        "BigInt": "bigint",
         "Int": "int",
         "Double": "float",
         "Float": "float",
