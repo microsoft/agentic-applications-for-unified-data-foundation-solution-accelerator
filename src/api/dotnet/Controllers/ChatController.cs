@@ -337,6 +337,49 @@ public class ChatController : ControllerBase
     /// </summary>
     private static void ParseMcpDocs(string mcpText, Dictionary<string, McpDocInfo> mcpDocs)
     {
+        try
+        {
+            using var payload = JsonDocument.Parse(mcpText);
+            if (payload.RootElement.ValueKind == JsonValueKind.Object &&
+                payload.RootElement.TryGetProperty("documents", out var documents) &&
+                documents.ValueKind == JsonValueKind.Array)
+            {
+                var sectionIndex = 0;
+                foreach (var wrappedDoc in documents.EnumerateArray())
+                {
+                    if (wrappedDoc.ValueKind == JsonValueKind.Object &&
+                        wrappedDoc.TryGetProperty("content", out var content))
+                    {
+                        try
+                        {
+                            McpDocInfo? doc = content.ValueKind switch
+                            {
+                                JsonValueKind.Object => content.Deserialize<McpDocInfo>(),
+                                JsonValueKind.String => JsonSerializer.Deserialize<McpDocInfo>(content.GetString() ?? ""),
+                                _ => null
+                            };
+
+                            if (doc != null && !string.IsNullOrEmpty(doc.Id))
+                            {
+                                mcpDocs[sectionIndex.ToString()] = doc;
+                            }
+                        }
+                        catch (JsonException)
+                        {
+                            // Synthetic answer documents are plain text and have no search document ID.
+                        }
+                    }
+
+                    sectionIndex++;
+                }
+                return;
+            }
+        }
+        catch (JsonException)
+        {
+            // Fall through to the legacy marker-based MCP output format.
+        }
+
         // Split by marker pattern to extract section content
         var sections = Regex.Split(mcpText, @"【\d+:(\d+)†[^】]*】");
         // sections alternates: [preamble, idx0, content0, idx1, content1, ...]
