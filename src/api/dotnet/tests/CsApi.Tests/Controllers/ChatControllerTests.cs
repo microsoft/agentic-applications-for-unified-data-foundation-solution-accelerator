@@ -199,6 +199,65 @@ public class ChatControllerTests
         Assert.Contains("Conversation ID is required", output, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void KnowledgeBasePayload_NestedDocuments_MapSectionIndexesToCitationUrls()
+    {
+        _mockConfiguration.Setup(c => c["AZURE_AI_SEARCH_ENDPOINT"])
+            .Returns("https://test.search.windows.net");
+        _mockConfiguration.Setup(c => c["AZURE_AI_SEARCH_INDEX"])
+            .Returns("knowledge-index");
+
+        const string mcpPayload = """
+            {
+              "documents": [
+                {
+                  "content": "Synthetic answer document"
+                },
+                {
+                  "content": "{\"id\":\"nested-string-id\",\"title\":\"String document\",\"source\":\"string-source\"}"
+                },
+                {
+                  "content": {
+                    "id": "nested-object-id",
+                    "title": "Object document",
+                    "source": "object-source"
+                  }
+                }
+              ]
+            }
+            """;
+
+        var parseMethod = typeof(ChatController).GetMethod(
+            "ParseMcpDocs",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        Assert.NotNull(parseMethod);
+
+        var mcpDocs = Activator.CreateInstance(parseMethod!.GetParameters()[1].ParameterType);
+        Assert.NotNull(mcpDocs);
+        parseMethod.Invoke(null, [mcpPayload, mcpDocs]);
+
+        var buildMethod = typeof(ChatController).GetMethod(
+            "BuildCitationList",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        Assert.NotNull(buildMethod);
+
+        var markers = new List<(string SecIdx, string MarkerSource)>
+        {
+            ("1", "fallback-string"),
+            ("2", "fallback-object")
+        };
+        var citations = buildMethod!.Invoke(_controller, [markers, mcpDocs]);
+        var citationJson = JsonSerializer.Serialize(citations);
+        using var citationDocument = JsonDocument.Parse(citationJson);
+
+        var citationElements = citationDocument.RootElement.EnumerateArray().ToArray();
+        Assert.Equal(2, citationElements.Length);
+        Assert.Equal("nested-string-id", citationElements[0].GetProperty("id").GetString());
+        Assert.Contains("/docs/nested-string-id?", citationElements[0].GetProperty("url").GetString());
+        Assert.Equal("nested-object-id", citationElements[1].GetProperty("id").GetString());
+        Assert.Contains("/docs/nested-object-id?", citationElements[1].GetProperty("url").GetString());
+    }
+
     #endregion
 
     #region DisplayChartDefault Tests

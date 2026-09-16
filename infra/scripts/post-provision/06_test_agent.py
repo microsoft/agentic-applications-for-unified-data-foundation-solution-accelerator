@@ -186,6 +186,32 @@ _MARKER_RE = re.compile(r'【\d+:(\d+)†([^】]*)】')
 
 def _parse_mcp_docs(mcp_text: str, mcp_docs: dict):
     """Parse JSON document blocks from MCP output text keyed by section index."""
+    try:
+        payload = json.loads(mcp_text)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        payload = None
+
+    if isinstance(payload, dict) and isinstance(payload.get("documents"), list):
+        for sec_idx, wrapped_doc in enumerate(payload["documents"]):
+            if not isinstance(wrapped_doc, dict):
+                continue
+
+            doc_content = wrapped_doc.get("content")
+            if isinstance(doc_content, dict):
+                doc = doc_content
+            elif isinstance(doc_content, str):
+                try:
+                    doc = json.loads(doc_content)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    continue
+            else:
+                continue
+
+            if isinstance(doc, dict) and doc.get("id"):
+                mcp_docs[str(sec_idx)] = doc
+        return
+
+    # Legacy MCP output placed each document JSON block after its citation marker.
     sections = re.split(r'【\d+:(\d+)†[^】]*】', mcp_text)
     for i in range(1, len(sections) - 1, 2):
         sec_idx = sections[i]

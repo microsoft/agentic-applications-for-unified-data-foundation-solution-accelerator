@@ -776,6 +776,48 @@ class TestParseMcpDocs:
         assert mcp_docs["1"]["id"] == "doc1"
         assert mcp_docs["2"]["source"] == "doc2.pdf"
 
+    def test_parse_mcp_docs_knowledge_base_documents_payload(self):
+        """Test parsing the current Foundry Knowledge Base MCP response."""
+        from chat import _parse_mcp_docs
+
+        mcp_text = json.dumps({
+            "documents": [
+                {
+                    "id": "synthesis-id",
+                    "content": "Synthesized answer [ref_id:0].",
+                    "title": "mcp://answersynthesis",
+                },
+                {
+                    "id": "wrapper-id-1",
+                    "content": json.dumps({
+                        "id": "order_policy_p1_c0",
+                        "content": "Orders must ship within five business days.",
+                        "title": "Order Policy",
+                        "source": "order_policy.pdf",
+                    }),
+                    "title": "mcp://searchindex/order_policy_p1_c0",
+                },
+                {
+                    "id": "wrapper-id-2",
+                    "content": json.dumps({
+                        "id": "service_policy_p1_c1",
+                        "content": "Escalate pending orders after three days.",
+                        "title": "Service Policy",
+                        "source": "service_policy.pdf",
+                    }),
+                    "title": "mcp://searchindex/service_policy_p1_c1",
+                },
+            ]
+        })
+        mcp_docs = {}
+
+        _parse_mcp_docs(mcp_text, mcp_docs)
+
+        assert "0" not in mcp_docs
+        assert mcp_docs["1"]["id"] == "order_policy_p1_c0"
+        assert mcp_docs["1"]["source"] == "order_policy.pdf"
+        assert mcp_docs["2"]["id"] == "service_policy_p1_c1"
+
     def test_parse_mcp_docs_no_json(self):
         """Test parsing when sections have no JSON blocks."""
         from chat import _parse_mcp_docs
@@ -822,6 +864,29 @@ class TestExtractMcpFromRaw:
 
         assert "1" in mcp_docs
         assert mcp_docs["1"]["id"] == "abc"
+
+    def test_direct_knowledge_base_output(self):
+        """Test extraction from the current Knowledge Base documents payload."""
+        from chat import _extract_mcp_from_raw
+
+        raw = Mock()
+        raw.output = json.dumps({
+            "documents": [
+                {"content": "Synthetic answer"},
+                {
+                    "content": json.dumps({
+                        "id": "order_policy_p1_c0",
+                        "source": "order_policy.pdf",
+                    })
+                },
+            ]
+        })
+        raw.response = None
+
+        mcp_docs = {}
+        _extract_mcp_from_raw(raw, mcp_docs)
+
+        assert mcp_docs["1"]["id"] == "order_policy_p1_c0"
 
     def test_response_event(self):
         """Test extraction from ResponseCompletedEvent with nested output."""
