@@ -10,7 +10,7 @@ if ! command -v pwsh >/dev/null 2>&1; then
 	echo "Installing PowerShell..."
 	sudo apt-get update
 	sudo apt-get install -y --no-install-recommends wget gpg apt-transport-https software-properties-common
-	wget -q https://packages.microsoft.com/config/debian/11/packages-microsoft-prod.deb -O /tmp/packages-microsoft-prod.deb
+	wget -q https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O /tmp/packages-microsoft-prod.deb
 	sudo dpkg -i /tmp/packages-microsoft-prod.deb
 	sudo apt-get update
 	sudo apt-get install -y --no-install-recommends powershell
