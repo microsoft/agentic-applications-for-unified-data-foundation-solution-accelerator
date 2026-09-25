@@ -275,4 +275,3 @@ def get_tenantid(client_principal_b64):
         except Exception as ex:
             logging.exception(ex)
     return tenant_id
-

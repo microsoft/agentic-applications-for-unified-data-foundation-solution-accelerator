@@ -10,15 +10,9 @@ import json
 import os
 import logging
 
-from dotenv import load_dotenv
-
-# Load environment variables before importing any modules that may read them
-# (auth utilities, routers, downstream Azure SDKs). Module-level env captures
-# in imported modules would otherwise miss values defined only in .env.
-load_dotenv()
-
 from azure.monitor.opentelemetry import configure_azure_monitor
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from opentelemetry import trace
@@ -27,6 +21,12 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from chat import router as chat_router
 from history import router as history_router
 from telemetry_context import conversation_id_var, user_id_var
+
+# NOTE: modules imported above (auth utilities in particular) must resolve
+# environment variables lazily on each request. If any of them capture values
+# at import time, values written only to .env will not be visible even after
+# this load_dotenv() call.
+load_dotenv()
 
 
 def _configure_logging():
