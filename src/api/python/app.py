@@ -9,11 +9,16 @@ and cleanup.
 import json
 import os
 import logging
-from contextvars import ContextVar
+
+from dotenv import load_dotenv
+
+# Load environment variables before importing any modules that may read them
+# (auth utilities, routers, downstream Azure SDKs). Module-level env captures
+# in imported modules would otherwise miss values defined only in .env.
+load_dotenv()
 
 from azure.monitor.opentelemetry import configure_azure_monitor
 import uvicorn
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from opentelemetry import trace
@@ -21,11 +26,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from chat import router as chat_router
 from history import router as history_router
-
-conversation_id_var: ContextVar[str] = ContextVar("conversation_id", default="")
-user_id_var: ContextVar[str] = ContextVar("user_id", default="")
-
-load_dotenv()
+from telemetry_context import conversation_id_var, user_id_var
 
 
 def _configure_logging():

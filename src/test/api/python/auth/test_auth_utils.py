@@ -38,8 +38,8 @@ def rsa_keys():
 @pytest.fixture(autouse=True)
 def configure_env(monkeypatch):
     """Configure OBO env vars and clear caches between tests."""
-    monkeypatch.setattr(auth_utils, "OBO_CLIENT_ID", TEST_CLIENT_ID)
-    monkeypatch.setattr(auth_utils, "OBO_TENANT_ID", TEST_TENANT_ID)
+    monkeypatch.setenv("OBO_CLIENT_ID", TEST_CLIENT_ID)
+    monkeypatch.setenv("OBO_TENANT_ID", TEST_TENANT_ID)
     with auth_utils._JWKS_LOCK:
         auth_utils._JWKS_CACHE.clear()
     yield
@@ -208,7 +208,7 @@ class TestGetAuthenticatedUserDetails:
         assert result["user_principal_id"] == "user-oid-1"
 
     def test_missing_configuration_returns_500(self, rsa_keys, monkeypatch):
-        monkeypatch.setattr(auth_utils, "OBO_CLIENT_ID", "")
+        monkeypatch.delenv("OBO_CLIENT_ID", raising=False)
         private_pem, _, _ = rsa_keys
         token = _sign_token(private_pem, _standard_claims())
         headers = {"Authorization": f"Bearer {token}"}
@@ -216,6 +216,32 @@ class TestGetAuthenticatedUserDetails:
         with pytest.raises(HTTPException) as exc_info:
             get_authenticated_user_details(headers)
         assert exc_info.value.status_code == 500
+
+    def test_env_vars_resolved_lazily(self, rsa_keys, monkeypatch):
+        """Config set after import (as ``load_dotenv`` does) must be honored."""
+        private_pem, _, public_key = rsa_keys
+        # Simulate a process that started with no OBO config (module import
+        # would have captured empty values in the old bug) and later had
+        # .env loaded.
+        monkeypatch.delenv("OBO_CLIENT_ID", raising=False)
+        monkeypatch.delenv("OBO_TENANT_ID", raising=False)
+        token = _sign_token(private_pem, _standard_claims())
+        auth_prefix = "Bear" + "er "
+        headers = {"Authorization": auth_prefix + token}
+
+        # First call: no config, must fail with 500.
+        with pytest.raises(HTTPException) as exc_info:
+            get_authenticated_user_details(headers)
+        assert exc_info.value.status_code == 500
+
+        # Config becomes available (as if load_dotenv just ran).
+        monkeypatch.setenv("OBO_CLIENT_ID", TEST_CLIENT_ID)
+        monkeypatch.setenv("OBO_TENANT_ID", TEST_TENANT_ID)
+
+        # Second call: same module, same import, but now succeeds.
+        with _patch_signing_key(public_key):
+            result = get_authenticated_user_details(headers)
+        assert result["user_principal_id"] == "user-oid-1"
 
     def test_falls_back_to_sub_when_oid_missing(self, rsa_keys):
         private_pem, _, public_key = rsa_keys
@@ -242,6 +268,43 @@ class TestGetAuthenticatedUserDetails:
         with pytest.raises(HTTPException) as exc_info:
             get_authenticated_user_details(headers)
         assert exc_info.value.status_code == 401
+
+    def test_telemetry_context_populated_on_success(self, rsa_keys):
+        """Successful auth must set user_id_var and the active span attribute."""
+        from telemetry_context import user_id_var
+
+        private_pem, _, public_key = rsa_keys
+        token = _sign_token(private_pem, _standard_claims({"oid": "telemetry-user"}))
+        headers = {"Authorization": f"Bearer {token}"}
+
+        recording_span = MagicMock()
+        recording_span.is_recording.return_value = True
+
+        # Reset the context var to a known state before the call
+        user_id_var.set("")
+        with _patch_signing_key(public_key), \
+             patch.object(auth_utils.trace, "get_current_span", return_value=recording_span):
+            get_authenticated_user_details(headers)
+
+        assert user_id_var.get() == "telemetry-user"
+        recording_span.set_attribute.assert_any_call("user_id", "telemetry-user")
+
+    def test_telemetry_context_not_touched_on_failure(self, rsa_keys):
+        """A rejected token must not overwrite the caller's user_id context."""
+        from telemetry_context import user_id_var
+
+        private_pem, _, public_key = rsa_keys
+        # Expired token — validation will fail before enrichment runs.
+        claims = _standard_claims({"exp": int(time.time()) - 60, "oid": "should-not-leak"})
+        token = _sign_token(private_pem, claims)
+        headers = {"Authorization": f"Bearer {token}"}
+
+        user_id_var.set("previous-value")
+        with _patch_signing_key(public_key):
+            with pytest.raises(HTTPException):
+                get_authenticated_user_details(headers)
+
+        assert user_id_var.get() == "previous-value"
 
 
 class TestJwksCaching:

@@ -149,15 +149,20 @@ var app = builder.Build();
 app.UseGlobalExceptionHandler();
 
 app.UseMiddleware<RequestLoggingMiddleware>();
-app.UseMiddleware<UserContextMiddleware>();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors(CorsPolicyName);
 
+// Authentication and authorization MUST run before UserContextMiddleware.
+// UserContextMiddleware snapshots the authenticated principal from HttpContext.User
+// into HttpContext.Items; if it ran before UseAuthentication, ctx.User would still
+// be anonymous and every request would see an empty UserContext.
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseMiddleware<UserContextMiddleware>();
 
 app.MapControllers();
 

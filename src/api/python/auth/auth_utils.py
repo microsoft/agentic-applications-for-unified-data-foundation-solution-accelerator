@@ -3,7 +3,9 @@
 Validates Entra ID (Azure AD) bearer access tokens using JWKS and derives the
 authenticated user identity exclusively from validated token claims.
 
-Environment variables:
+Environment variables (resolved lazily on every request so that values written
+to ``.env`` and loaded by ``load_dotenv()`` after this module is imported are
+picked up correctly):
     OBO_CLIENT_ID: Application (client) ID of the API app registration. Used to
         build the expected token audience ``api://{OBO_CLIENT_ID}``.
     OBO_TENANT_ID: Tenant (directory) ID that must issue the token.
@@ -20,17 +22,27 @@ from typing import Any, Dict, List, Optional, Tuple
 import jwt
 import requests
 from fastapi import HTTPException, status
+from opentelemetry import trace
+
+from telemetry_context import user_id_var
 
 logger = logging.getLogger(__name__)
-
-OBO_CLIENT_ID = os.getenv("OBO_CLIENT_ID", "").strip()
-OBO_TENANT_ID = os.getenv("OBO_TENANT_ID", "").strip()
 
 _JWKS_CACHE_TTL_SECONDS = 3600
 _JWKS_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
 _JWKS_LOCK = Lock()
 
 _UNAUTHORIZED_HEADERS = {"WWW-Authenticate": "Bearer"}
+
+
+def _get_obo_client_id() -> str:
+    """Return OBO_CLIENT_ID from the current environment (lazy resolution)."""
+    return (os.getenv("OBO_CLIENT_ID") or "").strip()
+
+
+def _get_obo_tenant_id() -> str:
+    """Return OBO_TENANT_ID from the current environment (lazy resolution)."""
+    return (os.getenv("OBO_TENANT_ID") or "").strip()
 
 
 def _unauthorized(detail: str) -> HTTPException:
@@ -97,23 +109,26 @@ def _get_signing_key(token: str, tenant_id: str):
 
 
 def _allowed_audiences() -> List[str]:
-    if not OBO_CLIENT_ID:
+    client_id = _get_obo_client_id()
+    if not client_id:
         return []
-    return [f"api://{OBO_CLIENT_ID}", OBO_CLIENT_ID]
+    return [f"api://{client_id}", client_id]
 
 
-def _allowed_issuers() -> List[str]:
-    if not OBO_TENANT_ID:
+def _allowed_issuers(tenant_id: str) -> List[str]:
+    if not tenant_id:
         return []
     return [
-        f"https://sts.windows.net/{OBO_TENANT_ID}/",
-        f"https://login.microsoftonline.com/{OBO_TENANT_ID}/v2.0",
+        f"https://sts.windows.net/{tenant_id}/",
+        f"https://login.microsoftonline.com/{tenant_id}/v2.0",
     ]
 
 
 def _validate_access_token(token: str) -> Dict[str, Any]:
     """Verify the token signature and standard claims. Returns validated claims."""
-    if not OBO_CLIENT_ID or not OBO_TENANT_ID:
+    client_id = _get_obo_client_id()
+    tenant_id = _get_obo_tenant_id()
+    if not client_id or not tenant_id:
         logger.error(
             "OBO_CLIENT_ID/OBO_TENANT_ID not configured; refusing to authenticate."
         )
@@ -122,8 +137,8 @@ def _validate_access_token(token: str) -> Dict[str, Any]:
             detail="Authentication is not configured on the server",
         )
 
-    signing_key = _get_signing_key(token, OBO_TENANT_ID)
-    allowed_issuers = _allowed_issuers()
+    signing_key = _get_signing_key(token, tenant_id)
+    allowed_issuers = _allowed_issuers(tenant_id)
     last_error: Optional[Exception] = None
     claims: Optional[Dict[str, Any]] = None
 
@@ -153,7 +168,7 @@ def _validate_access_token(token: str) -> Dict[str, Any]:
         raise _unauthorized("Invalid token")
 
     tid = claims.get("tid")
-    if tid != OBO_TENANT_ID:
+    if tid != tenant_id:
         raise _unauthorized("Token tenant not permitted")
 
     return claims
@@ -217,6 +232,19 @@ def get_authenticated_user_details(request_headers) -> Dict[str, Any]:
         or claims.get("unique_name")
         or claims.get("name")
     )
+
+    # Enrich the request-scoped logging + tracing context with the validated
+    # identity. This is done here (rather than in an HTTP middleware) so that
+    # user_id is derived exclusively from a signature-verified token — never
+    # from client-supplied headers — and every route that authenticates
+    # automatically gets telemetry enrichment without extra bookkeeping.
+    try:
+        user_id_var.set(str(user_principal_id))
+        span = trace.get_current_span()
+        if span is not None and span.is_recording():
+            span.set_attribute("user_id", str(user_principal_id))
+    except Exception:  # pragma: no cover - defensive; telemetry must never break auth
+        logger.debug("Failed to enrich telemetry context with user_id", exc_info=True)
 
     return {
         "user_principal_id": user_principal_id,
