@@ -971,8 +971,10 @@ class TestFetchAzureSearchContent:
 
         mock_request = Mock()
         mock_request.json = AsyncMock(return_value={"source": "test"})
+        mock_request.headers = {}
 
-        response = await fetch_azure_search_content(mock_request)
+        with patch('chat.get_authenticated_user_details', return_value={"user_principal_id": "u"}):
+            response = await fetch_azure_search_content(mock_request)
 
         assert response.status_code == 400
 
@@ -988,8 +990,10 @@ class TestFetchAzureSearchContent:
             "url": "https://evil.com/indexes/idx/docs/123",
             "source": "test"
         })
+        mock_request.headers = {}
 
-        response = await fetch_azure_search_content(mock_request)
+        with patch('chat.get_authenticated_user_details', return_value={"user_principal_id": "u"}):
+            response = await fetch_azure_search_content(mock_request)
 
         assert response.status_code == 403
 
@@ -1023,8 +1027,10 @@ class TestFetchAzureSearchContent:
             "url": "https://mysearch.search.windows.net/indexes/idx",
             "source": "test"
         })
+        mock_request.headers = {}
 
-        response = await fetch_azure_search_content(mock_request)
+        with patch('chat.get_authenticated_user_details', return_value={"user_principal_id": "u"}):
+            response = await fetch_azure_search_content(mock_request)
 
         assert response.status_code == 400
 
@@ -1040,6 +1046,7 @@ class TestFetchAzureSearchContent:
             "url": "https://mysearch.search.windows.net/indexes/idx/docs/doc123?api-version=2024-07-01",
             "source": "test.pdf"
         })
+        mock_request.headers = {}
 
         mock_token = Mock()
         mock_token.token = "fake-token"
@@ -1051,7 +1058,8 @@ class TestFetchAzureSearchContent:
         mock_get_cred = AsyncMock(return_value=mock_credential)
         mock_to_thread = AsyncMock(return_value={"content": "document text", "title": "test.pdf"})
 
-        with patch('chat.get_azure_credential_async', mock_get_cred), \
+        with patch('chat.get_authenticated_user_details', return_value={"user_principal_id": "u"}), \
+             patch('chat.get_azure_credential_async', mock_get_cred), \
              patch('chat.asyncio.to_thread', mock_to_thread):
             response = await fetch_azure_search_content(mock_request)
 

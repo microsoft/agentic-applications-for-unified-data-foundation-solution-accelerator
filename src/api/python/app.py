@@ -97,14 +97,14 @@ def build_app() -> FastAPI:
 
     @fastapi_app.middleware("http")
     async def attach_trace_attributes(request: Request, call_next):
-        """Auto-attach user_id and conversation_id to span + logging context."""
-        span = trace.get_current_span()
+        """Attach conversation_id to span + logging context.
 
-        user_id = request.headers.get("x-ms-client-principal-id", "")
-        if user_id:
-            user_id_var.set(user_id)
-            if span and span.is_recording():
-                span.set_attribute("user_id", user_id)
+        Only conversation_id is enriched here. user_id is intentionally NOT
+        pulled from the ``x-ms-client-principal-id`` header because that header
+        is client-controlled and would allow attackers to poison telemetry.
+        Routes populate user_id from the validated token after authentication.
+        """
+        span = trace.get_current_span()
 
         if request.method in ("POST", "PUT", "PATCH"):
             try:

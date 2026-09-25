@@ -5,6 +5,8 @@ using CsApi.Repositories;
 using CsApi.Services;
 using CsApi.Converters;
 using CsApi.Utils;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 
@@ -60,6 +62,65 @@ builder.Services.AddSwaggerGen(c =>
 // Dependency Injection registrations
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IUserContextAccessor, HeaderUserContextAccessor>();
+
+// --- Authentication ---
+// Validates AAD access tokens against Entra ID JWKS. Identity is derived
+// exclusively from validated token claims; client-supplied
+// x-ms-client-principal-* headers are never trusted for authorization.
+var oboTenantId = builder.Configuration["OBO_TENANT_ID"]
+                  ?? Environment.GetEnvironmentVariable("OBO_TENANT_ID");
+var oboClientId = builder.Configuration["OBO_CLIENT_ID"]
+                  ?? Environment.GetEnvironmentVariable("OBO_CLIENT_ID");
+
+if (string.IsNullOrWhiteSpace(oboTenantId) || string.IsNullOrWhiteSpace(oboClientId))
+{
+    throw new InvalidOperationException(
+        "OBO_TENANT_ID and OBO_CLIENT_ID must be configured. " +
+        "See infra/scripts/post-provision/setup_obo_auth.ps1.");
+}
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        options.Authority = $"https://login.microsoftonline.com/{oboTenantId}/v2.0";
+        options.MetadataAddress =
+            $"https://login.microsoftonline.com/{oboTenantId}/v2.0/.well-known/openid-configuration";
+        options.RequireHttpsMetadata = true;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuers = new[]
+            {
+                $"https://login.microsoftonline.com/{oboTenantId}/v2.0",
+                $"https://sts.windows.net/{oboTenantId}/"
+            },
+            ValidateAudience = true,
+            ValidAudiences = new[]
+            {
+                $"api://{oboClientId}",
+                oboClientId
+            },
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            NameClaimType = "preferred_username",
+            RoleClaimType = "roles",
+            ClockSkew = TimeSpan.FromMinutes(2)
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    // Every endpoint must be reached by an authenticated caller unless it
+    // explicitly opts out via [AllowAnonymous]. This is defense in depth
+    // on top of the per-controller [Authorize] attributes.
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(
+            JwtBearerDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 builder.Services.AddScoped<ISqlConversationRepository, SqlConversationRepository>();
 builder.Services.AddScoped<ITitleGenerationService, TitleGenerationService>();
 builder.Services.AddScoped<IAgentFrameworkService, AgentFrameworkService>();
@@ -94,15 +155,20 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors(CorsPolicyName);
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
-app.MapGet("/health", () => Results.Json(new { status = "healthy" }));
+app.MapGet("/health", () => Results.Json(new { status = "healthy" }))
+    .AllowAnonymous();
 
 app.MapGet("/ready", (IConfiguration cfg) =>
 {
     var cs = cfg["FABRIC_SQL_CONNECTION_STRING"];
     return Results.Json(new { ready = !string.IsNullOrWhiteSpace(cs) });
-});
+}).AllowAnonymous();
 
 app.Run();
 

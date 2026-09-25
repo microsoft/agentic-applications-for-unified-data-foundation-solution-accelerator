@@ -7,6 +7,7 @@ using CsApi.Services;
 using CsApi.Utils;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Foundry;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.AI;
 using System.Text;
@@ -18,6 +19,7 @@ using Azure;
 namespace CsApi.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api")] // matches /api prefix
 public class ChatController : ControllerBase
 {
