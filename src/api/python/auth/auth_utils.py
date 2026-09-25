@@ -3,13 +3,7 @@
 Validates Entra ID (Azure AD) bearer access tokens using JWKS and derives the
 authenticated user identity exclusively from validated token claims.
 
-Client-supplied headers such as ``x-ms-client-principal-id`` are NEVER used for
-authorization because they can be spoofed by any HTTP client when the request
-does not traverse Azure App Service EasyAuth (for example, local development
-without EasyAuth, private endpoints that bypass EasyAuth, or misconfigured
-deployments). Trusting them enables cross-user history read/delete.
-
-Environment variables (populated by ``infra/scripts/post-provision/setup_obo_auth.ps1``):
+Environment variables:
     OBO_CLIENT_ID: Application (client) ID of the API app registration. Used to
         build the expected token audience ``api://{OBO_CLIENT_ID}``.
     OBO_TENANT_ID: Tenant (directory) ID that must issue the token.
