@@ -2,6 +2,7 @@ using CsApi.Interfaces;
 using CsApi.Models;
 using Azure;
 using Microsoft.Azure.Cosmos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -13,6 +14,7 @@ namespace CsApi.Controllers;
 /// All routes use CosmosConversationClient (no SQL fallback).
 /// </summary>
 [ApiController]
+[Authorize]
 [Route("history")]
 public class HistoryController : ControllerBase
 {

@@ -68,17 +68,28 @@ class TestAttachTraceAttributesMiddleware:
         )
         assert response.status_code in (200, 405)
 
-    def test_middleware_sets_user_id_span_attribute(self, test_client):
-        """Test that user_id from auth header is set on the OTel span."""
+    def test_middleware_does_not_trust_client_principal_header(self, test_client):
+        """Client-supplied ``x-ms-client-principal-id`` must NOT populate the span.
+
+        Regression guard for the header-spoofing vulnerability: the middleware
+        previously copied this header onto the active span, allowing any HTTP
+        client to poison telemetry with an arbitrary user id. The secure
+        behavior is that user_id is only populated after cryptographic token
+        validation in the auth layer.
+        """
         mock_span = MagicMock()
         mock_span.is_recording.return_value = True
         with patch("app.trace.get_current_span", return_value=mock_span):
             response = test_client.get(
                 "/health",
-                headers={"x-ms-client-principal-id": "test-user-123"}
+                headers={"x-ms-client-principal-id": "attacker-user"}
             )
         assert response.status_code == 200
-        mock_span.set_attribute.assert_any_call("user_id", "test-user-123")
+        for call in mock_span.set_attribute.call_args_list:
+            args, _ = call
+            assert args[0] != "user_id", (
+                "user_id must not be derived from client-supplied headers"
+            )
 
     def test_middleware_sets_conversation_id_span_attribute(self, test_client):
         """Test that conversation_id from POST body is set on the OTel span."""

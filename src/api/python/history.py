@@ -725,6 +725,8 @@ async def add_conversation_route(request: Request):
         })
         return response
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Exception in /generate: %s", str(e))
         track_event_if_configured("GenerateConversationError", {
@@ -776,6 +778,8 @@ async def update_conversation_route(request: Request):
             },
             status_code=200,
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Exception in /history/update: %s", str(e))
         track_event_if_configured("UpdateConversationError", {
@@ -844,6 +848,8 @@ async def update_message_feedback_route(request: Request):
                 detail=f"Unable to update message {message_id}. It either does not exist or the user does not have access to it."
             )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Exception in /history/message_feedback: %s", str(e))
         track_event_if_configured("MessageFeedbackError", {
@@ -896,6 +902,8 @@ async def delete_conversation_route(request: Request, id: str = Query(...)):
             raise HTTPException(
                 status_code=404,
                 detail=f"Conversation {conversation_id} not found or user does not have permission.")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Exception in /history/delete: %s", str(e))
         track_event_if_configured("DeleteConversationError", {
@@ -947,6 +955,8 @@ async def list_conversations(
         })
         return JSONResponse(content=conversations, status_code=200)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Exception in /history/list: %s", str(e))
         track_event_if_configured("ListConversationsError", {
@@ -1001,6 +1011,8 @@ async def get_conversation_messages_route(request: Request, id: str = Query(...)
                 "messages": conversationMessages},
             status_code=200)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Exception in /history/read: %s", str(e))
         track_event_if_configured("ReadConversationError", {
@@ -1052,6 +1064,8 @@ async def rename_conversation_route(request: Request):
 
         return JSONResponse(content=rename_result, status_code=200)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Exception in /history/rename: %s", str(e))
         track_event_if_configured("RenameConversationError", {
@@ -1100,6 +1114,8 @@ async def delete_all_conversations(request: Request):
             status_code=200,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logging.exception("Exception in /history/delete_all: %s", str(e))
         track_event_if_configured("DeleteAllConversationsError", {
@@ -1155,6 +1171,8 @@ async def clear_messages_route(request: Request):
                 "message": "Successfully cleared messages"},
             status_code=200)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Exception in /history/clear: %s", str(e))
         track_event_if_configured("ClearMessagesError", {
