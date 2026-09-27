@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CsApi.Interfaces;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace CsApi.Auth;
 
