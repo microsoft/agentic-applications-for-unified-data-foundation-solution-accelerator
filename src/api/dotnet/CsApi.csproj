@@ -19,6 +19,7 @@
   <ItemGroup>
     <PackageReference Include="Azure.AI.Projects" Version="2.1.0-beta.2" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.5.1" />
     <PackageReference Include="Microsoft.Agents.AI.Foundry" Version="1.6.1-preview.260514.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />

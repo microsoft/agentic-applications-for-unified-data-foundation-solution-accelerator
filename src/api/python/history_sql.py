@@ -766,8 +766,7 @@ async def list_conversations(
         # await adjust_processed_data_dates()
 
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers
-        )
+            request_headers=request.headers)
         user_id = authenticated_user["user_principal_id"]
 
         logger.info("Historyfab list-API: user_id: %s, offset: %s, limit: %s", user_id, offset, limit)
@@ -816,8 +815,7 @@ async def get_conversation_messages_endpoint(request: Request, id: str = Query(.
     """
     try:
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers
-        )
+            request_headers=request.headers)
         user_id = authenticated_user["user_principal_id"]
 
         conversation_id = id
@@ -889,8 +887,7 @@ async def delete_conversation_endpoint(request: Request, id: str = Query(...)):
     try:
         # Get the user ID from request headers
         authenticated_user = get_authenticated_user_details(
-            request_headers=request.headers
-        )
+            request_headers=request.headers)
         user_id = authenticated_user["user_principal_id"]
 
         conversation_id = id

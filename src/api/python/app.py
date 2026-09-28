@@ -9,7 +9,6 @@ and cleanup.
 import json
 import os
 import logging
-from contextvars import ContextVar
 
 from azure.monitor.opentelemetry import configure_azure_monitor
 import uvicorn
@@ -21,10 +20,12 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from chat import router as chat_router
 from history import router as history_router
+from telemetry_context import conversation_id_var, user_id_var
 
-conversation_id_var: ContextVar[str] = ContextVar("conversation_id", default="")
-user_id_var: ContextVar[str] = ContextVar("user_id", default="")
-
+# NOTE: modules imported above (auth utilities in particular) must resolve
+# environment variables lazily on each request. If any of them capture values
+# at import time, values written only to .env will not be visible even after
+# this load_dotenv() call.
 load_dotenv()
 
 
@@ -97,14 +98,14 @@ def build_app() -> FastAPI:
 
     @fastapi_app.middleware("http")
     async def attach_trace_attributes(request: Request, call_next):
-        """Auto-attach user_id and conversation_id to span + logging context."""
-        span = trace.get_current_span()
+        """Attach conversation_id to span + logging context.
 
-        user_id = request.headers.get("x-ms-client-principal-id", "")
-        if user_id:
-            user_id_var.set(user_id)
-            if span and span.is_recording():
-                span.set_attribute("user_id", user_id)
+        Only conversation_id is enriched here. user_id is intentionally NOT
+        pulled from the ``x-ms-client-principal-id`` header because that header
+        is client-controlled and would allow attackers to poison telemetry.
+        Routes populate user_id from the validated token after authentication.
+        """
+        span = trace.get_current_span()
 
         if request.method in ("POST", "PUT", "PATCH"):
             try:
