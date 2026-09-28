@@ -14,7 +14,7 @@ types-requests==2.33.0.20260408
 aiohttp==3.14.3
 
 # Auth / token validation
-PyJWT[crypto]==2.10.1
+PyJWT[crypto]==2.13.0
 
 # Azure Services
 azure-identity==1.25.3
