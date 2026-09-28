@@ -387,6 +387,9 @@ async def stream_chat_request(conversation_id, query, user_id: str = "", user_as
 async def fetch_azure_search_content(request: Request):
     """Fetch document content from Azure AI Search by citation URL."""
     try:
+        # Require a valid access token before touching search content
+        get_authenticated_user_details(request_headers=request.headers)
+
         request_json = await request.json()
         citation_url = request_json.get("url")
         fallback_label = request_json.get("source") or request_json.get("title", "")
@@ -496,6 +499,8 @@ async def fetch_azure_search_content(request: Request):
         result = await asyncio.to_thread(fetch_content)
         return JSONResponse(content=result)
 
+    except HTTPException:
+        raise
     except Exception:
         logger.exception("Error in fetch_azure_search_content")
         return JSONResponse(
@@ -548,6 +553,8 @@ async def conversation(request: Request):
         )
         return StreamingResponse(result, media_type="application/json-lines")
 
+    except HTTPException:
+        raise
     except Exception as ex:
         logger.exception("Error in conversation endpoint: %s", str(ex))
 
