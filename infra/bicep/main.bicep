@@ -40,7 +40,7 @@ param tags object = {}
   azd: {
     type: 'location'
     usageName: [
-      'OpenAI.GlobalStandard.gpt-5.4-mini,100'
+      'OpenAI.GlobalStandard.gpt-5.4-mini,150'
       'OpenAI.GlobalStandard.text-embedding-3-small,80'
     ]
   }
