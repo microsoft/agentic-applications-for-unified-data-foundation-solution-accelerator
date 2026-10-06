@@ -1,7 +1,7 @@
 ## Check Quota Availability Before Deployment
 
 Before deploying the accelerator, **ensure sufficient quota availability** for the required model.
-> **We recommend increasing the capacity to 20k tokens for optimal performance.**
+> **The recommended minimum capacity is 150K TPM for optimal performance.**
 
 ### Login if you have not done so already
 ```
@@ -10,11 +10,11 @@ azd auth login
 
 ### 📌 Default Models & Capacities:
 ```
-gpt4.1-mini:20,text-embedding-3-small:80
+gpt-5.4-mini:150,text-embedding-3-small:80
 ```
 ### 📌 Default Regions:
 ```
-eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southcentralus, canadacentral
+eastus,eastus2,australiaeast,uksouth,francecentral,westus
 ```
 ### Usage Scenarios:
 - No parameters passed → Default models and capacities will be checked in default regions.
@@ -36,7 +36,7 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
    ```
 ✔️ Check specific model(s) in default regions:
   ```
-  ./quota_check_params.sh --models gpt4.1-mini:20
+  ./quota_check_params.sh --models gpt-5.4-mini:150
   ```
 ✔️ Check default models in specific region(s):
   ```
@@ -44,11 +44,11 @@ eastus, uksouth, eastus2, northcentralus, swedencentral, westus, westus2, southc
   ```
 ✔️ Passing Both models and regions:  
   ```
-  ./quota_check_params.sh --models gpt4.1-mini:20 --regions eastus,westus2
+  ./quota_check_params.sh --models gpt-5.4-mini:150 --regions eastus,westus
   ```
 ✔️ All parameters combined:
   ```
- ./quota_check_params.sh --models text-embedding-3-small:80,gpt4.1-mini:20 --regions eastus,westus --verbose
+ ./quota_check_params.sh --models text-embedding-3-small:80,gpt-5.4-mini:150 --regions eastus,westus --verbose
   ```
 
 ### **Sample Output**
