@@ -641,7 +641,7 @@ module foundry_appi_connection './modules/ai/ai-foundry-connection.bicep' = if (
     target: app_insights!.outputs.resourceId
     authType: 'ApiKey'
     isDefault: true
-    credentialsKey: app_insights!.outputs.instrumentationKey
+    credentialsKey: app_insights!.outputs.connectionString
     metadata: {
       ApiType: 'Azure'
       ResourceId: app_insights!.outputs.resourceId

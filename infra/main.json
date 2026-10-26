@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.45.15.27210",
-      "templateHash": "4332586035261519809"
+      "version": "0.48.1.52935",
+      "templateHash": "3009545780140004413"
     }
   },
   "parameters": {
@@ -472,8 +472,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.45.15.27210",
-              "templateHash": "11959390884198723476"
+              "version": "0.48.1.52935",
+              "templateHash": "8416098733926094325"
             }
           },
           "parameters": {
@@ -939,8 +939,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "10895201737724746296"
+                      "version": "0.48.1.52935",
+                      "templateHash": "7301206965244950437"
                     }
                   },
                   "parameters": {
@@ -1325,8 +1325,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "8088039885965286237"
+                      "version": "0.48.1.52935",
+                      "templateHash": "4501339495963982830"
                     }
                   },
                   "parameters": {
@@ -4633,8 +4633,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "17593462233384180904"
+                      "version": "0.48.1.52935",
+                      "templateHash": "13684712755186130053"
                     }
                   },
                   "parameters": {
@@ -5560,8 +5560,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "11868321282699299231"
+                      "version": "0.48.1.52935",
+                      "templateHash": "4346033805621054137"
                     }
                   },
                   "definitions": {
@@ -8423,8 +8423,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "5843178535659210113"
+                      "version": "0.48.1.52935",
+                      "templateHash": "14809284621244510600"
                     }
                   },
                   "parameters": {
@@ -10327,8 +10327,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "1089854782656841223"
+                      "version": "0.48.1.52935",
+                      "templateHash": "14017306245432222983"
                     }
                   },
                   "parameters": {
@@ -10866,8 +10866,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "8930408375182742451"
+                      "version": "0.48.1.52935",
+                      "templateHash": "16198050071406335481"
                     }
                   },
                   "parameters": {
@@ -12335,8 +12335,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "9515837065104451474"
+                      "version": "0.48.1.52935",
+                      "templateHash": "3050885622648110604"
                     }
                   },
                   "parameters": {
@@ -12844,8 +12844,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "18103466400870370455"
+                      "version": "0.48.1.52935",
+                      "templateHash": "10573410288417788657"
                     }
                   },
                   "parameters": {
@@ -22200,8 +22200,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "6776150673571028467"
+                      "version": "0.48.1.52935",
+                      "templateHash": "8441656621800930794"
                     }
                   },
                   "parameters": {
@@ -25683,8 +25683,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "13279543274194444884"
+                      "version": "0.48.1.52935",
+                      "templateHash": "4938385963536051556"
                     }
                   },
                   "parameters": {
@@ -25829,8 +25829,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "14182220518165543528"
+                      "version": "0.48.1.52935",
+                      "templateHash": "16955179804010480786"
                     }
                   },
                   "parameters": {
@@ -28603,8 +28603,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3215519417659672748"
+                      "version": "0.48.1.52935",
+                      "templateHash": "6728578043657758729"
                     }
                   },
                   "parameters": {
@@ -28770,8 +28770,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3215519417659672748"
+                      "version": "0.48.1.52935",
+                      "templateHash": "6728578043657758729"
                     }
                   },
                   "parameters": {
@@ -28928,7 +28928,7 @@
                     "value": true
                   },
                   "credentialsKey": {
-                    "value": "[reference('app_insights').outputs.instrumentationKey.value]"
+                    "value": "[reference('app_insights').outputs.connectionString.value]"
                   },
                   "metadata": {
                     "value": {
@@ -28943,8 +28943,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3215519417659672748"
+                      "version": "0.48.1.52935",
+                      "templateHash": "6728578043657758729"
                     }
                   },
                   "parameters": {
@@ -29114,8 +29114,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3303748358923315881"
+                      "version": "0.48.1.52935",
+                      "templateHash": "4327709742151086119"
                     }
                   },
                   "parameters": {
@@ -29263,8 +29263,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3890790255801604274"
+                      "version": "0.48.1.52935",
+                      "templateHash": "1609956025771832182"
                     }
                   },
                   "parameters": {
@@ -31605,8 +31605,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "14037971681528590699"
+                      "version": "0.48.1.52935",
+                      "templateHash": "11978822872563226067"
                     }
                   },
                   "parameters": {
@@ -40057,8 +40057,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "4510940895620843948"
+                      "version": "0.48.1.52935",
+                      "templateHash": "2231884905878969018"
                     }
                   },
                   "parameters": {
@@ -46256,8 +46256,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "4482827403282269853"
+                      "version": "0.48.1.52935",
+                      "templateHash": "10928996808079544259"
                     }
                   },
                   "parameters": {
@@ -50366,8 +50366,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "17112276975229652402"
+                      "version": "0.48.1.52935",
+                      "templateHash": "11414438290975814608"
                     }
                   },
                   "parameters": {
@@ -51257,6 +51257,11 @@
                   "acrUseManagedIdentityCreds": {
                     "value": true
                   },
+                  "corsAllowedOrigins": {
+                    "value": [
+                      "[format('https://app-{0}.azurewebsites.net', variables('solutionSuffix'))]"
+                    ]
+                  },
                   "virtualNetworkSubnetId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference('virtualNetwork').outputs.webserverfarmSubnetResourceId.value), createObject('value', ''))]",
                   "publicNetworkAccess": "[if(parameters('enablePrivateNetworking'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
                   "vnetRouteAllEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
@@ -51308,8 +51313,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3935592158512775421"
+                      "version": "0.48.1.52935",
+                      "templateHash": "1426609286185909956"
                     }
                   },
                   "definitions": {
@@ -51751,6 +51756,13 @@
                         "description": "Optional. Command line for the application."
                       }
                     },
+                    "corsAllowedOrigins": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Optional. Origins allowed to make cross-origin requests to the app."
+                      }
+                    },
                     "kind": {
                       "type": "string",
                       "defaultValue": "app,linux",
@@ -51924,7 +51936,8 @@
                               "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
                               "appCommandLine": "[parameters('appCommandLine')]",
                               "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]",
-                              "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]"
+                              "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]",
+                              "cors": "[if(not(empty(parameters('corsAllowedOrigins'))), createObject('allowedOrigins', parameters('corsAllowedOrigins')), null())]"
                             }
                           },
                           "e2eEncryptionEnabled": {
@@ -66841,6 +66854,11 @@
                   "acrUseManagedIdentityCreds": {
                     "value": true
                   },
+                  "corsAllowedOrigins": {
+                    "value": [
+                      "[format('https://app-{0}.azurewebsites.net', variables('solutionSuffix'))]"
+                    ]
+                  },
                   "virtualNetworkSubnetId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference('virtualNetwork').outputs.webserverfarmSubnetResourceId.value), createObject('value', ''))]",
                   "publicNetworkAccess": "[if(parameters('enablePrivateNetworking'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
                   "vnetRouteAllEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
@@ -66888,8 +66906,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3935592158512775421"
+                      "version": "0.48.1.52935",
+                      "templateHash": "1426609286185909956"
                     }
                   },
                   "definitions": {
@@ -67331,6 +67349,13 @@
                         "description": "Optional. Command line for the application."
                       }
                     },
+                    "corsAllowedOrigins": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Optional. Origins allowed to make cross-origin requests to the app."
+                      }
+                    },
                     "kind": {
                       "type": "string",
                       "defaultValue": "app,linux",
@@ -67504,7 +67529,8 @@
                               "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
                               "appCommandLine": "[parameters('appCommandLine')]",
                               "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]",
-                              "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]"
+                              "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]",
+                              "cors": "[if(not(empty(parameters('corsAllowedOrigins'))), createObject('allowedOrigins', parameters('corsAllowedOrigins')), null())]"
                             }
                           },
                           "e2eEncryptionEnabled": {
@@ -82446,8 +82472,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3935592158512775421"
+                      "version": "0.48.1.52935",
+                      "templateHash": "1426609286185909956"
                     }
                   },
                   "definitions": {
@@ -82889,6 +82915,13 @@
                         "description": "Optional. Command line for the application."
                       }
                     },
+                    "corsAllowedOrigins": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Optional. Origins allowed to make cross-origin requests to the app."
+                      }
+                    },
                     "kind": {
                       "type": "string",
                       "defaultValue": "app,linux",
@@ -83062,7 +83095,8 @@
                               "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
                               "appCommandLine": "[parameters('appCommandLine')]",
                               "vnetRouteAllEnabled": "[parameters('vnetRouteAllEnabled')]",
-                              "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]"
+                              "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]",
+                              "cors": "[if(not(empty(parameters('corsAllowedOrigins'))), createObject('allowedOrigins', parameters('corsAllowedOrigins')), null())]"
                             }
                           },
                           "e2eEncryptionEnabled": {
@@ -97989,8 +98023,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "5307141893285444826"
+                      "version": "0.48.1.52935",
+                      "templateHash": "6705701053672296983"
                     }
                   },
                   "parameters": {
@@ -98258,8 +98292,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.45.15.27210",
-                              "templateHash": "760283542453649490"
+                              "version": "0.48.1.52935",
+                              "templateHash": "11042648274665122017"
                             }
                           },
                           "parameters": {
@@ -98347,8 +98381,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.45.15.27210",
-                              "templateHash": "760283542453649490"
+                              "version": "0.48.1.52935",
+                              "templateHash": "11042648274665122017"
                             }
                           },
                           "parameters": {
@@ -98793,8 +98827,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.45.15.27210",
-              "templateHash": "13225198284621825378"
+              "version": "0.48.1.52935",
+              "templateHash": "3483049816970680503"
             }
           },
           "parameters": {
@@ -99105,7 +99139,7 @@
             "backendApiImageName": "[variables('placeholderContainerImage')]",
             "backendCsApiImageName": "[variables('placeholderContainerImage')]",
             "frontendImageName": "[variables('placeholderContainerImage')]",
-            "reactAppLayoutConfig": "{\n  \"appConfig\": {\n      \"CHAT_CHATHISTORY\": {\n        \"CHAT\": 70,\n        \"CHATHISTORY\": 30\n      }\n    }\n  }\n}"
+            "reactAppLayoutConfig": "{\r\n  \"appConfig\": {\r\n      \"CHAT_CHATHISTORY\": {\r\n        \"CHAT\": 70,\r\n        \"CHATHISTORY\": 30\r\n      }\r\n    }\r\n  }\r\n}"
           },
           "resources": [
             {
@@ -99152,8 +99186,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "12452048800452123095"
+                      "version": "0.48.1.52935",
+                      "templateHash": "9365751802970999892"
                     }
                   },
                   "parameters": {
@@ -99286,8 +99320,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "1562511690153284384"
+                      "version": "0.48.1.52935",
+                      "templateHash": "13302385300619851972"
                     }
                   },
                   "parameters": {
@@ -99415,8 +99449,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "1396979465821863055"
+                      "version": "0.48.1.52935",
+                      "templateHash": "8999585373568107087"
                     }
                   },
                   "parameters": {
@@ -99572,8 +99606,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "2061702784288856091"
+                      "version": "0.48.1.52935",
+                      "templateHash": "9361565610228622450"
                     }
                   },
                   "parameters": {
@@ -99694,8 +99728,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "9158340857418869969"
+                      "version": "0.48.1.52935",
+                      "templateHash": "2947685712690285998"
                     }
                   },
                   "parameters": {
@@ -99932,8 +99966,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3215519417659672748"
+                      "version": "0.48.1.52935",
+                      "templateHash": "6728578043657758729"
                     }
                   },
                   "parameters": {
@@ -100099,8 +100133,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3215519417659672748"
+                      "version": "0.48.1.52935",
+                      "templateHash": "6728578043657758729"
                     }
                   },
                   "parameters": {
@@ -100257,7 +100291,7 @@
                     "value": true
                   },
                   "credentialsKey": {
-                    "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.instrumentationKey.value]"
+                    "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.connectionString.value]"
                   },
                   "metadata": {
                     "value": {
@@ -100272,8 +100306,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3215519417659672748"
+                      "version": "0.48.1.52935",
+                      "templateHash": "6728578043657758729"
                     }
                   },
                   "parameters": {
@@ -100443,8 +100477,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "3303748358923315881"
+                      "version": "0.48.1.52935",
+                      "templateHash": "4327709742151086119"
                     }
                   },
                   "parameters": {
@@ -100565,8 +100599,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "17915224445383853819"
+                      "version": "0.48.1.52935",
+                      "templateHash": "6266377187075673486"
                     }
                   },
                   "parameters": {
@@ -100754,8 +100788,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.45.15.27210",
-                              "templateHash": "3599592075727945573"
+                              "version": "0.48.1.52935",
+                              "templateHash": "906932307415391300"
                             }
                           },
                           "parameters": {
@@ -100962,8 +100996,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "6188951243540273822"
+                      "version": "0.48.1.52935",
+                      "templateHash": "18155813057291605140"
                     }
                   },
                   "parameters": {
@@ -101189,8 +101223,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "183685311511410868"
+                      "version": "0.48.1.52935",
+                      "templateHash": "7088847466249599897"
                     }
                   },
                   "parameters": {
@@ -101383,8 +101417,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "4537280756464844268"
+                      "version": "0.48.1.52935",
+                      "templateHash": "2041299920815269902"
                     }
                   },
                   "parameters": {
@@ -101553,8 +101587,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "634033543361922430"
+                      "version": "0.48.1.52935",
+                      "templateHash": "12450053610245775923"
                     }
                   },
                   "parameters": {
@@ -101727,6 +101761,11 @@
                   "acrUseManagedIdentityCreds": {
                     "value": true
                   },
+                  "corsAllowedOrigins": {
+                    "value": [
+                      "[format('https://app-{0}.azurewebsites.net', variables('solutionSuffix'))]"
+                    ]
+                  },
                   "appSettings": {
                     "value": {
                       "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.instrumentationKey.value]",
@@ -101773,8 +101812,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "5875833997986970033"
+                      "version": "0.48.1.52935",
+                      "templateHash": "9069249797962052810"
                     }
                   },
                   "parameters": {
@@ -101849,6 +101888,13 @@
                       "defaultValue": "",
                       "metadata": {
                         "description": "Optional. Command line for the application."
+                      }
+                    },
+                    "corsAllowedOrigins": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Optional. Origins allowed to make cross-origin requests to the app."
                       }
                     },
                     "kind": {
@@ -101938,7 +101984,8 @@
                           "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                           "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
                           "appCommandLine": "[parameters('appCommandLine')]",
-                          "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]"
+                          "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]",
+                          "cors": "[if(not(empty(parameters('corsAllowedOrigins'))), createObject('allowedOrigins', parameters('corsAllowedOrigins')), null())]"
                         },
                         "endToEndEncryptionEnabled": true
                       }
@@ -102061,6 +102108,11 @@
                   "acrUseManagedIdentityCreds": {
                     "value": true
                   },
+                  "corsAllowedOrigins": {
+                    "value": [
+                      "[format('https://app-{0}.azurewebsites.net', variables('solutionSuffix'))]"
+                    ]
+                  },
                   "appSettings": {
                     "value": {
                       "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, resourceGroup().name), 'Microsoft.Resources/deployments', take(format('module.app-insights.{0}', parameters('solutionName')), 64)), '2025-04-01').outputs.instrumentationKey.value]",
@@ -102103,8 +102155,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "5875833997986970033"
+                      "version": "0.48.1.52935",
+                      "templateHash": "9069249797962052810"
                     }
                   },
                   "parameters": {
@@ -102179,6 +102231,13 @@
                       "defaultValue": "",
                       "metadata": {
                         "description": "Optional. Command line for the application."
+                      }
+                    },
+                    "corsAllowedOrigins": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Optional. Origins allowed to make cross-origin requests to the app."
                       }
                     },
                     "kind": {
@@ -102268,7 +102327,8 @@
                           "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                           "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
                           "appCommandLine": "[parameters('appCommandLine')]",
-                          "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]"
+                          "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]",
+                          "cors": "[if(not(empty(parameters('corsAllowedOrigins'))), createObject('allowedOrigins', parameters('corsAllowedOrigins')), null())]"
                         },
                         "endToEndEncryptionEnabled": true
                       }
@@ -102406,8 +102466,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "5875833997986970033"
+                      "version": "0.48.1.52935",
+                      "templateHash": "9069249797962052810"
                     }
                   },
                   "parameters": {
@@ -102482,6 +102542,13 @@
                       "defaultValue": "",
                       "metadata": {
                         "description": "Optional. Command line for the application."
+                      }
+                    },
+                    "corsAllowedOrigins": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Optional. Origins allowed to make cross-origin requests to the app."
                       }
                     },
                     "kind": {
@@ -102571,7 +102638,8 @@
                           "healthCheckPath": "[if(not(empty(parameters('healthCheckPath'))), parameters('healthCheckPath'), null())]",
                           "webSocketsEnabled": "[parameters('webSocketsEnabled')]",
                           "appCommandLine": "[parameters('appCommandLine')]",
-                          "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]"
+                          "acrUseManagedIdentityCreds": "[parameters('acrUseManagedIdentityCreds')]",
+                          "cors": "[if(not(empty(parameters('corsAllowedOrigins'))), createObject('allowedOrigins', parameters('corsAllowedOrigins')), null())]"
                         },
                         "endToEndEncryptionEnabled": true
                       }
@@ -102715,8 +102783,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.15.27210",
-                      "templateHash": "8372110678437171529"
+                      "version": "0.48.1.52935",
+                      "templateHash": "13367423089512923648"
                     }
                   },
                   "parameters": {
@@ -103063,8 +103131,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.45.15.27210",
-                              "templateHash": "6381374613030863702"
+                              "version": "0.48.1.52935",
+                              "templateHash": "15455951482950640263"
                             }
                           },
                           "parameters": {
@@ -103152,8 +103220,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.45.15.27210",
-                              "templateHash": "6381374613030863702"
+                              "version": "0.48.1.52935",
+                              "templateHash": "15455951482950640263"
                             }
                           },
                           "parameters": {
