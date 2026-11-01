@@ -36,10 +36,10 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -64,7 +64,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload coverage reports
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: coverage-report
@@ -139,14 +139,14 @@ jobs:
           always() &&
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.fork == false
-        uses: MishaKav/pytest-coverage-comment@432ac90e8d345c93e1d90ee0838b35913abc9c9b  # v1.12.2
+        uses: MishaKav/pytest-coverage-comment@9516bf7f32a9229cf18d5e1717ae387c7154f279  # v1.13.0
         with:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: test-results.xml
           report-only-changed-files: true
 
       - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2
+        uses: EnricoMi/publish-unit-test-result-action@7622c5bf3d112a72ab4fa3951c2aa5723d8ab92d # v2
         if: always()
         with:
           files: test-results.xml
