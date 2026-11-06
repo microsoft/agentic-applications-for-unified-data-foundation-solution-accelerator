@@ -2,6 +2,17 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Dependency security updates
+
+Run `npm ci` to install the committed lockfile. Transitive security fixes are
+pinned in the `overrides` section of [package.json](./package.json); regenerate
+[package-lock.json](./package-lock.json) with `npm install --package-lock-only`
+after changing those pins.
+
+The `node-forge` 1.4.1 override fixes nested DigestAlgorithm signature forgery
+according to the [upstream changelog](https://github.com/digitalbazaar/forge/blob/v1.4.1/CHANGELOG.md),
+even though GHSA-86w9-cpqp-85rv currently lists no patched version.
+
 ## Available Scripts
 
 In the project directory, you can run:
